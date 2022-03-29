@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 
+
 class SimStatus(Enum):
     """
     Simulation status
@@ -10,6 +11,7 @@ class SimStatus(Enum):
     SUCCESS = 2
     RUN_FAILED = 3
     SUBMIT_FAILED = 4
+
 
 class Simulator(ABC):
     """
@@ -43,3 +45,27 @@ class Simulator(ABC):
         Method to write simulation data to database
         """
         pass
+
+
+class SimulatorFactory:
+    """
+    Class for generating simulators based on requested level/sim name
+    """
+    def __init__(self, available_simulators: dict):
+        """
+
+        :param available_simulators: dictionary of available simulators
+        i.e. {"lvl0": PotatoSim, "lvl1": LaptopSim, "lvl2": HPCSim}
+        """
+
+        self.available_simulators = available_simulators
+
+    def construct(self, simulator_id: str, parameters: dict):
+        """
+        Constructs Simulator from Simulator Class identifier
+        :param simulator_id: key/id of Simulator Class
+        :param parameters: problem/input parameter values (Might not include this here?)
+        :return: Simulator
+        """
+        simulator = self.available_simulators[simulator_id]()
+        return simulator
