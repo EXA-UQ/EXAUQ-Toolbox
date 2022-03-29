@@ -1,14 +1,14 @@
 from random import random
-from simulator import Simulator
-from simulator import SimStatus
+from exauq.simulator import SimStatus, Simulator, SimulatorFactory
+
 
 class Scheduler:
     """
     Schedules and tracks simulation runs
     """
-    def __init__(self, simulator_templates: dict): 
+    def __init__(self, simulator_factory: SimulatorFactory):
         
-        self.simulator_templates = simulator_templates
+        self.simulator_factory = simulator_factory
         self.requested_jobs = []
         self.submitted_jobs = []
         self.returned_jobs = []
@@ -34,14 +34,13 @@ class Scheduler:
             for sim in self.returned_jobs:
                 self.submitted_jobs.remove(sim)
 
-            
     def request_job(self, parameters: dict, sim_type: str) -> int:
         """
         Request a new job given a set of input parameters and the
         simulation type        
         """
         sim_id = int(1000*random())
-        sim = self.simulator_templates['sim_type']
+        sim = self.simulator_factory.construct(sim_type)
         sim.parameters = parameters
         sim.metadata['simulation_id'] = sim_id
         sim.metadata['simulation_type'] = sim_type
