@@ -1,5 +1,9 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import TypeVar
+
+
+TSimulator = TypeVar("TSimulator", bound="Simulator")
 
 
 class SimStatus(Enum):
@@ -60,7 +64,7 @@ class SimulatorFactory:
 
         self.available_simulators = available_simulators
 
-    def construct(self, simulator_id: str):
+    def construct(self, simulator_id: str) -> TSimulator:
         """
         Constructs Simulator from Simulator Class identifier
         :param simulator_id: key/id of Simulator Class
