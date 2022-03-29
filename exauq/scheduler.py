@@ -1,5 +1,5 @@
 from random import random
-from simulator import SimStatus, Simulator, SimulatorFactory
+from exauq.simulator import SimStatus, Simulator, SimulatorFactory
 
 
 class Scheduler:
