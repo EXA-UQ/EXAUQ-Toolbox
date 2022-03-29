@@ -60,11 +60,10 @@ class SimulatorFactory:
 
         self.available_simulators = available_simulators
 
-    def construct(self, simulator_id: str, parameters: dict):
+    def construct(self, simulator_id: str):
         """
         Constructs Simulator from Simulator Class identifier
         :param simulator_id: key/id of Simulator Class
-        :param parameters: problem/input parameter values (Might not include this here?)
         :return: Simulator
         """
         simulator = self.available_simulators[simulator_id]()
