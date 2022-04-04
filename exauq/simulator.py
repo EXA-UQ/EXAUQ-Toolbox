@@ -28,6 +28,7 @@ class Simulator(ABC):
         self.metadata = {}
         self.log_data = 'NULL'
         self.sup_data = 'NULL'
+        self.status = None
 
     @abstractmethod
     def run(self) -> None:

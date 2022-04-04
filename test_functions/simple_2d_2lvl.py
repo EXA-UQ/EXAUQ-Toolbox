@@ -1,8 +1,29 @@
 from exauq.simulator import Simulator, SimStatus
+from math import sqrt, pi, sin
 
 """
 A Simple 2D, 2 Level Toy Problem as defined in... 
 """
+
+problem_parameters = {"x1": (0, 1),
+                      "x2": (0, 1)}
+
+problem_outputs = {"y": None}
+
+
+def toy_2d_lvl0(x1: float, x2: float) -> float:
+    # Check 0 < x1&x2 < 1
+    if not 0 <= x1 <= 1 and 0 <= x2 <= 1:
+        raise ValueError("ERROR: input variable(s) out of range")
+
+    return x2 + x1**2 + x2**2 - sqrt(2)
+
+
+def toy_2d_lvl1(x1: float, x2: float) -> float:
+    if not 0 <= x1 <= 1 and 0 <= x2 <= 1:
+        raise ValueError("ERROR: input variable(s) out of range")
+
+    return toy_2d_lvl0(x1, x2) + sin(2*pi*x1) + sin(4*pi*x1*x2)
 
 
 class Simple2DLvl0(Simulator):
@@ -11,15 +32,21 @@ class Simple2DLvl0(Simulator):
     """
     def run(self) -> None:
         """
-        Method to run the simulator
+        Runs toy_2d_lvl0 function
         """
-        pass
+        x1 = self.parameters['x1']
+        x2 = self.parameters['x2']
+
+        y = toy_2d_lvl0(x1, x2)
+
+        self.output_data['y'] = y
+        self.status = SimStatus.SUCCESS
 
     def sim_status(self) -> SimStatus:
         """
         Method to check current status of simulation
         """
-        pass
+        return self.status
 
     def write_to_database(self) -> None:
         """
@@ -34,15 +61,21 @@ class Simple2DLvl1(Simulator):
     """
     def run(self) -> None:
         """
-        Method to run the simulator
+        Runs toy_2d_lvl1 function
         """
-        pass
+        x1 = self.parameters['x1']
+        x2 = self.parameters['x2']
+
+        y = toy_2d_lvl1(x1, x2)
+
+        self.output_data['y'] = y
+        self.status = SimStatus.SUCCESS
 
     def sim_status(self) -> SimStatus:
         """
         Method to check current status of simulation
         """
-        pass
+        return self.status
 
     def write_to_database(self) -> None:
         """
