@@ -1,10 +1,12 @@
 import time
+import subprocess
 from exauq.simulator import SimStatus, Simulator
 
 class DummySimLvl0(Simulator):
     """
     Simple level 0 dummy simulator
     """
+    
     def run(self) -> None:
         time.sleep(1)
         self.status = SimStatus.SUCCESS
