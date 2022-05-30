@@ -43,7 +43,7 @@ class Simple2DLvl0(Simulator):
         self.output_data['y'] = y
         self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> int:
+    def sim_status(self) -> JobStatus:
         """
         Method to check current status of simulation
         """
@@ -72,7 +72,7 @@ class Simple2DLvl1(Simulator):
         self.output_data['y'] = y
         self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> int:
+    def sim_status(self) -> JobStatus:
         """
         Method to check current status of simulation
         """

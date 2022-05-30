@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar
+from exauq.utilities import JobStatus
 
 TSimulator = TypeVar("TSimulator", bound="Simulator")
 
@@ -24,7 +25,7 @@ class Simulator(ABC):
         pass
 
     @abstractmethod
-    def sim_status(self) -> int:
+    def sim_status(self) -> JobStatus:
         """
         Method to check current status of simulation
         """

@@ -12,7 +12,7 @@ class DummySimLvl0(Simulator):
         time.sleep(1)
         self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> int:
+    def sim_status(self) -> JobStatus:
         return self.status
 
     def write_to_database(self) -> None:
@@ -28,7 +28,7 @@ class DummySimLvl1(Simulator):
         time.sleep(2)
         self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> int:
+    def sim_status(self) -> JobStatus:
         return self.status
 
     def write_to_database(self) -> None:
@@ -43,7 +43,7 @@ class DummySimLvl2(Simulator):
         time.sleep(5)
         self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> int:
+    def sim_status(self) -> JobStatus:
         return self.status
 
     def write_to_database(self) -> None:
@@ -58,7 +58,7 @@ class DummySimLvl3(Simulator):
         time.sleep(10)
         self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> int:
+    def sim_status(self) -> JobStatus:
         return self.status
 
     def write_to_database(self) -> None:
