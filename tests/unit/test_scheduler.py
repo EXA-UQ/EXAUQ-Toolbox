@@ -1,7 +1,8 @@
 import pytest
 
-from exauq.scheduler import Scheduler
-from exauq.simulator import SimulatorFactory, SimStatus
+from exauq.core.scheduler import Scheduler
+from exauq.core.simulator import SimulatorFactory
+from exauq.utilities.JobStatus import JobStatus
 from test_functions.dummy_sims import DummySimLvl0, DummySimLvl1, DummySimLvl2, DummySimLvl3
 
 def test_scheduler() -> None:
@@ -26,5 +27,5 @@ def test_scheduler() -> None:
     for job in list_of_jobs:
         scheduler.request_job(parameters=job[0], sim_type=job[1])
     scheduler.shutdown()
-    success = all(sim.status == SimStatus.SUCCESS for sim in scheduler.submitted_job_list) 
+    success = all(sim.status == JobStatus.SUCCESS for sim in scheduler.submitted_job_list) 
     assert success is True

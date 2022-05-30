@@ -1,6 +1,7 @@
 import time
 import subprocess
-from exauq.simulator import SimStatus, Simulator
+from exauq.core.simulator import Simulator
+from exauq.utilities.JobStatus import JobStatus
 
 class DummySimLvl0(Simulator):
     """
@@ -9,9 +10,9 @@ class DummySimLvl0(Simulator):
     
     def run(self) -> None:
         time.sleep(1)
-        self.status = SimStatus.SUCCESS
+        self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> SimStatus:
+    def sim_status(self) -> int:
         return self.status
 
     def write_to_database(self) -> None:
@@ -25,9 +26,9 @@ class DummySimLvl1(Simulator):
     __test__ = False
     def run(self) -> None:
         time.sleep(2)
-        self.status = SimStatus.SUCCESS
+        self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> SimStatus:
+    def sim_status(self) -> int:
         return self.status
 
     def write_to_database(self) -> None:
@@ -40,9 +41,9 @@ class DummySimLvl2(Simulator):
     """
     def run(self) -> None:
         time.sleep(5)
-        self.status = SimStatus.SUCCESS
+        self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> SimStatus:
+    def sim_status(self) -> int:
         return self.status
 
     def write_to_database(self) -> None:
@@ -55,9 +56,9 @@ class DummySimLvl3(Simulator):
     """
     def run(self) -> None:
         time.sleep(10)
-        self.status = SimStatus.SUCCESS
+        self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> SimStatus:
+    def sim_status(self) -> int:
         return self.status
 
     def write_to_database(self) -> None:

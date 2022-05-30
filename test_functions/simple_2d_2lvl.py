@@ -1,4 +1,5 @@
-from exauq.simulator import Simulator, SimStatus
+from exauq.core.simulator import Simulator
+from exauq.utilities.JobStatus import JobStatus
 from math import sqrt, pi, sin
 
 """
@@ -40,9 +41,9 @@ class Simple2DLvl0(Simulator):
         y = toy_2d_lvl0(x1, x2)
 
         self.output_data['y'] = y
-        self.status = SimStatus.SUCCESS
+        self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> SimStatus:
+    def sim_status(self) -> int:
         """
         Method to check current status of simulation
         """
@@ -69,9 +70,9 @@ class Simple2DLvl1(Simulator):
         y = toy_2d_lvl1(x1, x2)
 
         self.output_data['y'] = y
-        self.status = SimStatus.SUCCESS
+        self.status = JobStatus.SUCCESS
 
-    def sim_status(self) -> SimStatus:
+    def sim_status(self) -> int:
         """
         Method to check current status of simulation
         """

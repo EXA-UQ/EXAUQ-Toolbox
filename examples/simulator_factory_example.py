@@ -1,5 +1,6 @@
-from exauq.simulator import SimulatorFactory, Simulator, SimStatus
-from exauq.scheduler import Scheduler
+from exauq.core.simulator import SimulatorFactory, Simulator
+from exauq.core.scheduler import Scheduler
+from exauq.utilities.JobStatus import JobStatus
 
 
 class PotatoSim(Simulator):
@@ -12,11 +13,11 @@ class PotatoSim(Simulator):
         """
         print("Running the potato simulator")
 
-    def sim_status(self) -> SimStatus:
+    def sim_status(self) -> JobStatus:
         """
         Method to check current status of simulation
         """
-        return SimStatus.RUNNING
+        return JobStatus.RUNNING
 
     def write_to_database(self) -> None:
         """
@@ -35,11 +36,11 @@ class LaptopSim(Simulator):
         """
         print("Running the Laptop simulator")
 
-    def sim_status(self) -> SimStatus:
+    def sim_status(self) -> JobStatus:
         """
         Method to check current status of simulation
         """
-        return SimStatus.RUNNING
+        return JobStatus.RUNNING
 
     def write_to_database(self) -> None:
         """
@@ -58,11 +59,11 @@ class HPCSim(Simulator):
         """
         print("Running the HPC simulator")
 
-    def sim_status(self) -> SimStatus:
+    def sim_status(self) -> JobStatus:
         """
         Method to check current status of simulation
         """
-        return SimStatus.RUNNING
+        return JobStatus.RUNNING
 
     def write_to_database(self) -> None:
         """
@@ -89,4 +90,3 @@ if __name__ == "__main__":
     lvl0_job_id = schedular.request_job({"input_01": 2.5, "input_02": 1.25}, "lvl0")
     lvl1_job_id = schedular.request_job({"input_01": 5.125, "input_02": 3.21}, "lvl1")
     lvl2_job_id = schedular.request_job({"input_01": 4.32, "input_02": 0.25}, "lvl2")
-

@@ -2,7 +2,8 @@ import threading
 import random
 import queue
 import time
-from exauq.simulator import SimStatus, Simulator, SimulatorFactory
+from exauq.core.simulator import Simulator, SimulatorFactory
+from exauq.utilities.JobStatus import JobStatus
 
 class Scheduler:
     """
@@ -55,21 +56,21 @@ class Scheduler:
             # write data to database
             with self._lock:
                 for sim in self.submitted_job_list:
-                    if sim.status == SimStatus.SUCCESS or \
-                       sim.status == SimStatus.RUN_FAILED:
+                    if sim.status == JobStatus.SUCCESS or \
+                       sim.status == JobStatus.FAILED:
                        print("Sim id {} of sim type {} has completed".format(
                         sim.metadata['simulation_id'], 
                         sim.metadata['simulation_type']))
                        self.returned_job_queue.put(sim)
-                    if sim.status == SimStatus.SUCCESS:
+                    if sim.status == JobStatus.SUCCESS:
                         sim.write_to_database()
 
             # Shutdown scheduler main loop if shutdown signal has been recieved
             # and all current submitted jobs have been completed
             with self._lock:
                 if self.shutdown_scheduler and self.requested_job_queue.empty():
-                    all_runs_completed = all(sim.status == SimStatus.SUCCESS or
-                    sim.status == SimStatus.RUN_FAILED for sim in self.submitted_job_list)
+                    all_runs_completed = all(sim.status == JobStatus.SUCCESS or
+                    sim.status == JobStatus.FAILED for sim in self.submitted_job_list)
                     if all_runs_completed:
                         self.shutdown_monitoring = True
                         break
@@ -86,8 +87,8 @@ class Scheduler:
                 for sim in self.submitted_job_list:
                     # Poll status of submitted jobs if the current status of the 
                     # jobs indicates they have not completed
-                    if sim.status != SimStatus.SUCCESS or \
-                       sim.status != SimStatus.RUN_FAILED:
+                    if sim.status != JobStatus.SUCCESS or \
+                       sim.status != JobStatus.FAILED:
                         sim.sim_status()
             with self._lock:
                 if self.shutdown_monitoring:
