@@ -19,7 +19,10 @@ def ssh_run(command: str, host: str, username: str) -> typing.Tuple[str]:
     Tuple:
         A tuple of two strings, the stdout and stderr in that order
     """
-    ssh_command = ['ssh', username + '@' + host, command]
+    if username:
+        ssh_command = ['ssh', username + '@' + host, command]
+    else:
+        ssh_command = ['ssh', host, command]
     process = subprocess.Popen(ssh_command,
                      stdout = subprocess.PIPE, 
                      stderr = subprocess.PIPE,
