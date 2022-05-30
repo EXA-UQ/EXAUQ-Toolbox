@@ -6,10 +6,7 @@ class AtHandler(JobHandler):
     """
      Class for handling jobs with the at scheduler
     """
-    def __init__(self):
-        self.handler_id = "at"
-
-    def job_submit(self, sim_id: str, command: str,  host: str, username: str) -> str:
+    def submit_job(self, sim_id: str, command: str) -> str:
         """
         Method that submits a job via at and returns the job id
 
@@ -19,10 +16,6 @@ class AtHandler(JobHandler):
             id used to name stdout and stderr files - nominally should be set to simulator id.
         command: str
             command to run on host machine
-        host: str
-            host machine name
-        username: str
-            username to run job on remote machine
 
         Returns
         -------
@@ -31,7 +24,7 @@ class AtHandler(JobHandler):
         """
         redirect_com = '1> {0}.out 2> {0}.err ; echo "exitstatus = $?" >> {0}.err'.format(sim_id)
         submit_command = 'echo "' + command + ' ' + redirect_com + '" | at now 2>&1'
-        stdout, stderr = ssh_run(command=submit_command, host=host, username=username)
+        stdout, stderr = ssh_run(command=submit_command, host=self.host, user=self.user)
         if stderr:
             print('job submission failed with: ', stderr)
             job_id = None
@@ -40,7 +33,7 @@ class AtHandler(JobHandler):
         return job_id
 
 
-    def poll(self, sim_id: str, job_id: str, host: str, username: str) -> str:
+    def poll_job(self, sim_id: str, job_id: str) -> str:
         """
         Method that polls a job with atq given a job id and return status of the job
 
@@ -50,10 +43,6 @@ class AtHandler(JobHandler):
             id used to name stdout and stderr files - nominally would be set to simulator id.
         job_id: str
             the job id for which to poll
-        host: str
-            host machine name
-        username: str
-            username  
 
         Returns
         -------
@@ -61,7 +50,7 @@ class AtHandler(JobHandler):
             the current status of the job
         """
         poll_command = 'atq; tail -1 {0}.err'.format(sim_id) 
-        stdout, stderr = ssh_run(command=poll_command, host=host, username=username)
+        stdout, stderr = ssh_run(command=poll_command, host=self.host, user=self.user)
 
         job_status = None
         if stderr:
