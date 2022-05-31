@@ -5,9 +5,8 @@ class JobStatus(Enum):
     Simulation status
     """
     WAITING = 0
-    SUBMITTED = 1
-    SUBMIT_FAILED = 2
-    IN_QUEUE = 3
-    RUNNING = 4
-    FAILED = 5
-    SUCCESS = 6
+    SUBMIT_FAILED = 1
+    IN_QUEUE = 2
+    RUNNING = 3
+    FAILED = 4
+    SUCCESS = 5
