@@ -33,7 +33,7 @@ class AtHandler(JobHandler):
         return job_id
 
 
-    def poll_job(self, sim_id: str, job_id: str) -> str:
+    def poll_job(self, sim_id: str, job_id: str) -> JobStatus:
         """
         Method that polls a job with atq given a job id and return status of the job
 
@@ -46,7 +46,7 @@ class AtHandler(JobHandler):
 
         Returns
         -------
-        str:
+        JobStatus:
             the current status of the job
         """
         poll_command = 'atq; tail -1 {0}.err'.format(sim_id) 

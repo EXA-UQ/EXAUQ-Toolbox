@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from exauq.utilities.JobStatus import JobStatus
 
 class JobHandler(ABC):
     """
@@ -16,7 +17,7 @@ class JobHandler(ABC):
         pass
 
     @abstractmethod
-    def poll_job(self, sim_id: str, job_id: str) -> str:
+    def poll_job(self, sim_id: str, job_id: str) -> JobStatus:
         """
         Method that polls a job/process with given id
         """
