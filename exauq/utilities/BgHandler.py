@@ -2,13 +2,13 @@ from exauq.utilities.SecureShell import ssh_run
 from exauq.utilities.JobStatus import JobStatus
 from exauq.utilities.JobHandler import JobHandler
 
-class BatchHandler(JobHandler):
+class BgHandler(JobHandler):
     """
-     Class for handling jobs with the batch scheduler
+     Class for submitting jobs as a background process
     """
     def submit_job(self, sim_id: str, command: str) -> str:
         """
-        Method that submits a job via batch and returns the job id
+        Method that runs a job as a background process using bash and returns the process id
 
         Parameters
         ----------
@@ -22,20 +22,21 @@ class BatchHandler(JobHandler):
         str:
             the job id
         """
-        redirect_com = '1> {0}.out 2> {0}.err ; echo "exitstatus = $?" >> {0}.err'.format(sim_id)
-        submit_command = 'echo "' + command + ' ' + redirect_com + '" | batch 2>&1'
+        redirect_com = "1> {0}.out 2> {0}.err".format(sim_id)
+        submit_command = "nohup bash -c '" + command + " || echo FAILURE' " + redirect_com + " & echo $!"
+        print(submit_command)
         stdout, stderr = ssh_run(command=submit_command, host=self.host, user=self.user)
         if stderr:
             print('job submission failed with: ', stderr)
             job_id = None
         else:
-            job_id = stdout.split()[1]
+            job_id = stdout.split()[0]
         return job_id
 
 
     def poll_job(self, sim_id: str, job_id: str) -> JobStatus:
         """
-        Method that polls a job with atq given a job id and return status of the job
+        Method that polls a process with the ps command to check its status
 
         Parameter
         ---------
@@ -49,28 +50,20 @@ class BatchHandler(JobHandler):
         JobStatus:
             the current status of the job
         """
-        poll_command = 'atq; tail -1 {0}.err'.format(sim_id) 
+        poll_command = 'ps aux {0}; tail -1 {1}.out'.format(job_id, sim_id) 
         stdout, stderr = ssh_run(command=poll_command, host=self.host, user=self.user)
-
         job_status = None
+        print(stdout)
         if stderr:
             print('job polling failed with: ', stderr)
         else:
-            stdout_lines = [line for line in stdout.split("\n") if line]
-            for line in stdout_lines:
-                line_fields = line.split()
-                if line_fields[0] == job_id.strip():
-                    if line_fields[6] == '=':
-                        job_status = JobStatus.RUNNING
-                    else:
-                        job_status = JobStatus.IN_QUEUE
-                    break
-                elif line_fields[0] == 'exitstatus':
-                    if line_fields[2] == '0':
-                        job_status = JobStatus.SUCCESS
-                    else:
-                        job_status = JobStatus.FAILED
-                    break
+            stdout_strings = stdout.split()
+            if job_id.strip() in stdout_strings:
+                job_status = JobStatus.RUNNING
+            elif "FAILURE" in stdout_strings:
+                job_status = JobStatus.FAILED
+            else:
+                job_status = JobStatus.SUCCESS
             if job_status is None:
                 print("Status for job_id {} could not be acertained. \n output for polling command: {}".format(job_id, stdout))
         return job_status
