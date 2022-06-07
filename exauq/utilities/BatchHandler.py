@@ -22,8 +22,8 @@ class BatchHandler(JobHandler):
         str:
             the job id
         """
-        redirect_com = '1> {0}.out 2> {0}.err ; echo "exitstatus = $?" >> {0}.err'.format(sim_id)
-        submit_command = 'echo "' + command + ' ' + redirect_com + '" | batch 2>&1'
+        redirect_com = '1> {0}.out 2> {0}.err'.format(sim_id)
+        submit_command = 'echo "(' + command + ' || echo EXAUQ_JOB_FAILURE)' + redirect_com + '" | batch 2>&1'
         stdout, stderr = ssh_run(command=submit_command, host=self.host, user=self.user)
         if stderr:
             print('job submission failed with: ', stderr)
@@ -49,28 +49,23 @@ class BatchHandler(JobHandler):
         JobStatus:
             the current status of the job
         """
-        poll_command = 'atq; tail -1 {0}.err'.format(sim_id) 
+        poll_command = 'atq; tail -1 {0}.out'.format(sim_id) 
         stdout, stderr = ssh_run(command=poll_command, host=self.host, user=self.user)
 
         job_status = None
         if stderr:
             print('job polling failed with: ', stderr)
         else:
-            stdout_lines = [line for line in stdout.split("\n") if line]
-            for line in stdout_lines:
-                line_fields = line.split()
-                if line_fields[0] == job_id.strip():
-                    if line_fields[6] == '=':
-                        job_status = JobStatus.RUNNING
-                    else:
-                        job_status = JobStatus.IN_QUEUE
-                    break
-                elif line_fields[0] == 'exitstatus':
-                    if line_fields[2] == '0':
-                        job_status = JobStatus.SUCCESS
-                    else:
-                        job_status = JobStatus.FAILED
-                    break
+            stdout_fields = stdout.split()
+            if job_id.strip() in stdout_fields:
+                if job_id.strip() == stdout_fields[0] and stdout_fields[6] == '=':
+                    job_status = JobStatus.RUNNING
+                if job_id.strip() == stdout_fields[0] and stdout_fields[6] == 'b':
+                    job_status = JobStatus.IN_QUEUE
+            elif "EXAUQ_JOB_FAILURE" in stdout_fields:
+                    job_status = JobStatus.FAILED
+            else:
+                job_status = JobStatus.SUCCESS
             if job_status is None:
                 print("Status for job_id {} could not be acertained. \n output for polling command: {}".format(job_id, stdout))
         return job_status

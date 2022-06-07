@@ -23,8 +23,7 @@ class BgHandler(JobHandler):
             the job id
         """
         redirect_com = "1> {0}.out 2> {0}.err".format(sim_id)
-        submit_command = "nohup bash -c '" + command + " || echo FAILURE' " + redirect_com + " & echo $!"
-        print(submit_command)
+        submit_command = "nohup bash -c '" + command + " || echo EXAUQ_JOB_FAILURE' " + redirect_com + " & echo $!"
         stdout, stderr = ssh_run(command=submit_command, host=self.host, user=self.user)
         if stderr:
             print('job submission failed with: ', stderr)
@@ -53,14 +52,13 @@ class BgHandler(JobHandler):
         poll_command = 'ps aux {0}; tail -1 {1}.out'.format(job_id, sim_id) 
         stdout, stderr = ssh_run(command=poll_command, host=self.host, user=self.user)
         job_status = None
-        print(stdout)
         if stderr:
             print('job polling failed with: ', stderr)
         else:
-            stdout_strings = stdout.split()
-            if job_id.strip() in stdout_strings:
+            stdout_fields = stdout.split()
+            if job_id.strip() in stdout_fields:
                 job_status = JobStatus.RUNNING
-            elif "FAILURE" in stdout_strings:
+            elif "EXAUQ_JOB_FAILURE" in stdout_fields:
                 job_status = JobStatus.FAILED
             else:
                 job_status = JobStatus.SUCCESS

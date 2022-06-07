@@ -1,4 +1,5 @@
 import subprocess
+from sys import stderr
 import typing
 
 def ssh_run(command: str, host: str, user: str) -> typing.Tuple[str]:
@@ -29,4 +30,5 @@ def ssh_run(command: str, host: str, user: str) -> typing.Tuple[str]:
                      text = True,
                      shell = False
                      )
-    return process.communicate()
+    stdout, stderr = process.communicate()
+    return stdout, stderr
