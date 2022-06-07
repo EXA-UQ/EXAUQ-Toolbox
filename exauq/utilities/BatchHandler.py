@@ -22,8 +22,7 @@ class BatchHandler(JobHandler):
         str:
             the job id
         """
-        redirect_com = '1> {0}.out 2> {0}.err'.format(sim_id)
-        submit_command = 'echo "(' + command + ' || echo EXAUQ_JOB_FAILURE)' + redirect_com + '" | batch 2>&1'
+        submit_command = 'echo "({0} || echo EXAUQ_JOB_FAILURE) > {1}.out 2> {1}.err" | batch 2>&1'.format(command, sim_id)
         stdout, stderr = ssh_run(command=submit_command, host=self.host, user=self.user)
         if stderr:
             print('job submission failed with: ', stderr)

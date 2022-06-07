@@ -22,8 +22,7 @@ class BgHandler(JobHandler):
         str:
             the job id
         """
-        redirect_com = "1> {0}.out 2> {0}.err".format(sim_id)
-        submit_command = "nohup bash -c '" + command + " || echo EXAUQ_JOB_FAILURE' " + redirect_com + " & echo $!"
+        submit_command = "nohup bash -c '{0} || echo EXAUQ_JOB_FAILURE' > {1}.out 2> {1}.err & echo $!".format(command, sim_id)
         stdout, stderr = ssh_run(command=submit_command, host=self.host, user=self.user)
         if stderr:
             print('job submission failed with: ', stderr)
