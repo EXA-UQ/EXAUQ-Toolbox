@@ -1,17 +1,22 @@
 import time
-import subprocess
-from exauq.simulator import SimStatus, Simulator
+from exauq.core.simulator import Simulator
+from exauq.utilities.JobStatus import JobStatus
+from exauq.utilities.BgHandler import BgHandler
 
 class DummySimLvl0(Simulator):
     """
     Simple level 0 dummy simulator
     """
-    
-    def run(self) -> None:
-        time.sleep(1)
-        self.status = SimStatus.SUCCESS
+    JOBHANDLER = BgHandler(host="localhost", user="")
+    COMMAND = "sleep 1"
 
-    def sim_status(self) -> SimStatus:
+    def run(self) -> None:
+        self.metadata['job_id'] = self.JOBHANDLER.submit_job(sim_id=self.metadata['simulation_id'], command=self.COMMAND)
+
+    def sim_status(self) -> JobStatus:
+        status = self.JOBHANDLER.poll_job(sim_id=self.metadata['simulation_id'], job_id=self.metadata['job_id'])
+        if status:
+            self.status = status 
         return self.status
 
     def write_to_database(self) -> None:
@@ -22,12 +27,16 @@ class DummySimLvl1(Simulator):
     """
     Simple level 1 dummy simulator
     """
-    __test__ = False
-    def run(self) -> None:
-        time.sleep(2)
-        self.status = SimStatus.SUCCESS
+    JOBHANDLER = BgHandler(host="localhost", user="")
+    COMMAND = "sleep 2"
 
-    def sim_status(self) -> SimStatus:
+    def run(self) -> None:
+        self.metadata['job_id'] = self.JOBHANDLER.submit_job(sim_id=self.metadata['simulation_id'], command=self.COMMAND)
+
+    def sim_status(self) -> JobStatus:
+        status = self.JOBHANDLER.poll_job(sim_id=self.metadata['simulation_id'], job_id=self.metadata['job_id'])
+        if status:
+            self.status = status 
         return self.status
 
     def write_to_database(self) -> None:
@@ -38,11 +47,16 @@ class DummySimLvl2(Simulator):
     """
     Simple level 2 dummy simulator
     """
-    def run(self) -> None:
-        time.sleep(5)
-        self.status = SimStatus.SUCCESS
+    JOBHANDLER = BgHandler(host="localhost", user="")
+    COMMAND = "sleep 5"
 
-    def sim_status(self) -> SimStatus:
+    def run(self) -> None:
+        self.metadata['job_id'] = self.JOBHANDLER.submit_job(sim_id=self.metadata['simulation_id'], command=self.COMMAND)
+
+    def sim_status(self) -> JobStatus:
+        status = self.JOBHANDLER.poll_job(sim_id=self.metadata['simulation_id'], job_id=self.metadata['job_id'])
+        if status:
+            self.status = status 
         return self.status
 
     def write_to_database(self) -> None:
@@ -53,11 +67,16 @@ class DummySimLvl3(Simulator):
     """
     Simple level 3 dummy simulator
     """
-    def run(self) -> None:
-        time.sleep(10)
-        self.status = SimStatus.SUCCESS
+    JOBHANDLER = BgHandler(host="localhost", user="")
+    COMMAND = "sleep 10"
 
-    def sim_status(self) -> SimStatus:
+    def run(self) -> None:
+        self.metadata['job_id'] = self.JOBHANDLER.submit_job(sim_id=self.metadata['simulation_id'], command=self.COMMAND)
+
+    def sim_status(self) -> JobStatus:
+        status = self.JOBHANDLER.poll_job(sim_id=self.metadata['simulation_id'], job_id=self.metadata['job_id'])
+        if status:
+            self.status = status 
         return self.status
 
     def write_to_database(self) -> None:

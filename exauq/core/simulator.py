@@ -1,21 +1,8 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 from typing import TypeVar
-
+from exauq.utilities import JobStatus
 
 TSimulator = TypeVar("TSimulator", bound="Simulator")
-
-
-class SimStatus(Enum):
-    """
-    Simulation status
-    """
-    STARTED = 0
-    RUNNING = 1
-    SUCCESS = 2
-    RUN_FAILED = 3
-    SUBMIT_FAILED = 4
-
 
 class Simulator(ABC):
     """
@@ -38,7 +25,7 @@ class Simulator(ABC):
         pass
 
     @abstractmethod
-    def sim_status(self) -> SimStatus:
+    def sim_status(self) -> JobStatus:
         """
         Method to check current status of simulation
         """
