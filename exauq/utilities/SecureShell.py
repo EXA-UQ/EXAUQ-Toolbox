@@ -1,5 +1,4 @@
 import subprocess
-from sys import stderr
 import typing
 
 def ssh_run(command: str, host: str, user: str) -> typing.Tuple[str]:

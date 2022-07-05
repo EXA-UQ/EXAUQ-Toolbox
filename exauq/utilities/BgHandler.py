@@ -20,13 +20,12 @@ class BgHandler(JobHandler):
         if self.run_process is None:
             submit_command = "nohup bash -c '{0} || echo EXAUQ_JOB_FAILURE' > {1}.out 2> {1}.err & echo $!".format(command, sim_id)
             self.run_process = ssh_run(command=submit_command, host=self.host, user=self.user)
-            self.job_status = JobStatus.WAITING
+            self.job_status = JobStatus.SUBMITTED
 
     def get_jobid(self) -> None:
         """
         Method that checks for the job id
         """
-        print(self.run_process, self.job_id)
         if self.run_process is not None and self.job_id is None:
             if self.run_process.poll() is not None:
                 stdout, stderr = self.run_process.communicate()
