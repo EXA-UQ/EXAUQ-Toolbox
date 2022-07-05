@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 
+
 class JobHandler(ABC):
     """
-     Class describing a job handler
+    Class describing a job handler
     """
+
     def __init__(self, host: str, user: str) -> None:
         self.host = host
         self.user = user

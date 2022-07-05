@@ -3,11 +3,13 @@ from typing import TypeVar
 
 TSimulator = TypeVar("TSimulator", bound="Simulator")
 
+
 class Simulator(ABC):
     """
-     Class describing a single simulation with methods to run it, and 
-     retrieve output data
+    Class describing a single simulation with methods to run it, and
+    retrieve output data
     """
+
     JOBHANDLER = None
     COMMAND = None
 
@@ -15,13 +17,15 @@ class Simulator(ABC):
         self.parameters = {}
         self.output_data = {}
         self.metadata = {}
-        self.log_data = 'NULL'
-        self.sup_data = 'NULL'
+        self.log_data = "NULL"
+        self.sup_data = "NULL"
+
 
 class SimulatorFactory:
     """
     Class for generating simulators based on requested level/sim name
     """
+
     def __init__(self, available_simulators: dict):
         """
 

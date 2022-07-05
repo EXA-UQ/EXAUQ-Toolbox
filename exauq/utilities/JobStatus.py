@@ -1,9 +1,11 @@
 from enum import Enum
 
+
 class JobStatus(Enum):
     """
     Simulation status
     """
+
     SUBMITTED = 0
     SUBMIT_FAILED = 1
     IN_QUEUE = 2
