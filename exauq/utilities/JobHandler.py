@@ -22,7 +22,7 @@ class JobHandler(ABC):
     @abstractmethod
     def get_jobid(self) -> None:
         """
-        Method that returns the job id of submitted job.
+        Method that returns the job id.
         """
         pass
 

@@ -39,7 +39,7 @@ class BgHandler(JobHandler):
  
     def poll_job(self, sim_id: str) -> None:
         """
-        Method that polls a process with the ps command to check its status
+        Method that polls the process/job with the ps command and sets its status
 
         Parameter
         ---------

@@ -24,20 +24,24 @@ class Scheduler:
         self.shutdown_scheduler = False
         self.shutdown_monitoring = False
 
+        self.log_file = None
+
 
     def start_up(self):
-        print(time.strftime("%H:%M:%S", time.localtime()) + " Start up the scheduler ... ")
+        self.log_file = open("scheduler.log", "w", buffering=1)
+        self.log_event("Start up the scheduler ... ")
         self.scheduler_thread.start()
         self.monitor_thread.start()
 
 
     def shutdown(self):
-        print(time.strftime("%H:%M:%S", time.localtime()) + " Shutdown of the scheduler started ... ")
+        self.log_event("Shutdown of the scheduler started ... ")
         with self._lock:
             self.shutdown_scheduler = True
         self.scheduler_thread.join()
         self.monitor_thread.join()
-        print(time.strftime("%H:%M:%S", time.localtime()) + " Shutdown of the scheduler completed ... ")
+        self.log_event("Shutdown of the scheduler completed ... ")
+        self.log_file.close()
 
 
     def run_scheduler(self, sleep_period = 5) -> None:
@@ -55,12 +59,9 @@ class Scheduler:
                 for sim in self.submitted_job_list:
                     if sim.JOBHANDLER.job_id is None:
                         sim.JOBHANDLER.get_jobid()
-                        print(time.strftime("%H:%M:%S", time.localtime()) + " Polled sim {0} for job_id. Job returned {1}".format(sim.metadata['simulation_id'], sim.JOBHANDLER.job_id))
+                        self.log_event("Polled sim {0} for job_id. Job returned {1}".format(sim.metadata['simulation_id'], sim.JOBHANDLER.job_id))
                     if sim.JOBHANDLER.job_status == JobStatus.SUCCESS:
-                        print(time.strftime("%H:%M:%S", time.localtime()) + " Sim id {} has succeed".format(sim.metadata['simulation_id']))
                         self.returned_job_queue.put(sim)
-                    if sim.JOBHANDLER.job_status == JobStatus.FAILED:
-                        print(time.strftime("%H:%M:%S", time.localtime()) + " Sim id {} has failed".format(sim.metadata['simulation_id']))
 
                 if self.shutdown_scheduler and self.all_runs_completed():
                     self.shutdown_monitoring = True
@@ -81,7 +82,7 @@ class Scheduler:
                 for sim in self.submitted_job_list:
                     if sim.JOBHANDLER.job_status != JobStatus.SUCCESS or sim.JOBHANDLER.job_status != JobStatus.FAILED:
                         sim.JOBHANDLER.poll_job(sim_id=sim.metadata['simulation_id'])
-                        print(time.strftime("%H:%M:%S", time.localtime()) + " Polled sim {0} for job_status. Status returned {1}".format(sim.metadata['simulation_id'], sim.JOBHANDLER.job_status))
+                        self.log_event("Polled sim {0} with job id {1} for job_status. Status returned {2}".format(sim.metadata['simulation_id'], sim.JOBHANDLER.job_id, sim.JOBHANDLER.job_status))
 
                 if self.shutdown_monitoring and self.all_runs_completed():
                     break
@@ -100,7 +101,7 @@ class Scheduler:
             sim.metadata['simulation_id'] = str(random.randint(1,1000))
             sim.metadata['simulation_type'] = sim_type
             self.requested_job_queue.put(sim)
-            print(time.strftime("%H:%M:%S", time.localtime()) + " Added sim {} of type {} to requested job queue".format(
+            self.log_event("Added sim {} of type {} to requested job queue".format(
                 sim.metadata['simulation_id'], sim.metadata['simulation_type']))
 
 
@@ -112,7 +113,7 @@ class Scheduler:
             sim = self.requested_job_queue.get()
             sim.JOBHANDLER.submit_job(sim_id=sim.metadata['simulation_id'], command=sim.COMMAND)
             self.submitted_job_list.append(sim)
-            print(time.strftime("%H:%M:%S", time.localtime()) + " Submitted job for sim {}".format(sim.metadata['simulation_id']))
+            self.log_event("Submitted job for sim {}".format(sim.metadata['simulation_id']))
 
 
     def all_runs_completed(self) -> bool:
@@ -120,3 +121,10 @@ class Scheduler:
         Check if all runs in the submitted job list has completed
         """
         return all(sim.JOBHANDLER.job_status == JobStatus.SUCCESS or sim.JOBHANDLER.job_status == JobStatus.FAILED for sim in self.submitted_job_list)
+
+
+    def log_event(self, message: str) -> None:
+        """
+        Simple event printout to stdout with time_stamp
+        """
+        self.log_file.write(time.strftime("%H:%M:%S", time.localtime()) + " : " + message + "\n")
