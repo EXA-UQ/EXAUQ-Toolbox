@@ -30,5 +30,5 @@ def test_scheduler() -> None:
         if scheduler.requested_job_queue.empty():
             scheduler.shutdown()
             break
-    success = all(sim.status == JobStatus.SUCCESS for sim in scheduler.submitted_job_list)
+    success = all(sim.JOBHANDLER.job_status == JobStatus.SUCCESS for sim in scheduler.submitted_job_list)
     assert success is True

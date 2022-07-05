@@ -30,5 +30,4 @@ def ssh_run(command: str, host: str, user: str) -> typing.Tuple[str]:
                      text = True,
                      shell = False
                      )
-    stdout, stderr = process.communicate()
-    return stdout, stderr
+    return process

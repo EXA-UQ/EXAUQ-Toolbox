@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar
-from exauq.utilities import JobStatus
 
 TSimulator = TypeVar("TSimulator", bound="Simulator")
 
@@ -9,35 +8,15 @@ class Simulator(ABC):
      Class describing a single simulation with methods to run it, and 
      retrieve output data
     """
+    JOBHANDLER = None
+    COMMAND = None
+
     def __init__(self):
         self.parameters = {}
         self.output_data = {}
         self.metadata = {}
         self.log_data = 'NULL'
         self.sup_data = 'NULL'
-        self.status = None
-
-    @abstractmethod
-    def run(self) -> None:
-        """
-        Method to run the simulator
-        """
-        pass
-
-    @abstractmethod
-    def sim_status(self) -> JobStatus:
-        """
-        Method to check current status of simulation
-        """
-        pass
-
-    @abstractmethod
-    def write_to_database(self) -> None:
-        """
-        Method to write simulation data to database
-        """
-        pass
-
 
 class SimulatorFactory:
     """
