@@ -1,3 +1,4 @@
+import time
 from exauq.utilities.SecureShell import ssh_run
 from exauq.utilities.JobStatus import JobStatus
 from exauq.utilities.JobHandler import JobHandler
@@ -20,6 +21,7 @@ class AtHandler(JobHandler):
             command to run on host machine
         """
         if self.run_process is None:
+            self.submit_time = time.strftime("%H:%M:%S", time.localtime())
             submit_command = 'echo "({0} || echo EXAUQ_JOB_FAILURE) > {1}.out 2> {1}.err" | at now 2>&1'.format(
                 command, sim_id
             )
@@ -37,6 +39,7 @@ class AtHandler(JobHandler):
         sim_id: str
             id used to name stdout and stderr files - nominally would be set to simulator id.
         """
+        self.last_poll_time = time.strftime("%H:%M:%S", time.localtime())
         if self.run_process is not None and self.job_id is None:
             if self.run_process.poll() is not None:
                 stdout, stderr = self.run_process.communicate()

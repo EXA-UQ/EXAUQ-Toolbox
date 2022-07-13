@@ -18,6 +18,7 @@ class Scheduler:
 
         self.event_queue = queue.Queue()
         self.requested_job_list = []
+        self.requested_job_status = {}
 
         self.scheduler_thread = threading.Thread(target=self.run_scheduler)
         self.monitor_thread = threading.Thread(target=self.run_monitor)
@@ -30,17 +31,14 @@ class Scheduler:
 
     def start_up(self):
         self.log_file = open("scheduler.log", "w", buffering=1)
-        self.log_event("Start up the scheduler ... ")
         self.scheduler_thread.start()
         self.monitor_thread.start()
 
     def shutdown(self):
-        self.log_event("Shutdown of the scheduler started ... ")
         with self._lock:
             self.shutdown_scheduler = True
         self.scheduler_thread.join()
         self.monitor_thread.join()
-        self.log_event("Shutdown of the scheduler completed ... ")
         self.log_file.close()
 
     def run_scheduler(self, sleep_period=5) -> None:
@@ -67,10 +65,8 @@ class Scheduler:
         while True:
             with self._lock:
                 for sim in self.requested_job_list:
-                    if (
-                        sim.JOBHANDLER.job_status != JobStatus.SUCCESS
-                        or sim.JOBHANDLER.job_status != JobStatus.FAILED
-                    ):
+                    status = sim.JOBHANDLER.job_status
+                    if status != JobStatus.SUCCESS or status != JobStatus.FAILED:
                         self.event_queue.put(Event(EventType.POLL_SIM, sim))
                 if self.shutdown_monitoring and self.all_runs_completed():
                     break
@@ -88,11 +84,6 @@ class Scheduler:
             sim.metadata["simulation_type"] = sim_type
             self.requested_job_list.append(sim)
             self.event_queue.put(Event(EventType.SUBMIT_SIM, sim))
-            self.log_event(
-                "Added sim {} of type {} to event list for submission".format(
-                    sim.metadata["simulation_id"], sim.metadata["simulation_type"]
-                )
-            )
 
     def event_handler(self) -> None:
         """
@@ -102,33 +93,24 @@ class Scheduler:
             event = self.event_queue.get()
             sim = event.sim
             if event.type == EventType.SUBMIT_SIM:
-                sim.JOBHANDLER.submit_job(
-                sim_id=sim.metadata["simulation_id"], command=sim.COMMAND
-                )
-                self.log_event(
-                "Submitted job for sim {}".format(sim.metadata["simulation_id"])
-                )
+                sim.JOBHANDLER.submit_job(sim_id=sim.metadata["simulation_id"], command=sim.COMMAND)
             elif event.type == EventType.POLL_SIM:
                 sim.JOBHANDLER.poll_job(sim_id=sim.metadata["simulation_id"])
-                self.log_event(
-                    "Polling sim {0} with job id {1} for job_status.".format(
-                        sim.metadata["simulation_id"],
-                        sim.JOBHANDLER.job_id
-                    )
-                )
 
     def update_status_log(self):
         """
         Update the status log of all current requested sim runs
         """
         for sim in self.requested_job_list:
-            self.log_event(
-                "Sim {0} with job id {1} has job status {2}".format(
-                    sim.metadata["simulation_id"],
-                    sim.JOBHANDLER.job_id,
-                    sim.JOBHANDLER.job_status  
-                )
-            )
+            sim_id = sim.metadata["simulation_id"]
+            if sim_id not in self.requested_job_status:
+                self.requested_job_status[sim_id] = {}
+            self.requested_job_status[sim_id]["host"] = sim.JOBHANDLER.host
+            self.requested_job_status[sim_id]["job_id"] = sim.JOBHANDLER.job_id
+            self.requested_job_status[sim_id]["job_status"] =  sim.JOBHANDLER.job_status
+            self.requested_job_status[sim_id]["submit_time"] =  sim.JOBHANDLER.submit_time
+            self.requested_job_status[sim_id]["last_poll_time"] =  sim.JOBHANDLER.last_poll_time
+        self.log_status()
 
     def all_runs_completed(self) -> bool:
         """
@@ -140,11 +122,21 @@ class Scheduler:
             for sim in self.requested_job_list
         )
 
-    def log_event(self, message: str) -> None:
+    def log_status(self) -> None:
         """
-        Simple event printout to stdout with time_stamp
+        Simple event printout of current status
         """
-        print(time.strftime("%H:%M:%S", time.localtime()) + " : " + message + "\n")
-        self.log_file.write(
-            time.strftime("%H:%M:%S", time.localtime()) + " : " + message + "\n"
-        )
+        current_time = time.strftime("%H:%M:%S", time.localtime())
+        message = current_time + ":\n"
+        for sim_id, sim_status in self.requested_job_status.items():
+            message = message + \
+                "sim_id: {0} host: {1} job_id: {2} submit_time: {3} last_poll_time: {4} job_status: {5}\n".format(
+                    sim_id,
+                    sim_status["host"],
+                    sim_status["job_id"],
+                    sim_status["submit_time"],
+                    sim_status["last_poll_time"],
+                    sim_status["job_status"]
+                )
+        print(message)
+        self.log_file.write(message)

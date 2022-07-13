@@ -1,4 +1,5 @@
 import pytest
+import time
 from exauq.core.scheduler import Scheduler
 from exauq.core.simulator import SimulatorFactory
 from exauq.utilities.JobStatus import JobStatus
@@ -29,12 +30,10 @@ def test_scheduler() -> None:
     list_of_jobs = [({}, "lvl0"), ({}, "lvl1"), ({}, "lvl2"), ({}, "lvl3")]
     for job in list_of_jobs:
         scheduler.request_job(parameters=job[0], sim_type=job[1])
-    while True:
-        if scheduler.requested_job_queue.empty():
-            scheduler.shutdown()
-            break
+        time.sleep(10)
+    scheduler.shutdown()
     success = all(
         sim.JOBHANDLER.job_status == JobStatus.SUCCESS
-        for sim in scheduler.submitted_job_list
+        for sim in scheduler.requested_job_list
     )
     assert success is True

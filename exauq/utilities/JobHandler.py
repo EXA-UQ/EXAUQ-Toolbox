@@ -13,6 +13,8 @@ class JobHandler(ABC):
         self.poll_process = None
         self.job_id = None
         self.job_status = None
+        self.submit_time = None
+        self.last_poll_time = None
 
     @abstractmethod
     def submit_job(self, sim_id: str, command: str) -> None:

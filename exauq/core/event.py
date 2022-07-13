@@ -4,9 +4,8 @@ from exauq.core.simulator import Simulator
 
 class EventType(Enum):
     """
-    Simulation status
+    Event types
     """
-
     SUBMIT_SIM = 0
     POLL_SIM = 1
 
@@ -19,6 +18,5 @@ class Event:
         """
         Instantiate a basic event associated with a particular sim
         """
-
         self.type = event_type
         self.sim = sim
