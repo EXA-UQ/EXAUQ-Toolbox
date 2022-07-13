@@ -22,13 +22,6 @@ class JobHandler(ABC):
         pass
 
     @abstractmethod
-    def get_jobid(self) -> None:
-        """
-        Method that returns the job id.
-        """
-        pass
-
-    @abstractmethod
     def poll_job(self, sim_id: str, job_id: str) -> None:
         """
         Method that polls the job/process with given id
