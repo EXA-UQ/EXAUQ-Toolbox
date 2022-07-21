@@ -1,6 +1,6 @@
 import subprocess
-from sys import stderr
 import typing
+
 
 def ssh_run(command: str, host: str, user: str) -> typing.Tuple[str]:
     """
@@ -21,14 +21,14 @@ def ssh_run(command: str, host: str, user: str) -> typing.Tuple[str]:
         A tuple of two strings, the stdout and stderr in that order
     """
     if user:
-        ssh_command = ['ssh', user + '@' + host, command]
+        ssh_command = ["ssh", user + "@" + host, command]
     else:
-        ssh_command = ['ssh', host, command]
-    process = subprocess.Popen(ssh_command,
-                     stdout = subprocess.PIPE, 
-                     stderr = subprocess.PIPE,
-                     text = True,
-                     shell = False
-                     )
-    stdout, stderr = process.communicate()
-    return stdout, stderr
+        ssh_command = ["ssh", host, command]
+    process = subprocess.Popen(
+        ssh_command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        shell=False,
+    )
+    return process

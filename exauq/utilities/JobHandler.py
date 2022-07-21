@@ -1,24 +1,31 @@
 from abc import ABC, abstractmethod
-from exauq.utilities.JobStatus import JobStatus
+
 
 class JobHandler(ABC):
     """
-     Class describing a job handler
+    Class describing a job handler
     """
+
     def __init__(self, host: str, user: str) -> None:
         self.host = host
         self.user = user
+        self.run_process = None
+        self.poll_process = None
+        self.job_id = None
+        self.job_status = None
+        self.submit_time = None
+        self.last_poll_time = None
 
     @abstractmethod
-    def submit_job(self, sim_id: str, command: str) -> str:
+    def submit_job(self, sim_id: str, command: str) -> None:
         """
-        Method that runs a command and returns the process/job id.
+        Method that submits a job remotely.
         """
         pass
 
     @abstractmethod
-    def poll_job(self, sim_id: str, job_id: str) -> JobStatus:
+    def poll_job(self, sim_id: str, job_id: str) -> None:
         """
-        Method that polls a job/process with given id
+        Method that polls the job/process with given id
         """
         pass
