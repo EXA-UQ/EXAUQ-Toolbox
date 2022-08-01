@@ -32,22 +32,19 @@ class Scheduler:
         self.shutdown_monitoring = False
 
         self.frontend = False
-        self.gui_conn = None
-        self.gui_process = None
+        self.frontend_conn = None
+        self.frontend_process = None
 
         self.log_file = None
 
     def start_up(self, frontend=True):
         self.frontend = frontend
         if self.frontend:
-            self.gui_conn, child_conn = Pipe()
-            self.gui_process = Process(target=start_dash, args=(child_conn,))
-            self.gui_process.start()
+            self.run_frontend()
 
         self.log_file = open("scheduler.log", "w", buffering=1)
         self.scheduler_thread.start()
         self.monitor_thread.start()
-
 
     def shutdown(self):
         with self._lock:
@@ -55,6 +52,14 @@ class Scheduler:
         self.scheduler_thread.join()
         self.monitor_thread.join()
         self.log_file.close()
+
+    def run_frontend(self) -> None:
+        """
+        Runs frontend...
+        """
+        self.frontend_conn, child_conn = Pipe()
+        self.frontend_process = Process(target=start_dash, args=(child_conn,))
+        self.frontend_process.start()
 
     def run_scheduler(self, sleep_period=5) -> None:
         """
