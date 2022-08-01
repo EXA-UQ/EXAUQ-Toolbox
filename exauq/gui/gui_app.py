@@ -9,16 +9,7 @@ import dash_bootstrap_components as dbc
 
 from enum import Enum
 
-class JobStatus(Enum):
-    """
-    Simulation status
-    """
-    WAITING = 0
-    SUBMIT_FAILED = 1
-    IN_QUEUE = 2
-    RUNNING = 3
-    FAILED = 4
-    SUCCESS = 5
+from exauq.utilities.JobStatus import JobStatus
 
 class HandlerType(Enum):
     SSH = 0
@@ -111,17 +102,11 @@ schedular_connection = None
 @app.callback(Output('live-update-text', 'children'),
               Input('interval-component', 'n_intervals'))
 def update_metrics(n):
-    #global schedular_connection
     if schedular_connection.poll():
         status = schedular_connection.recv()
-        print(status)
-        print("STR********")
-        print(str(status))
         return html.Code(str(status))
 
     return html.H1("Hello")
-
-
 
 
 def start_dash(connection):
