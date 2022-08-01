@@ -133,7 +133,22 @@ class Scheduler:
             self.requested_job_status[sim_id]["job_status"] =  sim.JOBHANDLER.job_status
             self.requested_job_status[sim_id]["submit_time"] =  sim.JOBHANDLER.submit_time
             self.requested_job_status[sim_id]["last_poll_time"] =  sim.JOBHANDLER.last_poll_time
+            self.requested_job_status[sim_id]["simulation_type"] = sim.metadata["simulation_type"]
         self.log_status()
+
+        if self.frontend_process:
+            job_status = {"123456789": {"host": "localhost",
+                                        "job_id": "Hgs562353vd",
+                                        "job_status": JobStatus.SUCCESS,
+                                        "submit_time": "12:35:01",
+                                        "last_poll_time": "13:02:54"}
+                          ,"987654321": {"host": "localhost",
+                                           "job_id": "Hgs562353vd",
+                                           "job_status": JobStatus.SUCCESS,
+                                           "submit_time": "12:35:01",
+                                           "last_poll_time": "13:02:54"}}
+
+            self.frontend_conn.send(job_status)
 
     def all_runs_completed(self) -> bool:
         """

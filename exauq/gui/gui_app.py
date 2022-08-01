@@ -1,6 +1,6 @@
 # Run this app with `python app.py` and
 # visit http://127.0.0.1:8050/ in your web browser.
-
+import json
 from dash import Dash, html, dcc
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
@@ -111,7 +111,15 @@ schedular_connection = None
 @app.callback(Output('live-update-text', 'children'),
               Input('interval-component', 'n_intervals'))
 def update_metrics(n):
-    return html.H1("Blah")
+    #global schedular_connection
+    if schedular_connection.poll():
+        status = schedular_connection.recv()
+        print(status)
+        print("STR********")
+        print(str(status))
+        return html.Code(str(status))
+
+    return html.H1("Hello")
 
 
 
