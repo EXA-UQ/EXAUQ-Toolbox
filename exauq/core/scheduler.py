@@ -53,6 +53,9 @@ class Scheduler:
         self.monitor_thread.join()
         self.log_file.close()
 
+        if self.frontend_process:
+            self.frontend_process.terminate()
+
     def run_frontend(self) -> None:
         """
         Runs frontend...
