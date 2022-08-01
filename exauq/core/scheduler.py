@@ -2,8 +2,12 @@ import threading
 import random
 import queue
 import time
+
+from multiprocessing import Process, Pipe
+
 from exauq.core.simulator import SimulatorFactory
 from exauq.core.event import Event, EventType
+from exauq.gui.gui_app import start_dash
 from exauq.utilities.JobStatus import JobStatus
 
 
@@ -27,12 +31,23 @@ class Scheduler:
         self.shutdown_scheduler = False
         self.shutdown_monitoring = False
 
+        self.frontend = False
+        self.gui_conn = None
+        self.gui_process = None
+
         self.log_file = None
 
-    def start_up(self):
+    def start_up(self, frontend=True):
+        self.frontend = frontend
+        if self.frontend:
+            self.gui_conn, child_conn = Pipe()
+            self.gui_process = Process(target=start_dash, args=(child_conn,))
+            self.gui_process.start()
+
         self.log_file = open("scheduler.log", "w", buffering=1)
         self.scheduler_thread.start()
         self.monitor_thread.start()
+
 
     def shutdown(self):
         with self._lock:
