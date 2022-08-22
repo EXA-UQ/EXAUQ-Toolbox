@@ -130,9 +130,9 @@ class Scheduler:
                 self.requested_job_status[sim_id] = {}
             self.requested_job_status[sim_id]["host"] = sim.JOBHANDLER.host
             self.requested_job_status[sim_id]["job_id"] = sim.JOBHANDLER.job_id
-            self.requested_job_status[sim_id]["job_status"] =  sim.JOBHANDLER.job_status
-            self.requested_job_status[sim_id]["submit_time"] =  sim.JOBHANDLER.submit_time
-            self.requested_job_status[sim_id]["last_poll_time"] =  sim.JOBHANDLER.last_poll_time
+            self.requested_job_status[sim_id]["job_status"] = sim.JOBHANDLER.job_status
+            self.requested_job_status[sim_id]["submit_time"] = sim.JOBHANDLER.submit_time
+            self.requested_job_status[sim_id]["last_poll_time"] = sim.JOBHANDLER.last_poll_time
             self.requested_job_status[sim_id]["simulation_type"] = sim.metadata["simulation_type"]
         self.log_status()
 
