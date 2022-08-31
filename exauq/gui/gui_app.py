@@ -1,28 +1,10 @@
-# Run this app with `python app.py` and
-# visit http://127.0.0.1:8050/ in your web browser.
-import json
 from dash import Dash, html, dcc
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
-#import plotly.express as px
-#import pandas as pd
 
 from enum import Enum
 
 from exauq.utilities.JobStatus import JobStatus
-
-class HandlerType(Enum):
-    SSH = 0
-    HTTP = 1
-
-class SimType(Enum):
-    CPU = 0
-    GPU = 1
-    HPC = 2
-
-#class Event():
-#    def __init__(self):
-#        pass
 
 app = Dash(external_stylesheets=[dbc.themes.SLATE, dbc.icons.BOOTSTRAP])
 
