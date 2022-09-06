@@ -1,97 +1,70 @@
-# Run this app with `python app.py` and
-# visit http://127.0.0.1:8050/ in your web browser.
-import json
 from dash import Dash, html, dcc
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
-#import plotly.express as px
-#import pandas as pd
 
 from enum import Enum
 
 from exauq.utilities.JobStatus import JobStatus
 
-class HandlerType(Enum):
-    SSH = 0
-    HTTP = 1
-
-class SimType(Enum):
-    CPU = 0
-    GPU = 1
-    HPC = 2
-
-#class Event():
-#    def __init__(self):
-#        pass
-
 app = Dash(external_stylesheets=[dbc.themes.SLATE, dbc.icons.BOOTSTRAP])
 
 list_group = dbc.ListGroup(
-    [
-        dbc.ListGroupItem(
-            [
-                html.Div(
-                    [
-                        html.H5("<Job Name>", className="mb-1"),
-                        dbc.Spinner(color="success", type="grow", size="sm")
-                    ],
-                    className="d-flex w-100 justify-content-between",
-                ),
-                html.P("And some text underneath", className="mb-1"),
-                html.Small("Plus some small print.", className="text-muted"),
-                html.I(className="bi bi-cpu-fill")
-            ],
-            href="https://google.com"
-        ),
-        dbc.ListGroupItem(
-            [
-                html.Div(
-                    [
-                        html.H5(
-                            "This item also has a heading", className="mb-1"
-                        ),
-                        html.Small("Ok!", className="text-warning"),
-                    ],
-                    className="d-flex w-100 justify-content-between",
-                ),
-                html.P("And some more text underneath too", className="mb-1"),
-                html.Small(
-                    "Plus even more small print.", className="text-muted"
-                ),
-            ]
-        ),
-
-        dbc.ListGroupItem(
-            [
-                html.Div(
-                    [
-                        html.H6("MET-09876K"),
-                        html.I(className="bi bi-cpu-fill", style={"color": "#03fc9d"}, id="sim_type"),
-                        dbc.Tooltip("Local Machine", target="sim_type")
-                    ],
-                    className="d-flex w-100 justify-content-between",
-                ),
-            ]
-        )
-    ],
+    [],
+    style={"max-height": "calc(100vh - 130px)", "overflow": "scroll", "margin-bottom": "10px"},
 )
-
 
 app_layout = dbc.Container(
     [
         dbc.Row(
             [
-                dbc.Col(html.Div("A single, half-width column"), width=6),
-                dbc.Col(list_group)
-            ]
+                dbc.Col(
+                    html.H4("Jobs"),
+                    className="text-center"
+                ),
+                dbc.Col(
+                    html.H4("Details"),
+                    className="text-center"
+                ),
+            ],
         ),
+        dbc.Row(
+            [
+                dbc.Col(list_group),
+                dbc.Col(html.Div(html.P("..."))),
+            ],
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        dbc.Button([html.I(className="bi bi-funnel")], id="tooltip-target-btn-filter"),
+                        dbc.Button([html.I(className="bi bi-sort-down")], id="tooltip-target-btn-sort"),
+                        dbc.Button([html.I(className="bi bi-three-dots")], id="tooltip-target-btn-more"),
+                        dbc.Tooltip("Filter Jobs", target="tooltip-target-btn-filter", placement="bottom"),
+                        dbc.Tooltip("Sort Jobs", target="tooltip-target-btn-sort",  placement="bottom"),
+                        dbc.Tooltip("More Options", target="tooltip-target-btn-more", placement="bottom"),
+                    ],
+                    className="d-flex justify-content-center"
+                ),
+                dbc.Col(html.Div(html.P("...."))),
+            ],
+        ),
+        html.Footer(
+            [
+                html.Small("IP Address"),
+                html.I(className="bi bi-cpu-fill", style={"color": "#03fc9d"}),
+            ],
+            className="mt-auto d-flex w-100 justify-content-between",
+        ),
+        filter_modal(),
         html.Div(id='live-update-text'),
         dcc.Interval(
             id='interval-component',
             interval=5*1000,  # in milliseconds
             n_intervals=0
         ),
-    ]
+    ],
+    className="d-flex flex-column min-vh-100",
 )
 
 app.layout = app_layout
