@@ -112,7 +112,7 @@ def mdl_filter():
                 ),
             ),
         ],
-        id="filter-modal",
+        id="mdl-filter",
         centered=True,
         is_open=False,
     )

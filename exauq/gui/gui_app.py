@@ -1,5 +1,5 @@
 from dash import Dash, html, dcc
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 
 from enum import Enum
@@ -39,10 +39,10 @@ app_layout = dbc.Container(
             [
                 dbc.Col(
                     [
-                        dbc.Button([html.I(className="bi bi-funnel")], id="tooltip-target-btn-filter"),
+                        dbc.Button([html.I(className="bi bi-funnel")], id="btn-filter"),
                         dbc.Button([html.I(className="bi bi-sort-down")], id="tooltip-target-btn-sort"),
                         dbc.Button([html.I(className="bi bi-three-dots")], id="tooltip-target-btn-more"),
-                        dbc.Tooltip("Filter Jobs", target="tooltip-target-btn-filter", placement="bottom"),
+                        dbc.Tooltip("Filter Jobs", target="btn-filter", placement="bottom"),
                         dbc.Tooltip("Sort Jobs", target="tooltip-target-btn-sort",  placement="bottom"),
                         dbc.Tooltip("More Options", target="tooltip-target-btn-more", placement="bottom"),
                     ],
@@ -58,7 +58,7 @@ app_layout = dbc.Container(
             ],
             className="mt-auto d-flex w-100 justify-content-between",
         ),
-        filter_modal(),
+        mdl_filter(),
         html.Div(id='live-update-text'),
         dcc.Interval(
             id='interval-component',
@@ -82,6 +82,19 @@ def update_metrics(n):
         return html.Code(str(status))
 
     return html.H1("Hello")
+
+
+@app.callback(
+    Output("mdl-filter", "is_open"),
+    [Input("btn-filter", "n_clicks")],
+    [State("mdl-filter", "is_open")],
+)
+def toggle_modal(n1, is_open):
+    if n1:
+        return not is_open
+    return is_open
+
+
 
 
 def start_dash(connection):
