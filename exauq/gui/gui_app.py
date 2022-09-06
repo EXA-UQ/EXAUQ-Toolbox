@@ -6,6 +6,8 @@ from enum import Enum
 
 from exauq.utilities.JobStatus import JobStatus
 
+from exauq.gui.mdl_filter import mdl_filter
+
 app = Dash(external_stylesheets=[dbc.themes.SLATE, dbc.icons.BOOTSTRAP])
 
 list_group = dbc.ListGroup(
