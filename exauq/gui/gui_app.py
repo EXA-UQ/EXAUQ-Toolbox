@@ -7,11 +7,13 @@ from enum import Enum
 from exauq.utilities.JobStatus import JobStatus
 
 from exauq.gui.mdl_filter import mdl_filter
+from exauq.gui.lgi_job import create_job_lgi
 
 app = Dash(external_stylesheets=[dbc.themes.SLATE, dbc.icons.BOOTSTRAP])
 
-list_group = dbc.ListGroup(
+list_group_jobs = dbc.ListGroup(
     [],
+    id="lg-jobs",
     style={"max-height": "calc(100vh - 130px)", "overflow": "scroll", "margin-bottom": "10px"},
 )
 
@@ -31,7 +33,7 @@ app_layout = dbc.Container(
         ),
         dbc.Row(
             [
-                dbc.Col(list_group),
+                dbc.Col(html.Div(id='lg-jobs-container')),
                 dbc.Col(html.Div(html.P("..."))),
             ],
         ),
@@ -74,12 +76,21 @@ app.layout = app_layout
 schedular_connection = None
 
 
-@app.callback(Output('live-update-text', 'children'),
+@app.callback(Output('lg-jobs-container', 'children'),
               Input('interval-component', 'n_intervals'))
 def update_metrics(n):
     if schedular_connection.poll():
         status = schedular_connection.recv()
-        return html.Code(str(status))
+
+        list_group_items = []
+        for key, value in status.items():
+            list_group_items.append(create_job_lgi(key, value))
+
+        return dbc.ListGroup(
+            list_group_items,
+            id="lg-jobs",
+            style={"max-height": "calc(100vh - 130px)", "overflow": "scroll", "margin-bottom": "10px"},
+        )
 
     return html.H1("Hello")
 
