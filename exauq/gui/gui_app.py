@@ -77,8 +77,9 @@ schedular_connection = None
 
 
 @app.callback(Output('lg-jobs-container', 'children'),
-              Input('interval-component', 'n_intervals'))
-def update_metrics(n):
+              Input('interval-component', 'n_intervals'),
+              State('lg-jobs-container', 'children'))
+def update_jobs_list(n, jobs_container):
     if schedular_connection.poll():
         status = schedular_connection.recv()
 
@@ -92,7 +93,7 @@ def update_metrics(n):
             style={"max-height": "calc(100vh - 130px)", "overflow": "scroll", "margin-bottom": "10px"},
         )
 
-    return html.H1("Hello")
+    return jobs_container
 
 
 @app.callback(
