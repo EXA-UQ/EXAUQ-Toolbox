@@ -6,9 +6,10 @@ class JobHandler(ABC):
     Class describing a job handler
     """
 
-    def __init__(self, host: str, user: str) -> None:
+    def __init__(self, host: str, user: str, run_local=False) -> None:
         self.host = host
         self.user = user
+        self.run_local = run_local
         self.run_process = None
         self.poll_process = None
         self.job_id = None

@@ -1,5 +1,6 @@
 import time
 from exauq.utilities.SecureShell import ssh_run
+from exauq.utilities.LocalRun import local_run
 from exauq.utilities.JobStatus import JobStatus
 from exauq.utilities.JobHandler import JobHandler
 
@@ -25,9 +26,12 @@ class BgHandler(JobHandler):
             submit_command = "nohup bash -c '{0} || echo EXAUQ_JOB_FAILURE' > {1}.out 2> {1}.err & echo $!".format(
                 command, sim_id
             )
-            self.run_process = ssh_run(
-                command=submit_command, host=self.host, user=self.user
-            )
+            if self.run_local:
+                self.run_process = local_run(command=submit_command)
+            else:
+                self.run_process = ssh_run(
+                    command=submit_command, host=self.host, user=self.user
+                )
             self.job_status = JobStatus.SUBMITTED
 
     def poll_job(self, sim_id: str) -> None:
@@ -54,9 +58,12 @@ class BgHandler(JobHandler):
 
         if self.poll_process is None and self.job_id is not None:
             poll_command = "ps aux {0}; tail -1 {1}.out".format(self.job_id, sim_id)
-            self.poll_process = ssh_run(
-                command=poll_command, host=self.host, user=self.user
-            )
+            if self.run_local:
+                self.poll_process = local_run(command=poll_command)
+            else:
+                self.poll_process = ssh_run(
+                    command=poll_command, host=self.host, user=self.user
+                )
             return
 
         if self.poll_process is not None and self.poll_process.poll() is not None:
