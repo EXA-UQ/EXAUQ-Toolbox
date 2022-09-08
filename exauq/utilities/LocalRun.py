@@ -15,8 +15,9 @@ def local_run(command: str):
     Process:
         A subprocess popen object
     """
+    local_command = ["bash", "-c", command]
     process = subprocess.Popen(
-        command,
+        local_command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
