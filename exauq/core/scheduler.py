@@ -134,21 +134,11 @@ class Scheduler:
             self.requested_job_status[sim_id]["submit_time"] = sim.JOBHANDLER.submit_time
             self.requested_job_status[sim_id]["last_poll_time"] = sim.JOBHANDLER.last_poll_time
             self.requested_job_status[sim_id]["simulation_type"] = sim.metadata["simulation_type"]
+
         self.log_status()
 
         if self.frontend_process:
-            job_status = {"123456789": {"host": "localhost",
-                                        "job_id": "Hgs562353vd",
-                                        "job_status": JobStatus.SUCCESS,
-                                        "submit_time": "12:35:01",
-                                        "last_poll_time": "13:02:54"}
-                          ,"987654321": {"host": "localhost",
-                                           "job_id": "Hgs562353vd",
-                                           "job_status": JobStatus.SUCCESS,
-                                           "submit_time": "12:35:01",
-                                           "last_poll_time": "13:02:54"}}
-
-            self.frontend_conn.send(job_status)
+            self.frontend_conn.send(self.requested_job_status)
 
     def all_runs_completed(self) -> bool:
         """
@@ -168,13 +158,13 @@ class Scheduler:
         message = current_time + ":\n"
         for sim_id, sim_status in self.requested_job_status.items():
             message = message + \
-                "sim_id: {0} host: {1} job_id: {2} submit_time: {3} last_poll_time: {4} job_status: {5}\n".format(
-                    sim_id,
-                    sim_status["host"],
-                    sim_status["job_id"],
-                    sim_status["submit_time"],
-                    sim_status["last_poll_time"],
-                    sim_status["job_status"]
-                )
+                      "sim_id: {0} host: {1} job_id: {2} submit_time: {3} last_poll_time: {4} job_status: {5}\n".format(
+                          sim_id,
+                          sim_status["host"],
+                          sim_status["job_id"],
+                          sim_status["submit_time"],
+                          sim_status["last_poll_time"],
+                          sim_status["job_status"]
+                      )
         print(message)
         self.log_file.write(message)
