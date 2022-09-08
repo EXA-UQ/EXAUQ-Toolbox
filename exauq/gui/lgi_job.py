@@ -34,10 +34,17 @@ def create_job_lgi(sim_id: str, job_data: dict) -> dbc.ListGroupItem:
     else:
         status_indicator = generate_icon(job_status=job_data["job_status"])
 
+    submit_time = job_data["submit_time"]
+    poll_time = job_data["last_poll_time"]
+
+    if poll_time is None:
+        poll_time = "-"
+
     return dbc.ListGroupItem(
         [
             html.H6(sim_id),
-            html.Small("Last polled: " + job_data["last_poll_time"], className="text-muted"),
+            html.Small("Submitted: " + submit_time, className="text-muted"),
+            html.Small("Last Polled: " + poll_time, className="text-muted"),
             status_indicator,
         ],
         className="d-flex w-100 justify-content-between",
