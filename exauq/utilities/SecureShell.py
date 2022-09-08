@@ -1,15 +1,14 @@
 import subprocess
-import typing
 
 
-def ssh_run(command: str, host: str, user: str) -> typing.Tuple[str]:
+def ssh_run(command: str, host: str, user: str):
     """
-    Run a command on host via ssh.
+    Run a command on remote machine via ssh.
 
     Parameters
     ----------
     command: str
-        command to run on host machine
+        command to run on remote machine
     host: str
         host machine name
     user: str
@@ -17,8 +16,8 @@ def ssh_run(command: str, host: str, user: str) -> typing.Tuple[str]:
 
     Returns
     -------
-    Tuple:
-        A tuple of two strings, the stdout and stderr in that order
+    Process:
+        A subprocess popen object
     """
     if user:
         ssh_command = ["ssh", user + "@" + host, command]
