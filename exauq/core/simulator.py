@@ -10,10 +10,9 @@ class Simulator(ABC):
     retrieve output data
     """
 
-    JOBHANDLER = None
-    COMMAND = None
-
     def __init__(self):
+        self.JOBHANDLER = None
+        self.COMMAND = None
         self.parameters = {}
         self.output_data = {}
         self.metadata = {}
