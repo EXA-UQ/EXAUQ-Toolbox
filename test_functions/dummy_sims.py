@@ -7,8 +7,10 @@ class DummySimLvl0(Simulator):
     Simple level 0 dummy simulator
     """
 
-    JOBHANDLER = BgHandler(host="localhost", user="")
-    COMMAND = "sleep 1"
+    def __init__(self):
+        super().__init__()
+        self.JOBHANDLER = BgHandler(host="localhost", user="")
+        self.COMMAND = "sleep 1"
 
 
 class DummySimLvl1(Simulator):
@@ -16,8 +18,10 @@ class DummySimLvl1(Simulator):
     Simple level 1 dummy simulator
     """
 
-    JOBHANDLER = BgHandler(host="localhost", user="")
-    COMMAND = "sleep 2"
+    def __init__(self):
+        super().__init__()
+        self.JOBHANDLER = BgHandler(host="localhost", user="")
+        self.COMMAND = "sleep 2"
 
 
 class DummySimLvl2(Simulator):
@@ -25,8 +29,10 @@ class DummySimLvl2(Simulator):
     Simple level 2 dummy simulator
     """
 
-    JOBHANDLER = BgHandler(host="localhost", user="")
-    COMMAND = "sleep 5"
+    def __init__(self):
+        super().__init__()
+        self.JOBHANDLER = BgHandler(host="localhost", user="")
+        self.COMMAND = "sleep 5"
 
 
 class DummySimLvl3(Simulator):
@@ -34,5 +40,7 @@ class DummySimLvl3(Simulator):
     Simple level 3 dummy simulator
     """
 
-    JOBHANDLER = BgHandler(host="localhost", user="")
-    COMMAND = "sleep 10"
+    def __init__(self):
+        super().__init__()
+        self.JOBHANDLER = BgHandler(host="localhost", user="")
+        self.COMMAND = "sleep 10"
