@@ -21,10 +21,11 @@ class BatchHandler(JobHandler):
         command: str
             command to run on host machine
         """
+        self.sim_dir = self.ROOT_RUN_DIR + "/sim_" + sim_id
         if self.run_process is None:
             self.submit_time = time.strftime("%H:%M:%S", time.localtime())
-            submit_command = 'echo "({0} || echo EXAUQ_JOB_FAILURE) > {1}.out 2> {1}.err" | batch 2>&1'.format(
-                command, sim_id
+            submit_command = 'mkdir -p {0} ; echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/job.out 2> {0}/job.err" | batch 2>&1'.format(
+                self.sim_dir, command
             )
             if self.run_local:
                 self.run_process = local_run(command=submit_command)
@@ -58,7 +59,7 @@ class BatchHandler(JobHandler):
             return
 
         if self.poll_process is None and self.job_id is not None:
-            poll_command = "atq; tail -1 {0}.out".format(sim_id)
+            poll_command = "atq; tail -1 {0}/job.out".format(self.sim_dir)
             if self.run_local:
                 self.poll_process = local_run(command=poll_command)
             else:

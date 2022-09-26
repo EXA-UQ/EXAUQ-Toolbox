@@ -6,10 +6,13 @@ class JobHandler(ABC):
     Class describing a job handler
     """
 
+    ROOT_RUN_DIR = "exauq-run"
+
     def __init__(self, host: str, user: str, run_local=False) -> None:
         self.host = host
         self.user = user
         self.run_local = run_local
+        self.sim_dir = None
         self.run_process = None
         self.poll_process = None
         self.job_id = None

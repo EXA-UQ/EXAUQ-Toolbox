@@ -21,10 +21,11 @@ class BgHandler(JobHandler):
         command: str
             command to run on host machine
         """
+        self.sim_dir = self.ROOT_RUN_DIR + "/sim_" + sim_id
         if self.run_process is None:
             self.submit_time = time.strftime("%H:%M:%S", time.localtime())
-            submit_command = "nohup bash -c '{0} || echo EXAUQ_JOB_FAILURE' > {1}.out 2> {1}.err & echo $!".format(
-                command, sim_id
+            submit_command = "mkdir -p {0} ; nohup bash -c '{1} || echo EXAUQ_JOB_FAILURE' > {0}/job.out 2> {0}/job.err & echo $!".format(
+                self.sim_dir, command
             )
             if self.run_local:
                 self.run_process = local_run(command=submit_command)
@@ -57,7 +58,7 @@ class BgHandler(JobHandler):
             return
 
         if self.poll_process is None and self.job_id is not None:
-            poll_command = "ps aux {0}; tail -1 {1}.out".format(self.job_id, sim_id)
+            poll_command = "ps aux {0}; tail -1 {1}/job.out".format(self.job_id, self.sim_dir)
             if self.run_local:
                 self.poll_process = local_run(command=poll_command)
             else:
@@ -68,12 +69,14 @@ class BgHandler(JobHandler):
 
         if self.poll_process is not None and self.poll_process.poll() is not None:
             stdout, stderr = self.poll_process.communicate()
+            print("polling result:", stdout, stderr)
             if stderr:
                 print("job polling failed with: ", stderr)
             else:
                 stdout_fields = stdout.split()
-                if self.job_id.strip() in stdout_fields:
-                    self.job_status = JobStatus.RUNNING
+                if self.job_id in stdout_fields:
+                    if self.job_id == stdout_fields[1]:
+                        self.job_status = JobStatus.RUNNING
                 elif "EXAUQ_JOB_FAILURE" in stdout_fields:
                     self.job_status = JobStatus.FAILED
                 else:
