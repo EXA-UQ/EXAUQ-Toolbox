@@ -44,7 +44,7 @@ class Scheduler:
     def run_scheduler(self, sleep_period=5) -> None:
         """
         Starts up scheduler main loop which simply process all requested events
-        and updates the status log. Shutdown scheduler main loop if shutdown 
+        and updates the status log. Shutdown scheduler main loop if shutdown
         signal has been recieved and all current requested jobs have completed.
         """
         while True:
@@ -59,7 +59,7 @@ class Scheduler:
     def run_monitor(self, polling_period=10) -> None:
         """
         This routine periodically push poll requests to event list. Shutdown
-        monitoring main loop if shutdown signal has been recieved and all current 
+        monitoring main loop if shutdown signal has been recieved and all current
         submitted jobs have been completed
         """
         while True:
@@ -93,9 +93,11 @@ class Scheduler:
             event = self.event_queue.get()
             sim = event.sim
             if event.type == EventType.SUBMIT_SIM:
-                sim.JOBHANDLER.submit_job(sim_id=sim.metadata["simulation_id"], command=sim.COMMAND)
+                sim.JOBHANDLER.submit_job(
+                    sim_id=sim.metadata["simulation_id"], command=sim.COMMAND
+                )
             elif event.type == EventType.POLL_SIM:
-                sim.JOBHANDLER.poll_job(sim_id=sim.metadata["simulation_id"])
+                sim.JOBHANDLER.poll_job()
 
     def update_status_log(self):
         """
@@ -107,9 +109,13 @@ class Scheduler:
                 self.requested_job_status[sim_id] = {}
             self.requested_job_status[sim_id]["host"] = sim.JOBHANDLER.host
             self.requested_job_status[sim_id]["job_id"] = sim.JOBHANDLER.job_id
-            self.requested_job_status[sim_id]["job_status"] =  sim.JOBHANDLER.job_status
-            self.requested_job_status[sim_id]["submit_time"] =  sim.JOBHANDLER.submit_time
-            self.requested_job_status[sim_id]["last_poll_time"] =  sim.JOBHANDLER.last_poll_time
+            self.requested_job_status[sim_id]["job_status"] = sim.JOBHANDLER.job_status
+            self.requested_job_status[sim_id][
+                "submit_time"
+            ] = sim.JOBHANDLER.submit_time
+            self.requested_job_status[sim_id][
+                "last_poll_time"
+            ] = sim.JOBHANDLER.last_poll_time
         self.log_status()
 
     def all_runs_completed(self) -> bool:
@@ -129,14 +135,16 @@ class Scheduler:
         current_time = time.strftime("%H:%M:%S", time.localtime())
         message = current_time + ":\n"
         for sim_id, sim_status in self.requested_job_status.items():
-            message = message + \
-                "sim_id: {0} host: {1} job_id: {2} submit_time: {3} last_poll_time: {4} job_status: {5}\n".format(
+            message = (
+                message
+                + "sim_id: {0} host: {1} job_id: {2} submit_time: {3} last_poll_time: {4} job_status: {5}\n".format(
                     sim_id,
                     sim_status["host"],
                     sim_status["job_id"],
                     sim_status["submit_time"],
                     sim_status["last_poll_time"],
-                    sim_status["job_status"]
+                    sim_status["job_status"],
                 )
+            )
         print(message)
         self.log_file.write(message)
