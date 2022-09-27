@@ -6,8 +6,11 @@ class EventType(Enum):
     """
     Event types
     """
-    SUBMIT_SIM = 0
-    POLL_SIM = 1
+
+    INSTALL_SIM = 0
+    RUN_SIM = 1
+    POLL_SIM = 2
+
 
 class Event:
     """

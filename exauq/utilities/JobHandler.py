@@ -51,20 +51,40 @@ class JobHandler:
 
         if type == SchedType.BACKGROUND:
             self.type = type
-            self.submit_command = "mkdir -p {0} ; nohup bash -c '{1} || echo EXAUQ_JOB_FAILURE' > {0}/job.out 2> {0}/job.err & echo $!"
+            self.run_command = "mkdir -p {0} ; nohup bash -c '{1} || echo EXAUQ_JOB_FAILURE' > {0}/job.out 2> {0}/job.err & echo $!"
             self.poll_command = (
                 "ps -p {0} -o pid= -o stat= -o comm= ; tail -1 {1}/job.out"
             )
         if type == SchedType.AT:
             self.type = type
-            self.submit_command = 'mkdir -p {0} ; echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/job.out 2> {0}/job.err" | at now 2>&1'
+            self.run_command = 'mkdir -p {0} ; echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/job.out 2> {0}/job.err" | at now 2>&1'
             self.poll_command = "atq | grep {0} ; tail -1 {1}/job.out"
         if type == SchedType.BATCH:
             self.type = type
-            self.submit_command = 'mkdir -p {0} ; echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/job.out 2> {0}/job.err" | batch 2>&1'
+            self.run_command = 'mkdir -p {0} ; echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/job.out 2> {0}/job.err" | batch 2>&1'
             self.poll_command = "atq | grep {0} ; tail -1 {1}/job.out"
 
-    def submit_job(self, sim_id: str, command: str) -> None:
+    def install_sim(self, sim_id: str) -> None:
+        """
+        Method that creates the necessary simulator job run directory and log files on the remote/local platform
+
+        Parameters
+        ----------
+        sim_id: str
+            The simulator id.
+        """
+        self.sim_dir = self.ROOT_RUN_DIR + "/sim_" + sim_id
+        install_command = "mkdir -p {0} ; touch {0}/job.out {0}/job.err".format(
+            self.sim_dir
+        )
+        if self.run_local:
+            self.run_process = local_run(command=install_command)
+        else:
+            self.run_process = ssh_run(
+                command=install_command, host=self.host, user=self.user
+            )
+
+    def run_sim(self, sim_id: str, command: str) -> None:
         """
         Method that submit a simulator job to the remote scheduler and sets the process/job id associated
         with the simulator run
@@ -79,7 +99,7 @@ class JobHandler:
         self.sim_dir = self.ROOT_RUN_DIR + "/sim_" + sim_id
         if self.run_process is None:
             self.submit_time = time.strftime("%H:%M:%S", time.localtime())
-            submit_command = self.submit_command.format(self.sim_dir, command)
+            submit_command = self.run_command.format(self.sim_dir, command)
             if self.run_local:
                 self.run_process = local_run(command=submit_command)
             else:
@@ -88,9 +108,9 @@ class JobHandler:
                 )
             self.job_status = JobStatus.SUBMITTED
 
-    def poll_job(self) -> None:
+    def poll_sim(self) -> None:
         """
-        Method that polls the process/job and sets its status
+        Method that polls the sim process/job and sets its status
         """
         self.last_poll_time = time.strftime("%H:%M:%S", time.localtime())
         if self.run_process is not None and self.job_id is None:

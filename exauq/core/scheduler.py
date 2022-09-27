@@ -12,7 +12,9 @@ class Scheduler:
     Schedules and tracks simulation runs
     """
 
-    def __init__(self, simulator_factory: SimulatorFactory):
+    def __init__(
+        self, simulator_factory: SimulatorFactory, listen_period=5, polling_period=10
+    ):
 
         self.simulator_factory = simulator_factory
 
@@ -20,11 +22,14 @@ class Scheduler:
         self.requested_job_list = []
         self.requested_job_status = {}
 
+        self.listen_period = listen_period
+        self.polling_period = polling_period
+
         self.scheduler_thread = threading.Thread(target=self.run_scheduler)
         self.monitor_thread = threading.Thread(target=self.run_monitor)
         self._lock = threading.Lock()
 
-        self.shutdown_scheduler = False
+        self.shutdown_signal = False
         self.shutdown_monitoring = False
 
         self.log_file = None
@@ -36,31 +41,35 @@ class Scheduler:
 
     def shutdown(self):
         with self._lock:
-            self.shutdown_scheduler = True
+            self.shutdown_signal = True
         self.scheduler_thread.join()
         self.monitor_thread.join()
         self.log_file.close()
 
-    def run_scheduler(self, sleep_period=5) -> None:
+    def run_scheduler(self) -> None:
         """
         Starts up scheduler main loop which simply process all requested events
         and updates the status log. Shutdown scheduler main loop if shutdown
-        signal has been recieved and all current requested jobs have completed.
+        signal has been received and all current requested jobs have completed.
         """
         while True:
             with self._lock:
                 self.event_handler()
                 self.update_status_log()
-                if self.shutdown_scheduler and self.all_runs_completed():
+                shutdown_scheduler = self.shutdown_signal and all(
+                    sim.JOBHANDLER.job_status == JobStatus.SUCCESS
+                    or sim.JOBHANDLER.job_status == JobStatus.FAILED
+                    for sim in self.requested_job_list
+                )
+                if shutdown_scheduler:
                     self.shutdown_monitoring = True
                     break
-            time.sleep(sleep_period)
+            time.sleep(self.listen_period)
 
-    def run_monitor(self, polling_period=10) -> None:
+    def run_monitor(self) -> None:
         """
         This routine periodically push poll requests to event list. Shutdown
-        monitoring main loop if shutdown signal has been recieved and all current
-        submitted jobs have been completed
+        monitoring if the monitoring shutdown handle is True
         """
         while True:
             with self._lock:
@@ -68,9 +77,9 @@ class Scheduler:
                     status = sim.JOBHANDLER.job_status
                     if status != JobStatus.SUCCESS or status != JobStatus.FAILED:
                         self.event_queue.put(Event(EventType.POLL_SIM, sim))
-                if self.shutdown_monitoring and self.all_runs_completed():
+                if self.shutdown_monitoring:
                     break
-            time.sleep(polling_period)
+            time.sleep(self.polling_period)
 
     def request_job(self, parameters: dict, sim_type: str) -> None:
         """
@@ -83,7 +92,7 @@ class Scheduler:
             sim.metadata["simulation_id"] = str(random.randint(1, 1000))
             sim.metadata["simulation_type"] = sim_type
             self.requested_job_list.append(sim)
-            self.event_queue.put(Event(EventType.SUBMIT_SIM, sim))
+            self.event_queue.put(Event(EventType.RUN_SIM, sim))
 
     def event_handler(self) -> None:
         """
@@ -92,12 +101,12 @@ class Scheduler:
         while not self.event_queue.empty():
             event = self.event_queue.get()
             sim = event.sim
-            if event.type == EventType.SUBMIT_SIM:
-                sim.JOBHANDLER.submit_job(
+            if event.type == EventType.RUN_SIM:
+                sim.JOBHANDLER.run_sim(
                     sim_id=sim.metadata["simulation_id"], command=sim.COMMAND
                 )
             elif event.type == EventType.POLL_SIM:
-                sim.JOBHANDLER.poll_job()
+                sim.JOBHANDLER.poll_sim()
 
     def update_status_log(self):
         """
