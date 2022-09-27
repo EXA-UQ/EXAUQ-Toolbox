@@ -52,7 +52,9 @@ class JobHandler:
         if type == SchedType.BACKGROUND:
             self.type = type
             self.submit_command = "mkdir -p {0} ; nohup bash -c '{1} || echo EXAUQ_JOB_FAILURE' > {0}/job.out 2> {0}/job.err & echo $!"
-            self.poll_command = "ps aux {0}; tail -1 {1}/job.out"
+            self.poll_command = (
+                "ps -p {0} -o pid= -o stat= -o comm= ; tail -1 {1}/job.out"
+            )
         if type == SchedType.AT:
             self.type = type
             self.submit_command = 'mkdir -p {0} ; echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/job.out 2> {0}/job.err" | at now 2>&1'
@@ -64,14 +66,15 @@ class JobHandler:
 
     def submit_job(self, sim_id: str, command: str) -> None:
         """
-        Method that runs a job as a background process using bash and returns the process id
+        Method that submit a simulator job to the remote scheduler and sets the process/job id associated
+        with the simulator run
 
         Parameters
         ----------
         sim_id: str
-            id used to name stdout and stderr files - nominally should be set to simulator id.
+            The simulator id.
         command: str
-            command to run on host machine
+            Command to run on host machine
         """
         self.sim_dir = self.ROOT_RUN_DIR + "/sim_" + sim_id
         if self.run_process is None:
@@ -114,7 +117,6 @@ class JobHandler:
 
         if self.poll_process is not None and self.poll_process.poll() is not None:
             stdout, stderr = self.poll_process.communicate()
-            print("polling result:", stdout, stderr)
             if stderr:
                 print("job polling failed with: ", stderr)
             else:
