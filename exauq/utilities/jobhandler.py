@@ -1,7 +1,7 @@
 import time
 from enum import Enum
 from exauq.utilities.jobstatus import JobStatus
-from exauq.utilities.comms import local_run, ssh_run
+from exauq.utilities.comms import local_run, remote_run
 
 
 class SchedType(Enum):
@@ -80,7 +80,7 @@ class JobHandler:
         if self.run_local:
             self.install_process = local_run(command=install_command)
         else:
-            self.install_process = ssh_run(
+            self.install_process = remote_run(
                 command=install_command, host=self.host, user=self.user
             )
 
@@ -102,7 +102,7 @@ class JobHandler:
             if self.run_local:
                 self.run_process = local_run(command=submit_command)
             else:
-                self.run_process = ssh_run(
+                self.run_process = remote_run(
                     command=submit_command, host=self.host, user=self.user
                 )
             self.job_status = JobStatus.SUBMITTED
@@ -141,7 +141,7 @@ class JobHandler:
             if self.run_local:
                 self.poll_process = local_run(command=poll_command)
             else:
-                self.poll_process = ssh_run(
+                self.poll_process = remote_run(
                     command=poll_command, host=self.host, user=self.user
                 )
             return
