@@ -58,11 +58,11 @@ class JobHandler:
         if type == SchedType.AT:
             self.type = type
             self.submit_command = 'mkdir -p {0} ; echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/job.out 2> {0}/job.err" | at now 2>&1'
-            self.poll_command = "atq; tail -1 {1}/job.out"
+            self.poll_command = "atq | grep {0} ; tail -1 {1}/job.out"
         if type == SchedType.BATCH:
             self.type = type
             self.submit_command = 'mkdir -p {0} ; echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/job.out 2> {0}/job.err" | batch 2>&1'
-            self.poll_command = "atq; tail -1 {1}/job.out"
+            self.poll_command = "atq | grep {0} ; tail -1 {1}/job.out"
 
     def submit_job(self, sim_id: str, command: str) -> None:
         """
@@ -121,19 +121,18 @@ class JobHandler:
                 print("job polling failed with: ", stderr)
             else:
                 stdout_fields = stdout.split()
-                if self.job_id in stdout_fields:
+                if self.job_id in stdout_fields and self.job_id == stdout_fields[0]:
                     if self.type == SchedType.BACKGROUND:
-                        if self.job_id == stdout_fields[1]:
-                            self.job_status = JobStatus.RUNNING
+                        self.job_status = JobStatus.RUNNING
                     if self.type == SchedType.AT:
-                        if self.job_id == stdout_fields[0] and stdout_fields[6] == "=":
+                        if stdout_fields[6] == "=":
                             self.job_status = JobStatus.RUNNING
-                        if self.job_id == stdout_fields[0] and stdout_fields[6] == "a":
+                        if stdout_fields[6] == "a":
                             self.job_status = JobStatus.IN_QUEUE
                     if self.type == SchedType.BATCH:
-                        if self.job_id == stdout_fields[0] and stdout_fields[6] == "=":
+                        if stdout_fields[6] == "=":
                             self.job_status = JobStatus.RUNNING
-                        if self.job_id == stdout_fields[0] and stdout_fields[6] == "b":
+                        if stdout_fields[6] == "b":
                             self.job_status = JobStatus.IN_QUEUE
                 elif "EXAUQ_JOB_FAILURE" in stdout_fields:
                     self.job_status = JobStatus.FAILED
