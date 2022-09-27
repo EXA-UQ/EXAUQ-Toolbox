@@ -92,21 +92,34 @@ class Scheduler:
             sim.metadata["simulation_id"] = str(random.randint(1, 1000))
             sim.metadata["simulation_type"] = sim_type
             self.requested_job_list.append(sim)
+            self.event_queue.put(Event(EventType.INSTALL_SIM, sim))
             self.event_queue.put(Event(EventType.RUN_SIM, sim))
 
     def event_handler(self) -> None:
         """
-        Process all current events
+        Handle events in the event queuse
         """
+        # Loop over all events and process those that is ready to be processed
+        passed_over_events = []
         while not self.event_queue.empty():
             event = self.event_queue.get()
             sim = event.sim
-            if event.type == EventType.RUN_SIM:
-                sim.JOBHANDLER.run_sim(
-                    sim_id=sim.metadata["simulation_id"], command=sim.COMMAND
-                )
+            sim_id = sim.metadata["simulation_id"]
+            if event.type == EventType.INSTALL_SIM:
+                sim.JOBHANDLER.install_sim(sim_id)
+            elif event.type == EventType.RUN_SIM:
+                # Execute a run event if the sim data is already installed,
+                # otherwise ignore the run event
+                if sim.JOBHANDLER.job_status == JobStatus.INSTALLED:
+                    sim.JOBHANDLER.run_sim(sim.COMMAND)
+                else:
+                    passed_over_events.append(event)
             elif event.type == EventType.POLL_SIM:
                 sim.JOBHANDLER.poll_sim()
+
+        # Add passed over events back on the event queue
+        for event in passed_over_events:
+            self.event_queue.put(event)
 
     def update_status_log(self):
         """
