@@ -1,5 +1,5 @@
-from exauq.core.simulator import Simulator
-from exauq.utilities.JobHandler import JobHandler, SchedType
+from exauq.core import Simulator
+from exauq.utilities import JobHandler, SchedType
 
 
 class DummySimLvl0(Simulator):
