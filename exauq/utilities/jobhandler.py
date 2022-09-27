@@ -1,8 +1,8 @@
 import time
 from enum import Enum
-from exauq.utilities.JobStatus import JobStatus
-from exauq.utilities.SecureShell import ssh_run
-from exauq.utilities.LocalRun import local_run
+from exauq.utilities.jobstatus import JobStatus
+from exauq.utilities.sshrun import ssh_run
+from exauq.utilities.localrun import local_run
 
 
 class SchedType(Enum):

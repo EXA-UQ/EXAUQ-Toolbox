@@ -3,7 +3,7 @@ import time
 
 from exauq.core.scheduler import Scheduler
 from exauq.core.simulator import SimulatorFactory
-from exauq.utilities.JobStatus import JobStatus
+from exauq.utilities.jobstatus import JobStatus
 
 from test_functions.dummy_sims import (
     DummySimLvl0,

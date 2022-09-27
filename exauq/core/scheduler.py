@@ -4,7 +4,7 @@ import queue
 import time
 from exauq.core.simulator import SimulatorFactory
 from exauq.core.event import Event, EventType
-from exauq.utilities.JobStatus import JobStatus
+from exauq.utilities.jobstatus import JobStatus
 
 
 class Scheduler:
