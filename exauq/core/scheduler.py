@@ -140,16 +140,6 @@ class Scheduler:
             ] = sim.JOBHANDLER.last_poll_time
         self.log_status()
 
-    def all_runs_completed(self) -> bool:
-        """
-        Check if all runs in the submitted job list has completed
-        """
-        return all(
-            sim.JOBHANDLER.job_status == JobStatus.SUCCESS
-            or sim.JOBHANDLER.job_status == JobStatus.FAILED
-            for sim in self.requested_job_list
-        )
-
     def log_status(self) -> None:
         """
         Simple event printout of current status
