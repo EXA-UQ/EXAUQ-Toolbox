@@ -1,6 +1,7 @@
 import time
 from enum import Enum
 from exauq.utilities.jobstatus import JobStatus
+from exauq.utilities.paths import Paths
 from exauq.utilities.comms import local_run, remote_run
 
 
@@ -18,8 +19,6 @@ class JobHandler:
     """
     Class defining a job handler
     """
-
-    ROOT_RUN_DIR = "exauq-run"
 
     def __init__(self, host: str, user: str, type: str, run_local=False) -> None:
         """
@@ -49,20 +48,22 @@ class JobHandler:
         self.submit_time = None
         self.last_poll_time = None
 
+        self.install_command = "mkdir -p {0} ; touch {0}/std.out {0}/std.err"
+
         if type == SchedType.BACKGROUND:
             self.type = type
-            self.run_command = "nohup bash -c '{0} || echo EXAUQ_JOB_FAILURE' > {1}/job.out 2> {1}/job.err & echo $!"
+            self.run_command = "nohup bash -c '{0} || echo EXAUQ_JOB_FAILURE' > {1}/std.out 2> {1}/std.err & echo $!"
             self.poll_command = (
-                "ps -p {0} -o pid= -o stat= -o comm= ; tail -1 {1}/job.out"
+                "ps -p {0} -o pid= -o stat= -o comm= ; tail -1 {1}/std.out"
             )
         if type == SchedType.AT:
             self.type = type
-            self.run_command = 'echo "({0} || echo EXAUQ_JOB_FAILURE) > {1}/job.out 2> {1}/job.err" | at now 2>&1'
-            self.poll_command = "atq | grep {0} ; tail -1 {1}/job.out"
+            self.run_command = 'echo "({0} || echo EXAUQ_JOB_FAILURE) > {1}/std.out 2> {1}/std.err" | at now 2>&1'
+            self.poll_command = "atq | grep {0} ; tail -1 {1}/std.out"
         if type == SchedType.BATCH:
             self.type = type
-            self.run_command = 'echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/job.out 2> {0}/job.err" | batch 2>&1'
-            self.poll_command = "atq | grep {0} ; tail -1 {1}/job.out"
+            self.run_command = 'echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/std.out 2> {0}/std.err" | batch 2>&1'
+            self.poll_command = "atq | grep {0} ; tail -1 {1}/std.out"
 
     def install_sim(self, sim_id: str) -> None:
         """
@@ -73,20 +74,19 @@ class JobHandler:
         sim_id: str
             The simulator id.
         """
-        self.sim_dir = self.ROOT_RUN_DIR + "/sim_" + sim_id
-        install_command = "mkdir -p {0} ; touch {0}/job.out {0}/job.err".format(
-            self.sim_dir
-        )
-        if self.run_local:
-            self.install_process = local_run(command=install_command)
-        else:
-            self.install_process = remote_run(
-                command=install_command, host=self.host, user=self.user
-            )
+        if self.install_process is None:
+            self.sim_dir = Paths.SIM_RUN_DIR.format(sim_id)
+            install_command = self.install_command.format(self.sim_dir)
+            if self.run_local:
+                self.install_process = local_run(command=install_command)
+            else:
+                self.install_process = remote_run(
+                    command=install_command, host=self.host, user=self.user
+                )
 
     def run_sim(self, command: str) -> None:
         """
-        Method that submit a simulator job to the remote scheduler and sets the process/job id associated
+        Method that submits a simulator job to the remote scheduler and sets the process/job id associated
         with the simulator run
 
         Parameters

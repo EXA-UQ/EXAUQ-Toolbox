@@ -75,7 +75,7 @@ class Scheduler:
             with self._lock:
                 for sim in self.requested_job_list:
                     status = sim.JOBHANDLER.job_status
-                    if status != JobStatus.SUCCESS or status != JobStatus.FAILED:
+                    if status != JobStatus.SUCCESS and status != JobStatus.FAILED:
                         self.event_queue.put(Event(EventType.POLL_SIM, sim))
                 if self.shutdown_monitoring:
                     break
