@@ -41,7 +41,7 @@ class JobHandler:
         self.run_local = run_local
         self.sim_dir = None
         self.install_process = None
-        self.run_process = None
+        self.submit_process = None
         self.poll_process = None
         self.job_id = None
         self.job_status = None
@@ -67,7 +67,8 @@ class JobHandler:
 
     def install_sim(self, sim_id: str) -> None:
         """
-        Method that creates the necessary simulator job run directory and log files on the remote/local platform
+        Method that creates the necessary simulator job run directory and log files on the remote/local
+        platform
 
         Parameters
         ----------
@@ -86,8 +87,7 @@ class JobHandler:
 
     def run_sim(self, command: str) -> None:
         """
-        Method that submits a simulator job to the remote scheduler and sets the process/job id associated
-        with the simulator run
+        Method that submits a simulator job to a local or a remote scheduler
 
         Parameters
         ----------
@@ -96,13 +96,13 @@ class JobHandler:
         command: str
             Command to run on host machine
         """
-        if self.run_process is None:
+        if self.submit_process is None:
             self.submit_time = time.strftime("%H:%M:%S", time.localtime())
             submit_command = self.run_command.format(command, self.sim_dir)
             if self.run_local:
-                self.run_process = local_run(command=submit_command)
+                self.submit_process = local_run(command=submit_command)
             else:
-                self.run_process = remote_run(
+                self.submit_process = remote_run(
                     command=submit_command, host=self.host, user=self.user
                 )
             self.job_status = JobStatus.SUBMITTED
@@ -111,8 +111,11 @@ class JobHandler:
         """
         Method that polls the sim process/job and sets its status
         """
+
         self.last_poll_time = time.strftime("%H:%M:%S", time.localtime())
 
+        # If an install process is active and the result from install process is
+        # available then set sim status based on install process result and return
         if self.install_process is not None:
             if self.install_process.poll() is not None:
                 stdout, stderr = self.install_process.communicate()
@@ -122,52 +125,68 @@ class JobHandler:
                 else:
                     self.job_status = JobStatus.INSTALLED
                 self.install_process = None
+            else:
+                pass
             return
 
-        if self.run_process is not None and self.job_id is None:
-            if self.run_process.poll() is not None:
-                stdout, stderr = self.run_process.communicate()
+        # If a submit process is active and the result from submit process is
+        # available then set sim status based on the submit process result and return.
+        if self.submit_process is not None:
+            if self.submit_process.poll() is not None:
+                stdout, stderr = self.submit_process.communicate()
                 if stderr:
                     print("job submission failed with: ", stderr)
                     self.job_status = JobStatus.SUBMIT_FAILED
                 else:
                     self.job_id = stdout.split()[0]
                     self.job_status = JobStatus.RUNNING
-                self.run_process = None
+                self.submit_process = None
+            else:
+                pass
             return
 
-        if self.poll_process is None and self.job_id is not None:
-            poll_command = self.poll_command.format(self.job_id, self.sim_dir)
-            if self.run_local:
-                self.poll_process = local_run(command=poll_command)
-            else:
-                self.poll_process = remote_run(
-                    command=poll_command, host=self.host, user=self.user
-                )
-            return
-
-        if self.poll_process is not None and self.poll_process.poll() is not None:
-            stdout, stderr = self.poll_process.communicate()
-            if stderr:
-                print("job polling failed with: ", stderr)
-            else:
-                stdout_fields = stdout.split()
-                if self.job_id in stdout_fields and self.job_id == stdout_fields[0]:
-                    if self.type == SchedType.BACKGROUND:
-                        self.job_status = JobStatus.RUNNING
-                    if self.type == SchedType.AT:
-                        if stdout_fields[6] == "=":
-                            self.job_status = JobStatus.RUNNING
-                        if stdout_fields[6] == "a":
-                            self.job_status = JobStatus.IN_QUEUE
-                    if self.type == SchedType.BATCH:
-                        if stdout_fields[6] == "=":
-                            self.job_status = JobStatus.RUNNING
-                        if stdout_fields[6] == "b":
-                            self.job_status = JobStatus.IN_QUEUE
-                elif "EXAUQ_JOB_FAILURE" in stdout_fields:
-                    self.job_status = JobStatus.FAILED
+        # If a poll process is currently active and the poll process result is available,
+        # then set the sim status based on the poll status results and return
+        if self.poll_process is not None:
+            if self.poll_process.poll() is not None:
+                stdout, stderr = self.poll_process.communicate()
+                if stderr:
+                    print("job polling failed with: ", stderr)
                 else:
-                    self.job_status = JobStatus.SUCCESS
-            self.poll_process = None
+                    stdout_fields = stdout.split()
+                    if self.job_id in stdout_fields and self.job_id == stdout_fields[0]:
+                        if self.type == SchedType.BACKGROUND:
+                            self.job_status = JobStatus.RUNNING
+                        if self.type == SchedType.AT:
+                            if stdout_fields[6] == "=":
+                                self.job_status = JobStatus.RUNNING
+                            if stdout_fields[6] == "a":
+                                self.job_status = JobStatus.IN_QUEUE
+                        if self.type == SchedType.BATCH:
+                            if stdout_fields[6] == "=":
+                                self.job_status = JobStatus.RUNNING
+                            if stdout_fields[6] == "b":
+                                self.job_status = JobStatus.IN_QUEUE
+                    elif "EXAUQ_JOB_FAILURE" in stdout_fields:
+                        self.job_status = JobStatus.FAILED
+                    else:
+                        self.job_status = JobStatus.SUCCESS
+                self.poll_process = None
+            else:
+                pass
+            return
+
+        # If a poll process is currently not active and a job id is available, then start
+        # a new poll process and return
+        if self.poll_process is None:
+            if self.job_id is not None:
+                poll_command = self.poll_command.format(self.job_id, self.sim_dir)
+                if self.run_local:
+                    self.poll_process = local_run(command=poll_command)
+                else:
+                    self.poll_process = remote_run(
+                        command=poll_command, host=self.host, user=self.user
+                    )
+            else:
+                pass
             return
