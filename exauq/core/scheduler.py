@@ -9,11 +9,19 @@ from exauq.utilities.jobstatus import JobStatus
 
 class Scheduler:
     """
-    Schedules and tracks simulation runs
+    Schedules and tracks simulation runs. Two threads are spun up:
+
+    - the main scheduler thread that periodically process the event queue
+    for any new or yet unprocessed events
+    - the monitoring thread that periodically pushes poll requests to the
+    event queue
+
+    These two processes are run in seperate threads as they don't necessarily
+    have the same periods.
     """
 
     def __init__(
-        self, simulator_factory: SimulatorFactory, listen_period=5, polling_period=10
+        self, simulator_factory: SimulatorFactory, scheduler_period=5, polling_period=10
     ):
 
         self.simulator_factory = simulator_factory
@@ -22,7 +30,7 @@ class Scheduler:
         self.requested_job_list = []
         self.requested_job_status = {}
 
-        self.listen_period = listen_period
+        self.scheduler_period = scheduler_period
         self.polling_period = polling_period
 
         self.scheduler_thread = threading.Thread(target=self.run_scheduler)
@@ -64,7 +72,7 @@ class Scheduler:
                 if shutdown_scheduler:
                     self.shutdown_monitoring = True
                     break
-            time.sleep(self.listen_period)
+            time.sleep(self.scheduler_period)
 
     def run_monitor(self) -> None:
         """
@@ -97,7 +105,7 @@ class Scheduler:
 
     def event_handler(self) -> None:
         """
-        Handle events in the event queuse
+        Handle events in the event queue.
         """
         # Loop over all events and process those that is ready to be processed
         passed_over_events = []
@@ -108,8 +116,8 @@ class Scheduler:
             if event.type == EventType.INSTALL_SIM:
                 sim.JOBHANDLER.install_sim(sim_id)
             elif event.type == EventType.RUN_SIM:
-                # Execute a run event if the sim data is already installed,
-                # otherwise ignore the run event
+                # Execute a run event if the sim is already installed,
+                # otherwise skip over the run event
                 if sim.JOBHANDLER.job_status == JobStatus.INSTALLED:
                     sim.JOBHANDLER.run_sim(sim.COMMAND)
                 else:
