@@ -2,7 +2,7 @@ import time
 from enum import Enum
 from exauq.utilities.jobstatus import JobStatus
 from exauq.utilities.paths import Paths
-from exauq.utilities.comms import local_run, remote_run
+from exauq.utilities.comms import local_install, remote_install, local_run, remote_run
 
 
 class SchedType(Enum):
@@ -78,10 +78,10 @@ class JobHandler:
             self.sim_dir = Paths.SIM_RUN_DIR.format(sim_id)
             install_command = self.install_command.format(self.sim_dir)
             if self.run_local:
-                self.install_process = local_run(command=install_command)
+                self.install_process = local_install(install_command=install_command)
             else:
-                self.install_process = remote_run(
-                    command=install_command, host=self.host, user=self.user
+                self.install_process = remote_install(
+                    install_command=install_command, host=self.host, user=self.user
                 )
 
     def run_sim(self, command: str) -> None:
