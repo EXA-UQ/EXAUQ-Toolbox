@@ -83,7 +83,15 @@ class Scheduler:
             with self._lock:
                 for sim in self.requested_job_list:
                     status = sim.JOBHANDLER.job_status
-                    if status != JobStatus.SUCCESS and status != JobStatus.FAILED:
+                    # Only push poll request for sim jobs that hasn't failed in some way
+                    # or hasn't successfully completed already.
+                    poll = (
+                        status != JobStatus.INSTALL_FAILED
+                        and status != JobStatus.SUBMIT_FAILED
+                        and status != JobStatus.SUCCESS
+                        and status != JobStatus.FAILED
+                    )
+                    if poll:
                         self.event_queue.put(Event(EventType.POLL_SIM, sim))
                 if self.shutdown_monitoring:
                     break

@@ -27,7 +27,9 @@ def test_scheduler() -> None:
             "lvl3": DummySimLvl3,
         }
     )
-    scheduler = Scheduler(simulator_factory=sim_factory)
+    scheduler = Scheduler(
+        simulator_factory=sim_factory, scheduler_period=1, polling_period=2
+    )
     scheduler.start_up()
     list_of_jobs = [({}, "lvl0"), ({}, "lvl1"), ({}, "lvl2"), ({}, "lvl3")]
     for job in list_of_jobs:

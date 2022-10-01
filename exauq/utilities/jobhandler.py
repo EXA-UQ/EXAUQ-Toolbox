@@ -48,22 +48,25 @@ class JobHandler:
         self.submit_time = None
         self.last_poll_time = None
 
-        self.install_command = "mkdir -p {0} ; touch {0}/std.out {0}/std.err"
+        self.install_command = (
+            """bash -c 'mkdir -p {0} ; touch {0}/std.out {0}/std.err'"""
+        )
 
         if type == SchedType.BACKGROUND:
             self.type = type
-            self.run_command = "nohup bash -c '{0} || echo EXAUQ_JOB_FAILURE' > {1}/std.out 2> {1}/std.err & echo $!"
-            self.poll_command = (
-                "ps -p {0} -o pid= -o stat= -o comm= ; tail -1 {1}/std.out"
-            )
+            # Note the $! variable in bash returns the PID of the last command, which is what we want here
+            self.run_command = """nohup bash -c '{0} || echo EXAUQ_JOB_FAILURE' > {1}/std.out 2> {1}/std.err & echo $!"""
+            self.poll_command = """bash -c 'ps -p {0} -o pid= -o stat= -o comm= ; tail -1 {1}/std.out'"""
         if type == SchedType.AT:
             self.type = type
-            self.run_command = 'echo "({0} || echo EXAUQ_JOB_FAILURE) > {1}/std.out 2> {1}/std.err" | at now 2>&1'
-            self.poll_command = "atq | grep {0} ; tail -1 {1}/std.out"
+            # Note the command below uses the bash cut command to return the job id from the at scheduler output
+            self.run_command = """echo "bash -c '{0} || echo EXAUQ_JOB_FAILURE' > {1}/std.out 2> {1}/std.err" | at now 2>&1 | cut -f2 -d ' '"""
+            self.poll_command = """bash -c 'atq | grep {0} ; tail -1 {1}/std.out'"""
         if type == SchedType.BATCH:
             self.type = type
-            self.run_command = 'echo "({1} || echo EXAUQ_JOB_FAILURE) > {0}/std.out 2> {0}/std.err" | batch 2>&1'
-            self.poll_command = "atq | grep {0} ; tail -1 {1}/std.out"
+            # Note the command below uses the bash cut command to return the job id from the at scheduler output
+            self.run_command = """echo "bash -c '{0} || echo EXAUQ_JOB_FAILURE' > {1}/std.out 2> {1}/std.err" | batch 2>&1 | cut -f2 -d ' '"""
+            self.poll_command = """bash -c 'atq | grep {0} ; tail -1 {1}/std.out'"""
 
     def install_sim(self, sim_id: str) -> None:
         """
@@ -105,7 +108,6 @@ class JobHandler:
                 self.submit_process = remote_run(
                     command=submit_command, host=self.host, user=self.user
                 )
-            self.job_status = JobStatus.SUBMITTED
 
     def poll_sim(self) -> None:
         """
@@ -120,7 +122,7 @@ class JobHandler:
             if self.install_process.poll() is not None:
                 stdout, stderr = self.install_process.communicate()
                 if stderr:
-                    print("job submission failed with: ", stderr)
+                    print("sim installation failed with: ", stderr)
                     self.job_status = JobStatus.INSTALL_FAILED
                 else:
                     self.job_status = JobStatus.INSTALLED
@@ -139,7 +141,7 @@ class JobHandler:
                     self.job_status = JobStatus.SUBMIT_FAILED
                 else:
                     self.job_id = stdout.split()[0]
-                    self.job_status = JobStatus.RUNNING
+                    self.job_status = JobStatus.SUBMITTED
                 self.submit_process = None
             else:
                 pass
@@ -158,14 +160,14 @@ class JobHandler:
                         if self.type == SchedType.BACKGROUND:
                             self.job_status = JobStatus.RUNNING
                         if self.type == SchedType.AT:
-                            if stdout_fields[6] == "=":
+                            if stdout_fields[-2] == "=":
                                 self.job_status = JobStatus.RUNNING
-                            if stdout_fields[6] == "a":
+                            if stdout_fields[-2] == "a":
                                 self.job_status = JobStatus.IN_QUEUE
                         if self.type == SchedType.BATCH:
-                            if stdout_fields[6] == "=":
+                            if stdout_fields[-2] == "=":
                                 self.job_status = JobStatus.RUNNING
-                            if stdout_fields[6] == "b":
+                            if stdout_fields[-2] == "b":
                                 self.job_status = JobStatus.IN_QUEUE
                     elif "EXAUQ_JOB_FAILURE" in stdout_fields:
                         self.job_status = JobStatus.FAILED
