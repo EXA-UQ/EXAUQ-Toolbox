@@ -5,7 +5,7 @@ from exauq.core.scheduler import Scheduler
 from exauq.core.simulator import SimulatorFactory
 from exauq.utilities.jobstatus import JobStatus
 
-from test_functions.dummy_sims import (
+from test_sims.dummy_sims import (
     DummySimLvl0,
     DummySimLvl1,
     DummySimLvl2,
