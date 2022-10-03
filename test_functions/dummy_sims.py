@@ -1,5 +1,5 @@
-from exauq.core.simulator import Simulator
-from exauq.utilities.BgHandler import BgHandler
+from exauq.core import Simulator
+from exauq.utilities import JobHandler, SchedType
 
 
 class DummySimLvl0(Simulator):
@@ -9,7 +9,9 @@ class DummySimLvl0(Simulator):
 
     def __init__(self):
         super().__init__()
-        self.JOBHANDLER = BgHandler(host="localhost", user="")
+        self.JOBHANDLER = JobHandler(
+            host="localhost", user="", type=SchedType.BACKGROUND
+        )
         self.COMMAND = "sleep 1"
 
 
@@ -20,7 +22,9 @@ class DummySimLvl1(Simulator):
 
     def __init__(self):
         super().__init__()
-        self.JOBHANDLER = BgHandler(host="localhost", user="")
+        self.JOBHANDLER = JobHandler(
+            host="localhost", user="", type=SchedType.BACKGROUND
+        )
         self.COMMAND = "sleep 2"
 
 
@@ -31,7 +35,9 @@ class DummySimLvl2(Simulator):
 
     def __init__(self):
         super().__init__()
-        self.JOBHANDLER = BgHandler(host="localhost", user="")
+        self.JOBHANDLER = JobHandler(
+            host="localhost", user="", type=SchedType.BACKGROUND
+        )
         self.COMMAND = "sleep 5"
 
 
@@ -42,5 +48,7 @@ class DummySimLvl3(Simulator):
 
     def __init__(self):
         super().__init__()
-        self.JOBHANDLER = BgHandler(host="localhost", user="")
+        self.JOBHANDLER = JobHandler(
+            host="localhost", user="", type=SchedType.BACKGROUND
+        )
         self.COMMAND = "sleep 10"

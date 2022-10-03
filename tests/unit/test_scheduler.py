@@ -1,8 +1,10 @@
 import pytest
 import time
+
 from exauq.core.scheduler import Scheduler
 from exauq.core.simulator import SimulatorFactory
-from exauq.utilities.JobStatus import JobStatus
+from exauq.utilities.jobstatus import JobStatus
+
 from test_functions.dummy_sims import (
     DummySimLvl0,
     DummySimLvl1,
@@ -25,7 +27,9 @@ def test_scheduler() -> None:
             "lvl3": DummySimLvl3,
         }
     )
-    scheduler = Scheduler(simulator_factory=sim_factory)
+    scheduler = Scheduler(
+        simulator_factory=sim_factory, scheduler_period=1, polling_period=2
+    )
     scheduler.start_up()
     list_of_jobs = [({}, "lvl0"), ({}, "lvl1"), ({}, "lvl2"), ({}, "lvl3")]
     for job in list_of_jobs:
