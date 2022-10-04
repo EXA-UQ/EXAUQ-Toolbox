@@ -1,6 +1,6 @@
 from exauq.core.simulator import SimulatorFactory, Simulator
 from exauq.core.scheduler import Scheduler
-from exauq.utilities.JobStatus import JobStatus
+from exauq.utilities.jobstatus import JobStatus
 
 
 class PotatoSim(Simulator):
