@@ -2,8 +2,10 @@ import threading
 import random
 import queue
 import time
+from multiprocessing import Pipe, Process
 from exauq.core.simulator import SimulatorFactory
 from exauq.core.event import Event, EventType
+from exauq.dashboard.exadash import run_dashboard
 from exauq.utilities.jobstatus import JobStatus
 
 
@@ -21,7 +23,7 @@ class Scheduler:
     """
 
     def __init__(
-        self, simulator_factory: SimulatorFactory, scheduler_period=5, polling_period=10
+            self, simulator_factory: SimulatorFactory, scheduler_period=5, polling_period=10
     ):
 
         self.simulator_factory = simulator_factory
@@ -37,15 +39,21 @@ class Scheduler:
         self.monitor_thread = threading.Thread(target=self.run_monitor)
         self._lock = threading.Lock()
 
+        self.dashboard_process = None
+        self.dashboard_connection = None
+
         self.shutdown_signal = False
         self.shutdown_monitoring = False
 
         self.log_file = None
 
-    def start_up(self):
+    def start_up(self, with_dashboard: bool = True):
         self.log_file = open("scheduler.log", "w", buffering=1)
         self.scheduler_thread.start()
         self.monitor_thread.start()
+
+        if with_dashboard:
+            self.run_dashboard()
 
     def shutdown(self):
         with self._lock:
@@ -53,6 +61,9 @@ class Scheduler:
         self.scheduler_thread.join()
         self.monitor_thread.join()
         self.log_file.close()
+
+        if self.dashboard_process:
+            self.dashboard_process.terminate()
 
     def run_scheduler(self) -> None:
         """
@@ -86,16 +97,24 @@ class Scheduler:
                     # Only push poll request for sim jobs that hasn't failed in some way
                     # or hasn't successfully completed already.
                     poll = (
-                        status != JobStatus.INSTALL_FAILED
-                        and status != JobStatus.SUBMIT_FAILED
-                        and status != JobStatus.SUCCESS
-                        and status != JobStatus.FAILED
+                            status != JobStatus.INSTALL_FAILED
+                            and status != JobStatus.SUBMIT_FAILED
+                            and status != JobStatus.SUCCESS
+                            and status != JobStatus.FAILED
                     )
                     if poll:
                         self.event_queue.put(Event(EventType.POLL_SIM, sim))
                 if self.shutdown_monitoring:
                     break
             time.sleep(self.polling_period)
+
+    def run_dashboard(self) -> None:
+        """
+        Creates Pipe and starts dashboard process.
+        """
+        self.dashboard_connection, child_connection = Pipe()
+        self.dashboard_process = Process(target=run_dashboard, args=(child_connection,))
+        self.dashboard_process.start()
 
     def request_job(self, parameters: dict, sim_type: str) -> None:
         """
@@ -164,15 +183,15 @@ class Scheduler:
         message = current_time + ":\n"
         for sim_id, sim_status in self.requested_job_status.items():
             message = (
-                message
-                + "sim_id: {0} host: {1} job_id: {2} submit_time: {3} last_poll_time: {4} job_status: {5}\n".format(
-                    sim_id,
-                    sim_status["host"],
-                    sim_status["job_id"],
-                    sim_status["submit_time"],
-                    sim_status["last_poll_time"],
-                    sim_status["job_status"],
-                )
+                    message
+                    + "sim_id: {0} host: {1} job_id: {2} submit_time: {3} last_poll_time: {4} job_status: {5}\n".format(
+                sim_id,
+                sim_status["host"],
+                sim_status["job_id"],
+                sim_status["submit_time"],
+                sim_status["last_poll_time"],
+                sim_status["job_status"],
+            )
             )
         print(message)
         self.log_file.write(message)
