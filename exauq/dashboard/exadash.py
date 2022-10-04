@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from dash import Dash
+import dash_bootstrap_components as dbc
 
 from .src.components.layout import create_layout
 
@@ -11,7 +12,7 @@ if TYPE_CHECKING:
 
 class ExaDash(Dash):
     def __init__(self):
-        super().__init__()
+        super().__init__(external_stylesheets=[dbc.themes.SLATE, dbc.icons.BOOTSTRAP])
         self.schedular_connection = None
 
 
