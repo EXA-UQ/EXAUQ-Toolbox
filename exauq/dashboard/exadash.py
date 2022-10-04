@@ -11,9 +11,10 @@ if TYPE_CHECKING:
 
 
 class ExaDash(Dash):
-    def __init__(self):
+    def __init__(self, refresh_interval=5000):
         super().__init__(external_stylesheets=[dbc.themes.SLATE, dbc.icons.BOOTSTRAP])
         self.schedular_connection = None
+        self.refresh_interval = refresh_interval
 
 
 def run_dashboard(schedular_connection: connection.Connection):

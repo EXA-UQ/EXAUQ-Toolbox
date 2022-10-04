@@ -175,6 +175,9 @@ class Scheduler:
             ] = sim.JOBHANDLER.last_poll_time
         self.log_status()
 
+        if self.dashboard_process:
+            self.dashboard_connection.send(self.requested_job_status)
+
     def log_status(self) -> None:
         """
         Simple event printout of current status
