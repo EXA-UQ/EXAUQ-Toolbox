@@ -5,7 +5,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from exauq.dashboard.src import ids
-from exauq.dashboard.src.components import jobdisplayoptions
+from exauq.dashboard.src.components import job_display_options
 
 if TYPE_CHECKING:
     from exauq.dashboard.exadash import ExaDash
