@@ -5,6 +5,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from exauq.dashboard.src import ids
+from exauq.dashboard.src.components import jobdisplayoptions
 
 if TYPE_CHECKING:
     from exauq.dashboard.exadash import ExaDash
@@ -38,7 +39,7 @@ def create_layout(app: ExaDash) -> html.Div:
                     dbc.Row(
                         [
                             dbc.Col(
-                                #Job filter, sort, etc options
+                                jobdisplayoptions.render(app=app)
                             )
                         ]
                     )
