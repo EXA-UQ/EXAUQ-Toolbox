@@ -18,5 +18,7 @@ class ExaDash(Dash):
 def run_dashboard(schedular_connection: connection.Connection):
     app = ExaDash()
     app.schedular_connection = schedular_connection
+    app.title = "EXAUQ-Toolbox"
+    app._favicon = ""
     app.layout = create_layout(app=app)
     app.run(debug=True, use_reloader=False)
