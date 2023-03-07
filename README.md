@@ -1,7 +1,17 @@
 # EXAscale Uncertainty Quantification Toolbox (EXAUQ-Toolbox)
 
+The EXAUQ-Toolbox is a Python package that supports the development of
+emulators of complex computer simulations. A key feature is support for fitting
+multi-level Gaussian Process emulators for hierarchies of simulation models. Here, simulations in the
+hierarchy are arranged according to differing levels of model fidelity, with the
+simulation at the apex of the hierarchy potentially requiring exascale
+computing to complete. As well as implementing statistical methods for training multi-level
+emulators, the EXAUQ-Toolbox takes care of managing the use of multiple computing
+resources, which would typically be required when running simulations in the
+multi-fidelity hierarchy. (For example, runs of the highest-fidelity simulation may
+be run on an exascale computer, whereas a lower-fidelity, but cheaper, simulation may be
+run on a more conventional HPC, or a departmental server).
 
-## Installation
 
 ## Installation for development
 
