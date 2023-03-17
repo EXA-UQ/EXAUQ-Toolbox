@@ -1,0 +1,35 @@
+name: update-poetry-lock
+run-name: ${{ github.actor }} updated the Poetry lock file
+on: workflow_dispatch
+jobs:
+  update-lock-file-and-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: dev
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: View Python version
+        run: python --version
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v2
+      - name: View Poetry version
+        run: poetry --version
+      - name: Install packages
+        
+        # The --no-root option means don't install the EXAUQ-Toolbox package.
+        # May want to remove this in the future e.g. to build package and run tests.
+        run: rm -f Poetry.lock && poetry install --no-root
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          commit-message: 'Update Python package dependencies'
+          branch: update-python-packages
+          title: 'Update Python package dependencies'
+          body: |
+            Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action.
+            
+            Updates Python packages as specified in the `pyproject.toml` file and updates `Poetry.lock` accordingly. 
