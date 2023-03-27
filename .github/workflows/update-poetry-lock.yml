@@ -17,11 +17,13 @@ jobs:
         uses: abatilo/actions-poetry@v2
       - name: View Poetry version
         run: poetry --version
+      - name: Remove Poetry lock file
+        run: rm -r poetry.lock
       - name: Install packages
         
         # The --no-root option means don't install the EXAUQ-Toolbox package.
         # May want to remove this in the future e.g. to build package and run tests.
-        run: rm -f Poetry.lock && poetry install --no-root
+        run: poetry install --no-root
       
       - name: Check git status
         run: git status
