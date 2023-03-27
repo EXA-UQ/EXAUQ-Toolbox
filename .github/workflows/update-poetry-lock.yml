@@ -23,6 +23,9 @@ jobs:
         # May want to remove this in the future e.g. to build package and run tests.
         run: rm -f Poetry.lock && poetry install --no-root
       
+      - name: Check git status
+        run: git status
+      
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
