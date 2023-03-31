@@ -1,6 +1,9 @@
 name: update-poetry-lock
 run-name: ${{ github.actor }} updated the Poetry lock file
-on: workflow_dispatch
+on:
+  schedule:
+    # On 1, 15, 29 day of each month at 5:45am UTC
+    - cron: '45 5 1,15,29 * *'
 jobs:
   update-lock-file-and-pr:
     runs-on: ubuntu-latest
@@ -17,16 +20,10 @@ jobs:
         uses: abatilo/actions-poetry@v2
       - name: View Poetry version
         run: poetry --version
-      - name: Remove Poetry lock file
-        run: rm -r poetry.lock
       - name: Install packages
-        
         # The --no-root option means don't install the EXAUQ-Toolbox package.
         # May want to remove this in the future e.g. to build package and run tests.
-        run: poetry install --no-root
-      
-      - name: Check git status
-        run: git status
+        run: rm -r poetry.lock && poetry install --no-root
       
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
