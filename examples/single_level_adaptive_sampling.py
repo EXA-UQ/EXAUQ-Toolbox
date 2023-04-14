@@ -157,7 +157,7 @@ if __name__ == "__main__":
     # Fit GP to the initial data
     gp = mogp_emulator.fit_GP_MAP(gp)
 
-    n_adaptive_iterations = 1
+    n_adaptive_iterations = 3
     experiments = initial_experiments
     observations = initial_observations
     for iteration in range(n_adaptive_iterations):
