@@ -1,6 +1,7 @@
 # A quick-and-dirty implementation of cross-validation-based single level
 # adaptive sampling experimental design, using mogp-emulator
 
+import itertools
 import math
 import numpy as np
 import mogp_emulator
@@ -31,8 +32,18 @@ class Domain:
         return one_shot_designer.sample(n_samples)
 
     def find_pseudopoints(self, experiments):
-        return []
-    
+        """Find the pseudo points in the domain for a given set of experiments."""
+        # Get corners of domain
+        intervals = [self.interval] * self.dim
+        pseudopoints = [np.array(x) for x in itertools.product(*intervals)]
+
+        # Project nearest point onto boundaries 
+        for d, interval in enumerate(intervals):
+            lb, ub = interval
+            pseudopoints.append(get_boundary_pseudopoint(experiments, d, lower=lb))
+            pseudopoints.append(get_boundary_pseudopoint(experiments, d, upper=ub))
+
+        return pseudopoints
 
     def argmax(self, objective_function):
         """Find the point in this domain that maximises a function."""
@@ -46,14 +57,34 @@ class Domain:
         return result.x
 
 
+
+def get_boundary_pseudopoint(experiments, d, lower=None, upper=None):
+    if lower is not None:
+        exp_idx = np.argmin([x[d] - lower for x in experiments])
+        return replace(experiments[exp_idx], d, lower)
+    elif upper is not None:
+        exp_idx = np.argmin([upper - x[d] for x in experiments])
+        return replace(experiments[exp_idx], d, upper)
+    else:
+        return None
+
+
+def replace(x, d, new):
+    y = np.copy(x)
+    y[d] = new
+    return y
+
+
 class PEICalculator:
     """Encapsulates the computation of pseudo-expected improvement of GP."""
-    def __init__(self, gp):
+    def __init__(self, gp, pseudopoints):
         self.gp = gp
+        self.pseudopoints = pseudopoints
 
         # Cache various values / objects for later computation
         self._max_targets = max(gp.targets)
         self._norm = scipy.stats.norm(loc=0, scale=1)
+        self._repulsion_points = list(gp.inputs) + self.pseudopoints
     
     def _expected_improvement(self, x):
         mean, variance, _ = gp.predict(x)
@@ -64,10 +95,19 @@ class PEICalculator:
         return ((mean - self._max_targets) * self._norm.cdf(u) +
                 variance * self._norm.pdf(u))
     
+    def _correlation(self, x, y):
+        """Computes the correlation function at two points for the GP."""
+        # TODO: work out how to compute this
+        return 0.1
+    
+    def _repulsion(self, x):
+        return math.prod(1 - self._correlation(x, y) for y in self._repulsion_points)
+
     def compute(self, x):
         """Compute the pseudo-expected improvement."""
-        # NOTE: currently computes expected improvement!!
-        return self._expected_improvement(x)
+        # NOTE: Currently only computes scaled expected improvement because
+        #       correlation function not properly defined.
+        return self._expected_improvement(x) * self._repulsion(x)
 
 
 def f(x) -> float:
@@ -126,7 +166,7 @@ if __name__ == "__main__":
             [calculate_esloo_error(gp, i) for i in range(len(experiments))]
         )
 
-        # # Lower bound on parameters
+        # # TODO: Lower bound on parameters
         # theta_lb = calculate_lower_bound(gp.theta, domain)
 
         # Fit GP to ES-LOO errors
@@ -135,10 +175,11 @@ if __name__ == "__main__":
 
         # Create pseudopoints
         pseudopoints = domain.find_pseudopoints(experiments)
+        print('pseudopoints:', pseudopoints)
 
         # # Optimise over pseudoexpected improvement
         # # Note pei(...) defines a function; we optimise this over the domain
-        pei = PEICalculator(gp_e)
+        pei = PEICalculator(gp_e, pseudopoints)
         
         # Check PEI of training inputs is zero
         for x in experiments:
