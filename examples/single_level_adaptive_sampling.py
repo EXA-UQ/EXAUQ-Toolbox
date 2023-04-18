@@ -47,13 +47,11 @@ class Domain:
 
     def argmax(self, objective_function):
         """Find the point in this domain that maximises a function."""
-        # Arbitrarily use midpoint of the domain to start the optimisation.
         # For now, we just use some optimisation routine without worrying about
-        # whether it's a good one to use. Using Trust-Region Constrained Algorithm
-        # https://docs.scipy.org/doc/scipy/tutorial/optimize.html#trust-region-constrained-algorithm-method-trust-constr
-        x0 = np.array([a / 2 for a in self.interval])
+        # whether it's a good one to use. Using dual annealing for finding the
+        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.dual_annealing.html
         obj_fn = lambda x: -objective_function(x)
-        result = scipy.optimize.minimize(obj_fn, x0, method='trust-constr', bounds=self._bounds)
+        result = scipy.optimize.dual_annealing(obj_fn, self._bounds)
         return result.x
 
 
@@ -166,6 +164,8 @@ if __name__ == "__main__":
     experiments = initial_experiments
     observations = initial_observations
     for iteration in range(n_adaptive_iterations):
+        print("Iteration", iteration, '\n')
+        
         # Observations for ES-LOO
         observations_e = np.array(
             [calculate_esloo_error(gp, i) for i in range(len(experiments))]
@@ -181,10 +181,8 @@ if __name__ == "__main__":
 
         # Create pseudopoints
         pseudopoints = domain.find_pseudopoints(experiments)
-        print('pseudopoints:', pseudopoints)
 
-        # # Optimise over pseudoexpected improvement
-        # # Note pei(...) defines a function; we optimise this over the domain
+        # Optimise over pseudoexpected improvement
         pei = PEICalculator(gp_e, pseudopoints)
         
         # Check PEI of training inputs is zero
@@ -200,7 +198,7 @@ if __name__ == "__main__":
         gp = mogp_emulator.GaussianProcess(experiments, observations, kernel='Matern52')
         gp = mogp_emulator.fit_GP_MAP(gp)
 
-    print(f'Initial design ({len(initial_experiments)} pts):', initial_experiments)
-    print('Initial observations:', initial_observations, '\n')
-    print(f'{gp.n} design points:', gp.inputs)
-    print('New observations:', gp.targets, '\n')
+    print(f'Initial design ({len(initial_experiments)} pts):\n', initial_experiments)
+    print('Initial observations:\n', initial_observations, '\n')
+    print(f'New design ({n_adaptive_iterations} new design points):\n', gp.inputs)
+    print('New observations:\n', gp.targets, '\n')
