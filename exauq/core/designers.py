@@ -1,3 +1,4 @@
+import copy
 from exauq.core.modelling import (
     AbstractEmulator,
     AbstractSimulator
@@ -40,4 +41,6 @@ class SingleLevelAdaptiveSampler:
 
     def run(self):
         """Run the adaptive sampling algorithm."""
-        return self.emulator
+        trained_emulator = copy.deepcopy(self.emulator)
+        trained_emulator.fit([(0, 0)])
+        return trained_emulator

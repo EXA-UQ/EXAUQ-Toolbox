@@ -1,13 +1,20 @@
-from abc import ABC
+import abc
 
 
-class AbstractEmulator(ABC):
+class AbstractEmulator(abc.ABC):
     """Represents an abstract emulator for simulators.
     """
-    pass
+    
+    def __init__(self):
+        self._training_data = None
+
+    @property
+    @abc.abstractmethod
+    def training_data(self):
+        return self._training_data
 
 
-class AbstractSimulator(ABC):
+class AbstractSimulator(abc.ABC):
     """Represents an abstract simulator.
     """
     pass
