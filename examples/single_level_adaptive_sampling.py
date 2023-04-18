@@ -49,6 +49,7 @@ class Domain:
         """Find the point in this domain that maximises a function."""
         # For now, we just use some optimisation routine without worrying about
         # whether it's a good one to use. Using dual annealing for finding the
+        # global optimum; see
         # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.dual_annealing.html
         obj_fn = lambda x: -objective_function(x)
         result = scipy.optimize.dual_annealing(obj_fn, self._bounds)
