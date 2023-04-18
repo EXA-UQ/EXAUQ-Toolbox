@@ -59,6 +59,8 @@ class Domain:
 
 
 def get_boundary_pseudopoint(experiments, d, lower=None, upper=None):
+    """Get the pseudopoint corresponding to one face of the cube defining this
+    domain (not including corner points)."""
     if lower is not None:
         exp_idx = np.argmin([x[d] - lower for x in experiments])
         return replace(experiments[exp_idx], d, lower)
@@ -70,6 +72,7 @@ def get_boundary_pseudopoint(experiments, d, lower=None, upper=None):
 
 
 def replace(x, d, new):
+    """Create a copy of an array with the `d`th element replaced with a new value."""
     y = np.copy(x)
     y[d] = new
     return y
@@ -87,6 +90,7 @@ class PEICalculator:
         self._repulsion_points = list(gp.inputs) + self.pseudopoints
     
     def _expected_improvement(self, x):
+        """Computes expected improvement at an input for the GP."""
         mean, variance, _ = gp.predict(x)
         if math.isclose(variance, 0, abs_tol=TOLERANCE):
             return 0.
@@ -101,10 +105,11 @@ class PEICalculator:
         return 0.1
     
     def _repulsion(self, x):
+        """Computes the repulsion function at an input for the GP."""
         return math.prod(1 - self._correlation(x, y) for y in self._repulsion_points)
 
     def compute(self, x):
-        """Compute the pseudo-expected improvement."""
+        """Compute the pseudo-expected improvement at an input for the GP."""
         # NOTE: Currently only computes scaled expected improvement because
         #       correlation function not properly defined.
         return self._expected_improvement(x) * self._repulsion(x)
@@ -166,7 +171,8 @@ if __name__ == "__main__":
             [calculate_esloo_error(gp, i) for i in range(len(experiments))]
         )
 
-        # # TODO: Lower bound on parameters
+        # # TODO: Calculate lower bound on parameters and work out how these
+        # #       should be used in the overall algorithm.
         # theta_lb = calculate_lower_bound(gp.theta, domain)
 
         # Fit GP to ES-LOO errors
