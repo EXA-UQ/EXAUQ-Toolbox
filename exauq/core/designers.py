@@ -21,7 +21,7 @@ class SingleLevelAdaptiveSampler:
     Attributes
     ----------
     emulator: AbstractEmulator
-        The emulator being trained with the single levels adaptive sampling
+        The emulator being trained with the single level adaptive sampling
         design strategy.
     simulator: AbstractSimulator
         The simulator being emulated.
@@ -37,3 +37,7 @@ class SingleLevelAdaptiveSampler:
     def __repr__(self):
         return f"SingleLevelAdaptiveSampler(simulator={repr(self.simulator)}, " \
                f"emulator={repr(self.emulator)})"
+
+    def run(self):
+        """Run the adaptive sampling algorithm."""
+        return self.emulator
