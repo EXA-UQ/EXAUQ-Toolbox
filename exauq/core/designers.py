@@ -31,9 +31,9 @@ class SingleLevelAdaptiveSampler:
         self.simulator: AbstractSimulator = simulator
     
     def __str__(self):
-        return f"SingleLevelAdaptiveSampling designer for simulator {str(self.simulator)}, " \
+        return f"SingleLevelAdaptiveSampler designer for simulator {str(self.simulator)}, " \
                f"using emulator {str(self.emulator)}"
 
     def __repr__(self):
-        return f"SingleLevelAdaptiveSampling(simulator={repr(self.simulator)}, " \
+        return f"SingleLevelAdaptiveSampler(simulator={repr(self.simulator)}, " \
                f"emulator={repr(self.emulator)})"
