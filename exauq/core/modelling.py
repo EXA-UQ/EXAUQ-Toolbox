@@ -12,6 +12,10 @@ class AbstractEmulator(abc.ABC):
     @abc.abstractmethod
     def training_data(self):
         return self._training_data
+    
+    @abc.abstractmethod
+    def fit(self, training_data):
+        pass
 
 
 class AbstractSimulator(abc.ABC):
