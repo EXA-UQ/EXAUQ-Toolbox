@@ -1,7 +1,7 @@
 import unittest
 import tests.unit.fakes as fakes
 from exauq.core.designers import SingleLevelAdaptiveSampler
-from exauq.core.modelling import AbstractEmulator
+
 
 class TestSingleLevelAdaptiveSampler(unittest.TestCase):
     def test_designer_str(self):
