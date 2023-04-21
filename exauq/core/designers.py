@@ -41,6 +41,6 @@ class SingleLevelAdaptiveSampler:
 
     def run(self):
         """Run the adaptive sampling algorithm."""
-        trained_emulator = copy.deepcopy(self.emulator)
+        trained_emulator = copy.copy(self.emulator)
         trained_emulator.fit([(0, 0)])
         return trained_emulator
