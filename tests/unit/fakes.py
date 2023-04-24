@@ -2,6 +2,8 @@
 """
 import typing
 from exauq.core.modelling import(
+    Experiment,
+    TrainingDatum,
     AbstractEmulator,
     AbstractSimulator
 )
@@ -27,13 +29,13 @@ class DumbEmulator(AbstractEmulator):
     """
     def __init__(self):
         super()
-        self._training_data: typing.Optional[list[tuple[float, float]]] = None
+        self._training_data: typing.Optional[list[TrainingDatum]] = None
 
     @property
-    def training_data(self) -> typing.Optional[list[tuple[float, float]]]:
+    def training_data(self) -> typing.Optional[list[TrainingDatum]]:
         return super().training_data
 
-    def fit(self, data: list[tuple[float, float]]) -> None:
+    def fit(self, data: list[TrainingDatum]) -> None:
         """Fits the emulator on the given data.
 
         Any prior training data are discarded, so that each
@@ -48,7 +50,7 @@ class DumbEmulator(AbstractEmulator):
         """
         self._training_data = data
     
-    def predict(self, x: float) -> float:
+    def predict(self, x: Experiment) -> float:
         """Estimate the simulator output for a given input.
 
         The emulator will predict the correct simulator output for `x` which
@@ -65,9 +67,9 @@ class DumbEmulator(AbstractEmulator):
             The value predicted by the emulator, which is an estimate of the
             simulator's output at `x`.
         """
-        for input, observation in self._training_data:
-            if abs(input - x) < 1e-10:
-                return observation
+        for datum in self._training_data:
+            if abs(datum.experiment.value - x.value) < 1e-10:
+                return datum.observation
 
         return 0
 
@@ -94,7 +96,7 @@ class OneDimSimulator(AbstractSimulator):
         self.lower_limit: float = lower_limit
         self.upper_limit: float = upper_limit
 
-    def compute(self, x: float) -> float:
+    def compute(self, x: Experiment) -> float:
         """Evaluate the identity function at the given point.
 
         Parameters
@@ -107,4 +109,4 @@ class OneDimSimulator(AbstractSimulator):
         float
             The given input, `x`.
         """
-        return x
+        return x.value
