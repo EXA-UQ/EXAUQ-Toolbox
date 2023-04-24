@@ -22,10 +22,10 @@ class DumbEmulator(AbstractEmulator):
 
     Attributes
     ----------
-    training_data: list[tuple[float, float]]
-        A list of pairs of `float`s ``(x,y)`` on which the emulator has been
-        fitted. Here, ``x`` is a simulator input and ``y`` is the corresponding
-        simulator output.
+    training_data: list[TrainingDatum] or None
+        Defines the pairs of experiments and observations on which the emulator
+        has been trained. Each `TrainingDatum` should have a 1-dim
+        `Experiment`.
     """
     def __init__(self):
         super()
@@ -33,6 +33,7 @@ class DumbEmulator(AbstractEmulator):
 
     @property
     def training_data(self) -> typing.Optional[list[TrainingDatum]]:
+        """Get the data on which the emulator has been trained."""
         return super().training_data
 
     def fit(self, data: list[TrainingDatum]) -> None:
@@ -43,10 +44,9 @@ class DumbEmulator(AbstractEmulator):
 
         Parameters
         ----------
-        data : list[tuple[float, float]]
-            A list of pairs of `float`s ``(x,y)`` on which to fit the
-            emulator. Here, ``x`` is a simulator input and ``y`` is the
-            corresponding simulator output.
+        data : list[TrainingDatum]
+            Defines the pairs of experiments and observations on which to train
+            the emulator. Each `TrainingDatum` should have a 1-dim `Experiment`.
         """
         self._training_data = data
     
@@ -58,7 +58,7 @@ class DumbEmulator(AbstractEmulator):
 
         Parameters
         ----------
-        x : float
+        x : Experiment
             An input to the simulator.
 
         Returns
@@ -101,12 +101,12 @@ class OneDimSimulator(AbstractSimulator):
 
         Parameters
         ----------
-        x : float
+        x : Experiment
             The input at which to evaluate the simulator.
 
         Returns
         -------
         float
-            The given input, `x`.
+            The value of the input `x`.
         """
         return x.value
