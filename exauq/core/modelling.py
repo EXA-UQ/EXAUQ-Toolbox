@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+import numbers
 import typing
 
 
@@ -8,17 +9,45 @@ class Experiment(object):
 
     Parameters
     ----------
-    *args : tuple of floats
+    *args : tuple of numbers.Real
         The coordinates of the input.
     
     Attributes
     ----------
-    value : tuple of floats, float or None
-        Represents the point as a tuple (dim > 1), float (dim = 1) or None
-        (dim = 0).
+    value : tuple of numbers.Real, numbers.Real or None
+        Represents the point as a tuple of real numbers (dim > 1), a single real
+        number (dim = 1) or None (dim = 0). Note that finer-grained typing is
+        preserved during construction of an `Experiment`. See the Examples.
+    
+    Raises
+    ------
+    TypeError
+        If any of the inputs to the constructor don't define real numbers.
+
+    Examples
+    --------
+    >>> x = Experiment(1, 2, 3)
+    >>> x.value
+    (1, 2, 3)
+    
+    Single arguments just return a number:
+    >>> x = Experiment(2.1)
+    >>> x.value
+    2.1
+
+    Types are preserved coordinate-wise:
+    >>> import numpy as np
+    >>> x = Experiment(1.3, np.float64(2), np.int16(1))
+    >>> print([type(a) for a in x.value])
+    [<class 'float'>, <class 'numpy.float64'>, <class 'numpy.int16'>]
+
+    Empty argument list gives an experiment with value = None:
+    >>> x = Experiment()
+    >>> x.value
+    None
     """
     def __init__(self, *args):
-        self._value = self._unpack_args(args)
+        self._value = self._unpack_args(self._check_args_real(args))
 
     @staticmethod
     def _unpack_args(args: tuple) -> typing.Union[tuple[typing.Any], typing.Any, None]:
@@ -45,14 +74,23 @@ class Experiment(object):
             return args[0]
         else:
             return None
+    
+    @staticmethod
+    def _check_args_real(args: tuple) -> tuple:
+        """Check that all arguments define real numbers, returning the supplied
+        tuple if so or raising a TypeError otherwise."""
+        if not all(isinstance(x, numbers.Real) for x in args):
+            raise TypeError('Arguments must be instances of real numbers')
+        
+        return args
 
     def __eq__(self, other):
         return type(other) == type(self) and self._value == other.value
     
     @property
-    def value(self) -> typing.Union[tuple[float, ...], float, None]:
-        """(Read-only) Gets the value of the experiment, as a tuple of floats
-        (dim > 1), a float (dim = 1), or None (dim = 0)."""
+    def value(self) -> typing.Union[tuple[numbers.Real, ...], numbers.Real, None]:
+        """(Read-only) Gets the value of the experiment, as a tuple of real
+        numbers (dim > 1), a single real number (dim = 1), or None (dim = 0)."""
         return self._value
 
 

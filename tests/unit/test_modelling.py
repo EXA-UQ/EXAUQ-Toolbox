@@ -3,9 +3,32 @@ from exauq.core.modelling import (
     Experiment,
     TrainingDatum
     )
+import numpy as np
 
 
 class TestExperiment(unittest.TestCase):
+    def test_input_reals(self):
+        """Test that an experiment can be constructed from args that are
+        real numbers."""
+        _ = Experiment(np.float16(1.2345))
+        _ = Experiment(1.2, np.int32(33))
+    
+    def test_input_non_real_error(self):
+        """Test that TypeError is raised during construction if there is an
+        arg that doesn't define a real number."""
+        with self.assertRaises(TypeError) as cm:
+            Experiment(1, 'a')
+        
+        self.assertEqual('Arguments must be instances of real numbers',
+                         str(cm.exception))
+        
+        with self.assertRaises(TypeError) as cm:
+            Experiment(1, complex(1, 1))
+        
+        self.assertEqual('Arguments must be instances of real numbers',
+                         str(cm.exception))
+
+
     def test_eq(self):
         """Test equality and inequality of different Experiment objects."""
         self.assertEqual(Experiment(), Experiment())
