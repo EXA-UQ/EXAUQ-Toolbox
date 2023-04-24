@@ -65,6 +65,30 @@ class TestExperiment(unittest.TestCase):
 
 
 class TestTrainingDatum(unittest.TestCase):
+    def test_input_experiment_error(self):
+        """Test that a TypeError is raised if the constructor arg `experiment`
+        is not an Experiment."""
+        with self.assertRaises(TypeError) as cm:
+            TrainingDatum(1, 1)
+        
+        self.assertEqual('Argument `experiment` must be of type Experiment',
+                         str(cm.exception))
+
+    def test_input_observation_error(self):
+        """Test that a TypeError is raised if the constructor arg `observation`
+        is not an real number."""
+        with self.assertRaises(TypeError) as cm:
+            TrainingDatum(Experiment(1), 'a')
+        
+        self.assertEqual('Argument `observation` must define a real number',
+                         str(cm.exception))
+
+        with self.assertRaises(TypeError) as cm:
+            TrainingDatum(Experiment(1), complex(1, 1))
+        
+        self.assertEqual('Argument `observation` must define a real number',
+                         str(cm.exception))
+
     def test_immutable(self):
         """Test that the experiment and observation attributes are immutable."""
 

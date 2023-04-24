@@ -107,18 +107,37 @@ class TrainingDatum(object):
     ----------
     experiment : Experiment
         An input to a simulator.
-    observations : float
+    observation : numbers.Real
         The output of the simulator at the experiment.
     
     Attributes
     ----------
     experiment : Experiment
         (Read-only) An input to a simulator.
-    observations : float
+    observation : numbers.Real
         (Read-only) The output of the simulator at the experiment.
     """
+    
     experiment: Experiment
-    observation: float
+    observation: numbers.Real
+
+    def __post_init__(self):
+        self._validate_experiment(self.experiment)
+        self._validate_real(self.observation)
+
+    @staticmethod
+    def _validate_experiment(experiment):
+        """Check that an object is an instance of an Experiment, raising a
+        TypeError if not."""
+        if not isinstance(experiment, Experiment):
+            raise TypeError("Argument `experiment` must be of type Experiment")
+    
+    @staticmethod
+    def _validate_real(observation):
+        """Check that an object is an instance of a real number, raising a
+        TypeError if not."""
+        if not isinstance(observation, numbers.Real):
+            raise TypeError("Argument `observation` must define a real number")
 
 
 class AbstractEmulator(abc.ABC):
@@ -132,8 +151,7 @@ class AbstractEmulator(abc.ABC):
     ----------
     training_data: list[TrainingDatum] or None
         Defines the pairs of experiments and observations on which this emulator
-        has been trained. Each `TrainingDatum` should have a 1-dim
-        `Experiment`.
+        has been trained.
     """
     
     def __init__(self):
@@ -166,7 +184,7 @@ class AbstractSimulator(abc.ABC):
     """
     
     @abc.abstractmethod
-    def compute(self, x: Experiment) -> float:
+    def compute(self, x: Experiment) -> numbers.Real:
         """Compute the value of this simulator at an experiment.
 
         Parameters
@@ -176,7 +194,7 @@ class AbstractSimulator(abc.ABC):
 
         Returns
         -------
-        float
+        numbers.Real
             The output of the simulator at the experiment `x`.
         """
         pass
