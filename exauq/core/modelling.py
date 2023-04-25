@@ -84,6 +84,22 @@ class Experiment(object):
         
         return args
 
+    def __str__(self):
+        if self._value is None:
+            return "()"
+        
+        return str(self._value)
+    
+    def __repr__(self):
+        if self._value is None:
+            return "Experiment()"
+        
+        elif isinstance(self._value, numbers.Real):
+            return f"Experiment({repr(self._value)})"
+        
+        else:
+            return f"Experiment{repr(self._value)}"
+
     def __eq__(self, other):
         return type(other) == type(self) and self._value == other.value
     

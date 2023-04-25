@@ -28,6 +28,21 @@ class TestExperiment(unittest.TestCase):
         self.assertEqual('Arguments must be instances of real numbers',
                          str(cm.exception))
 
+    def test_str(self):
+        """Test that the string description of an instance of
+        Experiment gives the coordinates."""
+
+        self.assertEqual("(1, 2, 3)", str(Experiment(1, 2, 3)))
+        self.assertEqual("1.5", str(Experiment(1.5)))
+        self.assertEqual("()", str(Experiment()))
+
+    def test_repr(self):
+        """Test that the string representation of an instance of
+        Experiment gives a recipe for construction."""
+
+        self.assertEqual("Experiment(1, 2, 3)", repr(Experiment(1, 2, 3)))
+        self.assertEqual("Experiment(1.5)", repr(Experiment(1.5)))
+        self.assertEqual("Experiment()", repr(Experiment()))
 
     def test_eq(self):
         """Test equality and inequality of different Experiment objects."""
