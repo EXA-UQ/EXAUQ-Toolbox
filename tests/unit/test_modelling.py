@@ -103,6 +103,19 @@ class TestTrainingDatum(unittest.TestCase):
         
         self.assertEqual('Argument `observation` must define a real number',
                          str(cm.exception))
+    
+    def test_str(self):
+        """Test that the string description of an instance of
+        TrainingDatum gives a tuple of the constituent parts."""
+        
+        self.assertEqual("((1, 2), 3)", str(TrainingDatum(Experiment(1, 2), 3)))
+
+    def test_repr(self):
+        """Test that the string representation of an instance of TrainingDatum
+        gives a recipe for its construction."""
+
+        expected = "TrainingDatum(experiment=Experiment(1, 2), observation=3)"
+        self.assertEqual(expected, repr(TrainingDatum(Experiment(1, 2), 3)))
 
     def test_immutable(self):
         """Test that the experiment and observation attributes are immutable."""

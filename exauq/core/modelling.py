@@ -155,6 +155,9 @@ class TrainingDatum(object):
         if not isinstance(observation, numbers.Real):
             raise TypeError("Argument `observation` must define a real number")
 
+    def __str__(self):
+        return f"({str(self.experiment)}, {str(self.observation)})"
+
 
 class AbstractEmulator(abc.ABC):
     """Represents an abstract emulator for simulators.
