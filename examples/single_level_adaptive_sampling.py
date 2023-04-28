@@ -1,5 +1,35 @@
 # A quick-and-dirty implementation of cross-validation-based single level
 # adaptive sampling experimental design, using mogp-emulator
+#
+# Code in the function fit_with_hyperparameter_estimation has been adapted from
+# the function _fit_single_GP_MAP in the fitting.py module of mogp-emulator
+# as at the following version (accessed 2023-04-28):
+#
+# https://github.com/alan-turing-institute/mogp-emulator/blob/72dc73a49dbab621ef5748546127da990fd81e4a/mogp_emulator/fitting.py
+# 
+# which is made available under the following licence:
+#
+#   MIT License
+#  
+#   Copyright (c) 2019 The Alan Turing Institute
+#  
+#   Permission is hereby granted, free of charge, to any person obtaining a copy
+#   of this software and associated documentation files (the "Software"), to deal
+#   in the Software without restriction, including without limitation the rights
+#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#   copies of the Software, and to permit persons to whom the Software is
+#   furnished to do so, subject to the following conditions:
+#  
+#   The above copyright notice and this permission notice shall be included in all
+#   copies or substantial portions of the Software.
+#  
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#   SOFTWARE.
 
 import itertools
 import math
@@ -28,8 +58,8 @@ class Domain:
         for information on how the raw parameters are derived from the
         covariance and correlation length scale parameters.
         """
-        width = abs(interval[1] - interval[0])
-        theta_lb = 0.25 * width / math.sqrt(math.log(10))  # from HM et al paper
+        length = abs(interval[1] - interval[0])
+        theta_lb = 0.25 * length / math.sqrt(math.log(10))  # from HM et al paper
         
         # The lower bounds on the correlation length scale params
         # correspond to upper bounds on the raw correlation parameters, because
@@ -39,8 +69,8 @@ class Domain:
         # NOTE: we are hardcoding that the covariance parameter is the last
         # coordinate for the bounds. In general for mogp, would need to look
         # at the cov_index attribute of a GPParams object. 
-        lower_bounds = ([raw_theta_ub] * dim) + [-np.inf]  # covariance unrestricted
-        upper_bounds = [np.inf] * (dim + 1)
+        lower_bounds = [-np.inf] * (dim + 1)
+        upper_bounds = ([raw_theta_ub] * dim) + [np.inf]  # covariance unrestricted
         return scipy.optimize.Bounds(lower_bounds, upper_bounds)
     
     def _build_bounds(self):
@@ -191,6 +221,47 @@ def calculate_esloo_error(gp, i):
     return numerator / denominator
 
 
+def fit_with_hyperparameter_estimation(gp, bounds=None, n_tries=15):
+    """Fit a GP, including hyperparameter estimation, with optional bounds on
+    the permitted values of the hyperparameters."""
+
+    np.seterr(divide = 'raise', over = 'raise', invalid = 'raise')
+
+    logpost_values = []
+    theta_values = []
+
+    for _ in range(n_tries):
+        theta = gp.priors.sample()
+        try:
+            min_dict = scipy.optimize.minimize(
+                gp.logposterior, theta, method = "L-BFGS-B", jac = gp.logpost_deriv,
+                bounds=bounds
+                )
+
+            min_theta = min_dict['x']
+            min_logpost = min_dict['fun']
+
+            logpost_values.append(min_logpost)
+            theta_values.append(min_theta)
+
+        except scipy.linalg.LinAlgError:
+            print("Matrix not positive definite, skipping this iteration")
+        
+        except FloatingPointError:
+            print("Floating point error in optimization routine, skipping this iteration")
+
+    if len(logpost_values) == 0:
+        print("Minimization routine failed to return a value")
+        gp.theta = None
+    else:
+        logpost_values = np.array(logpost_values)
+        idx = np.argmin(logpost_values)
+
+        gp.fit(theta_values[idx])
+
+    return gp
+
+
 if __name__ == "__main__":
     
     # Create initial design
@@ -198,6 +269,10 @@ if __name__ == "__main__":
     n_initial_samples = 7  # number of samples for initial design
     initial_experiments = domain.latin_hypercube_samples(n_initial_samples)
     initial_observations = np.array([f(x) for x in initial_experiments])
+
+    # Get bounds on parameters that must be satisfied during
+    # estimation
+    parameter_bounds = domain.raw_parameter_bounds
     
     # Initialise a GP (using a Matern kernel)
     gp = mogp_emulator.GaussianProcess(initial_experiments, initial_observations, kernel='Matern52')
@@ -216,16 +291,17 @@ if __name__ == "__main__":
             [calculate_esloo_error(gp, i) for i in range(len(experiments))]
         )
 
-        # Calculate bounds on parameters that must be satisfied during
-        # estimation
-        parameter_bounds = domain.raw_parameter_bounds
-
         # Fit GP to ES-LOO errors
         gp_e = mogp_emulator.GaussianProcess(experiments, observations_e, kernel='Matern52')
-        gp_e = mogp_emulator.fit_GP_MAP(gp_e)
+        gp_e = fit_with_hyperparameter_estimation(gp_e, bounds=parameter_bounds)
+
+        print("Parameter bounds:", str(parameter_bounds))
+        print("Parameters: ", gp_e.theta.get_data())
 
         # Create pseudopoints
         pseudopoints = domain.find_pseudopoints(experiments)
+
+        print("Pseudopoints:\n", pseudopoints)
 
         # Optimise over pseudoexpected improvement
         pei = PEICalculator(gp_e, pseudopoints)
@@ -239,11 +315,15 @@ if __name__ == "__main__":
         experiments = np.concatenate((experiments, np.array([x_new])))
         observations = np.concatenate((observations, np.array([y_new])))
 
+        print("PEI of new design pt:", pei.compute(x_new))
+        print("EI of new design pt:", pei._expected_improvement(x_new))
+        print("Repulsion of new design pt:", pei._repulsion(x_new))
+
         # Update the original GP with the new experiment and observation
         gp = mogp_emulator.GaussianProcess(experiments, observations, kernel='Matern52')
         gp = mogp_emulator.fit_GP_MAP(gp)
 
     print(f'Initial design ({len(initial_experiments)} pts):\n', initial_experiments)
-    print('Initial observations:\n', initial_observations, '\n')
-    print(f'New design ({n_adaptive_iterations} new design points):\n', gp.inputs)
-    print('New observations:\n', gp.targets, '\n')
+    print('Initial outputs:\n', initial_observations, '\n')
+    print(f'New design points:\n', gp.inputs[-n_adaptive_iterations:])
+    print('New outputs:\n', gp.targets[-n_adaptive_iterations:], '\n')
