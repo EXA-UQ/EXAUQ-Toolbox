@@ -18,10 +18,33 @@ class Domain:
     def __init__(self, interval, dim):
         self.dim = dim
         self.interval = interval
+        self.raw_parameter_bounds = self._calculate_raw_parameter_bounds(interval, dim)
         self._bounds = self._build_bounds()
     
+    def _calculate_raw_parameter_bounds(self, interval, dim):
+        """Calculate the bounds on raw hyperparameters needed when fitting a GP.
+        
+        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        for information on how the raw parameters are derived from the
+        covariance and correlation length scale parameters.
+        """
+        width = abs(interval[1] - interval[0])
+        theta_lb = 0.25 * width / math.sqrt(math.log(10))  # from HM et al paper
+        
+        # The lower bounds on the correlation length scale params
+        # correspond to upper bounds on the raw correlation parameters, because
+        # the transformation is a decreasing function: theta_raw = -2 * log(theta) 
+        raw_theta_ub = to_mogp_raw_correlation(theta_lb)
+
+        # NOTE: we are hardcoding that the covariance parameter is the last
+        # coordinate for the bounds. In general for mogp, would need to look
+        # at the cov_index attribute of a GPParams object. 
+        lower_bounds = ([raw_theta_ub] * dim) + [-np.inf]  # covariance unrestricted
+        upper_bounds = [np.inf] * (dim + 1)
+        return scipy.optimize.Bounds(lower_bounds, upper_bounds)
+    
     def _build_bounds(self):
-        """Create a Bounds object for use with scipy's optimisation routines."""
+        """Create bounds for optimising functions over this domain."""
         lower_bounds = [self.interval[0]] * self.dim
         upper_bounds = [self.interval[1]] * self.dim
         return scipy.optimize.Bounds(lower_bounds, upper_bounds)
@@ -56,7 +79,6 @@ class Domain:
         return result.x
 
 
-
 def get_boundary_pseudopoint(experiments, d, lower=None, upper=None):
     """Get the pseudopoint corresponding to one face of the cube defining this
     domain (not including corner points)."""
@@ -68,6 +90,24 @@ def get_boundary_pseudopoint(experiments, d, lower=None, upper=None):
         return replace(experiments[exp_idx], d, upper)
     else:
         return None
+
+
+def to_mogp_raw_correlation(theta):
+    """Transform a correlation length scale parameter into a raw correlation
+    parameter as used in MOGP.
+    
+    See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.corr
+    """
+    return - 2 * math.log(theta)
+
+
+def to_mogp_raw_covariance(cov):
+    """Transform a covariance parameter into a raw covariance parameter as used
+    in MOGP.
+    
+    See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.cov
+    """
+    return math.log(cov)
 
 
 def replace(x, d, new):
@@ -176,9 +216,9 @@ if __name__ == "__main__":
             [calculate_esloo_error(gp, i) for i in range(len(experiments))]
         )
 
-        # # TODO: Calculate lower bound on parameters and work out how these
-        # #       should be used in the overall algorithm.
-        # theta_lb = calculate_lower_bound(gp.theta, domain)
+        # Calculate bounds on parameters that must be satisfied during
+        # estimation
+        parameter_bounds = domain.raw_parameter_bounds
 
         # Fit GP to ES-LOO errors
         gp_e = mogp_emulator.GaussianProcess(experiments, observations_e, kernel='Matern52')
