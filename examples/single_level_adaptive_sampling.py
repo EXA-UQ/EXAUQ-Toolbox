@@ -86,7 +86,7 @@ class PEICalculator:
         # Cache various values / objects for later computation
         self._max_targets = max(gp.targets)
         self._norm = scipy.stats.norm(loc=0, scale=1)
-        self._repulsion_points = list(gp.inputs) + self.pseudopoints
+        self._kernel = mogp_emulator.Kernel.Matern52()
     
     def _expected_improvement(self, x):
         """Computes expected improvement at an input for the GP."""
@@ -99,18 +99,22 @@ class PEICalculator:
                 variance * self._norm.pdf(u))
     
     def _correlation(self, x, y):
-        """Computes the correlation function at two points for the GP."""
-        # TODO: work out how to compute this
-        return 0.1
+        """Computes the correlation function at two (arrays of) points for the
+        GP."""
+        # NOTE: can verify from the MOGP source code that this is the
+        #       correct calculation (see source for gp.get_K_matrix())
+        return self._kernel.kernel_f(x, y, self.gp.theta.corr_raw)
     
     def _repulsion(self, x):
         """Computes the repulsion function at an input for the GP."""
-        return math.prod(1 - self._correlation(x, y) for y in self._repulsion_points)
+        var = self.gp.theta.cov
+        correlations = gp.get_cov_matrix(np.array([x])) / var
+        inputs_term = np.product(1 - correlations, axis=0)
+        pseudopoints_term = np.product(1 - self._correlation(x, np.array(self.pseudopoints)), axis=1)
+        return inputs_term * pseudopoints_term
 
     def compute(self, x):
         """Compute the pseudo-expected improvement at an input for the GP."""
-        # NOTE: Currently only computes scaled expected improvement because
-        #       correlation function not properly defined.
         return self._expected_improvement(x) * self._repulsion(x)
 
 
