@@ -1,7 +1,10 @@
 import abc
 import dataclasses
-import numbers
-import typing
+from numbers import Real
+from typing import (
+    Any,
+    Union
+)
 
 
 class Experiment(object):
@@ -50,7 +53,7 @@ class Experiment(object):
         self._value = self._unpack_args(self._check_args_real(args))
 
     @staticmethod
-    def _unpack_args(args: tuple) -> typing.Union[tuple[typing.Any], typing.Any, None]:
+    def _unpack_args(args: tuple[Any, ...]) -> Union[tuple[Any, ...], Any, None]:
         """Return items from a sequence of arguments, simplifying where
         possible.
 
@@ -76,10 +79,10 @@ class Experiment(object):
             return None
     
     @staticmethod
-    def _check_args_real(args: tuple) -> tuple:
+    def _check_args_real(args: tuple[Any, ...]) -> tuple[Real, ...]:
         """Check that all arguments define real numbers, returning the supplied
         tuple if so or raising a TypeError otherwise."""
-        if not all(isinstance(x, numbers.Real) for x in args):
+        if not all(isinstance(x, Real) for x in args):
             raise TypeError('Arguments must be instances of real numbers')
         
         return args
@@ -94,7 +97,7 @@ class Experiment(object):
         if self._value is None:
             return "Experiment()"
         
-        elif isinstance(self._value, numbers.Real):
+        elif isinstance(self._value, Real):
             return f"Experiment({repr(self._value)})"
         
         else:
@@ -104,7 +107,7 @@ class Experiment(object):
         return type(other) == type(self) and self._value == other.value
     
     @property
-    def value(self) -> typing.Union[tuple[numbers.Real, ...], numbers.Real, None]:
+    def value(self) -> Union[tuple[Real, ...], Real, None]:
         """(Read-only) Gets the value of the experiment, as a tuple of real
         numbers (dim > 1), a single real number (dim = 1), or None (dim = 0)."""
         return self._value
@@ -135,7 +138,7 @@ class TrainingDatum(object):
     """
     
     experiment: Experiment
-    observation: numbers.Real
+    observation: Real
 
     def __post_init__(self):
         self._validate_experiment(self.experiment)
@@ -152,7 +155,7 @@ class TrainingDatum(object):
     def _validate_real(observation):
         """Check that an object is an instance of a real number, raising a
         TypeError if not."""
-        if not isinstance(observation, numbers.Real):
+        if not isinstance(observation, Real):
             raise TypeError("Argument `observation` must define a real number")
 
     def __str__(self):
@@ -203,7 +206,7 @@ class AbstractSimulator(abc.ABC):
     """
     
     @abc.abstractmethod
-    def compute(self, x: Experiment) -> numbers.Real:
+    def compute(self, x: Experiment) -> Real:
         """Compute the value of this simulator at an experiment.
 
         Parameters
