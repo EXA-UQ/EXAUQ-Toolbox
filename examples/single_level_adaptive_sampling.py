@@ -262,11 +262,51 @@ def fit_with_hyperparameter_estimation(gp, bounds=None, n_tries=15):
     return gp
 
 
+class Report:
+    def __init__(self):
+        self.entries = []
+    
+    def add_entry(
+        self, iteration, x_new, y_new, gp_e_cov, gp_e_corr, gp_e_pei, gp_e_ei,
+        gp_e_repulsion
+        ):
+        self.entries.append({'iteration': iteration,
+                             'x_new': tuple(x_new),
+                             'y_new': float(y_new),
+                             'cov': gp_e_cov,
+                             'corr': tuple(gp_e_corr),
+                             'pei': float(gp_e_pei),
+                             'ei': float(gp_e_ei),
+                             'repulsion': float(gp_e_repulsion)})
+    
+    def print(self):
+        for entry in self.entries:
+            self.print_entry(entry)
+    
+    def print_entry(self, entry):
+        x_new = entry["x_new"]
+        y_new = entry["y_new"]
+        cov = entry["cov"]
+        corr = entry["corr"]
+        pei = entry["pei"]
+        ei = entry["ei"]
+        repulsion = entry["repulsion"]
+        print(f"Iteration {entry['iteration']}:")
+        print(f"  x_new: ({x_new[0]:.4f}, {x_new[1]:.4f})")
+        print(f"  y_new: {y_new:.4f}")
+        print("  gp_e:")
+        print(f"    covariance: {cov:.4f}")
+        print(f"    correlation: ({corr[0]:.4f}, {corr[1]:.4f})")
+        print(f"    PEI: {pei:.4e}")
+        print(f"    EI: {ei:.4e}")
+        print(f"    repulsion: {repulsion:.4e}")
+
+
 if __name__ == "__main__":
     
     # Create initial design
     domain = Domain((0, 1), 2)  # the domain of the simulator, which experiments are drawn from
-    n_initial_samples = 7  # number of samples for initial design
+    n_initial_samples = 5  # number of samples for initial design
     initial_experiments = domain.latin_hypercube_samples(n_initial_samples)
     initial_observations = np.array([f(x) for x in initial_experiments])
 
@@ -280,12 +320,12 @@ if __name__ == "__main__":
     # Fit GP to the initial data
     gp = mogp_emulator.fit_GP_MAP(gp)
 
-    n_adaptive_iterations = 3
+    n_adaptive_iterations = 5
     experiments = initial_experiments
     observations = initial_observations
-    for iteration in range(n_adaptive_iterations):
-        print("Iteration", iteration, '\n')
-        
+
+    report = Report()
+    for iteration in range(1, n_adaptive_iterations + 1):       
         # Observations for ES-LOO
         observations_e = np.array(
             [calculate_esloo_error(gp, i) for i in range(len(experiments))]
@@ -301,8 +341,6 @@ if __name__ == "__main__":
         # Create pseudopoints
         pseudopoints = domain.find_pseudopoints(experiments)
 
-        print("Pseudopoints:\n", pseudopoints)
-
         # Optimise over pseudoexpected improvement
         pei = PEICalculator(gp_e, pseudopoints)
         
@@ -315,9 +353,11 @@ if __name__ == "__main__":
         experiments = np.concatenate((experiments, np.array([x_new])))
         observations = np.concatenate((observations, np.array([y_new])))
 
-        print("PEI of new design pt:", pei.compute(x_new))
-        print("EI of new design pt:", pei._expected_improvement(x_new))
-        print("Repulsion of new design pt:", pei._repulsion(x_new))
+        report.add_entry(
+            iteration, x_new, y_new, gp_e.theta.cov, gp_e.theta.corr,
+            pei.compute(x_new), pei._expected_improvement(x_new),
+            pei._repulsion(x_new)
+            )
 
         # Update the original GP with the new experiment and observation
         gp = mogp_emulator.GaussianProcess(experiments, observations, kernel='Matern52')
@@ -325,5 +365,4 @@ if __name__ == "__main__":
 
     print(f'Initial design ({len(initial_experiments)} pts):\n', initial_experiments)
     print('Initial outputs:\n', initial_observations, '\n')
-    print(f'New design points:\n', gp.inputs[-n_adaptive_iterations:])
-    print('New outputs:\n', gp.targets[-n_adaptive_iterations:], '\n')
+    report.print()
