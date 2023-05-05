@@ -7,7 +7,7 @@ from typing import (
 )
 
 
-class Experiment(object):
+class Input(object):
     """The input to a simulator or emulator.
 
     Parameters
@@ -20,7 +20,7 @@ class Experiment(object):
     value : tuple of numbers.Real, numbers.Real or None
         Represents the point as a tuple of real numbers (dim > 1), a single real
         number (dim = 1) or None (dim = 0). Note that finer-grained typing is
-        preserved during construction of an `Experiment`. See the Examples.
+        preserved during construction of an `Input`. See the Examples.
     
     Raises
     ------
@@ -29,23 +29,23 @@ class Experiment(object):
 
     Examples
     --------
-    >>> x = Experiment(1, 2, 3)
+    >>> x = Input(1, 2, 3)
     >>> x.value
     (1, 2, 3)
     
     Single arguments just return a number:
-    >>> x = Experiment(2.1)
+    >>> x = Input(2.1)
     >>> x.value
     2.1
 
     Types are preserved coordinate-wise:
     >>> import numpy as np
-    >>> x = Experiment(1.3, np.float64(2), np.int16(1))
+    >>> x = Input(1.3, np.float64(2), np.int16(1))
     >>> print([type(a) for a in x.value])
     [<class 'float'>, <class 'numpy.float64'>, <class 'numpy.int16'>]
 
-    Empty argument list gives an experiment with value = None:
-    >>> x = Experiment()
+    Empty argument list gives an input with value = None:
+    >>> x = Input()
     >>> x.value
     None
     """
@@ -59,7 +59,7 @@ class Experiment(object):
 
         Examples
         --------
-        >>> x = Experiment()
+        >>> x = Input()
         >>> x._unpack_args((1, 2, 3))
         (1, 2, 3)
         
@@ -95,20 +95,20 @@ class Experiment(object):
     
     def __repr__(self):
         if self._value is None:
-            return "Experiment()"
+            return "Input()"
         
         elif isinstance(self._value, Real):
-            return f"Experiment({repr(self._value)})"
+            return f"Input({repr(self._value)})"
         
         else:
-            return f"Experiment{repr(self._value)}"
+            return f"Input{repr(self._value)}"
 
     def __eq__(self, other):
         return type(other) == type(self) and self._value == other.value
     
     @property
     def value(self) -> Union[tuple[Real, ...], Real, None]:
-        """(Read-only) Gets the value of the experiment, as a tuple of real
+        """(Read-only) Gets the value of the input, as a tuple of real
         numbers (dim > 1), a single real number (dim = 1), or None (dim = 0)."""
         return self._value
 
@@ -118,38 +118,38 @@ class TrainingDatum(object):
     """A training point for an emulator.
     
     Emulators are trained on collections ``(x, f(x))`` where ``x`` is an input
-    to a simulator (i.e. an experiment) and ``f(x)`` is the output of the
-    simulator ``f`` at ``x`` (i.e. an observation). This dataclass represents
-    such pairs of experiments with observations.
+    to a simulator and ``f(x)`` is the output of the simulator ``f`` at ``x``
+    (i.e. an observation). This dataclass represents such pairs of inputs
+    with observations.
 
     Parameters
     ----------
-    experiment : Experiment
+    input : Input
         An input to a simulator.
     observation : numbers.Real
-        The output of the simulator at the experiment.
+        The output of the simulator at the input.
     
     Attributes
     ----------
-    experiment : Experiment
+    input : Input
         (Read-only) An input to a simulator.
     observation : numbers.Real
-        (Read-only) The output of the simulator at the experiment.
+        (Read-only) The output of the simulator at the input.
     """
     
-    experiment: Experiment
+    input: Input
     observation: Real
 
     def __post_init__(self):
-        self._validate_experiment(self.experiment)
+        self._validate_input(self.input)
         self._validate_real(self.observation)
 
     @staticmethod
-    def _validate_experiment(experiment):
-        """Check that an object is an instance of an Experiment, raising a
+    def _validate_input(input):
+        """Check that an object is an instance of an Input, raising a
         TypeError if not."""
-        if not isinstance(experiment, Experiment):
-            raise TypeError("Argument `experiment` must be of type Experiment")
+        if not isinstance(input, Input):
+            raise TypeError("Argument `input` must be of type Input")
     
     @staticmethod
     def _validate_real(observation):
@@ -159,7 +159,7 @@ class TrainingDatum(object):
             raise TypeError("Argument `observation` must define a real number")
 
     def __str__(self):
-        return f"({str(self.experiment)}, {str(self.observation)})"
+        return f"({str(self.input)}, {str(self.observation)})"
 
 
 class AbstractEmulator(abc.ABC):
@@ -172,7 +172,7 @@ class AbstractEmulator(abc.ABC):
     Attributes
     ----------
     training_data: list[TrainingDatum] or None
-        Defines the pairs of experiments and observations on which this emulator
+        Defines the pairs of inputs and observations on which this emulator
         has been trained.
     """
     
@@ -187,12 +187,12 @@ class AbstractEmulator(abc.ABC):
     
     @abc.abstractmethod
     def fit(self, training_data: list[TrainingDatum]) -> None:
-        """Train an emulator on pairs of experiments and observations.
+        """Train an emulator on pairs of inputs and observations.
 
         Parameters
         ----------
         training_data : list[TrainingDatum]
-            A collection of experiments with simulator outputs.
+            A collection of inputs with simulator outputs.
         """
         pass
 
@@ -202,21 +202,21 @@ class AbstractSimulator(abc.ABC):
 
     Classes that inherit from this abstract base class define simulators, which
     typically represent programs for calculating the outputs of complex models
-    for given experiments (i.e. simulator inputs).
+    for given inputs.
     """
     
     @abc.abstractmethod
-    def compute(self, x: Experiment) -> Real:
-        """Compute the value of this simulator at an experiment.
+    def compute(self, x: Input) -> Real:
+        """Compute the value of this simulator at an input.
 
         Parameters
         ----------
-        x : Experiment
-            An experiment to evaluate the simulator at.
+        x : Input
+            An input to evaluate the simulator at.
 
         Returns
         -------
         numbers.Real
-            The output of the simulator at the experiment `x`.
+            The output of the simulator at the input `x`.
         """
         pass
