@@ -1,4 +1,4 @@
-from exauq.core.modelling import Experiment
+from exauq.core.modelling import Input
 from exauq.core.designers import SingleLevelAdaptiveSampler
 from tests.unit.fakes import DumbEmulator, OneDimSimulator
 
@@ -10,10 +10,10 @@ simulator = OneDimSimulator(0, 1)
 emulator = DumbEmulator()
 
 # Create an initial design of points from the interval [0, 1]
-initial_design = [Experiment(0.2),
-                  Experiment(0.4),
-                  Experiment(0.6),
-                  Experiment(0.8)]
+initial_design = [Input(0.2),
+                  Input(0.4),
+                  Input(0.6),
+                  Input(0.8)]
 
 # Initialise a 'designer' object that encapsulates the adaptive sampling
 # methodology
@@ -26,5 +26,5 @@ trained_emulator = designer.train(emulator, simulator)
 print("Training data:", trained_emulator.training_data, '\n')
 
 # Make some predictions from the trained emulator:
-print("Prediction at x = 0.1:", trained_emulator.predict(Experiment(0.1)))
-print("Prediction at x = 0.2:", trained_emulator.predict(Experiment(0.2)))
+print("Prediction at x = 0.1:", trained_emulator.predict(Input(0.1)))
+print("Prediction at x = 0.2:", trained_emulator.predict(Input(0.2)))

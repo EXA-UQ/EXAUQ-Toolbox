@@ -2,7 +2,7 @@
 """
 import typing
 from exauq.core.modelling import(
-    Experiment,
+    Input,
     TrainingDatum,
     AbstractEmulator,
     AbstractSimulator
@@ -17,15 +17,15 @@ class DumbEmulator(AbstractEmulator):
     """A concrete emulator for emulating 1-dimensional simulators.
 
     This emulator predicts zero at inputs on which it hasn't been fitted, while
-    predicting observations on which it has been fitted correctly.
+    predicting simulator outputs on which it has been fitted correctly.
     
 
     Attributes
     ----------
     training_data: list[TrainingDatum] or None
-        Defines the pairs of experiments and observations on which the emulator
+        Defines the pairs of inputs and simulator outputs on which the emulator
         has been trained. Each `TrainingDatum` should have a 1-dim
-        `Experiment`.
+        `Input`.
     """
     def __init__(self):
         super()
@@ -45,12 +45,12 @@ class DumbEmulator(AbstractEmulator):
         Parameters
         ----------
         data : list[TrainingDatum]
-            Defines the pairs of experiments and observations on which to train
-            the emulator. Each `TrainingDatum` should have a 1-dim `Experiment`.
+            Defines the pairs of inputs and simulator outputs on which to train
+            the emulator. Each `TrainingDatum` should have a 1-dim `Input`.
         """
         self._training_data = data
     
-    def predict(self, x: Experiment) -> float:
+    def predict(self, x: Input) -> float:
         """Estimate the simulator output for a given input.
 
         The emulator will predict the correct simulator output for `x` which
@@ -58,7 +58,7 @@ class DumbEmulator(AbstractEmulator):
 
         Parameters
         ----------
-        x : Experiment
+        x : Input
             An input to the simulator.
 
         Returns
@@ -68,8 +68,8 @@ class DumbEmulator(AbstractEmulator):
             simulator's output at `x`.
         """
         for datum in self._training_data:
-            if abs(datum.experiment.value - x.value) < 1e-10:
-                return datum.observation
+            if abs(datum.input.value - x.value) < 1e-10:
+                return datum.output
 
         return 0
 
@@ -96,12 +96,12 @@ class OneDimSimulator(AbstractSimulator):
         self.lower_limit: float = lower_limit
         self.upper_limit: float = upper_limit
 
-    def compute(self, x: Experiment) -> float:
+    def compute(self, x: Input) -> float:
         """Evaluate the identity function at the given point.
 
         Parameters
         ----------
-        x : Experiment
+        x : Input
             The input at which to evaluate the simulator.
 
         Returns
