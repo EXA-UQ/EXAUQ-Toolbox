@@ -1,3 +1,4 @@
+import dataclasses
 import unittest
 from exauq.core.modelling import (
     Input,
@@ -121,12 +122,15 @@ class TestTrainingDatum(unittest.TestCase):
         """Test that the input and output attributes are immutable."""
 
         datum = TrainingDatum(Input(1), 2)
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(AttributeError) as cm:
             datum.input = Input(2)
         
-        with self.assertRaises(AttributeError):
+        self.assertTrue(str(cm.exception).endswith("cannot assign to field 'input'"))
+        
+        with self.assertRaises(AttributeError) as cm:
             datum.output = 1
 
+        self.assertTrue(str(cm.exception).endswith("cannot assign to field 'output'"))
 
 if __name__ == "__main__":
     unittest.main()
