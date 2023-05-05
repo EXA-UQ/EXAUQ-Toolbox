@@ -89,19 +89,19 @@ class TestTrainingDatum(unittest.TestCase):
         self.assertEqual('Argument `input` must be of type Input',
                          str(cm.exception))
 
-    def test_observation_error(self):
-        """Test that a TypeError is raised if the constructor arg `observation`
+    def test_output_error(self):
+        """Test that a TypeError is raised if the constructor arg `output`
         is not an real number."""
         with self.assertRaises(TypeError) as cm:
             TrainingDatum(Input(1), 'a')
         
-        self.assertEqual('Argument `observation` must define a real number',
+        self.assertEqual('Argument `output` must define a real number',
                          str(cm.exception))
 
         with self.assertRaises(TypeError) as cm:
             TrainingDatum(Input(1), complex(1, 1))
         
-        self.assertEqual('Argument `observation` must define a real number',
+        self.assertEqual('Argument `output` must define a real number',
                          str(cm.exception))
     
     def test_str(self):
@@ -114,18 +114,18 @@ class TestTrainingDatum(unittest.TestCase):
         """Test that the string representation of an instance of TrainingDatum
         gives a recipe for its construction."""
 
-        expected = "TrainingDatum(input=Input(1, 2), observation=3)"
+        expected = "TrainingDatum(input=Input(1, 2), output=3)"
         self.assertEqual(expected, repr(TrainingDatum(Input(1, 2), 3)))
 
     def test_immutable(self):
-        """Test that the input and observation attributes are immutable."""
+        """Test that the input and output attributes are immutable."""
 
         datum = TrainingDatum(Input(1), 2)
         with self.assertRaises(AttributeError):
             datum.input = Input(2)
         
         with self.assertRaises(AttributeError):
-            datum.observation = 1
+            datum.output = 1
 
 
 if __name__ == "__main__":

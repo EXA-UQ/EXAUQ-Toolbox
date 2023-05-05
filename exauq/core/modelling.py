@@ -118,31 +118,30 @@ class TrainingDatum(object):
     """A training point for an emulator.
     
     Emulators are trained on collections ``(x, f(x))`` where ``x`` is an input
-    to a simulator and ``f(x)`` is the output of the simulator ``f`` at ``x``
-    (i.e. an observation). This dataclass represents such pairs of inputs
-    with observations.
+    to a simulator and ``f(x)`` is the output of the simulator ``f`` at ``x``.
+    This dataclass represents such pairs of inputs and simulator outputs.
 
     Parameters
     ----------
     input : Input
         An input to a simulator.
-    observation : numbers.Real
+    output : numbers.Real
         The output of the simulator at the input.
     
     Attributes
     ----------
     input : Input
         (Read-only) An input to a simulator.
-    observation : numbers.Real
+    output : numbers.Real
         (Read-only) The output of the simulator at the input.
     """
     
     input: Input
-    observation: Real
+    output: Real
 
     def __post_init__(self):
         self._validate_input(self.input)
-        self._validate_real(self.observation)
+        self._validate_real(self.output)
 
     @staticmethod
     def _validate_input(input):
@@ -156,10 +155,10 @@ class TrainingDatum(object):
         """Check that an object is an instance of a real number, raising a
         TypeError if not."""
         if not isinstance(observation, Real):
-            raise TypeError("Argument `observation` must define a real number")
+            raise TypeError("Argument `output` must define a real number")
 
     def __str__(self):
-        return f"({str(self.input)}, {str(self.observation)})"
+        return f"({str(self.input)}, {str(self.output)})"
 
 
 class AbstractEmulator(abc.ABC):
@@ -172,7 +171,7 @@ class AbstractEmulator(abc.ABC):
     Attributes
     ----------
     training_data: list[TrainingDatum] or None
-        Defines the pairs of inputs and observations on which this emulator
+        Defines the pairs of inputs and simulator outputs on which this emulator
         has been trained.
     """
     
@@ -187,7 +186,7 @@ class AbstractEmulator(abc.ABC):
     
     @abc.abstractmethod
     def fit(self, training_data: list[TrainingDatum]) -> None:
-        """Train an emulator on pairs of inputs and observations.
+        """Train an emulator on pairs of inputs and simulator outputs.
 
         Parameters
         ----------

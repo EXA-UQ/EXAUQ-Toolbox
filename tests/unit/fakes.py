@@ -17,13 +17,13 @@ class DumbEmulator(AbstractEmulator):
     """A concrete emulator for emulating 1-dimensional simulators.
 
     This emulator predicts zero at inputs on which it hasn't been fitted, while
-    predicting observations on which it has been fitted correctly.
+    predicting simulator outputs on which it has been fitted correctly.
     
 
     Attributes
     ----------
     training_data: list[TrainingDatum] or None
-        Defines the pairs of inputs and observations on which the emulator
+        Defines the pairs of inputs and simulator outputs on which the emulator
         has been trained. Each `TrainingDatum` should have a 1-dim
         `Input`.
     """
@@ -45,7 +45,7 @@ class DumbEmulator(AbstractEmulator):
         Parameters
         ----------
         data : list[TrainingDatum]
-            Defines the pairs of inputs and observations on which to train
+            Defines the pairs of inputs and simulator outputs on which to train
             the emulator. Each `TrainingDatum` should have a 1-dim `Input`.
         """
         self._training_data = data
@@ -69,7 +69,7 @@ class DumbEmulator(AbstractEmulator):
         """
         for datum in self._training_data:
             if abs(datum.input.value - x.value) < 1e-10:
-                return datum.observation
+                return datum.output
 
         return 0
 
