@@ -4,7 +4,7 @@ import mogp_emulator as mogp
 
 class MogpEmulator(object):
     def __init__(self, gp: mogp.GaussianProcess):
-        self._validate_gp(gp)
+        self.gp = self._validate_gp(gp)
     
     @staticmethod
     def _validate_gp(gp: Any):
@@ -13,3 +13,5 @@ class MogpEmulator(object):
                 "Argument 'gp' must be of type GaussianProcess from the "
                 "mogp-emulator package"
                 )
+
+        return gp
