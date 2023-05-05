@@ -1,4 +1,3 @@
-import dataclasses
 import unittest
 from exauq.core.modelling import (
     Input,
