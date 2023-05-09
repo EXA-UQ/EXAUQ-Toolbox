@@ -5,6 +5,7 @@ from typing import (
     Any,
     Union
 )
+import numpy as np
 
 
 class Input(object):
@@ -87,6 +88,10 @@ class Input(object):
         
         return args
 
+    @classmethod
+    def from_array(cls, input):
+        return cls(*tuple(input))
+
     def __str__(self):
         if self._value is None:
             return "()"
@@ -156,6 +161,11 @@ class TrainingDatum(object):
         TypeError if not."""
         if not isinstance(observation, Real):
             raise TypeError("Argument `output` must define a real number")
+
+    @classmethod
+    def list_from_arrays(cls, inputs: np.ndarray, outputs: np.ndarray):
+        return [cls(Input.from_array(input), output)
+                for input, output in zip(inputs, outputs)]
 
     def __str__(self):
         return f"({str(self.input)}, {str(self.output)})"

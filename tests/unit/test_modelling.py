@@ -78,6 +78,13 @@ class TestInput(unittest.TestCase):
         with self.assertRaises(AttributeError):
             x.value = 3
 
+    def test_from_array(self):
+        """Test that an input can be created from a Numpy array of data."""
+
+        _input = np.array([1, -2.1, 3e2])
+        expected = Input(1, -2.1, 3e2)
+        self.assertEqual(expected, Input.from_array(_input))
+
 
 class TestTrainingDatum(unittest.TestCase):
     def test_input_error(self):
@@ -130,6 +137,18 @@ class TestTrainingDatum(unittest.TestCase):
             datum.output = 1
 
         self.assertTrue(str(cm.exception).endswith("cannot assign to field 'output'"))
+
+    def test_list_from_arrays(self):
+        """Test that a list of training data is created from Numpy arrays of
+        inputs and outputs."""
+
+        inputs = np.array([[0.2, 1.1], [-2, 3000.9], [3.5, 9.87]])
+        outputs = np.array([-1, 0, 1.1])
+        expected = [TrainingDatum(Input(0.2, 1.1), -1),
+                    TrainingDatum(Input(-2, 3000.9), 0),
+                    TrainingDatum(Input(3.5, 9.87), 1.1)]
+        self.assertEqual(expected, TrainingDatum.list_from_arrays(inputs, outputs))
+        
 
 if __name__ == "__main__":
     unittest.main()

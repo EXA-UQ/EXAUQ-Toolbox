@@ -2,6 +2,10 @@ import unittest
 import mogp_emulator as mogp
 import numpy as np
 from exauq.core.emulators import MogpEmulator
+from exauq.core.modelling import (
+    Input,
+    TrainingDatum
+)
 
 
 class TestMogpEmulator(unittest.TestCase):
@@ -38,6 +42,15 @@ class TestMogpEmulator(unittest.TestCase):
         emulator = MogpEmulator(self.gp)
         with self.assertRaises(AttributeError):
             emulator.gp = mogp.GaussianProcess(np.array([[0.5], [0.3]]), np.array([1, 2]))
+
+    def test_training_data(self):
+        """Test that the training data in the underlying GP can be recovered
+        before any further training has taken place."""
+
+        gp = mogp.GaussianProcess(np.array([[0.5], [0.3]]), np.array([1, 2]))
+        emulator = MogpEmulator(gp)
+        expected = [TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.3), 2)]
+        self.assertEqual(expected, emulator.training_data)
 
 
 if __name__ == "__main__":
