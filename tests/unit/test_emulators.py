@@ -32,6 +32,13 @@ class TestMogpEmulator(unittest.TestCase):
         emulator = MogpEmulator(self.gp)
         self.assertEqual(id(self.gp), id(emulator.gp))
 
+    def test_gp_immutable(self):
+        """Test that the underlying GP cannot be directly modified."""
+        
+        emulator = MogpEmulator(self.gp)
+        with self.assertRaises(AttributeError):
+            emulator.gp = mogp.GaussianProcess(np.array([[0.5], [0.3]]), np.array([1, 2]))
+
 
 if __name__ == "__main__":
     unittest.main()
