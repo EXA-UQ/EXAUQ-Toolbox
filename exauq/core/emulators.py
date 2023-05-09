@@ -7,7 +7,7 @@ class MogpEmulator(object):
         self._gp = self._validate_gp(gp)
     
     @staticmethod
-    def _validate_gp(gp: Any):
+    def _validate_gp(gp: Any) -> mogp.GaussianProcess:
         if not isinstance(gp, mogp.GaussianProcess):
             raise TypeError(
                 "Argument 'gp' must be of type GaussianProcess from the "
@@ -17,5 +17,5 @@ class MogpEmulator(object):
         return gp
 
     @property
-    def gp(self):
+    def gp(self) -> mogp.GaussianProcess:
         return self._gp
