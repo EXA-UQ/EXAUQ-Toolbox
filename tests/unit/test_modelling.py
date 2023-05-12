@@ -191,7 +191,7 @@ class TestTrainingDatum(unittest.TestCase):
 
     def test_output_error(self):
         """Test that a TypeError is raised if the constructor arg `output`
-        is not an real number."""
+        is not a real number."""
         with self.assertRaises(TypeError) as cm:
             TrainingDatum(Input(1), 'a')
         
@@ -204,6 +204,38 @@ class TestTrainingDatum(unittest.TestCase):
         self.assertEqual('Argument `output` must define a real number',
                          str(cm.exception))
     
+    def test_output_none_error(self):
+        """Test that a TypeError is raised if the constructor arg `output`
+        is None."""
+
+        with self.assertRaises(TypeError) as cm:
+            _ = TrainingDatum(Input(1), None)
+        
+        self.assertEqual(
+            "Argument 'output' cannot be None", str(cm.exception)
+        )
+
+    def test_output_not_finite_error(self):
+        """Test that a ValueError is raised if the constructor arg `output` is
+        NaN or non-finite."""
+
+        msg = "Argument 'output' cannot be NaN or non-finite"
+
+        with self.assertRaises(ValueError) as cm:
+            _ = TrainingDatum(Input(1), np.nan)
+        
+        self.assertEqual(msg, str(cm.exception))
+
+        with self.assertRaises(ValueError) as cm:
+            _ = TrainingDatum(Input(1), np.inf)
+        
+        self.assertEqual(msg, str(cm.exception))
+
+        with self.assertRaises(ValueError) as cm:
+            _ = TrainingDatum(Input(1), np.NINF)  # negative inf
+        
+        self.assertEqual(msg, str(cm.exception))
+
     def test_str(self):
         """Test that the string description of an instance of
         TrainingDatum gives a tuple of the constituent parts."""

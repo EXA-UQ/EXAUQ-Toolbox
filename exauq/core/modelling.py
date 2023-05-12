@@ -7,6 +7,11 @@ from typing import (
     Union
 )
 import numpy as np
+from exauq.utilities._validation import (
+    check_no_none_entries,
+    check_entries_real,
+    check_all_entries_finite
+    )
 
 
 class Input(object):
@@ -85,28 +90,17 @@ class Input(object):
         """Check that all arguments define real numbers, returning the supplied
         tuple if so or raising errors otherwise."""
         
-        if not cls._no_none_entries(args):
-            raise TypeError("Cannot supply None as an argument")
-
-        if not cls._all_entries_real(args):
-            raise TypeError('Arguments must be instances of real numbers')
-        
-        if not cls._all_entries_finite(args):
-            raise ValueError("Cannot supply NaN or non-finite numbers as arguments")
-
+        check_no_none_entries(
+            args, TypeError("Cannot supply None as an argument")
+            )
+        check_entries_real(
+            args, TypeError('Arguments must be instances of real numbers')
+            )
+        check_all_entries_finite(
+            args,
+            ValueError("Cannot supply NaN or non-finite numbers as arguments")
+        )
         return args
-
-    @staticmethod
-    def _no_none_entries(iter: Iterable):
-        return all(x is not None for x in iter)
-    
-    @staticmethod
-    def _all_entries_real(iter: Iterable):
-        return all(isinstance(x, Real) for x in iter)
-
-    @staticmethod
-    def _all_entries_finite(iter: Iterable):
-        return all(np.isfinite(x) for x in iter)
 
     @classmethod
     def from_array(cls, input: np.ndarray):
@@ -116,15 +110,16 @@ class Input(object):
         if not input.ndim == 1:
             raise ValueError("'input' must be a 1-dimensional Numpy array")
 
-        if not cls._no_none_entries(input):
-            raise ValueError("'input' cannot contain None")
-
-        if not cls._all_entries_real(input):
-            raise ValueError("'input' must be a Numpy array of real numbers")
-        
-        if not cls._all_entries_finite(input):
-            raise ValueError("'input' cannot contain NaN or non-finite numbers")
-
+        check_no_none_entries(
+            input, ValueError("'input' cannot contain None")
+            )
+        check_entries_real(
+            input, ValueError("'input' must be a Numpy array of real numbers")
+            )
+        check_all_entries_finite(
+            input,
+            ValueError("'input' cannot contain NaN or non-finite numbers")
+        )
         return cls(*tuple(input))
 
     def __str__(self):
@@ -181,7 +176,7 @@ class TrainingDatum(object):
 
     def __post_init__(self):
         self._validate_input(self.input)
-        self._validate_real(self.output)
+        self._validate_output(self.output)
 
     @staticmethod
     def _validate_input(input: Any):
@@ -191,11 +186,22 @@ class TrainingDatum(object):
             raise TypeError("Argument `input` must be of type Input")
     
     @staticmethod
-    def _validate_real(observation: Any):
-        """Check that an object is an instance of a real number, raising a
-        TypeError if not."""
-        if not isinstance(observation, Real):
-            raise TypeError("Argument `output` must define a real number")
+    def _validate_output(observation: Any):
+        """Check that an object defines a finite real number, raising exceptions
+        if not."""
+        
+        check_no_none_entries(
+            observation,
+            TypeError("Argument 'output' cannot be None")
+        )
+        check_entries_real(
+            observation,
+            TypeError("Argument `output` must define a real number")
+            )
+        check_all_entries_finite(
+            observation,
+            ValueError("Argument 'output' cannot be NaN or non-finite")
+        )
 
     @classmethod
     def list_from_arrays(cls, inputs: np.ndarray, outputs: np.ndarray):
