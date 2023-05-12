@@ -52,7 +52,7 @@ class Input(object):
     None
     """
     def __init__(self, *args):
-        self._value = self._unpack_args(self._check_args_real(args))
+        self._value = self._unpack_args(self._validate_args(args))
 
     @staticmethod
     def _unpack_args(args: tuple[Any, ...]) -> Union[tuple[Any, ...], Any, None]:
@@ -80,14 +80,20 @@ class Input(object):
         else:
             return None
     
-    # TODO: add further validation like for from_array method
     @classmethod
-    def _check_args_real(cls, args: tuple[Any, ...]) -> tuple[Real, ...]:
+    def _validate_args(cls, args: tuple[Any, ...]) -> tuple[Real, ...]:
         """Check that all arguments define real numbers, returning the supplied
-        tuple if so or raising a TypeError otherwise."""
+        tuple if so or raising errors otherwise."""
+        
+        if not cls._no_none_entries(args):
+            raise TypeError("Cannot supply None as an argument")
+
         if not cls._all_entries_real(args):
             raise TypeError('Arguments must be instances of real numbers')
         
+        if not cls._all_entries_finite(args):
+            raise ValueError("Cannot supply NaN or non-finite numbers as arguments")
+
         return args
 
     @staticmethod

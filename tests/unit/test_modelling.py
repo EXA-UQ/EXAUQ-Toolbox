@@ -28,6 +28,36 @@ class TestInput(unittest.TestCase):
         self.assertEqual('Arguments must be instances of real numbers',
                          str(cm.exception))
 
+    def test_input_none_error(self):
+        """Test that a TypeError is raised if the input array contains None."""
+
+        with self.assertRaises(TypeError) as cm:
+            _ = Input(1.1, None)
+        
+        self.assertEqual(
+            "Cannot supply None as an argument", str(cm.exception)
+        )
+
+    def test_input_non_finite_error(self):
+        """Test that a ValueError is raised if the input array contains various
+        non-real elements."""
+
+        msg = "Cannot supply NaN or non-finite numbers as arguments"
+        with self.assertRaises(ValueError) as cm:
+            _ = Input(1.1, np.nan)
+        
+        self.assertEqual(msg, str(cm.exception))
+
+        with self.assertRaises(ValueError) as cm:
+            _ = Input(1.1, np.inf)
+        
+        self.assertEqual(msg, str(cm.exception))
+
+        with self.assertRaises(ValueError) as cm:
+            _ = Input(1.1, np.NINF)  # negative inf
+        
+        self.assertEqual(msg, str(cm.exception))
+
     def test_str(self):
         """Test that the string description of an instance of
         Input gives the coordinates."""
