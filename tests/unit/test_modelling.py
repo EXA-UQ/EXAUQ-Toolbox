@@ -189,21 +189,26 @@ class TestTrainingDatum(unittest.TestCase):
         self.assertEqual('Argument `input` must be of type Input',
                          str(cm.exception))
 
-    def test_output_error(self):
+    def test_output_not_real_error(self):
         """Test that a TypeError is raised if the constructor arg `output`
         is not a real number."""
+        
+        msg = 'Argument `output` must define a real number'
         with self.assertRaises(TypeError) as cm:
             TrainingDatum(Input(1), 'a')
         
-        self.assertEqual('Argument `output` must define a real number',
-                         str(cm.exception))
+        self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(TypeError) as cm:
             TrainingDatum(Input(1), complex(1, 1))
         
-        self.assertEqual('Argument `output` must define a real number',
-                         str(cm.exception))
+        self.assertEqual(msg, str(cm.exception))
     
+        with self.assertRaises(TypeError) as cm:
+            TrainingDatum(Input(1), [1.1])
+        
+        self.assertEqual(msg, str(cm.exception))
+
     def test_output_none_error(self):
         """Test that a TypeError is raised if the constructor arg `output`
         is None."""

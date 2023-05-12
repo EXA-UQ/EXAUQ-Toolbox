@@ -7,7 +7,10 @@ from typing import (
     Union
 )
 import numpy as np
-from exauq.utilities._validation import FiniteRealValidator
+from exauq.utilities._validation import (
+    FiniteRealValidator,
+    FiniteRealIterableValidator
+    )
 
 
 class Input(object):
@@ -86,7 +89,7 @@ class Input(object):
         """Check that all arguments define real numbers, returning the supplied
         tuple if so or raising errors otherwise."""
         
-        validator = FiniteRealValidator(args)
+        validator = FiniteRealIterableValidator(args)
         validator.check_no_none_entries(
             TypeError("Cannot supply None as an argument")
         )
@@ -107,7 +110,7 @@ class Input(object):
         if not input.ndim == 1:
             raise ValueError("'input' must be a 1-dimensional Numpy array")
 
-        real_validator = FiniteRealValidator(input)
+        real_validator = FiniteRealIterableValidator(input)
         real_validator.check_no_none_entries(
             ValueError("'input' cannot contain None")
         )
@@ -189,13 +192,13 @@ class TrainingDatum(object):
         if not."""
         
         validator = FiniteRealValidator(observation)
-        validator.check_no_none_entries(
+        validator.check_not_none(
             TypeError("Argument 'output' cannot be None")
         )
-        validator.check_entries_real(
+        validator.check_real(
             TypeError("Argument `output` must define a real number")
         )
-        validator.check_entries_finite(
+        validator.check_finite(
             ValueError("Argument 'output' cannot be NaN or non-finite")
         )
 
