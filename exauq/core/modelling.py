@@ -15,7 +15,8 @@ class Input(object):
     Parameters
     ----------
     *args : tuple of numbers.Real
-        The coordinates of the input.
+        The coordinates of the input. Each coordinate must define a finite
+        number that is not a missing value (i.e. not None or NaN).
     
     Attributes
     ----------
@@ -23,11 +24,6 @@ class Input(object):
         Represents the point as a tuple of real numbers (dim > 1), a single real
         number (dim = 1) or None (dim = 0). Note that finer-grained typing is
         preserved during construction of an `Input`. See the Examples.
-    
-    Raises
-    ------
-    TypeError
-        If any of the inputs to the constructor don't define real numbers.
 
     Examples
     --------
@@ -51,6 +47,7 @@ class Input(object):
     >>> x.value
     None
     """
+    
     def __init__(self, *args):
         self._value = self._unpack_args(self._validate_args(args))
 
@@ -73,6 +70,7 @@ class Input(object):
         >>> x._unpack_args(())
         None
         """
+        
         if len(args) > 1:
             return args
         elif len(args) == 1:
@@ -82,8 +80,8 @@ class Input(object):
     
     @classmethod
     def _validate_args(cls, args: tuple[Any, ...]) -> tuple[Real, ...]:
-        """Check that all arguments define real numbers, returning the supplied
-        tuple if so or raising errors otherwise."""
+        """Check that all arguments define finite real numbers, returning the
+        supplied tuple if so or raising an exception if not."""
         
         validation.check_entries_not_none(
             args, TypeError("Cannot supply None as an argument")
@@ -99,7 +97,21 @@ class Input(object):
         return args
 
     @classmethod
-    def from_array(cls, input: np.ndarray):
+    def from_array(cls, input: np.ndarray) -> "Input":
+        """Create a simulator input from a Numpy array. 
+
+        Parameters
+        ----------
+        input : numpy.ndarray
+            A 1-dimensional Numpy array defining the coordinates of the input.
+            Each array entry should define a finite number that is not a missing
+            value (i.e. not None or NaN).
+
+        Returns
+        -------
+        Input
+            A simulator input with coordinates defined by the supplied array.
+        """
         
         if not isinstance(input, np.ndarray):
             raise TypeError("'input' must be a Numpy ndarray")
@@ -120,13 +132,13 @@ class Input(object):
 
         return cls(*tuple(input))
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self._value is None:
             return "()"
         
         return str(self._value)
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self._value is None:
             return "Input()"
         
@@ -136,13 +148,14 @@ class Input(object):
         else:
             return f"Input{repr(self._value)}"
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return type(other) == type(self) and self._value == other.value
     
     @property
     def value(self) -> Union[tuple[Real, ...], Real, None]:
         """(Read-only) Gets the value of the input, as a tuple of real
         numbers (dim > 1), a single real number (dim = 1), or None (dim = 0)."""
+        
         return self._value
 
 
@@ -159,7 +172,8 @@ class TrainingDatum(object):
     input : Input
         An input to a simulator.
     output : numbers.Real
-        The output of the simulator at the input.
+        The output of the simulator at the input. This must be a finite
+        number that is not a missing value (i.e. not None or NaN).
     
     Attributes
     ----------
@@ -177,14 +191,15 @@ class TrainingDatum(object):
         self._validate_output(self.output)
 
     @staticmethod
-    def _validate_input(input: Any):
+    def _validate_input(input: Any) -> None:
         """Check that an object is an instance of an Input, raising a
         TypeError if not."""
+
         if not isinstance(input, Input):
             raise TypeError("Argument `input` must be of type Input")
     
     @staticmethod
-    def _validate_output(observation: Any):
+    def _validate_output(observation: Any) -> None:
         """Check that an object defines a finite real number, raising exceptions
         if not."""
         
@@ -202,11 +217,41 @@ class TrainingDatum(object):
         )
 
     @classmethod
-    def list_from_arrays(cls, inputs: np.ndarray, outputs: np.ndarray):
+    def list_from_arrays(cls, inputs: np.ndarray, outputs: np.ndarray) -> list["TrainingDatum"]:
+        """Create a list of training data from Numpy arrays.
+
+        It is common when working with Numpy for staistical modelling to
+        represent a set of `inputs` and corresponding `outputs` with two arrays:
+        a 2-dimensional array of inputs (with a row for each input) and a
+        1-dimensional array of outputs, where the length of the `outputs` array
+        is equal to the length of the first dimension of the `inputs` array.
+        This method is a convenience for creating a list of TrainingDatum
+        objects from these arrays.
+
+        Parameters
+        ----------
+        inputs : np.ndarray
+            A 2-dimensional array of simulator inputs, with each row defining
+            a single input. Thus, the shape of `inputs` is ``(n, d)`` where
+            ``n`` is the number of inputs and ``d`` is the number of input
+            coordinates.
+        outputs : np.ndarray
+            A 1-dimensional array of simulator outputs, whose length is equal
+            to ``n``, the number of inputs (i.e. rows) in `inputs`. The
+            ``i``th entry of `outputs` corresponds to the input at row ``i`` of
+            `inputs`.
+
+        Returns
+        -------
+        TrainingDatum
+            A list of training data, created by binding the inputs and
+            corresponding outputs together.
+        """
+        
         return [cls(Input.from_array(input), output)
                 for input, output in zip(inputs, outputs)]
 
-    def __str__(self):
+    def __str__(self) -> str:      
         return f"({str(self.input)}, {str(self.output)})"
 
 
@@ -231,6 +276,7 @@ class AbstractEmulator(abc.ABC):
     @abc.abstractmethod
     def training_data(self) -> list[TrainingDatum]:
         """(Read-only) Get the data on which the emulator has been trained."""
+        
         return self._training_data
     
     @abc.abstractmethod
@@ -242,6 +288,7 @@ class AbstractEmulator(abc.ABC):
         training_data : list[TrainingDatum]
             A collection of inputs with simulator outputs.
         """
+        
         pass
 
 
@@ -267,4 +314,5 @@ class AbstractSimulator(abc.ABC):
         numbers.Real
             The output of the simulator at the input `x`.
         """
+        
         pass
