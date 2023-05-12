@@ -183,17 +183,15 @@ class TrainingDatum(object):
         self._validate_input(self.input)
         self._validate_real(self.output)
 
-    # TODO: type hinting for args
     @staticmethod
-    def _validate_input(input):
+    def _validate_input(input: Any):
         """Check that an object is an instance of an Input, raising a
         TypeError if not."""
         if not isinstance(input, Input):
             raise TypeError("Argument `input` must be of type Input")
     
-    # TODO: type hinting for args
     @staticmethod
-    def _validate_real(observation):
+    def _validate_real(observation: Any):
         """Check that an object is an instance of a real number, raising a
         TypeError if not."""
         if not isinstance(observation, Real):
