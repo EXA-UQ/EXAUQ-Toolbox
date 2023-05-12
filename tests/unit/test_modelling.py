@@ -161,29 +161,22 @@ class TestInput(unittest.TestCase):
         """Test that a ValueError is raised if the input array contains various
         non-real elements."""
 
+        msg = "'input' cannot contain NaN or non-finite numbers"
+
         with self.assertRaises(ValueError) as cm:
             _ = Input.from_array(np.array([1.1, np.nan]))
         
-        self.assertEqual(
-            "'input' cannot contain missing or non-finite numbers",
-            str(cm.exception)
-        )
+        self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
             _ = Input.from_array(np.array([1.1, np.inf]))
         
-        self.assertEqual(
-            "'input' cannot contain missing or non-finite numbers",
-            str(cm.exception)
-        )
+        self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
             _ = Input.from_array(np.array([1.1, np.NINF]))  # negative inf
         
-        self.assertEqual(
-            "'input' cannot contain missing or non-finite numbers",
-            str(cm.exception)
-        )
+        self.assertEqual(msg, str(cm.exception))
 
 
 class TestTrainingDatum(unittest.TestCase):

@@ -123,7 +123,7 @@ class Input(object):
             raise ValueError("'input' must be a Numpy array of real numbers")
         
         if not cls._all_entries_finite(input):
-            raise ValueError("'input' cannot contain missing or non-finite numbers")
+            raise ValueError("'input' cannot contain NaN or non-finite numbers")
 
         return cls(*tuple(input))
 
