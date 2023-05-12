@@ -84,6 +84,76 @@ class TestInput(unittest.TestCase):
         _input = np.array([1, -2.1, 3e2])
         expected = Input(1, -2.1, 3e2)
         self.assertEqual(expected, Input.from_array(_input))
+    
+    def test_from_array_not_array_error(self):
+        """Test that a TypeError is raised if the input is not a Numpy array."""
+
+        with self.assertRaises(TypeError) as cm:
+            _ = Input.from_array(1)
+        
+        self.assertEqual(
+            "'input' must be a Numpy ndarray", str(cm.exception)
+            )
+
+    def test_from_array_wrong_shape_error(self):
+        """Test that a ValueError is raised if the input array is not
+        1-dimensional."""
+
+        with self.assertRaises(ValueError) as cm:
+            _ = Input.from_array(np.array([[1.1], [2.2]]))
+        
+        self.assertEqual(
+            "'input' must be a 1-dimensional Numpy array", str(cm.exception)
+            )
+
+    def test_from_array_non_real_error(self):
+        """Test that a ValueError is raised if the input array contains data
+        that does not define a real number."""
+
+        with self.assertRaises(ValueError) as cm:
+            _ = Input.from_array(np.array([np.datetime64(123, 'm')]))
+        
+        self.assertEqual(
+            "'input' must be a Numpy array of real numbers", str(cm.exception)
+        )
+    
+    def test_from_array_none_error(self):
+        """Test that a ValueError is raised if the input array contains None."""
+
+        with self.assertRaises(ValueError) as cm:
+            _ = Input.from_array(np.array([1.1, None]))
+        
+        self.assertEqual(
+            "'input' cannot contain None", str(cm.exception)
+        )
+
+    def test_from_array_non_real_error(self):
+        """Test that a ValueError is raised if the input array contains various
+        non-real elements."""
+
+        with self.assertRaises(ValueError) as cm:
+            _ = Input.from_array(np.array([1.1, np.nan]))
+        
+        self.assertEqual(
+            "'input' cannot contain missing or non-finite numbers",
+            str(cm.exception)
+        )
+
+        with self.assertRaises(ValueError) as cm:
+            _ = Input.from_array(np.array([1.1, np.inf]))
+        
+        self.assertEqual(
+            "'input' cannot contain missing or non-finite numbers",
+            str(cm.exception)
+        )
+
+        with self.assertRaises(ValueError) as cm:
+            _ = Input.from_array(np.array([1.1, np.NINF]))  # negative inf
+        
+        self.assertEqual(
+            "'input' cannot contain missing or non-finite numbers",
+            str(cm.exception)
+        )
 
 
 class TestTrainingDatum(unittest.TestCase):

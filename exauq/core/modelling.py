@@ -1,4 +1,5 @@
 import abc
+from collections.abc import Iterable
 import dataclasses
 from numbers import Real
 from typing import (
@@ -79,17 +80,45 @@ class Input(object):
         else:
             return None
     
-    @staticmethod
-    def _check_args_real(args: tuple[Any, ...]) -> tuple[Real, ...]:
+    # TODO: add further validation like for from_array method
+    @classmethod
+    def _check_args_real(cls, args: tuple[Any, ...]) -> tuple[Real, ...]:
         """Check that all arguments define real numbers, returning the supplied
         tuple if so or raising a TypeError otherwise."""
-        if not all(isinstance(x, Real) for x in args):
+        if not cls._all_entries_real(args):
             raise TypeError('Arguments must be instances of real numbers')
         
         return args
 
+    @staticmethod
+    def _no_none_entries(iter: Iterable):
+        return all(x is not None for x in iter)
+    
+    @staticmethod
+    def _all_entries_real(iter: Iterable):
+        return all(isinstance(x, Real) for x in iter)
+
+    @staticmethod
+    def _all_entries_finite(iter: Iterable):
+        return all(np.isfinite(x) for x in iter)
+
     @classmethod
-    def from_array(cls, input):
+    def from_array(cls, input: np.ndarray):
+        if not isinstance(input, np.ndarray):
+            raise TypeError("'input' must be a Numpy ndarray")
+
+        if not input.ndim == 1:
+            raise ValueError("'input' must be a 1-dimensional Numpy array")
+
+        if not cls._no_none_entries(input):
+            raise ValueError("'input' cannot contain None")
+
+        if not cls._all_entries_real(input):
+            raise ValueError("'input' must be a Numpy array of real numbers")
+        
+        if not cls._all_entries_finite(input):
+            raise ValueError("'input' cannot contain missing or non-finite numbers")
+
         return cls(*tuple(input))
 
     def __str__(self):
@@ -148,6 +177,7 @@ class TrainingDatum(object):
         self._validate_input(self.input)
         self._validate_real(self.output)
 
+    # TODO: type hinting for args
     @staticmethod
     def _validate_input(input):
         """Check that an object is an instance of an Input, raising a
@@ -155,6 +185,7 @@ class TrainingDatum(object):
         if not isinstance(input, Input):
             raise TypeError("Argument `input` must be of type Input")
     
+    # TODO: type hinting for args
     @staticmethod
     def _validate_real(observation):
         """Check that an object is an instance of a real number, raising a
