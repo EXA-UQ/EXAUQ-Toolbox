@@ -157,9 +157,9 @@ class TestInput(unittest.TestCase):
             "'input' cannot contain None", str(cm.exception)
         )
 
-    def test_from_array_non_real_error(self):
-        """Test that a ValueError is raised if the input array contains various
-        non-real elements."""
+    def test_from_array_not_finite_error(self):
+        """Test that a ValueError is raised if the input array contains NaN or
+        non-finite elements."""
 
         msg = "'input' cannot contain NaN or non-finite numbers"
 
