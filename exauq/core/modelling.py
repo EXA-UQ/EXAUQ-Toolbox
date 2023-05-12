@@ -7,11 +7,7 @@ from typing import (
     Union
 )
 import numpy as np
-from exauq.utilities._validation import (
-    check_no_none_entries,
-    check_entries_real,
-    check_all_entries_finite
-    )
+from exauq.utilities._validation import FiniteRealValidator
 
 
 class Input(object):
@@ -90,16 +86,17 @@ class Input(object):
         """Check that all arguments define real numbers, returning the supplied
         tuple if so or raising errors otherwise."""
         
-        check_no_none_entries(
-            args, TypeError("Cannot supply None as an argument")
-            )
-        check_entries_real(
-            args, TypeError('Arguments must be instances of real numbers')
-            )
-        check_all_entries_finite(
-            args,
+        validator = FiniteRealValidator(args)
+        validator.check_no_none_entries(
+            TypeError("Cannot supply None as an argument")
+        )
+        validator.check_entries_real(
+            TypeError('Arguments must be instances of real numbers')
+        )
+        validator.check_entries_finite(
             ValueError("Cannot supply NaN or non-finite numbers as arguments")
         )
+        
         return args
 
     @classmethod
@@ -110,16 +107,17 @@ class Input(object):
         if not input.ndim == 1:
             raise ValueError("'input' must be a 1-dimensional Numpy array")
 
-        check_no_none_entries(
-            input, ValueError("'input' cannot contain None")
-            )
-        check_entries_real(
-            input, ValueError("'input' must be a Numpy array of real numbers")
-            )
-        check_all_entries_finite(
-            input,
+        real_validator = FiniteRealValidator(input)
+        real_validator.check_no_none_entries(
+            ValueError("'input' cannot contain None")
+        )
+        real_validator.check_entries_real(
+            ValueError("'input' must be a Numpy array of real numbers")
+        )
+        real_validator.check_entries_finite(
             ValueError("'input' cannot contain NaN or non-finite numbers")
         )
+
         return cls(*tuple(input))
 
     def __str__(self):
@@ -190,16 +188,14 @@ class TrainingDatum(object):
         """Check that an object defines a finite real number, raising exceptions
         if not."""
         
-        check_no_none_entries(
-            observation,
+        validator = FiniteRealValidator(observation)
+        validator.check_no_none_entries(
             TypeError("Argument 'output' cannot be None")
         )
-        check_entries_real(
-            observation,
+        validator.check_entries_real(
             TypeError("Argument `output` must define a real number")
-            )
-        check_all_entries_finite(
-            observation,
+        )
+        validator.check_entries_finite(
             ValueError("Argument 'output' cannot be NaN or non-finite")
         )
 
