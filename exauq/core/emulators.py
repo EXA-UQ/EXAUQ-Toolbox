@@ -27,3 +27,7 @@ class MogpEmulator(object):
     @property
     def training_data(self) -> list[TrainingDatum]:
         return self._training_data
+    
+    def fit(self):
+        self._gp = mogp.fit_GP_MAP(self.gp)
+    

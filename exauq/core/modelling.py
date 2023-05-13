@@ -3,7 +3,8 @@ import dataclasses
 from numbers import Real
 from typing import (
     Any,
-    Union
+    Union,
+    Optional
 )
 import numpy as np
 import exauq.utilities.validation.real as validation
@@ -280,13 +281,17 @@ class AbstractEmulator(abc.ABC):
         return self._training_data
     
     @abc.abstractmethod
-    def fit(self, training_data: list[TrainingDatum]) -> None:
+    def fit(self, training_data: Optional[list[TrainingDatum]] = None) -> None:
         """Train an emulator on pairs of inputs and simulator outputs.
+
+        If no training data is supplied, then the emulator will be trained on
+        the training data currently stored in this object's `training_data`
+        property.
 
         Parameters
         ----------
-        training_data : list[TrainingDatum]
-            A collection of inputs with simulator outputs.
+        training_data : list[TrainingDatum], optional
+            (Default: None) A collection of inputs with simulator outputs.
         """
         
         pass

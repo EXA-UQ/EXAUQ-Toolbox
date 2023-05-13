@@ -1,4 +1,5 @@
 import unittest
+import copy
 import mogp_emulator as mogp
 import numpy as np
 from exauq.core.emulators import MogpEmulator
@@ -52,6 +53,39 @@ class TestMogpEmulator(unittest.TestCase):
         expected = [TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.3), 2)]
         self.assertEqual(expected, emulator.training_data)
 
+    def test_fit_no_training_data(self):
+        """Test that fitting the emulator with no training data supplied results
+        in the underlying GP being fit with hyperparameter estimation."""
+
+        gp1 = mogp.GaussianProcess(
+            inputs=np.array([[0, 0],
+                             [0.2, 0.1],
+                             [0.3, 0.5],
+                             [0.7, 0.4],
+                             [0.9, 0.8]]),
+            targets=np.array([1, 2, 3.1, 9, 2])
+            )
+        gp2 = copy.deepcopy(gp1)
+        gp1 = mogp.fit_GP_MAP(gp1)
+        emulator = MogpEmulator(gp2)
+        emulator.fit()
+
+        # Note: need to use allclose because fitting it not deterministic.
+        self.assertTrue(
+            np.allclose(
+                gp1.theta.corr, emulator.gp.theta.corr, rtol=1e-5, atol = 0
+            )
+        )
+        self.assertTrue(
+            np.allclose(
+                gp1.theta.cov, emulator.gp.theta.cov, rtol=1e-5, atol = 0
+            )
+        )
+        self.assertTrue(
+            np.allclose(
+                gp1.theta.nugget, emulator.gp.theta.nugget, rtol=1e-5, atol = 0
+            )
+        )
 
 if __name__ == "__main__":
     unittest.main()
