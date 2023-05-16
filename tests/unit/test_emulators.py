@@ -87,5 +87,46 @@ class TestMogpEmulator(unittest.TestCase):
             )
         )
 
+    def test_fit_no_training_data_with_bounds(self):
+        """Test that fitting the emulator respects bounds on hyperparameters
+        when these are supplied."""
+
+        gp = mogp.GaussianProcess(
+            inputs=np.array([[0, 0],
+                             [0.2, 0.1],
+                             [0.3, 0.5],
+                             [0.7, 0.4],
+                             [0.9, 0.8]]),
+            targets=np.array([1, 2, 3.1, 9, 2])
+            )
+        gp2 = copy.deepcopy(gp)
+        gp2 = mogp.fit_GP_MAP(gp2)
+
+        # Compute bounds to apply, by creating small windows away from known
+        # optimal values of the hyperparameters.
+        corr = gp2.theta.corr_raw
+        cov = gp2.theta.get_data()[-1]
+        bounds = (
+            (0.8 * corr[0], 0.9 * corr[0]),
+            (0.8 * corr[1], 0.9 * corr[1]),
+            (1.1 * cov, 1.2 * cov)
+            )
+
+        emulator = MogpEmulator(gp)
+        emulator.fit(hyperparameter_bounds=bounds)
+        actual_corr = emulator.gp.theta.corr_raw
+        actual_cov = emulator.gp.theta.get_data()[-1]
+        
+        self.assertTrue(
+            bounds[0][0] <= actual_corr[0] <= bounds[0][1]
+        )
+        self.assertTrue(
+            bounds[1][0] <= actual_corr[1] <= bounds[1][1]
+        )
+        self.assertTrue(
+            bounds[2][0] <= actual_cov <= bounds[2][1]
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
