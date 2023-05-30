@@ -2,13 +2,13 @@ import unittest
 import tests.unit.fakes as fakes
 from exauq.core.designers import SingleLevelAdaptiveSampler
 from exauq.core.modelling import (
-    Experiment,
+    Input,
     TrainingDatum
     )
 
 
 class TestSingleLevelAdaptiveSampler(unittest.TestCase):
-    initial_design = [Experiment(0.2), Experiment(0.55)]
+    initial_design = [Input(0.2), Input(0.55)]
     
     def test_str(self):
         """Test that the string description of an instance of
@@ -48,13 +48,13 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
 
         simulator = fakes.OneDimSimulator(0, 1)
         emulator = fakes.DumbEmulator()
-        initial_design = [Experiment(0.2), Experiment(0.55)]
+        initial_design = [Input(0.2), Input(0.55)]
         
         designer = SingleLevelAdaptiveSampler(initial_design)
 
         trained_emulator = designer.train(emulator, simulator)
-        expected = [TrainingDatum(Experiment(0.2), 0.2),
-                    TrainingDatum(Experiment(0.55), 0.55)]
+        expected = [TrainingDatum(Input(0.2), 0.2),
+                    TrainingDatum(Input(0.55), 0.55)]
         self.assertEqual(expected, trained_emulator.training_data[0:2])
 
     def test_train_returns_new_emulator(self):
