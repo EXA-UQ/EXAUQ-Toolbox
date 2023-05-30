@@ -31,25 +31,24 @@
 from typing import Any
 from collections.abc import Sequence
 import math
-import mogp_emulator as mogp
-import numpy as np
-import scipy
+from mogp_emulator import GaussianProcess
 from exauq.core.modelling import TrainingDatum
+from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
 class MogpEmulator(object):
-    def __init__(self, gp: mogp.GaussianProcess):
+    def __init__(self, gp: GaussianProcess):
         self._gp = self._validate_gp(gp)
         self._training_data = TrainingDatum.list_from_arrays(
             self._gp.inputs, self._gp.targets
             )
     
     @staticmethod
-    def _validate_gp(gp: Any) -> mogp.GaussianProcess:
+    def _validate_gp(gp: Any) -> GaussianProcess:
         """Checks that `gp` is an mogp GuassianProcess object, returning `gp` if
         so and raising a TypeError if not.
         """
-        if not isinstance(gp, mogp.GaussianProcess):
+        if not isinstance(gp, GaussianProcess):
             raise TypeError(
                 "Argument 'gp' must be of type GaussianProcess from the "
                 "mogp-emulator package"
@@ -58,7 +57,7 @@ class MogpEmulator(object):
         return gp
 
     @property
-    def gp(self) -> mogp.GaussianProcess:
+    def gp(self) -> GaussianProcess:
         """(Read-only) Get the underlying mogp GaussianProcess for this
         emulator."""
         return self._gp
@@ -89,56 +88,16 @@ class MogpEmulator(object):
             length parameters, while the last tuple should represent bounds for
             the covariance.
         """
+        
         if hyperparameter_bounds is None:
-            self._gp = mogp.fit_GP_MAP(self.gp)
+            self._gp = fit_GP_MAP(self.gp)
             return
         
         raw_hyperparameter_bounds = self._compute_raw_param_bounds(
             hyperparameter_bounds
             )
-
-        # NOTE (TH, 2023-05-16): from here code is adapted from the
-        # mogp-emulator package (see the comment at the beginning of this file).
-        # This is currently just a quick (and largely untested) implementation
-        # of hyperparameter estimation that respects bounds on the
-        # hyperparameters.
-        # TODO (TH, 2023-05-16): This code should be revisited at a later date
-        # (see #58 https://github.com/UniExeterRSE/EXAUQ-Toolbox/issues/58)
-        
-        np.seterr(divide = 'raise', over = 'raise', invalid = 'raise')
-
-        logpost_values = []
-        theta_values = []
-        n_tries = 15  # the default in mogp
-        for _ in range(n_tries):
-            theta = self.gp.priors.sample()
-            try:
-                min_dict = scipy.optimize.minimize(
-                    self.gp.logposterior, theta, method = "L-BFGS-B",
-                    jac = self.gp.logpost_deriv,
-                    bounds=raw_hyperparameter_bounds
-                    )
-
-                min_theta = min_dict['x']
-                min_logpost = min_dict['fun']
-
-                logpost_values.append(min_logpost)
-                theta_values.append(min_theta)
-
-            except scipy.linalg.LinAlgError:
-                print("Matrix not positive definite, skipping this iteration")
-            
-            except FloatingPointError:
-                print("Floating point error in optimization routine, skipping this iteration")
-
-        if len(logpost_values) == 0:
-            print("Minimization routine failed to return a value")
-            self._gp.theta = None
-        else:
-            logpost_values = np.array(logpost_values)
-            idx = np.argmin(logpost_values)
-
-            self._gp.fit(theta_values[idx])
+        self._gp = fit_GP_MAP(self.gp, bounds=raw_hyperparameter_bounds)
+        return
     
     @staticmethod
     def _compute_raw_param_bounds(bounds: Sequence[tuple[float, float]]) \

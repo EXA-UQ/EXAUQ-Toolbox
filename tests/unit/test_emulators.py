@@ -27,10 +27,8 @@ class TestMogpEmulator(unittest.TestCase):
             math.isclose(x, lower, **kwargs) or
             math.isclose(x, upper, **kwargs)
             )
-        assert (
-            almost_between,
+        assert almost_between,\
             "'x' not between lower and upper bounds to given tolerance"
-            )
 
     def test_constructor(self):
         """Test that an instance of MogpEmulator can be constructed from an
