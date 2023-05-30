@@ -42,8 +42,12 @@ from mogp_emulator import LibGPGPU
 from mogp_emulator.MultiOutputGP import MultiOutputGP
 
 
+# TODO (TH, 2023-05-30): This code is a quick modification of code from
+# the fitting.py module in mogp-emulator and should be revisited at a later date
+# for correctness
+# (see #58 https://github.com/UniExeterRSE/EXAUQ-Toolbox/issues/58).
 def fit_GP_MAP(*args, n_tries=15, theta0=None, method="L-BFGS-B",
-               skip_failures=True, refit=False, **kwargs):
+               skip_failures=True, refit=False, bounds=None, **kwargs):
     """Fit one or more Gaussian Processes by attempting to minimize the
     negative log-posterior
 
@@ -104,6 +108,10 @@ def fit_GP_MAP(*args, n_tries=15, theta0=None, method="L-BFGS-B",
     that if you us a numpy array, all emulators must have the same
     number of parameters, while using a list allows more flexibility.
 
+    If ``bounds`` is specified, then it is passed through to the minimization
+    method so that hyperparameter estimation respects the bounds. See the
+    documentation for ``scipy.optimize.minimize`` for further details.
+
     The user can specify the details of the minimization method, using
     any of the gradient-based optimizers available in
     ``scipy.optimize.minimize``. Any additional parameters beyond the
@@ -159,6 +167,15 @@ def fit_GP_MAP(*args, n_tries=15, theta0=None, method="L-BFGS-B",
                   ``GaussianProcess`` fitting, which will be fit
                   irrespective of the current hyperparameter values.
     :type refit: bool
+    :param bounds: Bounds to apply to the raw hyperparameters during estimation.
+                   There are two ways to specify bounds:
+                   1. As an instance of ``scipy.optimize.Bounds`` class.
+                   2. As a sequence of ``(lower, upper)`` pairs, which specifies
+                      the lower and upper bounds on each parameter.
+                   All but the last bound are applied to the raw correlation
+                   parameters, while the last bound is applied to the
+                   covariance.
+    :type bounds: scipy.optimize.Bounds or sequence of pairs
     :param ``**kwargs``: Additional keyword arguments to be passed to
                          ``GaussianProcess.__init__``,
                          ``MultiOutputGP.__init__``, or the
@@ -175,9 +192,11 @@ def fit_GP_MAP(*args, n_tries=15, theta0=None, method="L-BFGS-B",
     if len(args) == 1:
         gp = args[0]
         if isinstance(gp, MultiOutputGP):
-            gp = _fit_MOGP_MAP(gp, n_tries, theta0, method, refit, **kwargs)
+            gp = _fit_MOGP_MAP(gp, n_tries, theta0, method, refit,
+                               bounds=bounds, **kwargs)
         elif isinstance(gp, GaussianProcess):
-            gp = _fit_single_GP_MAP(gp, n_tries, theta0, method, **kwargs)
+            gp = _fit_single_GP_MAP(gp, n_tries, theta0, method, bounds=bounds,
+                                    **kwargs)
         elif LibGPGPU.gpu_usable() and isinstance(gp, GaussianProcessGPU):
             gp = _fit_single_GPGPU_MAP(gp, n_tries, theta0, method, **kwargs)
         elif LibGPGPU.gpu_usable() and isinstance(gp, MultiOutputGP_GPU):
@@ -194,11 +213,13 @@ def fit_GP_MAP(*args, n_tries=15, theta0=None, method="L-BFGS-B",
                 del kwargs[key]
         try:
             gp = GaussianProcess(*args, **gp_kwargs)
-            gp = _fit_single_GP_MAP(gp, n_tries, theta0, method, **kwargs)
+            gp = _fit_single_GP_MAP(gp, n_tries, theta0, method, bounds=bounds,
+                                    **kwargs)
         except AssertionError:
             try:
                 gp = MultiOutputGP(*args, **gp_kwargs)
-                gp = _fit_MOGP_MAP(gp, n_tries, theta0, method, **kwargs)
+                gp = _fit_MOGP_MAP(gp, n_tries, theta0, method, bounds=bounds,
+                                   **kwargs)
             except AssertionError:
                 raise ValueError("Bad values for *args in fit_GP_MAP")
     if isinstance(gp, GaussianProcessBase):
@@ -245,12 +266,13 @@ def _fit_MOGPGPU_MAP(gp, n_tries=15, theta0=None, method='L-BFGS-B', **kwargs):
     LibGPGPU.fit_GP_MAP(gp._mogp_gpu, n_tries, theta0)
     return gp
 
-def _fit_single_GP_MAP(gp, n_tries=15, theta0=None, method='L-BFGS-B', **kwargs):
+def _fit_single_GP_MAP(gp, n_tries=15, theta0=None, method='L-BFGS-B',
+                       bounds=None, **kwargs):
     """Fit hyperparameters using MAP for a single GP
 
     Returns a single GP object that has its hyperparameters fit to the
-    MAP value.  Accepts keyword arguments passed to scipy's
-    minimization routine.
+    MAP value, optionally while respecting bounds. Accepts keyword arguments
+    passed to scipy's minimization routine.
 
     """
 
@@ -271,7 +293,8 @@ def _fit_single_GP_MAP(gp, n_tries=15, theta0=None, method='L-BFGS-B', **kwargs)
             theta = gp.priors.sample()
         try:
             min_dict = minimize(gp.logposterior, theta, method = method,
-                                jac = gp.logpost_deriv, options = kwargs)
+                                jac = gp.logpost_deriv, bounds=bounds,
+                                options = kwargs)
 
             min_theta = min_dict['x']
             min_logpost = min_dict['fun']
@@ -294,19 +317,21 @@ def _fit_single_GP_MAP(gp, n_tries=15, theta0=None, method='L-BFGS-B', **kwargs)
 
     return gp
 
-def _fit_single_GP_MAP_bound(gp, theta0, n_tries, method, **kwargs):
+def _fit_single_GP_MAP_bound(gp, theta0, n_tries, method, bounds=None, **kwargs):
     "fitting function accepting theta0 as an argument for parallelization"
 
-    return _fit_single_GP_MAP(gp, n_tries=n_tries, theta0=theta0, method=method, **kwargs)
+    return _fit_single_GP_MAP(gp, n_tries=n_tries, theta0=theta0, method=method,
+                              bounds=bounds, **kwargs)
 
 def _fit_MOGP_MAP(gp, n_tries=15, theta0=None, method='L-BFGS-B',
-                  refit=False, **kwargs):
+                  refit=False, bounds=None, **kwargs):
     """Fit hyperparameters using MAP for multiple GPs in parallel
 
     Uses Python Multiprocessing to fit GPs in parallel by calling the
     above routine for a single GP for each of the emulators in the
     MOGP class. Returns a MultiOutputGP object where all emulators
-    have been fit to the MAP value.
+    have been fit to the MAP value (optionally while respecting common bounds on
+    the hyperparameters).
 
     Routine only fits GPs that have not previously been fit (indicated
     by the hyperparameters being set to ``None`` by default. This can
@@ -360,7 +385,7 @@ def _fit_MOGP_MAP(gp, n_tries=15, theta0=None, method='L-BFGS-B',
                     for (emulator, t0) in zip(emulators_to_fit, thetavals)]
     else:
         with Pool(processes) as p:
-            fit_MOGP = p.starmap(partial(_fit_single_GP_MAP_bound, n_tries=n_tries, method=method, **kwargs),
+            fit_MOGP = p.starmap(partial(_fit_single_GP_MAP_bound, n_tries=n_tries, method=method, bounds=bounds, **kwargs),
                                  [(emulator, t0) for (emulator, t0) in zip(emulators_to_fit, thetavals)])
 
     for (idx, em) in zip(indices_to_fit, fit_MOGP):
