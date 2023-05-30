@@ -5,11 +5,13 @@ name = "exauq"
 version = "0.1.0"
 
 [tool.poetry.dependencies]
-python = ">=3.9"
+python = ">=3.9,<3.12"
+scipy = ">=1.10.0"
+numpy = ">=1.24.0"
+mogp-emulator = ">=0.7.0"
 
 [tool.poetry.group.dev.dependencies]
 black = ">=22.0.0"
-numpy = ">=1.24.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
