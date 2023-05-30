@@ -29,6 +29,7 @@
 #   SOFTWARE.
 
 from typing import Any
+import math
 import mogp_emulator as mogp
 import numpy as np
 import scipy
@@ -65,6 +66,10 @@ class MogpEmulator(object):
         if hyperparameter_bounds is None:
             self._gp = mogp.fit_GP_MAP(self.gp)
             return
+        
+        raw_hyperparameter_bounds = self._compute_raw_param_bounds(
+            hyperparameter_bounds
+            )
 
         # NOTE (TH, 2023-05-16): from here code is adapted from the
         # mogp-emulator package (see the comment at the beginning of this file).
@@ -73,18 +78,19 @@ class MogpEmulator(object):
         # hyperparameters.
         # TODO (TH, 2023-05-16): This code should be revisited at a later date
         # (see #58 https://github.com/UniExeterRSE/EXAUQ-Toolbox/issues/58)
+        
         np.seterr(divide = 'raise', over = 'raise', invalid = 'raise')
 
         logpost_values = []
         theta_values = []
-
         n_tries = 15  # the default in mogp
         for _ in range(n_tries):
             theta = self.gp.priors.sample()
             try:
                 min_dict = scipy.optimize.minimize(
-                    self.gp.logposterior, theta, method = "L-BFGS-B", jac = self.gp.logpost_deriv,
-                    bounds=hyperparameter_bounds
+                    self.gp.logposterior, theta, method = "L-BFGS-B",
+                    jac = self.gp.logpost_deriv,
+                    bounds=raw_hyperparameter_bounds
                     )
 
                 min_theta = min_dict['x']
@@ -108,3 +114,41 @@ class MogpEmulator(object):
 
             self._gp.fit(theta_values[idx])
     
+    @staticmethod
+    def _compute_raw_param_bounds(bounds):
+        """Compute raw parameter bounds from bounds on correlation length
+        parameters and covariance.
+        
+        For the definitions of the transformations from raw values, see:
+        
+        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        """
+        
+        # Note: we need to swap the order of the bounds for correlation, because
+        # _raw_from_corr is a decreasing function (i.e. min of raw corresponds
+        # to max of correlation and vice-versa).
+        raw_bounds = [
+            (MogpEmulator._raw_from_corr(bnd[1]), MogpEmulator._raw_from_corr(bnd[0]))
+            for bnd in bounds[:-1]
+        ] + [
+            (MogpEmulator._raw_from_cov(bounds[-1][0]), MogpEmulator._raw_from_cov(bounds[-1][1]))
+        ]
+        return tuple(raw_bounds)
+
+    @staticmethod
+    def _raw_from_corr(corr):
+        """Compute a raw parameter from a correlation length parameter.
+
+        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        """
+
+        return -2 * math.log(corr)
+    
+    @staticmethod
+    def _raw_from_cov(cov):
+        """Compute a raw parameter from a covariance parameter.
+
+        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        """
+
+        return math.log(cov)

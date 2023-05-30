@@ -1,5 +1,6 @@
 import unittest
 import copy
+import math
 import mogp_emulator as mogp
 import numpy as np
 from exauq.core.emulators import MogpEmulator
@@ -11,6 +12,25 @@ from exauq.core.modelling import (
 
 class TestMogpEmulator(unittest.TestCase):
     gp = mogp.GaussianProcess(np.array([[0, 0], [0.2, 0.1]]), np.array([1, 2]))
+
+    def assertAlmostBetween(self, x, lower, upper, **kwargs) -> None:
+        """Checks whether a number lies between bounds up to a tolerance.
+        
+        An AssertionError is thrown unless `lower` < `x` < `upper` or `x` is
+        close to either bound. Keyword arguments are passed to the function
+        `math.isclose`, with `rel_tol` and `abs_tol` being used to define the
+        tolerances in the closeness check (see the documentation for
+        `math.isclose` on their definition and default values).
+        """
+        almost_between = (
+            (lower < x < upper) or
+            math.isclose(x, lower, **kwargs) or
+            math.isclose(x, upper, **kwargs)
+            )
+        assert (
+            almost_between,
+            "'x' not between lower and upper bounds to given tolerance"
+            )
 
     def test_constructor(self):
         """Test that an instance of MogpEmulator can be constructed from an
@@ -70,7 +90,7 @@ class TestMogpEmulator(unittest.TestCase):
         emulator = MogpEmulator(gp2)
         emulator.fit()
 
-        # Note: need to use allclose because fitting it not deterministic.
+        # Note: need to use allclose because fitting is not deterministic.
         self.assertTrue(
             np.allclose(
                 gp1.theta.corr, emulator.gp.theta.corr, rtol=1e-5, atol = 0
@@ -87,7 +107,7 @@ class TestMogpEmulator(unittest.TestCase):
             )
         )
 
-    def test_fit_no_training_data_with_bounds(self):
+    def test_fit_with_bounds(self):
         """Test that fitting the emulator respects bounds on hyperparameters
         when these are supplied."""
 
@@ -104,8 +124,8 @@ class TestMogpEmulator(unittest.TestCase):
 
         # Compute bounds to apply, by creating small windows away from known
         # optimal values of the hyperparameters.
-        corr = gp2.theta.corr_raw
-        cov = gp2.theta.get_data()[-1]
+        corr = gp2.theta.corr
+        cov = gp2.theta.cov
         bounds = (
             (0.8 * corr[0], 0.9 * corr[0]),
             (0.8 * corr[1], 0.9 * corr[1]),
@@ -114,18 +134,54 @@ class TestMogpEmulator(unittest.TestCase):
 
         emulator = MogpEmulator(gp)
         emulator.fit(hyperparameter_bounds=bounds)
-        actual_corr = emulator.gp.theta.corr_raw
-        actual_cov = emulator.gp.theta.get_data()[-1]
+        actual_corr = emulator.gp.theta.corr
+        actual_cov = emulator.gp.theta.cov
         
-        self.assertTrue(
-            bounds[0][0] <= actual_corr[0] <= bounds[0][1]
-        )
-        self.assertTrue(
-            bounds[1][0] <= actual_corr[1] <= bounds[1][1]
-        )
-        self.assertTrue(
-            bounds[2][0] <= actual_cov <= bounds[2][1]
-        )
+        # Note: need to check values are between bounds up to a tolerance
+        # due to floating point inprecision.
+        self.assertAlmostBetween(
+            actual_corr[0], bounds[0][0], bounds[0][1], rel_tol=1e-10
+            )
+        self.assertAlmostBetween(
+            actual_corr[1], bounds[1][0], bounds[1][1], rel_tol=1e-10
+            )
+        self.assertAlmostBetween(
+            actual_cov, bounds[2][0], bounds[2][1], rel_tol=1e-10
+            )
+
+    def test_compute_raw_param_bounds(self):
+        """Test that correlation length parameters and the covariance are
+        transformed to raw parameters. For the transformations, see:
+        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        """
+
+        bounds = (
+            (1, math.e),  # correlation
+            (1, math.e)  # covariance
+            )
+        raw_bounds = MogpEmulator._compute_raw_param_bounds(bounds)
+        self.assertAlmostEqual(-2, raw_bounds[0][0])
+        self.assertAlmostEqual(0, raw_bounds[0][1])
+        self.assertAlmostEqual(0, raw_bounds[1][0])
+        self.assertAlmostEqual(1, raw_bounds[1][1])
+
+    def test_compute_raw_param_bounds_multiple_corr(self):
+        """Test that correlation length parameters and the covariance are
+        transformed to raw parameters when there are multiple raw correlation
+        parameters."""
+        
+        bounds = (
+            (1, math.e),  # correlation
+            (math.exp(-2), math.exp(3)),  # correlation
+            (1, math.e)  # covariance
+            )
+        raw_bounds = MogpEmulator._compute_raw_param_bounds(bounds)
+        self.assertAlmostEqual(-2, raw_bounds[0][0])
+        self.assertAlmostEqual(0, raw_bounds[0][1])
+        self.assertAlmostEqual(-6, raw_bounds[1][0])
+        self.assertAlmostEqual(4, raw_bounds[1][1])
+        self.assertAlmostEqual(0, raw_bounds[2][0])
+        self.assertAlmostEqual(1, raw_bounds[2][1])
 
 
 if __name__ == "__main__":
