@@ -1,6 +1,6 @@
 import copy
 from exauq.core.modelling import (
-    Experiment,
+    Input,
     TrainingDatum,
     AbstractEmulator,
     AbstractSimulator
@@ -19,7 +19,7 @@ class SingleLevelAdaptiveSampler:
         A list of design points to form the basis of an initial training
         dataset.
     """
-    def __init__(self, initial_design: list[Experiment]):
+    def __init__(self, initial_design: list[Input]):
         self._initial_design = initial_design
     
     def __str__(self) -> str:
