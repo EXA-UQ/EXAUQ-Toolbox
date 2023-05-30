@@ -276,13 +276,14 @@ class AbstractEmulator(abc.ABC):
     @property
     @abc.abstractmethod
     def training_data(self) -> list[TrainingDatum]:
-        """(Read-only) Get the data on which the emulator has been trained."""
+        """(Read-only) Get the data on which the emulator has been, or will be,
+        trained."""
         
         return self._training_data
     
     @abc.abstractmethod
     def fit(self, training_data: Optional[list[TrainingDatum]] = None) -> None:
-        """Train an emulator on pairs of inputs and simulator outputs.
+        """Train the emulator on pairs of inputs and simulator outputs.
 
         If no training data is supplied, then the emulator will be trained on
         the training data currently stored in this object's `training_data`

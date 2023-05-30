@@ -29,6 +29,7 @@
 #   SOFTWARE.
 
 from typing import Any
+from collections.abc import Sequence
 import math
 import mogp_emulator as mogp
 import numpy as np
@@ -45,6 +46,9 @@ class MogpEmulator(object):
     
     @staticmethod
     def _validate_gp(gp: Any) -> mogp.GaussianProcess:
+        """Checks that `gp` is an mogp GuassianProcess object, returning `gp` if
+        so and raising a TypeError if not.
+        """
         if not isinstance(gp, mogp.GaussianProcess):
             raise TypeError(
                 "Argument 'gp' must be of type GaussianProcess from the "
@@ -55,14 +59,36 @@ class MogpEmulator(object):
 
     @property
     def gp(self) -> mogp.GaussianProcess:
+        """(Read-only) Get the underlying mogp GaussianProcess for this
+        emulator."""
         return self._gp
 
     @property
     def training_data(self) -> list[TrainingDatum]:
+        """(Read-only) Get the data on which the emulator has been, or will be,
+        trained."""
         return self._training_data
     
-    def fit(self, hyperparameter_bounds=None):
-        
+    def fit(self, hyperparameter_bounds : Sequence[tuple[float, float]] = None) -> None:
+        """Train the emulator, including estimation of hyperparameters.
+
+        This method will train the underlying GaussianProcess object, `self.gp`,
+        that this object wraps, using the training data currently stored in
+        `self.training_data`. Hyperparameters are estimated
+        as part of this training, by maximising the log-posterior. If
+        bounds are supplied for the hyperparameters, then the estimated
+        hyperparameters will respect these bounds (the underlying maximisation
+        is constrained by the bounds).
+
+        Parameters
+        ----------
+        hyperparameter_bounds : sequence of tuple[float, float], optional
+            (Default: None) A sequence of bounds to apply to hyperparameters
+            during estimation, of the form ``(lower_bound, upper_bound)``. All
+            but the last tuple should represent bounds for the correlation
+            length parameters, while the last tuple should represent bounds for
+            the covariance.
+        """
         if hyperparameter_bounds is None:
             self._gp = mogp.fit_GP_MAP(self.gp)
             return
@@ -115,7 +141,8 @@ class MogpEmulator(object):
             self._gp.fit(theta_values[idx])
     
     @staticmethod
-    def _compute_raw_param_bounds(bounds):
+    def _compute_raw_param_bounds(bounds: Sequence[tuple[float, float]]) \
+            -> tuple[tuple[float, ...]]:
         """Compute raw parameter bounds from bounds on correlation length
         parameters and covariance.
         
@@ -136,7 +163,7 @@ class MogpEmulator(object):
         return tuple(raw_bounds)
 
     @staticmethod
-    def _raw_from_corr(corr):
+    def _raw_from_corr(corr: float) -> float:
         """Compute a raw parameter from a correlation length parameter.
 
         See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
@@ -145,7 +172,7 @@ class MogpEmulator(object):
         return -2 * math.log(corr)
     
     @staticmethod
-    def _raw_from_cov(cov):
+    def _raw_from_cov(cov: float) -> float:
         """Compute a raw parameter from a covariance parameter.
 
         See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
