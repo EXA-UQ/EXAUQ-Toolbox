@@ -1,4 +1,5 @@
 import abc
+from collections.abc import Sequence
 import dataclasses
 from numbers import Real
 from typing import (
@@ -282,17 +283,30 @@ class AbstractEmulator(abc.ABC):
         return self._training_data
     
     @abc.abstractmethod
-    def fit(self, training_data: Optional[list[TrainingDatum]] = None) -> None:
+    def fit(
+        self, training_data: Optional[list[TrainingDatum]] = None,
+        hyperparameter_bounds : Sequence[tuple[float, float]] = None
+        ) -> None:
         """Train the emulator on pairs of inputs and simulator outputs.
 
         If no training data is supplied, then the emulator will be trained on
         the training data currently stored in this object's `training_data`
         property.
+        
+        If bounds are supplied for the hyperparameters, then estimation of the
+        hyperparameters will respect these bounds.
 
         Parameters
         ----------
         training_data : list[TrainingDatum], optional
             (Default: None) A collection of inputs with simulator outputs.
+        hyperparameter_bounds : sequence of tuple[float, float], optional
+            (Default: None) A sequence of bounds to apply to hyperparameters
+            during estimation, of the form ``(lower_bound, upper_bound)``. All
+            but the last tuple should represent bounds for the correlation
+            length parameters, in the same order as the ordering of the
+            corresponding input coordinates, while the last tuple should
+            represent bounds for the covariance.
         """
         
         pass
