@@ -181,6 +181,58 @@ class TestMogpEmulator(unittest.TestCase):
         self.assertAlmostEqual(0, raw_bounds[2][0])
         self.assertAlmostEqual(1, raw_bounds[2][1])
 
+    def test_fit_training_data_not_none(self):
+        """Test that a ValueError is raised if no training data is supplied
+        and there is no training data already stored in the emulator."""
+
+        emulator = MogpEmulator(mogp.GaussianProcess([], []))
+        with self.assertRaises(ValueError) as cm1:
+            emulator.fit()
+        
+        with self.assertRaises(ValueError) as cm2:
+            emulator.fit(training_data=[])
+        
+        expected_msg = ("Cannot fit emulator if no training data supplied and "
+                        "the 'training_data' property is empty")
+        self.assertEqual(expected_msg, str(cm1.exception))
+        self.assertEqual(expected_msg, str(cm2.exception))
+
+    def test_fit_supplied_training_data_no_existing_training_data(self):
+        """Test that the emulator is trained on the supplied training data
+        and its training_data property is updated, in the case where there is
+        no pre-exisiting training data."""
+
+        inputs = np.array([[0, 0],
+                           [0.2, 0.1],
+                           [0.3, 0.5],
+                           [0.7, 0.4],
+                           [0.9, 0.8]])
+        targets = np.array([1, 2, 3.1, 9, 2])
+        emulator = MogpEmulator(mogp.GaussianProcess([], []))
+        training_data = TrainingDatum.list_from_arrays(inputs, targets)
+        emulator.fit(training_data=training_data)
+        
+        self.assertTrue(np.allclose(inputs, emulator.gp.inputs))
+        self.assertTrue(np.allclose(targets, emulator.gp.targets))
+        self.assertEqual(training_data, emulator.training_data)
+    
+    def test_fit_supplied_training_data_gp_kwargs(self):
+        """Test that, after fitting with supplied training data, the underlying
+        mogp emulator has the same settings as the original did before fitting."""
+
+        inputs = np.array([[0, 0],
+                           [0.2, 0.1],
+                           [0.3, 0.5],
+                           [0.7, 0.4],
+                           [0.9, 0.8]])
+        targets = np.array([1, 2, 3.1, 9, 2])
+        emulator = MogpEmulator(mogp.GaussianProcess([], [], nugget='pivot'))
+        training_data = TrainingDatum.list_from_arrays(inputs, targets)
+        emulator.fit(training_data=training_data)
+        
+        self.assertEqual('pivot', emulator.gp.nugget_type)
+
+
 
 if __name__ == "__main__":
     unittest.main()

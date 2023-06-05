@@ -31,7 +31,9 @@
 from typing import Any
 from collections.abc import Sequence
 import math
+from typing import Optional
 from mogp_emulator import GaussianProcess
+import numpy as np
 from exauq.core.modelling import TrainingDatum
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 
@@ -68,7 +70,10 @@ class MogpEmulator(object):
         trained."""
         return self._training_data
     
-    def fit(self, hyperparameter_bounds : Sequence[tuple[float, float]] = None) -> None:
+    def fit(
+            self, training_data: Optional[list[TrainingDatum]] = None,
+            hyperparameter_bounds : Sequence[tuple[float, float]] = None
+            ) -> None:
         """Train the emulator, including estimation of hyperparameters.
 
         This method will train the underlying GaussianProcess object, `self.gp`,
@@ -88,17 +93,34 @@ class MogpEmulator(object):
             length parameters, while the last tuple should represent bounds for
             the covariance.
         """
-        
+        if self._is_empty(training_data) and self._is_empty(self._training_data):
+            raise ValueError(
+                ("Cannot fit emulator if no training data supplied and the "
+                 "'training_data' property is empty")
+            )
+        elif training_data is not None:
+            inputs = np.array([datum.input.value for datum in training_data])
+            targets = np.array([datum.output for datum in training_data])
+            self._gp = GaussianProcess(inputs, targets)
+
         if hyperparameter_bounds is None:
             self._gp = fit_GP_MAP(self.gp)
-            return
+            if training_data is not None:
+                self._training_data = training_data
+            
+            return None
         
         raw_hyperparameter_bounds = self._compute_raw_param_bounds(
             hyperparameter_bounds
             )
         self._gp = fit_GP_MAP(self.gp, bounds=raw_hyperparameter_bounds)
-        return
+        
+        return None
     
+    @staticmethod
+    def _is_empty(_list: Optional[list]) -> bool:
+        return _list is None or len(_list) == 0
+
     @staticmethod
     def _compute_raw_param_bounds(bounds: Sequence[tuple[float, float]]) \
             -> tuple[tuple[float, ...]]:
