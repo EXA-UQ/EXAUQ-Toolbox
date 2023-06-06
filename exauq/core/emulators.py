@@ -28,7 +28,6 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
 
-from typing import Any
 from collections.abc import Sequence
 import math
 from typing import Optional
@@ -39,24 +38,24 @@ from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
 class MogpEmulator(object):
-    def __init__(self, gp: GaussianProcess):
-        self._gp = self._validate_gp(gp)
+    def __init__(self, *args, **kwargs):
+        self._gp_kwargs = kwargs
+        self._gp = self._make_gp(*args, **kwargs)
         self._training_data = TrainingDatum.list_from_arrays(
             self._gp.inputs, self._gp.targets
             )
     
     @staticmethod
-    def _validate_gp(gp: Any) -> GaussianProcess:
-        """Checks that `gp` is an mogp GuassianProcess object, returning `gp` if
-        so and raising a TypeError if not.
+    def _make_gp(*args, **kwargs) -> GaussianProcess:
+        """Create an mogp GaussianProcess, raising a RuntimeError if this fails.
         """
-        if not isinstance(gp, GaussianProcess):
-            raise TypeError(
-                "Argument 'gp' must be of type GaussianProcess from the "
-                "mogp-emulator package"
-                )
+        try:
+            return GaussianProcess(*args, **kwargs)
 
-        return gp
+        except BaseException:
+            msg = ("Could not construct an underlying mogp-emulator "
+                   "GaussianProcess during initialisation")
+            raise RuntimeError(msg)
 
     @property
     def gp(self) -> GaussianProcess:
@@ -76,7 +75,7 @@ class MogpEmulator(object):
             ) -> None:
         """Train the emulator, including estimation of hyperparameters.
 
-        This method will train the underlying GaussianProcess object, `self.gp`,
+        This method will train the underlying ``GaussianProcess``, `self.gp`,
         that this object wraps, using the training data currently stored in
         `self.training_data`. Hyperparameters are estimated
         as part of this training, by maximising the log-posterior. If
@@ -101,7 +100,7 @@ class MogpEmulator(object):
         elif training_data is not None:
             inputs = np.array([datum.input.value for datum in training_data])
             targets = np.array([datum.output for datum in training_data])
-            self._gp = GaussianProcess(inputs, targets)
+            self._gp = GaussianProcess(inputs, targets, **self._gp_kwargs)
 
         if hyperparameter_bounds is None:
             self._gp = fit_GP_MAP(self.gp)

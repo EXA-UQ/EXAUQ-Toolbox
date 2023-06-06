@@ -11,7 +11,9 @@ from exauq.core.modelling import (
 
 
 class TestMogpEmulator(unittest.TestCase):
-    gp = mogp.GaussianProcess(np.array([[0, 0], [0.2, 0.1]]), np.array([1, 2]))
+    # Some default args to use for constructing mogp GaussianProcess objects
+    inputs = np.array([[0, 0], [0.2, 0.1]])
+    targets = np.array([1, 2])
 
     def assertAlmostBetween(self, x, lower, upper, **kwargs) -> None:
         """Checks whether a number lies between bounds up to a tolerance.
@@ -31,43 +33,55 @@ class TestMogpEmulator(unittest.TestCase):
             "'x' not between lower and upper bounds to given tolerance"
 
     def test_constructor(self):
-        """Test that an instance of MogpEmulator can be constructed from an
-        mogp GaussianProcess object."""
+        """Test that an instance of MogpEmulator can be constructed from args
+        and kwargs required of an mogp GaussianProcess object."""
         
-        _ = MogpEmulator(self.gp)
+        # kwargs used for constructing a mogp GaussianProcess object
+        mean = None
+        kernel = 'Matern52'
+        priors = None
+        nugget = 'pivot'
+        inputdict = {}
+        use_patsy = False
+
+        _ = MogpEmulator(
+            self.inputs, self.targets, mean=mean, kernel=kernel, priors=priors,
+            nugget=nugget, inputdict=inputdict, use_patsy=use_patsy
+            )
     
     def test_constructor_error(self):
-        """Test that a ValueError is raised if an argument of type different
-        to mogp's GaussianProcess class is passed to the constructor.
+        """Test that a RuntimeError is raised if a mogp GaussianProcess
+        couldn't be constructed. 
         """
 
-        with self.assertRaises(TypeError) as cm:
-            MogpEmulator(1)
+        with self.assertRaises(RuntimeError) as cm:
+            MogpEmulator(self.inputs, self.targets, men=None)
         
-        expected_msg = ("Argument 'gp' must be of type GaussianProcess "
-                        "from the mogp-emulator package")
+        expected_msg = ("Could not construct an underlying mogp-emulator "
+                        "GaussianProcess during initialisation")
         self.assertEqual(expected_msg, str(cm.exception))
     
-    def test_gp_is_identical(self):
-        """Test that the underlying GP is the GaussianProcess
-        object supplied upon the emulator's construction."""
+    def test_underlying_gp_construction(self):
+        """Test that the underlying mogp GaussianProcess was constructed with
+        args and kwargs supplied to the MogpEmulator initialiser."""
 
-        emulator = MogpEmulator(self.gp)
-        self.assertEqual(id(self.gp), id(emulator.gp))
-
-    def test_gp_immutable(self):
-        """Test that the underlying GP cannot be directly modified."""
+        # Non-default choices for some kwargs
+        kernel = 'Matern52'
+        nugget = 'pivot'
+        emulator = MogpEmulator(
+            self.inputs, self.targets, kernel=kernel, nugget=nugget
+            )
         
-        emulator = MogpEmulator(self.gp)
-        with self.assertRaises(AttributeError):
-            emulator.gp = mogp.GaussianProcess(np.array([[0.5], [0.3]]), np.array([1, 2]))
+        self.assertTrue((self.inputs == emulator.gp.inputs).all())
+        self.assertTrue((self.targets == emulator.gp.targets).all())
+        self.assertEqual("Matern 5/2 Kernel", str(emulator.gp.kernel))
+        self.assertEqual(nugget, emulator.gp.nugget_type)
 
     def test_training_data(self):
         """Test that the training data in the underlying GP can be recovered
         before any further training has taken place."""
 
-        gp = mogp.GaussianProcess(np.array([[0.5], [0.3]]), np.array([1, 2]))
-        emulator = MogpEmulator(gp)
+        emulator = MogpEmulator(np.array([[0.5], [0.3]]), np.array([1, 2]))
         expected = [TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.3), 2)]
         self.assertEqual(expected, emulator.training_data)
 
@@ -75,33 +89,30 @@ class TestMogpEmulator(unittest.TestCase):
         """Test that fitting the emulator with no training data supplied results
         in the underlying GP being fit with hyperparameter estimation."""
 
-        gp1 = mogp.GaussianProcess(
-            inputs=np.array([[0, 0],
-                             [0.2, 0.1],
-                             [0.3, 0.5],
-                             [0.7, 0.4],
-                             [0.9, 0.8]]),
-            targets=np.array([1, 2, 3.1, 9, 2])
-            )
-        gp2 = copy.deepcopy(gp1)
-        gp1 = mogp.fit_GP_MAP(gp1)
-        emulator = MogpEmulator(gp2)
+        inputs = np.array([[0, 0],
+                           [0.2, 0.1],
+                           [0.3, 0.5],
+                           [0.7, 0.4],
+                           [0.9, 0.8]])
+        targets = np.array([1, 2, 3.1, 9, 2])
+        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(inputs, targets))
+        emulator = MogpEmulator(inputs, targets)
         emulator.fit()
 
         # Note: need to use allclose because fitting is not deterministic.
         self.assertTrue(
             np.allclose(
-                gp1.theta.corr, emulator.gp.theta.corr, rtol=1e-5, atol = 0
+                gp.theta.corr, emulator.gp.theta.corr, rtol=1e-5, atol = 0
             )
         )
         self.assertTrue(
             np.allclose(
-                gp1.theta.cov, emulator.gp.theta.cov, rtol=1e-5, atol = 0
+                gp.theta.cov, emulator.gp.theta.cov, rtol=1e-5, atol = 0
             )
         )
         self.assertTrue(
             np.allclose(
-                gp1.theta.nugget, emulator.gp.theta.nugget, rtol=1e-5, atol = 0
+                gp.theta.nugget, emulator.gp.theta.nugget, rtol=1e-5, atol = 0
             )
         )
 
@@ -109,28 +120,25 @@ class TestMogpEmulator(unittest.TestCase):
         """Test that fitting the emulator respects bounds on hyperparameters
         when these are supplied."""
 
-        gp = mogp.GaussianProcess(
-            inputs=np.array([[0, 0],
-                             [0.2, 0.1],
-                             [0.3, 0.5],
-                             [0.7, 0.4],
-                             [0.9, 0.8]]),
-            targets=np.array([1, 2, 3.1, 9, 2])
-            )
-        gp2 = copy.deepcopy(gp)
-        gp2 = mogp.fit_GP_MAP(gp2)
+        inputs = np.array([[0, 0],
+                           [0.2, 0.1],
+                           [0.3, 0.5],
+                           [0.7, 0.4],
+                           [0.9, 0.8]])
+        targets = np.array([1, 2, 3.1, 9, 2])
+        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(inputs, targets))
 
         # Compute bounds to apply, by creating small windows away from known
         # optimal values of the hyperparameters.
-        corr = gp2.theta.corr
-        cov = gp2.theta.cov
+        corr = gp.theta.corr
+        cov = gp.theta.cov
         bounds = (
             (0.8 * corr[0], 0.9 * corr[0]),
             (0.8 * corr[1], 0.9 * corr[1]),
             (1.1 * cov, 1.2 * cov)
             )
 
-        emulator = MogpEmulator(gp)
+        emulator = MogpEmulator(inputs, targets)
         emulator.fit(hyperparameter_bounds=bounds)
         actual_corr = emulator.gp.theta.corr
         actual_cov = emulator.gp.theta.cov
@@ -185,7 +193,7 @@ class TestMogpEmulator(unittest.TestCase):
         """Test that a ValueError is raised if no training data is supplied
         and there is no training data already stored in the emulator."""
 
-        emulator = MogpEmulator(mogp.GaussianProcess([], []))
+        emulator = MogpEmulator([], [])
         with self.assertRaises(ValueError) as cm1:
             emulator.fit()
         
@@ -208,7 +216,7 @@ class TestMogpEmulator(unittest.TestCase):
                            [0.7, 0.4],
                            [0.9, 0.8]])
         targets = np.array([1, 2, 3.1, 9, 2])
-        emulator = MogpEmulator(mogp.GaussianProcess([], []))
+        emulator = MogpEmulator([], [])
         training_data = TrainingDatum.list_from_arrays(inputs, targets)
         emulator.fit(training_data=training_data)
         
@@ -226,12 +234,11 @@ class TestMogpEmulator(unittest.TestCase):
                            [0.7, 0.4],
                            [0.9, 0.8]])
         targets = np.array([1, 2, 3.1, 9, 2])
-        emulator = MogpEmulator(mogp.GaussianProcess([], [], nugget='pivot'))
+        emulator = MogpEmulator([], [], nugget='pivot')
         training_data = TrainingDatum.list_from_arrays(inputs, targets)
         emulator.fit(training_data=training_data)
         
         self.assertEqual('pivot', emulator.gp.nugget_type)
-
 
 
 if __name__ == "__main__":
