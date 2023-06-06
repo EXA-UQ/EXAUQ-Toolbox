@@ -8,23 +8,35 @@ from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
 class MogpEmulator(object):
-    def __init__(self, *args, **kwargs):
-        self._gp_kwargs = kwargs
-        self._gp = self._make_gp(*args, **kwargs)
+    def __init__(self, **kwargs):
+        self._gp_kwargs = self._remove_entries(kwargs, 'inputs', 'targets')
+        self._gp = self._make_gp(**self._gp_kwargs)
         self._training_data = TrainingDatum.list_from_arrays(
             self._gp.inputs, self._gp.targets
             )
     
     @staticmethod
-    def _make_gp(*args, **kwargs) -> GaussianProcess:
-        """Create an mogp GaussianProcess, raising a RuntimeError if this fails.
+    def _remove_entries(_dict: dict, *args):
+        """Return a dict with the specified keys removed.
         """
+
+        return {k: v for (k, v) in _dict.items() if k not in args}
+
+
+    @staticmethod
+    def _make_gp(**kwargs) -> GaussianProcess:
+        """Create an mogp GaussianProcess from given kwargs, raising a
+        RuntimeError if this fails.
+        """
+
         try:
-            return GaussianProcess(*args, **kwargs)
+            return GaussianProcess([], [], **kwargs)
 
         except BaseException:
-            msg = ("Could not construct an underlying mogp-emulator "
-                   "GaussianProcess during initialisation")
+            msg = (
+                "Could not construct mogp-emulator GaussianProcess during "
+                "initialisation of MogpEmulator"
+                )
             raise RuntimeError(msg)
 
     @property
@@ -62,27 +74,21 @@ class MogpEmulator(object):
             length parameters, while the last tuple should represent bounds for
             the covariance.
         """
-        if (self._is_none_or_empty(training_data) and
-            self._is_none_or_empty(self._training_data)):
-            raise ValueError(
-                ("Cannot fit emulator if no training data supplied and the "
-                 "'training_data' property is empty")
-            )
-        elif training_data is not None:
-            inputs = np.array([datum.input.value for datum in training_data])
-            targets = np.array([datum.output for datum in training_data])
-            self._gp = GaussianProcess(inputs, targets, **self._gp_kwargs)
+        
+        if training_data is None or training_data == []:
+            return
 
+        inputs = np.array([datum.input.value for datum in training_data])
+        targets = np.array([datum.output for datum in training_data])
         bounds = (
             self._compute_raw_param_bounds(hyperparameter_bounds)
             if hyperparameter_bounds is not None
             else None
             )
-        
-        self._gp = fit_GP_MAP(self.gp, bounds=bounds)
-        
-        if training_data is not None:
-            self._training_data = training_data
+        self._gp = fit_GP_MAP(
+            GaussianProcess(inputs, targets, **self._gp_kwargs), bounds=bounds
+            )
+        self._training_data = training_data
         
         return None
     
