@@ -263,24 +263,7 @@ class AbstractEmulator(abc.ABC):
     Classes that inherit from this abstract base class define emulators which
     can be trained with simulator outputs using an experimental design
     methodology.
- 
-    Attributes
-    ----------
-    training_data: list[TrainingDatum] or None
-        Defines the pairs of inputs and simulator outputs on which this emulator
-        has been trained.
     """
-    
-    def __init__(self):
-        self._training_data = None
-
-    @property
-    @abc.abstractmethod
-    def training_data(self) -> list[TrainingDatum]:
-        """(Read-only) Get the data on which the emulator has been, or will be,
-        trained."""
-        
-        return self._training_data
     
     @abc.abstractmethod
     def fit(

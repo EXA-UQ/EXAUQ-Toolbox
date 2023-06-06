@@ -34,7 +34,7 @@ class DumbEmulator(AbstractEmulator):
     @property
     def training_data(self) -> typing.Optional[list[TrainingDatum]]:
         """Get the data on which the emulator has been trained."""
-        return super().training_data
+        return self._training_data
 
     def fit(self, data: list[TrainingDatum]) -> None:
         """Fits the emulator on the given data.
