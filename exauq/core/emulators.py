@@ -3,12 +3,15 @@ import math
 from typing import Optional
 from mogp_emulator import GaussianProcess
 import numpy as np
-from exauq.core.modelling import TrainingDatum
+from exauq.core.modelling import (
+    TrainingDatum,
+    AbstractEmulator)
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
-class MogpEmulator(object):
+class MogpEmulator(AbstractEmulator):
     def __init__(self, **kwargs):
+        super()
         self._gp_kwargs = self._remove_entries(kwargs, 'inputs', 'targets')
         self._gp = self._make_gp(**self._gp_kwargs)
         self._training_data = TrainingDatum.list_from_arrays(
@@ -21,7 +24,6 @@ class MogpEmulator(object):
         """
 
         return {k: v for (k, v) in _dict.items() if k not in args}
-
 
     @staticmethod
     def _make_gp(**kwargs) -> GaussianProcess:
@@ -47,8 +49,7 @@ class MogpEmulator(object):
 
     @property
     def training_data(self) -> list[TrainingDatum]:
-        """(Read-only) Get the data on which the emulator has been, or will be,
-        trained."""
+        """(Read-only) Get the data on which the emulator has been trained."""
         return self._training_data
     
     def fit(
@@ -91,10 +92,6 @@ class MogpEmulator(object):
         self._training_data = training_data
         
         return None
-    
-    @staticmethod
-    def _is_none_or_empty(_list: Optional[list]) -> bool:
-        return _list is None or len(_list) == 0
 
     @staticmethod
     def _compute_raw_param_bounds(bounds: Sequence[tuple[float, float]]) \
