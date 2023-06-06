@@ -267,22 +267,19 @@ class AbstractEmulator(abc.ABC):
     
     @abc.abstractmethod
     def fit(
-        self, training_data: Optional[list[TrainingDatum]] = None,
+        self,
+        training_data: list[TrainingDatum],
         hyperparameter_bounds : Sequence[tuple[float, float]] = None
         ) -> None:
         """Train the emulator on pairs of inputs and simulator outputs.
 
-        If no training data is supplied, then the emulator will be trained on
-        the training data currently stored in this object's `training_data`
-        property.
-        
         If bounds are supplied for the hyperparameters, then estimation of the
-        hyperparameters will respect these bounds.
+        hyperparameters should respect these bounds.
 
         Parameters
         ----------
-        training_data : list[TrainingDatum], optional
-            (Default: None) A collection of inputs with simulator outputs.
+        training_data : list[TrainingDatum]
+            A collection of inputs with simulator outputs.
         hyperparameter_bounds : sequence of tuple[float, float], optional
             (Default: None) A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All

@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 import math
-from typing import Optional
 from mogp_emulator import GaussianProcess
 import numpy as np
 from exauq.core.modelling import (
@@ -10,6 +9,45 @@ from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
 class MogpEmulator(AbstractEmulator):
+    """
+    An emulator wrapping a ``GaussianProcess`` object from the mogp-emulator
+    package.
+
+    This class allows mogp-emulator ``GaussianProcess`` objects to be used with
+    the designers defined in the EXAUQ-Toolbox, ensuring the interface required
+    by the designers is present. Keyword arguments supplied to the
+    `MogpEmulator` are passed onto the ``GaussianProcess``
+    initialiser to create the underlying (i.e. wrapped) ``GaussianProcess``
+    object. Note that any ``inputs`` or ``targets`` supplied are ignored: the
+    underlying ``GaussianProcess`` will initially be constructed with no
+    training data.
+    
+    The underlying ``GaussianProcess` object can be obtained through the
+    `gp` property. Note that the `fit` method, used to train the emulator, will
+    modify the underlying ``GaussianProcess``.
+
+    Parameters
+    ----------
+    **kwargs : dict, optional
+        Any permitted keyword arguments that can be used to create a
+        mogp-emulator ``GaussianProcess`` object. See the mogp-emulator
+        documentation for details. If ``inputs`` or ``targets`` are supplied as
+        keyword arguments then these will be ignored.
+    
+    Attributes
+    ----------
+    gp : mogp_emulator.GaussianProcess
+        (Read-only) The underlying mogp-emulator ``GaussianProcess`` object
+        constructed by this class.
+    training_data: list[TrainingDatum] or None
+        (Read-only) Defines the pairs of inputs and simulator outputs on which
+        the emulator has been trained.
+    
+    Raises
+    ------
+    RuntimeError
+        If 
+    """
     def __init__(self, **kwargs):
         super()
         self._gp_kwargs = self._remove_entries(kwargs, 'inputs', 'targets')
@@ -19,7 +57,7 @@ class MogpEmulator(AbstractEmulator):
             )
     
     @staticmethod
-    def _remove_entries(_dict: dict, *args):
+    def _remove_entries(_dict: dict, *args) -> dict:
         """Return a dict with the specified keys removed.
         """
 
@@ -53,21 +91,24 @@ class MogpEmulator(AbstractEmulator):
         return self._training_data
     
     def fit(
-            self, training_data: Optional[list[TrainingDatum]] = None,
+            self,
+            training_data: list[TrainingDatum],
             hyperparameter_bounds : Sequence[tuple[float, float]] = None
             ) -> None:
         """Train the emulator, including estimation of hyperparameters.
 
-        This method will train the underlying ``GaussianProcess``, `self.gp`,
-        that this object wraps, using the training data currently stored in
-        `self.training_data`. Hyperparameters are estimated
-        as part of this training, by maximising the log-posterior. If
+        This method will train the underlying ``GaussianProcess``, as stored in
+        the `gp` property, using the supplied training data. Hyperparameters are
+        estimated as part of this training, by maximising the log-posterior. If
         bounds are supplied for the hyperparameters, then the estimated
         hyperparameters will respect these bounds (the underlying maximisation
         is constrained by the bounds).
 
         Parameters
         ----------
+        training_data: list[TrainingDatum]
+            The pairs of inputs and simulator outputs on which the emulator
+            should been trained.
         hyperparameter_bounds : sequence of tuple[float, float], optional
             (Default: None) A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
@@ -94,8 +135,9 @@ class MogpEmulator(AbstractEmulator):
         return None
 
     @staticmethod
-    def _compute_raw_param_bounds(bounds: Sequence[tuple[float, float]]) \
-            -> tuple[tuple[float, ...]]:
+    def _compute_raw_param_bounds(
+        bounds: Sequence[tuple[float, float]]
+        ) -> tuple[tuple[float, ...]]:
         """Compute raw parameter bounds from bounds on correlation length
         parameters and covariance.
         
