@@ -62,7 +62,8 @@ class MogpEmulator(object):
             length parameters, while the last tuple should represent bounds for
             the covariance.
         """
-        if self._is_empty(training_data) and self._is_empty(self._training_data):
+        if (self._is_none_or_empty(training_data) and
+            self._is_none_or_empty(self._training_data)):
             raise ValueError(
                 ("Cannot fit emulator if no training data supplied and the "
                  "'training_data' property is empty")
@@ -87,7 +88,7 @@ class MogpEmulator(object):
         return None
     
     @staticmethod
-    def _is_empty(_list: Optional[list]) -> bool:
+    def _is_none_or_empty(_list: Optional[list]) -> bool:
         return _list is None or len(_list) == 0
 
     @staticmethod
