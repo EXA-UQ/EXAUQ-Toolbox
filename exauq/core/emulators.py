@@ -73,17 +73,16 @@ class MogpEmulator(object):
             targets = np.array([datum.output for datum in training_data])
             self._gp = GaussianProcess(inputs, targets, **self._gp_kwargs)
 
-        if hyperparameter_bounds is None:
-            self._gp = fit_GP_MAP(self.gp)
-            if training_data is not None:
-                self._training_data = training_data
-            
-            return None
-        
-        raw_hyperparameter_bounds = self._compute_raw_param_bounds(
-            hyperparameter_bounds
+        bounds = (
+            self._compute_raw_param_bounds(hyperparameter_bounds)
+            if hyperparameter_bounds is not None
+            else None
             )
-        self._gp = fit_GP_MAP(self.gp, bounds=raw_hyperparameter_bounds)
+        
+        self._gp = fit_GP_MAP(self.gp, bounds=bounds)
+        
+        if training_data is not None:
+            self._training_data = training_data
         
         return None
     
