@@ -46,7 +46,9 @@ class MogpEmulator(AbstractEmulator):
     Raises
     ------
     RuntimeError
-        If 
+        If keyword arguments are supplied upon initialisation that aren't
+        supported by the initialiser of ``GaussianProcess`` from the
+        mogp-emulator package.
     """
     def __init__(self, **kwargs):
         super()
