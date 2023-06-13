@@ -90,12 +90,13 @@ class MogpEmulator(AbstractEmulator):
     @property
     def training_data(self) -> list[TrainingDatum]:
         """(Read-only) Get the data on which the emulator has been trained."""
+
         return self._training_data
     
     def fit(
             self,
             training_data: list[TrainingDatum],
-            hyperparameter_bounds : Sequence[tuple[float, float]] = None
+            hyperparameter_bounds: Sequence[tuple[float, float]] = None
             ) -> None:
         """Train the emulator, including estimation of hyperparameters.
 
@@ -110,7 +111,7 @@ class MogpEmulator(AbstractEmulator):
         ----------
         training_data: list[TrainingDatum]
             The pairs of inputs and simulator outputs on which the emulator
-            should been trained.
+            should be trained.
         hyperparameter_bounds : sequence of tuple[float, float], optional
             (Default: None) A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
@@ -139,7 +140,7 @@ class MogpEmulator(AbstractEmulator):
     @staticmethod
     def _compute_raw_param_bounds(
         bounds: Sequence[tuple[float, float]]
-        ) -> tuple[tuple[float, ...]]:
+        ) -> tuple[tuple[float, float], ...]:
         """Compute raw parameter bounds from bounds on correlation length
         parameters and covariance.
         
