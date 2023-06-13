@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 import math
+from typing import Optional
 from mogp_emulator import GaussianProcess
 import numpy as np
 from exauq.core.modelling import (
@@ -96,23 +97,28 @@ class MogpEmulator(AbstractEmulator):
     def fit(
             self,
             training_data: list[TrainingDatum],
-            hyperparameter_bounds: Sequence[tuple[float, float]] = None
+            hyperparameter_bounds: Sequence[
+                tuple[Optional[float], Optional[float]]
+            ] = None
             ) -> None:
         """Train the emulator, including estimation of hyperparameters.
 
         This method will train the underlying ``GaussianProcess``, as stored in
         the `gp` property, using the supplied training data. Hyperparameters are
-        estimated as part of this training, by maximising the log-posterior. If
-        bounds are supplied for the hyperparameters, then the estimated
+        estimated as part of this training, by maximising the log-posterior.
+
+        If bounds are supplied for the hyperparameters, then the estimated
         hyperparameters will respect these bounds (the underlying maximisation
-        is constrained by the bounds).
+        is constrained by the bounds). A bound that is set to ``None`` is
+        treated as unconstrained. Upper bounds must be ``None`` or a positive
+        number.
 
         Parameters
         ----------
         training_data: list[TrainingDatum]
             The pairs of inputs and simulator outputs on which the emulator
             should be trained.
-        hyperparameter_bounds : sequence of tuple[float, float], optional
+        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
             (Default: None) A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
@@ -139,41 +145,58 @@ class MogpEmulator(AbstractEmulator):
 
     @staticmethod
     def _compute_raw_param_bounds(
-        bounds: Sequence[tuple[float, float]]
-        ) -> tuple[tuple[float, float], ...]:
+        bounds: Sequence[tuple[Optional[float], Optional[float]]]
+        ) -> tuple[tuple[Optional[float], Optional[float]], ...]:
         """Compute raw parameter bounds from bounds on correlation length
         parameters and covariance.
+
+        Raises a ValueError if one of the upper bounds is a non-positive number.
         
         For the definitions of the transformations from raw values, see:
         
         https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
-        
+
+        for _, upper in bounds:
+            if upper is not None and upper <= 0:
+                raise ValueError("Upper bounds must be positive numbers")
+
         # Note: we need to swap the order of the bounds for correlation, because
         # _raw_from_corr is a decreasing function (i.e. min of raw corresponds
         # to max of correlation and vice-versa).
         raw_bounds = [
-            (MogpEmulator._raw_from_corr(bnd[1]), MogpEmulator._raw_from_corr(bnd[0]))
+            (
+                MogpEmulator._raw_from_corr(bnd[1]),
+                MogpEmulator._raw_from_corr(bnd[0])
+            )
             for bnd in bounds[:-1]
         ] + [
-            (MogpEmulator._raw_from_cov(bounds[-1][0]), MogpEmulator._raw_from_cov(bounds[-1][1]))
+            (
+                MogpEmulator._raw_from_cov(bounds[-1][0]),
+                MogpEmulator._raw_from_cov(bounds[-1][1])
+            )
         ]
         return tuple(raw_bounds)
 
     @staticmethod
-    def _raw_from_corr(corr: float) -> float:
+    def _raw_from_corr(corr: Optional[float]) -> Optional[float]:
         """Compute a raw parameter from a correlation length parameter.
 
         See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
 
+        if corr is None or corr <= 0:
+            return None
+
         return -2 * math.log(corr)
     
     @staticmethod
-    def _raw_from_cov(cov: float) -> float:
+    def _raw_from_cov(cov: Optional[float]) -> Optional[float]:
         """Compute a raw parameter from a covariance parameter.
 
         See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
+        if cov is None or cov <= 0:
+            return None
 
         return math.log(cov)

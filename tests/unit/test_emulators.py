@@ -3,7 +3,10 @@ import math
 import mogp_emulator as mogp
 import numpy as np
 from exauq.core.emulators import MogpEmulator
-from exauq.core.modelling import TrainingDatum
+from exauq.core.modelling import (
+    TrainingDatum,
+    Input
+)
 
 
 class TestMogpEmulator(unittest.TestCase):
@@ -151,6 +154,24 @@ class TestMogpEmulator(unittest.TestCase):
         self.assertAlmostEqual(0, raw_bounds[2][0])
         self.assertAlmostEqual(1, raw_bounds[2][1])
 
+    def test_compute_raw_param_bounds_none(self):
+        """Test that None entries for bounds are converted to None entries."""
+
+        bounds = ((None, None), (None, None))
+        raw_bounds = MogpEmulator._compute_raw_param_bounds(bounds)
+        for lower, upper in raw_bounds:
+            self.assertIsNone(lower)
+            self.assertIsNone(upper)
+
+    def test_compute_raw_param_bounds_non_positive(self):
+        """Test that non-positive lower bounds are converted to None."""
+
+        bounds = ((-np.inf, 3), (0, np.inf), (-2, 1))
+        raw_bounds = MogpEmulator._compute_raw_param_bounds(bounds)
+        self.assertIsNone(raw_bounds[0][1])
+        self.assertIsNone(raw_bounds[1][1])
+        self.assertIsNone(raw_bounds[2][0])
+
     def test_fit_training_data(self):
         """Test that the emulator is trained on the supplied training data
         and its training_data property is updated."""
@@ -168,7 +189,27 @@ class TestMogpEmulator(unittest.TestCase):
         self.assertTrue(np.allclose(inputs, emulator.gp.inputs))
         self.assertTrue(np.allclose(targets, emulator.gp.targets))
         self.assertEqual(training_data, emulator.training_data)
-    
+
+    def test_fit_with_bounds_error(self):
+        """Test that a ValueError is raised if a non-positive value is supplied for
+        one of the upper bounds."""
+
+        emulator = MogpEmulator()
+        training_data = [TrainingDatum(Input(0.5), 0.5)]
+
+        with self.assertRaises(ValueError) as cm:
+            emulator.fit(training_data, hyperparameter_bounds=[(None, -1)])
+
+        expected_msg = "Upper bounds must be positive numbers"
+        self.assertEqual(expected_msg, str(cm.exception))
+
+        with self.assertRaises(ValueError) as cm:
+            emulator.fit(training_data, hyperparameter_bounds=[(None, 0)])
+
+        expected_msg = "Upper bounds must be positive numbers"
+        self.assertEqual(expected_msg, str(cm.exception))
+
+
     def test_fit_with_bounds(self):
         """Test that fitting the emulator respects bounds on hyperparameters
         when these are supplied."""
