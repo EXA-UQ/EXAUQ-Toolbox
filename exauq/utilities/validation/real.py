@@ -3,10 +3,7 @@
 
 from collections.abc import Iterable
 from numbers import Real
-from typing import (
-    Any,
-    Callable
-    )
+from typing import Any, Callable
 import numpy as np
 
 
@@ -17,15 +14,13 @@ def check_entries_not_none(x: Iterable, exception: Exception) -> None:
     check_for_each(check_not_none, x, exception)
 
 
-def check_for_each(
-        check_function: Callable, x: Iterable, exception: Exception
-        ) -> None:
+def check_for_each(check_function: Callable, x: Iterable, exception: Exception) -> None:
     """Apply a checking function to each element of an iterable, raising the
     given exception if the check fails for some element."""
     try:
         for element in x:
             check_function(element, Exception())
-    
+
     except Exception:
         raise exception
 

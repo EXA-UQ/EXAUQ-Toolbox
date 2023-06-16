@@ -2,11 +2,7 @@ import abc
 from collections.abc import Sequence
 import dataclasses
 from numbers import Real
-from typing import (
-    Any,
-    Union,
-    Optional
-)
+from typing import Any, Union
 import numpy as np
 import exauq.utilities.validation.real as validation
 
@@ -19,7 +15,7 @@ class Input(object):
     *args : tuple of numbers.Real
         The coordinates of the input. Each coordinate must define a finite
         number that is not a missing value (i.e. not None or NaN).
-    
+
     Attributes
     ----------
     value : tuple of numbers.Real, numbers.Real or None
@@ -32,7 +28,7 @@ class Input(object):
     >>> x = Input(1, 2, 3)
     >>> x.value
     (1, 2, 3)
-    
+
     Single arguments just return a number:
     >>> x = Input(2.1)
     >>> x.value
@@ -49,7 +45,7 @@ class Input(object):
     >>> x.value
     None
     """
-    
+
     def __init__(self, *args):
         self._value = self._unpack_args(self._validate_args(args))
 
@@ -63,7 +59,7 @@ class Input(object):
         >>> x = Input()
         >>> x._unpack_args((1, 2, 3))
         (1, 2, 3)
-        
+
         Single arguments get simplified:
         >>> x._unpack_args(('a'))
         'a'
@@ -72,35 +68,34 @@ class Input(object):
         >>> x._unpack_args(())
         None
         """
-        
+
         if len(args) > 1:
             return args
         elif len(args) == 1:
             return args[0]
         else:
             return None
-    
+
     @classmethod
     def _validate_args(cls, args: tuple[Any, ...]) -> tuple[Real, ...]:
         """Check that all arguments define finite real numbers, returning the
         supplied tuple if so or raising an exception if not."""
-        
+
         validation.check_entries_not_none(
             args, TypeError("Cannot supply None as an argument")
         )
         validation.check_entries_real(
-            args, TypeError('Arguments must be instances of real numbers')
+            args, TypeError("Arguments must be instances of real numbers")
         )
         validation.check_entries_finite(
-            args,
-            ValueError("Cannot supply NaN or non-finite numbers as arguments")
+            args, ValueError("Cannot supply NaN or non-finite numbers as arguments")
         )
-        
+
         return args
 
     @classmethod
     def from_array(cls, input: np.ndarray) -> "Input":
-        """Create a simulator input from a Numpy array. 
+        """Create a simulator input from a Numpy array.
 
         Parameters
         ----------
@@ -114,7 +109,7 @@ class Input(object):
         Input
             A simulator input with coordinates defined by the supplied array.
         """
-        
+
         if not isinstance(input, np.ndarray):
             raise TypeError("'input' must be a Numpy ndarray")
 
@@ -128,8 +123,7 @@ class Input(object):
             input, ValueError("'input' must be a Numpy array of real numbers")
         )
         validation.check_entries_finite(
-            input,
-            ValueError("'input' cannot contain NaN or non-finite numbers")
+            input, ValueError("'input' cannot contain NaN or non-finite numbers")
         )
 
         return cls(*tuple(input))
@@ -137,34 +131,34 @@ class Input(object):
     def __str__(self) -> str:
         if self._value is None:
             return "()"
-        
+
         return str(self._value)
-    
+
     def __repr__(self) -> str:
         if self._value is None:
             return "Input()"
-        
+
         elif isinstance(self._value, Real):
             return f"Input({repr(self._value)})"
-        
+
         else:
             return f"Input{repr(self._value)}"
 
     def __eq__(self, other) -> bool:
         return type(other) == type(self) and self._value == other.value
-    
+
     @property
     def value(self) -> Union[tuple[Real, ...], Real, None]:
         """(Read-only) Gets the value of the input, as a tuple of real
         numbers (dim > 1), a single real number (dim = 1), or None (dim = 0)."""
-        
+
         return self._value
 
 
 @dataclasses.dataclass(frozen=True)
 class TrainingDatum(object):
     """A training point for an emulator.
-    
+
     Emulators are trained on collections ``(x, f(x))`` where ``x`` is an input
     to a simulator and ``f(x)`` is the output of the simulator ``f`` at ``x``.
     This dataclass represents such pairs of inputs and simulator outputs.
@@ -176,7 +170,7 @@ class TrainingDatum(object):
     output : numbers.Real
         The output of the simulator at the input. This must be a finite
         number that is not a missing value (i.e. not None or NaN).
-    
+
     Attributes
     ----------
     input : Input
@@ -184,7 +178,7 @@ class TrainingDatum(object):
     output : numbers.Real
         (Read-only) The output of the simulator at the input.
     """
-    
+
     input: Input
     output: Real
 
@@ -199,27 +193,26 @@ class TrainingDatum(object):
 
         if not isinstance(input, Input):
             raise TypeError("Argument `input` must be of type Input")
-    
+
     @staticmethod
     def _validate_output(observation: Any) -> None:
         """Check that an object defines a finite real number, raising exceptions
         if not."""
-        
+
         validation.check_not_none(
-            observation,
-            TypeError("Argument 'output' cannot be None")
+            observation, TypeError("Argument 'output' cannot be None")
         )
         validation.check_real(
-            observation,
-            TypeError("Argument `output` must define a real number")
+            observation, TypeError("Argument `output` must define a real number")
         )
         validation.check_finite(
-            observation,
-            ValueError("Argument 'output' cannot be NaN or non-finite")
+            observation, ValueError("Argument 'output' cannot be NaN or non-finite")
         )
 
     @classmethod
-    def list_from_arrays(cls, inputs: np.ndarray, outputs: np.ndarray) -> list["TrainingDatum"]:
+    def list_from_arrays(
+        cls, inputs: np.ndarray, outputs: np.ndarray
+    ) -> list["TrainingDatum"]:
         """Create a list of training data from Numpy arrays.
 
         It is common when working with Numpy for staistical modelling to
@@ -249,11 +242,13 @@ class TrainingDatum(object):
             A list of training data, created by binding the inputs and
             corresponding outputs together.
         """
-        
-        return [cls(Input.from_array(input), output)
-                for input, output in zip(inputs, outputs)]
 
-    def __str__(self) -> str:      
+        return [
+            cls(Input.from_array(input), output)
+            for input, output in zip(inputs, outputs)
+        ]
+
+    def __str__(self) -> str:
         return f"({str(self.input)}, {str(self.output)})"
 
 
@@ -264,13 +259,13 @@ class AbstractEmulator(abc.ABC):
     can be trained with simulator outputs using an experimental design
     methodology.
     """
-    
+
     @abc.abstractmethod
     def fit(
         self,
         training_data: list[TrainingDatum],
-        hyperparameter_bounds : Sequence[tuple[float, float]] = None
-        ) -> None:
+        hyperparameter_bounds: Sequence[tuple[float, float]] = None,
+    ) -> None:
         """Train the emulator on pairs of inputs and simulator outputs.
 
         If bounds are supplied for the hyperparameters, then estimation of the
@@ -288,7 +283,7 @@ class AbstractEmulator(abc.ABC):
             corresponding input coordinates, while the last tuple should
             represent bounds for the covariance.
         """
-        
+
         pass
 
 
@@ -299,7 +294,7 @@ class AbstractSimulator(abc.ABC):
     typically represent programs for calculating the outputs of complex models
     for given inputs.
     """
-    
+
     @abc.abstractmethod
     def compute(self, x: Input) -> Real:
         """Compute the value of this simulator at an input.
@@ -314,5 +309,5 @@ class AbstractSimulator(abc.ABC):
         numbers.Real
             The output of the simulator at the input `x`.
         """
-        
+
         pass

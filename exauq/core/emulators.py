@@ -3,9 +3,7 @@ import math
 from typing import Optional
 from mogp_emulator import GaussianProcess
 import numpy as np
-from exauq.core.modelling import (
-    TrainingDatum,
-    AbstractEmulator)
+from exauq.core.modelling import TrainingDatum, AbstractEmulator
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
@@ -22,7 +20,7 @@ class MogpEmulator(AbstractEmulator):
     object. Note that any ``inputs`` or ``targets`` supplied are ignored: the
     underlying ``GaussianProcess`` will initially be constructed with no
     training data.
-    
+
     The underlying ``GaussianProcess` object can be obtained through the
     `gp` property. Note that the `fit` method, used to train the emulator, will
     modify the underlying ``GaussianProcess``.
@@ -34,7 +32,7 @@ class MogpEmulator(AbstractEmulator):
         mogp-emulator ``GaussianProcess`` object. See the mogp-emulator
         documentation for details. If ``inputs`` or ``targets`` are supplied as
         keyword arguments then these will be ignored.
-    
+
     Attributes
     ----------
     gp : mogp_emulator.GaussianProcess
@@ -43,7 +41,7 @@ class MogpEmulator(AbstractEmulator):
     training_data: list[TrainingDatum] or None
         (Read-only) Defines the pairs of inputs and simulator outputs on which
         the emulator has been trained.
-    
+
     Raises
     ------
     RuntimeError
@@ -51,18 +49,18 @@ class MogpEmulator(AbstractEmulator):
         supported by the initialiser of ``GaussianProcess`` from the
         mogp-emulator package.
     """
+
     def __init__(self, **kwargs):
         super()
-        self._gp_kwargs = self._remove_entries(kwargs, 'inputs', 'targets')
+        self._gp_kwargs = self._remove_entries(kwargs, "inputs", "targets")
         self._gp = self._make_gp(**self._gp_kwargs)
         self._training_data = TrainingDatum.list_from_arrays(
             self._gp.inputs, self._gp.targets
-            )
-    
+        )
+
     @staticmethod
     def _remove_entries(_dict: dict, *args) -> dict:
-        """Return a dict with the specified keys removed.
-        """
+        """Return a dict with the specified keys removed."""
 
         return {k: v for (k, v) in _dict.items() if k not in args}
 
@@ -79,7 +77,7 @@ class MogpEmulator(AbstractEmulator):
             msg = (
                 "Could not construct mogp-emulator GaussianProcess during "
                 "initialisation of MogpEmulator"
-                )
+            )
             raise RuntimeError(msg)
 
     @property
@@ -93,14 +91,12 @@ class MogpEmulator(AbstractEmulator):
         """(Read-only) Get the data on which the emulator has been trained."""
 
         return self._training_data
-    
+
     def fit(
-            self,
-            training_data: list[TrainingDatum],
-            hyperparameter_bounds: Sequence[
-                tuple[Optional[float], Optional[float]]
-            ] = None
-            ) -> None:
+        self,
+        training_data: list[TrainingDatum],
+        hyperparameter_bounds: Sequence[tuple[Optional[float], Optional[float]]] = None,
+    ) -> None:
         """Train the emulator, including estimation of hyperparameters.
 
         This method will train the underlying ``GaussianProcess``, as stored in
@@ -125,7 +121,7 @@ class MogpEmulator(AbstractEmulator):
             length parameters, while the last tuple should represent bounds for
             the covariance.
         """
-        
+
         if training_data is None or training_data == []:
             return
 
@@ -135,25 +131,25 @@ class MogpEmulator(AbstractEmulator):
             self._compute_raw_param_bounds(hyperparameter_bounds)
             if hyperparameter_bounds is not None
             else None
-            )
+        )
         self._gp = fit_GP_MAP(
             GaussianProcess(inputs, targets, **self._gp_kwargs), bounds=bounds
-            )
+        )
         self._training_data = training_data
-        
+
         return None
 
     @staticmethod
     def _compute_raw_param_bounds(
         bounds: Sequence[tuple[Optional[float], Optional[float]]]
-        ) -> tuple[tuple[Optional[float], Optional[float]], ...]:
+    ) -> tuple[tuple[Optional[float], Optional[float]], ...]:
         """Compute raw parameter bounds from bounds on correlation length
         parameters and covariance.
 
         Raises a ValueError if one of the upper bounds is a non-positive number.
-        
+
         For the definitions of the transformations from raw values, see:
-        
+
         https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
 
@@ -165,15 +161,12 @@ class MogpEmulator(AbstractEmulator):
         # _raw_from_corr is a decreasing function (i.e. min of raw corresponds
         # to max of correlation and vice-versa).
         raw_bounds = [
-            (
-                MogpEmulator._raw_from_corr(bnd[1]),
-                MogpEmulator._raw_from_corr(bnd[0])
-            )
+            (MogpEmulator._raw_from_corr(bnd[1]), MogpEmulator._raw_from_corr(bnd[0]))
             for bnd in bounds[:-1]
         ] + [
             (
                 MogpEmulator._raw_from_cov(bounds[-1][0]),
-                MogpEmulator._raw_from_cov(bounds[-1][1])
+                MogpEmulator._raw_from_cov(bounds[-1][1]),
             )
         ]
         return tuple(raw_bounds)
@@ -189,7 +182,7 @@ class MogpEmulator(AbstractEmulator):
             return None
 
         return -2 * math.log(corr)
-    
+
     @staticmethod
     def _raw_from_cov(cov: Optional[float]) -> Optional[float]:
         """Compute a raw parameter from a covariance parameter.

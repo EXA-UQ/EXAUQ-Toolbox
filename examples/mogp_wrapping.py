@@ -1,6 +1,4 @@
-from exauq.core.modelling import (
-    TrainingDatum
-)
+from exauq.core.modelling import TrainingDatum
 from exauq.core.emulators import MogpEmulator
 import numpy as np
 
