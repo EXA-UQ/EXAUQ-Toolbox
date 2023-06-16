@@ -1,3 +1,5 @@
+"""Basic objects for expressing emulation of simulators."""
+
 import abc
 from collections.abc import Sequence
 import dataclasses

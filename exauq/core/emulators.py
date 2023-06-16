@@ -1,3 +1,5 @@
+"""Provides emulators for simulators."""
+
 from collections.abc import Sequence
 import math
 from typing import Optional

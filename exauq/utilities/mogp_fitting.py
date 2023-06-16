@@ -1,3 +1,5 @@
+"""Provide a modified version of functions from the mogp-emulator package."""
+
 # Code in this file has been adapted from the fitting.py module of mogp-emulator
 # as at the following version (accessed 2023-05-30):
 #
