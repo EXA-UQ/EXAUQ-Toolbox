@@ -19,7 +19,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
 
         designer = SingleLevelAdaptiveSampler(self.initial_data)
 
-        expected = f"SingleLevelAdaptiveSampler designer with initial design {str(self.initial_data)}"
+        expected = f"SingleLevelAdaptiveSampler designer with initial data {str(self.initial_data)}"
         self.assertEqual(expected, str(designer))
     
     def test_repr(self):
@@ -29,7 +29,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
 
         designer = SingleLevelAdaptiveSampler(self.initial_data)
 
-        expected = f"SingleLevelAdaptiveSampler(initial_design={repr(self.initial_data)})"
+        expected = f"SingleLevelAdaptiveSampler(initial_data={repr(self.initial_data)})"
         self.assertEqual(expected, repr(designer))
     
     def test_train(self):

@@ -22,10 +22,10 @@ class SingleLevelAdaptiveSampler:
         self._initial_data = initial_data
     
     def __str__(self) -> str:
-        return f"SingleLevelAdaptiveSampler designer with initial design {str(self._initial_data)}"
+        return f"SingleLevelAdaptiveSampler designer with initial data {str(self._initial_data)}"
 
     def __repr__(self) -> str:
-        return f"SingleLevelAdaptiveSampler(initial_design={repr(self._initial_data)})"
+        return f"SingleLevelAdaptiveSampler(initial_data={repr(self._initial_data)})"
     
     def train(self, emulator: AbstractEmulator, simulator: AbstractSimulator) -> AbstractEmulator:
         """Train an emulator with simulator outputs using this SLAS method.
