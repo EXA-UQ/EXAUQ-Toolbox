@@ -1,5 +1,6 @@
 import unittest
 import tests.unit.fakes as fakes
+from tests.utilities import exact
 from exauq.core.designers import SingleLevelAdaptiveSampler
 from exauq.core.modelling import Input, TrainingDatum
 
@@ -12,16 +13,15 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         """Test that a ValueError is raised if the SLAS designer is initialised with
         something other than a list of training data."""
 
+        msg = (
+            f"{SingleLevelAdaptiveSampler.__name__} must be initialised with a "
+            "nonempty list of training data"
+        )
+
         for data in [None, [], 1, TrainingDatum(Input(0), 1), ['foo']]:
             with self.subTest(data=data):
-                with self.assertRaises(ValueError) as cm:
+                with self.assertRaisesRegex(ValueError, exact(msg)):
                     SingleLevelAdaptiveSampler(data)
-
-                expected_msg = (
-                    f"{SingleLevelAdaptiveSampler.__name__} must be initialised with a "
-                    "nonempty list of training data"
-                )
-                self.assertEqual(expected_msg, str(cm.exception))
 
     def test_str(self):
         """Test that the string description of an instance of

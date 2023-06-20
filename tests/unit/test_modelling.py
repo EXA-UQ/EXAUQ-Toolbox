@@ -4,6 +4,7 @@ from exauq.core.modelling import (
     TrainingDatum
     )
 import numpy as np
+from tests.utilities import exact
 
 
 class TestInput(unittest.TestCase):
@@ -16,17 +17,12 @@ class TestInput(unittest.TestCase):
     def test_input_non_real_error(self):
         """Test that TypeError is raised during construction if there is an
         arg that doesn't define a real number."""
-        with self.assertRaises(TypeError) as cm:
-            Input(1, 'a')
-        
-        self.assertEqual('Arguments must be instances of real numbers',
-                         str(cm.exception))
-        
-        with self.assertRaises(TypeError) as cm:
-            Input(1, complex(1, 1))
-        
-        self.assertEqual('Arguments must be instances of real numbers',
-                         str(cm.exception))
+
+        msg = 'Arguments must be instances of real numbers'
+        for coord in ["a", complex(1, 1)]:
+            with self.subTest(coord=coord):
+                with self.assertRaisesRegex(TypeError, exact(msg)):
+                    Input(1, coord)
 
     def test_str(self):
         """Test that the string description of an instance of
@@ -83,26 +79,20 @@ class TestTrainingDatum(unittest.TestCase):
     def test_input_error(self):
         """Test that a TypeError is raised if the constructor arg `input`
         is not an Input."""
-        with self.assertRaises(TypeError) as cm:
+
+        msg = 'Argument `input` must be of type Input'
+        with self.assertRaisesRegex(TypeError, exact(msg)):
             TrainingDatum(1, 1)
-        
-        self.assertEqual('Argument `input` must be of type Input',
-                         str(cm.exception))
 
     def test_output_error(self):
         """Test that a TypeError is raised if the constructor arg `output`
-        is not an real number."""
-        with self.assertRaises(TypeError) as cm:
-            TrainingDatum(Input(1), 'a')
-        
-        self.assertEqual('Argument `output` must define a real number',
-                         str(cm.exception))
+        is not a real number."""
 
-        with self.assertRaises(TypeError) as cm:
-            TrainingDatum(Input(1), complex(1, 1))
-        
-        self.assertEqual('Argument `output` must define a real number',
-                         str(cm.exception))
+        msg = "Argument `output` must define a real number"
+        for output in ['a', complex(1, 1)]:
+            with self.subTest(output=output):
+                with self.assertRaisesRegex(TypeError, exact(msg)):
+                    TrainingDatum(Input(1), output)
     
     def test_str(self):
         """Test that the string description of an instance of
@@ -121,15 +111,18 @@ class TestTrainingDatum(unittest.TestCase):
         """Test that the input and output attributes are immutable."""
 
         datum = TrainingDatum(Input(1), 2)
-        with self.assertRaises(AttributeError) as cm:
+        with self.assertRaisesRegex(
+            AttributeError,
+            "cannot assign to field 'input'$"
+        ):
             datum.input = Input(2)
         
-        self.assertTrue(str(cm.exception).endswith("cannot assign to field 'input'"))
-        
-        with self.assertRaises(AttributeError) as cm:
+        with self.assertRaisesRegex(
+            AttributeError,
+                "cannot assign to field 'output'$"
+        ):
             datum.output = 1
 
-        self.assertTrue(str(cm.exception).endswith("cannot assign to field 'output'"))
 
 if __name__ == "__main__":
     unittest.main()
