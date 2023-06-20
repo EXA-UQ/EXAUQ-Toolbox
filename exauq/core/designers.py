@@ -1,10 +1,5 @@
 import copy
-from exauq.core.modelling import (
-    Input,
-    TrainingDatum,
-    AbstractEmulator,
-    AbstractSimulator
-)
+from exauq.core.modelling import TrainingDatum, AbstractEmulator
 
 
 class SingleLevelAdaptiveSampler:
@@ -18,6 +13,7 @@ class SingleLevelAdaptiveSampler:
     initial_data: list[TrainingDatum]
         Training data on which the emulator will initially be trained.
     """
+
     def __init__(self, initial_data: list[TrainingDatum]):
         self._initial_data = self._validate_initial_data(initial_data)
 
@@ -25,8 +21,8 @@ class SingleLevelAdaptiveSampler:
     def _validate_initial_data(cls, initial_data):
         try:
             if not (
-                initial_data and
-                all([isinstance(x, TrainingDatum) for x in initial_data])
+                initial_data
+                and all([isinstance(x, TrainingDatum) for x in initial_data])
             ):
                 raise ValueError
 
@@ -43,7 +39,7 @@ class SingleLevelAdaptiveSampler:
 
     def __repr__(self) -> str:
         return f"SingleLevelAdaptiveSampler(initial_data={repr(self._initial_data)})"
-    
+
     def train(self, emulator: AbstractEmulator) -> AbstractEmulator:
         """Train an emulator using the single-level adaptive sampling method.
 
