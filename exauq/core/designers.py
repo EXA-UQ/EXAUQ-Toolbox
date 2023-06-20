@@ -44,23 +44,25 @@ class SingleLevelAdaptiveSampler:
     def __repr__(self) -> str:
         return f"SingleLevelAdaptiveSampler(initial_data={repr(self._initial_data)})"
     
-    def train(self, emulator: AbstractEmulator, simulator: AbstractSimulator) -> AbstractEmulator:
-        """Train an emulator with simulator outputs using this SLAS method.
+    def train(self, emulator: AbstractEmulator) -> AbstractEmulator:
+        """Train an emulator using the single-level adaptive sampling method.
+
+        This will train the emulator on the initial data that was supplied during
+        construction of this object.
 
         Parameters
         ----------
         emulator : AbstractEmulator
             The emulator to train.
-        simulator : AbstractSimulator
-            The simulator to be emulated.
 
         Returns
         -------
         AbstractEmulator
-            A new emulator that has been trained with observations produced by
-            the given simulator, using the SLAS methodology. A new object is
-            returned of the same ``type`` as `emulator`. 
+            A new emulator that has been trained with the initial training data and
+            using the SLAS methodology. A new object is returned of the same ``type`` as
+            `emulator`.
         """
+
         return_emulator = copy.copy(emulator)
         return_emulator.fit(self._initial_data)
         return return_emulator

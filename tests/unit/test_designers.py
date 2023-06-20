@@ -50,10 +50,9 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         emulator of the same type."""
 
         designer = SingleLevelAdaptiveSampler(self.initial_data)
-        simulator = fakes.OneDimSimulator(0, 1)
         emulator = fakes.DumbEmulator()
 
-        trained_emulator = designer.train(emulator, simulator)
+        trained_emulator = designer.train(emulator)
 
         self.assertIsInstance(trained_emulator, type(emulator))
 
@@ -61,7 +60,6 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         """Test that the emulator returned by the SLAS designer has been trained
         on initial data."""
 
-        simulator = fakes.OneDimSimulator(0, 1)
         emulator = fakes.DumbEmulator()
         initial_design = [
             TrainingDatum(Input(0.2), 0.2),
@@ -69,7 +67,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         ]
         designer = SingleLevelAdaptiveSampler(initial_design)
 
-        trained_emulator = designer.train(emulator, simulator)
+        trained_emulator = designer.train(emulator)
 
         self.assertEqual(initial_design, trained_emulator.training_data)
 
@@ -77,11 +75,10 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         """Test that training an emulator returns a new emulator object,
         leaving the original unchanged."""
 
-        simulator = fakes.OneDimSimulator(0, 1)
         emulator = fakes.DumbEmulator()
         designer = SingleLevelAdaptiveSampler(self.initial_data)
 
-        trained_emulator = designer.train(emulator, simulator)
+        trained_emulator = designer.train(emulator)
 
         self.assertNotEqual(emulator, trained_emulator)
         self.assertIsNone(emulator.training_data)
