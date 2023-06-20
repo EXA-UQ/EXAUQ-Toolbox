@@ -14,9 +14,9 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         """Test that a TypeError is raised if the SLAS designer is initialised with
         something other than a collection of training data."""
 
-        msg_regex = (
-            f"^{SingleLevelAdaptiveSampler.__name__} must be initialised with a "
-            "\\(finite\\) collection of TrainingDatum$"
+        msg = (
+            f"{SingleLevelAdaptiveSampler.__name__} must be initialised with a "
+            "(finite) collection of TrainingDatum"
         )
 
         # Mock a stream of unsizeable data (note it doesn't implement __len__ so
@@ -27,7 +27,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
 
         for data in [None, 1, TrainingDatum(Input(0), 1), ['foo'], unsizeable_data()]:
             with self.subTest(data=data):
-                with self.assertRaisesRegex(TypeError, msg_regex):
+                with self.assertRaisesRegex(TypeError, exact(msg)):
                     SingleLevelAdaptiveSampler(data)
 
     def test_training_data_empty_error(self):
