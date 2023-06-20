@@ -7,21 +7,44 @@ from exauq.core.modelling import Input, TrainingDatum
 
 class TestSingleLevelAdaptiveSampler(unittest.TestCase):
     def setUp(self) -> None:
-        self.initial_data = [TrainingDatum(Input(0), 1)]
+        self.datum = TrainingDatum(Input(0), 1)
+        self.initial_data = [self.datum]
 
-    def test_not_training_data_error(self):
-        """Test that a ValueError is raised if the SLAS designer is initialised with
-        something other than a list of training data."""
+    def test_training_data_wrong_type_error(self):
+        """Test that a TypeError is raised if the SLAS designer is initialised with
+        something other than a collection of training data."""
 
-        msg = (
-            f"{SingleLevelAdaptiveSampler.__name__} must be initialised with a "
-            "nonempty list of training data"
+        msg_regex = (
+            f"^{SingleLevelAdaptiveSampler.__name__} must be initialised with a "
+            "\\(finite\\) collection of TrainingDatum$"
         )
 
-        for data in [None, [], 1, TrainingDatum(Input(0), 1), ['foo']]:
+        # Mock a stream of unsizeable data (note it doesn't implement __len__ so
+        # doesn't define a collection).
+        def unsizeable_data():
+            for i in range(1000):
+                yield self.datum
+
+        for data in [None, 1, TrainingDatum(Input(0), 1), ['foo'], unsizeable_data()]:
             with self.subTest(data=data):
-                with self.assertRaisesRegex(ValueError, exact(msg)):
+                with self.assertRaisesRegex(TypeError, msg_regex):
                     SingleLevelAdaptiveSampler(data)
+
+    def test_training_data_empty_error(self):
+        """Test that a ValueError is raised if the SLAS designer is initialised with
+        an empty list of training data."""
+
+        msg = "'initial_data' must be nonempty"
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            SingleLevelAdaptiveSampler([])
+
+    def test_training_data(self):
+        """Test that a SingleLevelAdaptiveSampler can be initialised from different
+        collections of TrainingDatum."""
+
+        for data in [[self.datum], tuple([self.datum])]:
+            with self.subTest(data=data):
+                SingleLevelAdaptiveSampler(data)
 
     def test_str(self):
         """Test that the string description of an instance of

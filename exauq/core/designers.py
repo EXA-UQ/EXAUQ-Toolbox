@@ -1,4 +1,5 @@
 import copy
+from collections.abc import Collection
 from exauq.core.modelling import TrainingDatum, AbstractEmulator
 
 
@@ -10,29 +11,33 @@ class SingleLevelAdaptiveSampler:
 
     Parameters
     ----------
-    initial_data: list[TrainingDatum]
+    initial_data: finite collection of TrainingDatum
         Training data on which the emulator will initially be trained.
     """
 
-    def __init__(self, initial_data: list[TrainingDatum]):
+    def __init__(self, initial_data: Collection[TrainingDatum]):
         self._initial_data = self._validate_initial_data(initial_data)
 
     @classmethod
     def _validate_initial_data(cls, initial_data):
         try:
-            if not (
-                initial_data
-                and all([isinstance(x, TrainingDatum) for x in initial_data])
-            ):
+            length = len(initial_data)  # to catch infinite iterators
+            if not all([isinstance(x, TrainingDatum) for x in initial_data]):
+                raise TypeError
+
+            if length == 0:
                 raise ValueError
 
             return initial_data
 
-        except Exception:
-            raise ValueError(
-                f"{cls.__name__} must be initialised with a nonempty list of training "
-                "data"
+        except TypeError:
+            raise TypeError(
+                f"{cls.__name__} must be initialised with a (finite) collection of "
+                "TrainingDatum"
             )
+
+        except ValueError:
+            raise ValueError("'initial_data' must be nonempty")
 
     def __str__(self) -> str:
         return f"SingleLevelAdaptiveSampler designer with initial data {str(self._initial_data)}"
