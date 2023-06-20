@@ -15,18 +15,17 @@ class SingleLevelAdaptiveSampler:
 
     Parameters
     ----------
-    initial_design: list[Experiment]
-        A list of design points to form the basis of an initial training
-        dataset.
+    initial_data: list[TrainingDatum]
+        Training data on which the emulator will initially be trained.
     """
-    def __init__(self, initial_design: list[Input]):
-        self._initial_design = initial_design
+    def __init__(self, initial_data: list[TrainingDatum]):
+        self._initial_data = initial_data
     
     def __str__(self) -> str:
-        return f"SingleLevelAdaptiveSampler designer with initial design {str(self._initial_design)}"
+        return f"SingleLevelAdaptiveSampler designer with initial design {str(self._initial_data)}"
 
     def __repr__(self) -> str:
-        return f"SingleLevelAdaptiveSampler(initial_design={repr(self._initial_design)})"
+        return f"SingleLevelAdaptiveSampler(initial_design={repr(self._initial_data)})"
     
     def train(self, emulator: AbstractEmulator, simulator: AbstractSimulator) -> AbstractEmulator:
         """Train an emulator with simulator outputs using this SLAS method.
@@ -46,7 +45,5 @@ class SingleLevelAdaptiveSampler:
             returned of the same ``type`` as `emulator`. 
         """
         return_emulator = copy.copy(emulator)
-        initial_training_data = [TrainingDatum(x, simulator.compute(x))
-                                 for x in self._initial_design]
-        return_emulator.fit(initial_training_data)
+        return_emulator.fit(self._initial_data)
         return return_emulator
