@@ -19,8 +19,18 @@ class SingleLevelAdaptiveSampler:
         Training data on which the emulator will initially be trained.
     """
     def __init__(self, initial_data: list[TrainingDatum]):
-        self._initial_data = initial_data
-    
+        self._initial_data = self._validate_initial_data(initial_data)
+
+    @staticmethod
+    def _validate_initial_data(initial_data):
+        if not initial_data:
+            raise ValueError(
+                "SingleLevelAdaptiveSampler must be initialised with nonempty training "
+                "data"
+            )
+
+        return initial_data
+
     def __str__(self) -> str:
         return f"SingleLevelAdaptiveSampler designer with initial data {str(self._initial_data)}"
 

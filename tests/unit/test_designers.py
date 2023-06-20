@@ -8,6 +8,20 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
     def setUp(self) -> None:
         self.initial_data = [TrainingDatum(Input(0), 1)]
 
+    def test_null_error(self):
+        """Test that a ValueError is raised if SLAS designer is initialised with no
+        training data."""
+
+        for data in [[], None]:
+            with self.assertRaises(ValueError) as cm:
+                SingleLevelAdaptiveSampler(data)
+
+            expected_msg = (
+                "SingleLevelAdaptiveSampler must be initialised with nonempty training "
+                "data"
+            )
+            self.assertEqual(expected_msg, str(cm.exception))
+
     def test_str(self):
         """Test that the string description of an instance of
         SingleLevelAdaptiveSampler designer is derived from its constituent
