@@ -21,25 +21,22 @@ class SingleLevelAdaptiveSampler:
     def __init__(self, initial_data: list[TrainingDatum]):
         self._initial_data = self._validate_initial_data(initial_data)
 
-    @staticmethod
-    def _validate_initial_data(initial_data):
-        if not initial_data:
-            raise ValueError(
-                f"{SingleLevelAdaptiveSampler.__name__} must be initialised with "
-                "nonempty training data"
-            )
-
+    @classmethod
+    def _validate_initial_data(cls, initial_data):
         try:
-            if not all([isinstance(x, TrainingDatum) for x in initial_data]):
+            if not (
+                initial_data and
+                all([isinstance(x, TrainingDatum) for x in initial_data])
+            ):
                 raise ValueError
+
+            return initial_data
 
         except Exception:
             raise ValueError(
-                f"{SingleLevelAdaptiveSampler.__name__} must be initialised with "
-                "a list of training data"
+                f"{cls.__name__} must be initialised with a nonempty list of training "
+                "data"
             )
-
-        return initial_data
 
     def __str__(self) -> str:
         return f"SingleLevelAdaptiveSampler designer with initial data {str(self._initial_data)}"
