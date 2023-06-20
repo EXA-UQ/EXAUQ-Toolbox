@@ -148,14 +148,14 @@ class TrainingDatum(object):
         """Check that an object is an instance of an Input, raising a
         TypeError if not."""
         if not isinstance(input, Input):
-            raise TypeError("Argument `input` must be of type Input")
+            raise TypeError("Argument 'input' must be of type Input")
     
     @staticmethod
     def _validate_real(observation):
         """Check that an object is an instance of a real number, raising a
         TypeError if not."""
         if not isinstance(observation, Real):
-            raise TypeError("Argument `output` must define a real number")
+            raise TypeError("Argument 'output' must define a real number")
 
     def __str__(self):
         return f"({str(self.input)}, {str(self.output)})"

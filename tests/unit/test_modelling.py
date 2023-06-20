@@ -77,18 +77,18 @@ class TestInput(unittest.TestCase):
 
 class TestTrainingDatum(unittest.TestCase):
     def test_input_error(self):
-        """Test that a TypeError is raised if the constructor arg `input`
+        """Test that a TypeError is raised if the constructor arg 'input'
         is not an Input."""
 
-        msg = 'Argument `input` must be of type Input'
+        msg = "Argument 'input' must be of type Input"
         with self.assertRaisesRegex(TypeError, exact(msg)):
             TrainingDatum(1, 1)
 
     def test_output_error(self):
-        """Test that a TypeError is raised if the constructor arg `output`
+        """Test that a TypeError is raised if the constructor arg 'output'
         is not a real number."""
 
-        msg = "Argument `output` must define a real number"
+        msg = "Argument 'output' must define a real number"
         for output in ['a', complex(1, 1)]:
             with self.subTest(output=output):
                 with self.assertRaisesRegex(TypeError, exact(msg)):
