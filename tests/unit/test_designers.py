@@ -71,7 +71,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
 
         trained_emulator = designer.train(emulator, simulator)
 
-        self.assertEqual(initial_design, trained_emulator.training_data[0:2])
+        self.assertEqual(initial_design, trained_emulator.training_data)
 
     def test_train_returns_new_emulator(self):
         """Test that training an emulator returns a new emulator object,
