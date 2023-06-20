@@ -13,14 +13,15 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         something other than a list of training data."""
 
         for data in [None, [], 1, TrainingDatum(Input(0), 1), ['foo']]:
-            with self.assertRaises(ValueError) as cm:
-                SingleLevelAdaptiveSampler(data)
+            with self.subTest(data=data):
+                with self.assertRaises(ValueError) as cm:
+                    SingleLevelAdaptiveSampler(data)
 
-            expected_msg = (
-                f"{SingleLevelAdaptiveSampler.__name__} must be initialised with a "
-                "nonempty list of training data"
-            )
-            self.assertEqual(expected_msg, str(cm.exception))
+                expected_msg = (
+                    f"{SingleLevelAdaptiveSampler.__name__} must be initialised with a "
+                    "nonempty list of training data"
+                )
+                self.assertEqual(expected_msg, str(cm.exception))
 
     def test_str(self):
         """Test that the string description of an instance of
