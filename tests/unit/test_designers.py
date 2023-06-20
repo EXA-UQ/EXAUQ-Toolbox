@@ -17,8 +17,22 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
                 SingleLevelAdaptiveSampler(data)
 
             expected_msg = (
-                "SingleLevelAdaptiveSampler must be initialised with nonempty training "
-                "data"
+                f"{SingleLevelAdaptiveSampler.__name__} must be initialised with "
+                "nonempty training data"
+            )
+            self.assertEqual(expected_msg, str(cm.exception))
+
+    def test_not_training_data_error(self):
+        """Test that a ValueError is raised if the SLAS designer is initialised with
+        something other than a list of training data."""
+
+        for data in [1, TrainingDatum(Input(0), 1), ['foo']]:
+            with self.assertRaises(ValueError) as cm:
+                SingleLevelAdaptiveSampler(data)
+
+            expected_msg = (
+                f"{SingleLevelAdaptiveSampler.__name__} must be initialised with a list of "
+                "training data"
             )
             self.assertEqual(expected_msg, str(cm.exception))
 

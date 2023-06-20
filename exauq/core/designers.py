@@ -25,8 +25,18 @@ class SingleLevelAdaptiveSampler:
     def _validate_initial_data(initial_data):
         if not initial_data:
             raise ValueError(
-                "SingleLevelAdaptiveSampler must be initialised with nonempty training "
-                "data"
+                f"{SingleLevelAdaptiveSampler.__name__} must be initialised with "
+                "nonempty training data"
+            )
+
+        try:
+            if not all([isinstance(x, TrainingDatum) for x in initial_data]):
+                raise ValueError
+
+        except Exception:
+            raise ValueError(
+                f"{SingleLevelAdaptiveSampler.__name__} must be initialised with "
+                "a list of training data"
             )
 
         return initial_data
