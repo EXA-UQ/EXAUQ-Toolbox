@@ -1,6 +1,6 @@
 import unittest
 import tests.unit.fakes as fakes
-from tests.utilities import exact
+from tests.utilities.utilities import exact
 from exauq.core.designers import SingleLevelAdaptiveSampler
 from exauq.core.modelling import Input, TrainingDatum
 

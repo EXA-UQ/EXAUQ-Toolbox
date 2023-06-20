@@ -4,7 +4,7 @@ from exauq.core.modelling import (
     TrainingDatum
     )
 import numpy as np
-from tests.utilities import exact
+from tests.utilities.utilities import exact
 
 
 class TestInput(unittest.TestCase):
