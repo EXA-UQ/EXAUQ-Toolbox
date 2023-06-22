@@ -107,6 +107,30 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         self.assertNotEqual(emulator, trained_emulator)
         self.assertIsNone(emulator.training_data)
 
+    def test_new_design_batch_default(self):
+        """Test that a list with a single Input is returned for a default batch."""
+
+        designer = SingleLevelAdaptiveSampler(self.initial_data)
+
+        batch = designer.new_design_batch()
+        self.assertIsInstance(batch, list)
+        self.assertEqual(1, len(batch))
+        self.assertIsInstance(batch[0], Input)
+
+    def test_new_design_batch_number(self):
+        """Test that a list of the correct number of inputs is returned when batch
+        number is specified."""
+
+        designer = SingleLevelAdaptiveSampler(self.initial_data)
+
+        size = 2
+        batch = designer.new_design_batch(size=size)
+
+        self.assertIsInstance(batch, list)
+        self.assertEqual(size, len(batch))
+        for _input in batch:
+            self.assertIsInstance(_input, Input)
+
 
 if __name__ == "__main__":
     unittest.main()

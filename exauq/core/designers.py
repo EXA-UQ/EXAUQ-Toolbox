@@ -1,6 +1,6 @@
 import copy
 from collections.abc import Collection
-from exauq.core.modelling import TrainingDatum, AbstractEmulator
+from exauq.core.modelling import Input, TrainingDatum, AbstractEmulator
 
 
 class SingleLevelAdaptiveSampler:
@@ -67,3 +67,7 @@ class SingleLevelAdaptiveSampler:
         return_emulator = copy.copy(emulator)
         return_emulator.fit(self._initial_data)
         return return_emulator
+
+    def new_design_batch(self, size: int = 1):
+
+        return [Input(1)] * size
