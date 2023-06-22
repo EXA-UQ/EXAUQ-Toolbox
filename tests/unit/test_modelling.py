@@ -33,7 +33,10 @@ class TestInput(unittest.TestCase):
         with self.assertRaises(TypeError) as cm:
             _ = Input(1.1, None)
 
-        self.assertEqual("Cannot supply None as an argument", str(cm.exception))
+        self.assertEqual(
+            "Input coordinates must be real numbers, not None",
+            str(cm.exception)
+        )
 
     def test_input_non_finite_error(self):
         """Test that a ValueError is raised if the input array contains various
@@ -115,20 +118,27 @@ class TestInput(unittest.TestCase):
     def test_from_array_not_array_error(self):
         """Test that a TypeError is raised if the input is not a Numpy array."""
 
+        x = 1
         with self.assertRaises(TypeError) as cm:
-            _ = Input.from_array(1)
+            _ = Input.from_array(x)
 
-        self.assertEqual("'input' must be a Numpy ndarray", str(cm.exception))
+        self.assertEqual(
+            f"Expected 'input' of type numpy.ndarray but received {type(x)}.",
+            str(cm.exception)
+        )
 
     def test_from_array_wrong_shape_error(self):
         """Test that a ValueError is raised if the input array is not
         1-dimensional."""
 
+        arr = np.array([[1.1], [2.2]])
         with self.assertRaises(ValueError) as cm:
-            _ = Input.from_array(np.array([[1.1], [2.2]]))
+            _ = Input.from_array(arr)
 
         self.assertEqual(
-            "'input' must be a 1-dimensional Numpy array", str(cm.exception)
+            "Expected 'input' to be a 1-dimensional numpy.ndarray but received an "
+            f"array with {arr.ndim} dimensions.",
+            str(cm.exception)
         )
 
     def test_from_array_non_real_error(self):
@@ -139,7 +149,7 @@ class TestInput(unittest.TestCase):
             _ = Input.from_array(np.array([np.datetime64(123, "m")]))
 
         self.assertEqual(
-            "'input' must be a Numpy array of real numbers", str(cm.exception)
+            "'input' must be a numpy.ndarray array of real numbers", str(cm.exception)
         )
 
     def test_from_array_none_error(self):

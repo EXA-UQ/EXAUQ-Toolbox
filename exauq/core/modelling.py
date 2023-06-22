@@ -84,7 +84,7 @@ class Input(object):
         supplied tuple if so or raising an exception if not."""
 
         validation.check_entries_not_none(
-            args, TypeError("Cannot supply None as an argument")
+            args, TypeError("Input coordinates must be real numbers, not None")
         )
         validation.check_entries_real(
             args, TypeError("Arguments must be instances of real numbers")
@@ -113,16 +113,21 @@ class Input(object):
         """
 
         if not isinstance(input, np.ndarray):
-            raise TypeError("'input' must be a Numpy ndarray")
+            raise TypeError(
+                f"Expected 'input' of type numpy.ndarray but received {type(input)}."
+            )
 
         if not input.ndim == 1:
-            raise ValueError("'input' must be a 1-dimensional Numpy array")
+            raise ValueError(
+                "Expected 'input' to be a 1-dimensional numpy.ndarray but received an "
+                f"array with {input.ndim} dimensions."
+            )
 
         validation.check_entries_not_none(
             input, ValueError("'input' cannot contain None")
         )
         validation.check_entries_real(
-            input, ValueError("'input' must be a Numpy array of real numbers")
+            input, ValueError("'input' must be a numpy.ndarray array of real numbers")
         )
         validation.check_entries_finite(
             input, ValueError("'input' cannot contain NaN or non-finite numbers")
