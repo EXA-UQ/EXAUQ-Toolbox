@@ -10,6 +10,8 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
     def setUp(self) -> None:
         self.datum = TrainingDatum(Input(0), 1)
         self.initial_data = [self.datum]
+        self.designer = SingleLevelAdaptiveSampler(self.initial_data)
+        self.emulator = fakes.DumbEmulator()
 
     def test_training_data_wrong_type_error(self):
         """Test that a TypeError is raised if the SLAS designer is initialised with
@@ -52,47 +54,39 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         SingleLevelAdaptiveSampler designer is derived from its constituent
         parts."""
 
-        designer = SingleLevelAdaptiveSampler(self.initial_data)
-
         expected = (
             "SingleLevelAdaptiveSampler designer with initial data "
             f"{str(self.initial_data)}"
         )
-        self.assertEqual(expected, str(designer))
+        self.assertEqual(expected, str(self.designer))
 
     def test_repr(self):
         """Test that the string representation of an instance of
         SingleLevelAdaptiveSampler designer is derived from its constituent
         parts."""
 
-        designer = SingleLevelAdaptiveSampler(self.initial_data)
-
         expected = f"SingleLevelAdaptiveSampler(initial_data={repr(self.initial_data)})"
-        self.assertEqual(expected, repr(designer))
+        self.assertEqual(expected, repr(self.designer))
 
     def test_train(self):
         """Test that training an emulator with the SLAS designer returns an
         emulator of the same type."""
 
-        designer = SingleLevelAdaptiveSampler(self.initial_data)
-        emulator = fakes.DumbEmulator()
+        trained_emulator = self.designer.train(self.emulator)
 
-        trained_emulator = designer.train(emulator)
-
-        self.assertIsInstance(trained_emulator, type(emulator))
+        self.assertIsInstance(trained_emulator, type(self.emulator))
 
     def test_train_fits_with_initial_design(self):
         """Test that the emulator returned by the SLAS designer has been trained
         on initial data."""
 
-        emulator = fakes.DumbEmulator()
         initial_design = [
             TrainingDatum(Input(0.2), 0.2),
             TrainingDatum(Input(0.55), 0.55),
         ]
         designer = SingleLevelAdaptiveSampler(initial_design)
 
-        trained_emulator = designer.train(emulator)
+        trained_emulator = designer.train(self.emulator)
 
         self.assertEqual(initial_design, trained_emulator.training_data)
 
@@ -100,21 +94,15 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         """Test that training an emulator returns a new emulator object,
         leaving the original unchanged."""
 
-        emulator = fakes.DumbEmulator()
-        designer = SingleLevelAdaptiveSampler(self.initial_data)
+        trained_emulator = self.designer.train(self.emulator)
 
-        trained_emulator = designer.train(emulator)
-
-        self.assertNotEqual(emulator, trained_emulator)
-        self.assertIsNone(emulator.training_data)
+        self.assertNotEqual(self.emulator, trained_emulator)
+        self.assertIsNone(self.emulator.training_data)
 
     def test_new_design_batch_default(self):
         """Test that a list with a single Input is returned for a default batch."""
 
-        designer = SingleLevelAdaptiveSampler(self.initial_data)
-        emulator = fakes.DumbEmulator()
-
-        batch = designer.new_design_batch(emulator)
+        batch = self.designer.new_design_batch(self.emulator)
 
         self.assertIsInstance(batch, list)
         self.assertEqual(1, len(batch))
@@ -124,11 +112,9 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         """Test that a list of the correct number of inputs is returned when batch
         number is specified."""
 
-        designer = SingleLevelAdaptiveSampler(self.initial_data)
-        emulator = fakes.DumbEmulator()
         size = 2
 
-        batch = designer.new_design_batch(emulator, size=size)
+        batch = self.designer.new_design_batch(self.emulator, size=size)
 
         self.assertIsInstance(batch, list)
         self.assertEqual(size, len(batch))
@@ -139,16 +125,17 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         """Test that one ES-LOO error is computed for each initial design point from the
         supplied emulator, and that ES-LOO errors are real numbers."""
 
-        designer = SingleLevelAdaptiveSampler(self.initial_data)
-        emulator = fakes.DumbEmulator()
-        emulator.fit([TrainingDatum(Input(0), 1), TrainingDatum(Input(1), 1)])
+        self.emulator.fit([TrainingDatum(Input(0), 1), TrainingDatum(Input(1), 1)])
 
-        self.assertIsNone(designer.esloo_errors)
+        self.assertIsNone(self.designer.esloo_errors)
 
-        designer.new_design_batch(emulator)
+        self.designer.new_design_batch(self.emulator)
 
-        self.assertEqual(len(emulator.training_data), len(designer.esloo_errors))
-        for error in designer.esloo_errors:
+        self.assertEqual(
+            len(self.emulator.training_data),
+            len(self.designer.esloo_errors)
+        )
+        for error in self.designer.esloo_errors:
             self.assertIsInstance(error, Real)
 
 
