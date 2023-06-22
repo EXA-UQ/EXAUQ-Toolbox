@@ -10,9 +10,29 @@ from exauq.core.modelling import TrainingDatum, Input
 
 
 class TestMogpEmulator(unittest.TestCase):
-    # Some default args to use for constructing mogp GaussianProcess objects
-    inputs = np.array([[0, 0], [0.2, 0.1]])
-    targets = np.array([1, 2])
+    def setUp(self) -> None:
+        # Some default args to use for constructing mogp GaussianProcess objects
+        self.inputs = np.array([[0, 0], [0.2, 0.1]])
+        self.targets = np.array([1, 2])
+
+        # kwargs for constructing an mogp GuassianProcess object
+        self.gp_kwargs = {
+            "mean": None,
+            "kernel": "Matern52",  # non-default
+            "priors": None,
+            "nugget": "pivot",  # non-default
+            "inputdict": {},
+            "use_patsy": False  # non-default
+        }
+
+        # Default training data for fitting an emulator
+        self.training_data = [
+            TrainingDatum(Input(0, 0), 1),
+            TrainingDatum(Input(0.2, 0.1), 2),
+            TrainingDatum(Input(0.3, 0.5), 3),
+            TrainingDatum(Input(0.7, 0.4), 4),
+            TrainingDatum(Input(0.9, 0.8), 5),
+        ]
 
     def assertAlmostBetween(self, x, lower, upper, **kwargs) -> None:
         """Checks whether a number lies between bounds up to a tolerance.
@@ -34,24 +54,10 @@ class TestMogpEmulator(unittest.TestCase):
 
     def test_initialiser(self):
         """Test that an instance of MogpEmulator can be initialised from args
-        and kwargs required of an mogp GaussianProcess object."""
+        and kwargs required of an mogp GaussianProcess object.
+        """
 
-        # kwargs used for constructing a mogp GaussianProcess object
-        mean = None
-        kernel = "Matern52"
-        priors = None
-        nugget = "pivot"
-        inputdict = {}
-        use_patsy = False
-
-        _ = MogpEmulator(
-            mean=mean,
-            kernel=kernel,
-            priors=priors,
-            nugget=nugget,
-            inputdict=inputdict,
-            use_patsy=use_patsy,
-        )
+        MogpEmulator(**self.gp_kwargs)
 
     def test_initialiser_error(self):
         """Test that a RuntimeError is raised if a mogp GaussianProcess
@@ -83,12 +89,13 @@ class TestMogpEmulator(unittest.TestCase):
         kwargs supplied to the MogpEmulator initialiser."""
 
         # Non-default choices for some kwargs
-        kernel = "Matern52"
-        nugget = "pivot"
-        emulator = MogpEmulator(kernel=kernel, nugget=nugget)
+        emulator = MogpEmulator(
+            kernel=self.gp_kwargs['kernel'],
+            nugget=self.gp_kwargs['nugget']
+        )
 
         self.assertEqual("Matern 5/2 Kernel", str(emulator.gp.kernel))
-        self.assertEqual(nugget, emulator.gp.nugget_type)
+        self.assertEqual(self.gp_kwargs['nugget'], emulator.gp.nugget_type)
 
     def test_initialiser_inputs_targets_ignored(self):
         """Test that inputs and targets kwargs are ignored when initialising
@@ -137,20 +144,13 @@ class TestMogpEmulator(unittest.TestCase):
 
         mock = unittest.mock.MagicMock()
         with unittest.mock.patch("exauq.core.emulators.fit_GP_MAP", mock):
-            training_data = [
-                TrainingDatum(Input(0, 0), 1),
-                TrainingDatum(Input(0.2, 0.1), 2),
-                TrainingDatum(Input(0.3, 0.5), 3),
-                TrainingDatum(Input(0.7, 0.4), 4),
-                TrainingDatum(Input(0.9, 0.8), 5),
-            ]
             bounds = (
                 (1, math.e),  # correlation = exp(-0.5 * raw_corr)
                 (math.exp(-2), math.exp(3)),  # correlation = exp(-0.5 * raw_corr)
                 (1, math.e),  # covariance
             )
             emulator = MogpEmulator()
-            emulator.fit(training_data, hyperparameter_bounds=bounds)
+            emulator.fit(self.training_data, hyperparameter_bounds=bounds)
 
             # Check that the underlying fitting function was called with correct
             # bounds
@@ -167,16 +167,9 @@ class TestMogpEmulator(unittest.TestCase):
 
         mock = unittest.mock.MagicMock()
         with unittest.mock.patch("exauq.core.emulators.fit_GP_MAP", mock):
-            training_data = [
-                TrainingDatum(Input(0, 0), 1),
-                TrainingDatum(Input(0.2, 0.1), 2),
-                TrainingDatum(Input(0.3, 0.5), 3),
-                TrainingDatum(Input(0.7, 0.4), 4),
-                TrainingDatum(Input(0.9, 0.8), 5),
-            ]
             bounds = ((1, None), (None, 1))
             emulator = MogpEmulator()
-            emulator.fit(training_data, hyperparameter_bounds=bounds)
+            emulator.fit(self.training_data, hyperparameter_bounds=bounds)
 
             # Check that the underlying fitting function was called with correct
             # bounds
@@ -189,16 +182,9 @@ class TestMogpEmulator(unittest.TestCase):
 
         mock = unittest.mock.MagicMock()
         with unittest.mock.patch("exauq.core.emulators.fit_GP_MAP", mock):
-            training_data = [
-                TrainingDatum(Input(0, 0), 1),
-                TrainingDatum(Input(0.2, 0.1), 2),
-                TrainingDatum(Input(0.3, 0.5), 3),
-                TrainingDatum(Input(0.7, 0.4), 4),
-                TrainingDatum(Input(0.9, 0.8), 5),
-            ]
             bounds = ((-np.inf, 1), (0, 1), (-math.e, 1))
             emulator = MogpEmulator()
-            emulator.fit(training_data, hyperparameter_bounds=bounds)
+            emulator.fit(self.training_data, hyperparameter_bounds=bounds)
 
             # Check that the underlying fitting function was called with correct
             # bounds
@@ -278,13 +264,11 @@ class TestMogpEmulator(unittest.TestCase):
         """Test that, after fitting, the underlying mogp emulator has the same
         kwarg settings as the original did before fitting."""
 
-        inputs = np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]])
-        targets = np.array([1, 2, 3.1, 9, 2])
-        emulator = MogpEmulator(nugget="pivot")
-        training_data = TrainingDatum.list_from_arrays(inputs, targets)
-        emulator.fit(training_data=training_data)
+        emulator = MogpEmulator(nugget=self.gp_kwargs["nugget"])
 
-        self.assertEqual("pivot", emulator.gp.nugget_type)
+        emulator.fit(training_data=self.training_data)
+
+        self.assertEqual(self.gp_kwargs["nugget"], emulator.gp.nugget_type)
 
     def test_fit_ignores_inputs_targets(self):
         """Test that fitting ignores any inputs and targets supplied during
@@ -303,6 +287,7 @@ class TestMogpEmulator(unittest.TestCase):
 
         # Case where no data has previously been fit
         emulator = MogpEmulator()
+
         emulator.fit([])
 
         self.assertEqual(0, emulator.gp.inputs.size)
@@ -316,6 +301,7 @@ class TestMogpEmulator(unittest.TestCase):
         expected_inputs = emulator.gp.inputs
         expected_targets = emulator.gp.targets
         expected_training_data = emulator.training_data
+
         emulator.fit([])
 
         self.assertTrue(np.allclose(expected_inputs, emulator.gp.inputs))
