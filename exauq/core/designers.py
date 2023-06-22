@@ -17,6 +17,7 @@ class SingleLevelAdaptiveSampler:
 
     def __init__(self, initial_data: Collection[TrainingDatum]):
         self._initial_data = self._validate_initial_data(initial_data)
+        self._esloo_errors = None
 
     @classmethod
     def _validate_initial_data(cls, initial_data):
@@ -68,6 +69,13 @@ class SingleLevelAdaptiveSampler:
         return_emulator.fit(self._initial_data)
         return return_emulator
 
-    def new_design_batch(self, size: int = 1):
+    def new_design_batch(self, emulator: AbstractEmulator, size: int = 1):
+
+        if emulator.training_data:
+            self._esloo_errors = [0] * len(emulator.training_data)
 
         return [Input(1)] * size
+
+    @property
+    def esloo_errors(self):
+        return self._esloo_errors

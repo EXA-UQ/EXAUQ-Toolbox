@@ -1,5 +1,6 @@
 import unittest
 import tests.unit.fakes as fakes
+from numbers import Real
 from tests.utilities.utilities import exact
 from exauq.core.designers import SingleLevelAdaptiveSampler
 from exauq.core.modelling import Input, TrainingDatum
@@ -111,8 +112,10 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         """Test that a list with a single Input is returned for a default batch."""
 
         designer = SingleLevelAdaptiveSampler(self.initial_data)
+        emulator = fakes.DumbEmulator()
 
-        batch = designer.new_design_batch()
+        batch = designer.new_design_batch(emulator)
+
         self.assertIsInstance(batch, list)
         self.assertEqual(1, len(batch))
         self.assertIsInstance(batch[0], Input)
@@ -122,14 +125,31 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         number is specified."""
 
         designer = SingleLevelAdaptiveSampler(self.initial_data)
-
+        emulator = fakes.DumbEmulator()
         size = 2
-        batch = designer.new_design_batch(size=size)
+
+        batch = designer.new_design_batch(emulator, size=size)
 
         self.assertIsInstance(batch, list)
         self.assertEqual(size, len(batch))
         for _input in batch:
             self.assertIsInstance(_input, Input)
+
+    def test_new_design_batch_calculates_esloo_errors(self):
+        """Test that one ES-LOO error is computed for each initial design point from the
+        supplied emulator, and that ES-LOO errors are real numbers."""
+
+        designer = SingleLevelAdaptiveSampler(self.initial_data)
+        emulator = fakes.DumbEmulator()
+        emulator.fit([TrainingDatum(Input(0), 1), TrainingDatum(Input(1), 1)])
+
+        self.assertIsNone(designer.esloo_errors)
+
+        designer.new_design_batch(emulator)
+
+        self.assertEqual(len(emulator.training_data), len(designer.esloo_errors))
+        for error in designer.esloo_errors:
+            self.assertIsInstance(error, Real)
 
 
 if __name__ == "__main__":
