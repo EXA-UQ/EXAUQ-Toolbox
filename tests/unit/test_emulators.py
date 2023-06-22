@@ -1,6 +1,8 @@
 import unittest
 import unittest.mock
 import math
+
+import exauq.core.emulators
 import mogp_emulator as mogp
 import numpy as np
 from exauq.core.emulators import MogpEmulator
@@ -64,6 +66,17 @@ class TestMogpEmulator(unittest.TestCase):
             "during initialisation of MogpEmulator"
         )
         self.assertEqual(expected_msg, str(cm.exception))
+
+    @unittest.mock.patch("exauq.core.emulators.GaussianProcess")
+    def test_initialiser_base_exception_bubbled(self, mock):
+        """Test that an exception that isn't derived from Exception gets raised as-is.
+        """
+
+        mock.side_effect = BaseException("msg")
+        with self.assertRaises(BaseException) as cm:
+            MogpEmulator()
+
+        self.assertEqual("msg", str(cm.exception))
 
     def test_underlying_gp_kwargs(self):
         """Test that the underlying mogp GaussianProcess was constructed with

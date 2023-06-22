@@ -75,7 +75,7 @@ class MogpEmulator(AbstractEmulator):
         try:
             return GaussianProcess([], [], **kwargs)
 
-        except BaseException:
+        except Exception:
             msg = (
                 "Could not construct mogp-emulator GaussianProcess during "
                 "initialisation of MogpEmulator"
