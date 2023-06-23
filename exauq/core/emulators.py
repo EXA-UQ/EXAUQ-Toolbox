@@ -53,7 +53,6 @@ class MogpEmulator(AbstractEmulator):
     """
 
     def __init__(self, **kwargs):
-        super()
         self._gp_kwargs = self._remove_entries(kwargs, "inputs", "targets")
         self._gp = self._make_gp(**self._gp_kwargs)
         self._training_data = TrainingDatum.list_from_arrays(
