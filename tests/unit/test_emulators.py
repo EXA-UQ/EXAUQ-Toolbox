@@ -1,8 +1,6 @@
 import unittest
 import unittest.mock
 import math
-
-import exauq.core.emulators
 import mogp_emulator as mogp
 import numpy as np
 from exauq.core.emulators import MogpEmulator
