@@ -1,16 +1,16 @@
 """Contains fakes used to support unit tests
 """
 import typing
-from exauq.core.modelling import(
+from exauq.core.modelling import (
     Input,
     TrainingDatum,
     AbstractEmulator,
-    AbstractSimulator
+    AbstractSimulator,
 )
 
 # The tolerance used for determining if two floating point numbers are equal.
 TOLERANCE_PLACES: float = 7
-TOLERANCE: float = 10 ** TOLERANCE_PLACES
+TOLERANCE: float = 10**TOLERANCE_PLACES
 
 
 class DumbEmulator(AbstractEmulator):
@@ -18,7 +18,7 @@ class DumbEmulator(AbstractEmulator):
 
     This emulator predicts zero at inputs on which it hasn't been fitted, while
     predicting simulator outputs on which it has been fitted correctly.
-    
+
 
     Attributes
     ----------
@@ -27,6 +27,7 @@ class DumbEmulator(AbstractEmulator):
         has been trained. Each `TrainingDatum` should have a 1-dim
         `Input`.
     """
+
     def __init__(self):
         super()
         self._training_data: typing.Optional[list[TrainingDatum]] = None
@@ -34,7 +35,7 @@ class DumbEmulator(AbstractEmulator):
     @property
     def training_data(self) -> typing.Optional[list[TrainingDatum]]:
         """Get the data on which the emulator has been trained."""
-        return super().training_data
+        return self._training_data
 
     def fit(self, data: list[TrainingDatum]) -> None:
         """Fits the emulator on the given data.
@@ -49,7 +50,7 @@ class DumbEmulator(AbstractEmulator):
             the emulator. Each `TrainingDatum` should have a 1-dim `Input`.
         """
         self._training_data = data
-    
+
     def predict(self, x: Input) -> float:
         """Estimate the simulator output for a given input.
 
@@ -79,7 +80,7 @@ class OneDimSimulator(AbstractSimulator):
 
     This simulator simply defines the identity function ``f(x) = x`` and is
     defined on a closed interval [a, b].
-    
+
     Parameters
     ----------
     lower_limit: float
@@ -91,7 +92,8 @@ class OneDimSimulator(AbstractSimulator):
     ----------
     domain: OneDimDomain
         The domain on which the simulator is defined.
-    """ 
+    """
+
     def __init__(self, lower_limit: float, upper_limit: float):
         self.lower_limit: float = lower_limit
         self.upper_limit: float = upper_limit
