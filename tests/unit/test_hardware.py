@@ -22,3 +22,7 @@ class TestHardwareInterface(unittest.TestCase):
             b = DummyHardwareInterface(hostname="local",
                                        username="SpudtasticWizard",
                                        password="MagicalPotatoes42#")
+
+
+if __name__ == '__main__':
+    unittest.main()
