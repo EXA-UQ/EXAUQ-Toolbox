@@ -2,10 +2,6 @@ from abc import ABC, abstractmethod
 
 
 class HardwareInterface(ABC):
-    def __init__(self, hostname, username, password):
-        self.hostname = hostname
-        self.username = username
-        self.password = password
 
     @abstractmethod
     def submit_job(self, job):
