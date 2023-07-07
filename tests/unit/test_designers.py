@@ -3,9 +3,19 @@ import unittest
 import tests.unit.fakes as fakes
 from exauq.core.designers import RandomSamplerDesigner, SingleLevelAdaptiveSampler
 from exauq.core.modelling import Input, TrainingDatum
+from tests.utilities.utilities import exact
 
 
 class TestRandomSamplerDesigner(unittest.TestCase):
+    def test_size_type_error(self):
+        """Test that a TypeError is raised if something other than an int is provided
+        as the size."""
+
+        designer = RandomSamplerDesigner()
+        with self.assertRaisesRegex(
+            TypeError, exact("Argument 'size' must be of type 'int'.")
+        ):
+            designer.new_design_points(2.3)
 
     def test_new_design_points_return_list_length(self):
         """Test that a list of the required size is returned."""
