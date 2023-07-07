@@ -6,13 +6,12 @@ from exauq.core.modelling import (
     Input,
     TrainingDatum,
 )
+from exauq.utilities.validation import check_int
 
 
 class RandomSamplerDesigner:
     def new_design_points(self, size: int):
-        if not isinstance(size, int):
-            raise TypeError("Argument 'size' must be of type 'int'.")
-
+        check_int(size, TypeError("Argument 'size' must be of type 'int'."))
         return [None] * size
 
 
