@@ -296,6 +296,11 @@ class AbstractEmulator(abc.ABC):
         pass
 
 
+class SimulatorDomain(object):
+    def __contains__(self, item: Any):
+        return True
+
+
 class AbstractSimulator(abc.ABC):
     """Represents an abstract simulator.
 

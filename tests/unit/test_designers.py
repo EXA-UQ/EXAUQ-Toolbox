@@ -2,13 +2,14 @@ import unittest
 
 import tests.unit.fakes as fakes
 from exauq.core.designers import RandomSamplerDesigner, SingleLevelAdaptiveSampler
-from exauq.core.modelling import Input, TrainingDatum
+from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 from tests.utilities.utilities import exact
 
 
 class TestRandomSamplerDesigner(unittest.TestCase):
     def setUp(self) -> None:
-        self.designer = RandomSamplerDesigner()
+        self.domain = SimulatorDomain()
+        self.designer = RandomSamplerDesigner(self.domain)
 
     def test_new_design_points_size_type_error(self):
         """Test that a TypeError is raised if something other than an int is provided
@@ -46,6 +47,13 @@ class TestRandomSamplerDesigner(unittest.TestCase):
 
         for x in self.designer.new_design_points(2):
             self.assertIsInstance(x, Input)
+
+    def test_new_design_points_returns_inputs_from_domain(self):
+        """Test that the Input objects returned belong to the SimulatorDomain
+        contained within the designer."""
+
+        for x in self.designer.new_design_points(2):
+            self.assertTrue(x in self.domain)
 
 
 class TestSingleLevelAdaptiveSampler(unittest.TestCase):

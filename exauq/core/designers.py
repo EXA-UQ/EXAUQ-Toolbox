@@ -4,12 +4,16 @@ from exauq.core.modelling import (
     AbstractEmulator,
     AbstractSimulator,
     Input,
+    SimulatorDomain,
     TrainingDatum,
 )
 from exauq.utilities.validation import check_int
 
 
 class RandomSamplerDesigner:
+    def __init__(self, domain: SimulatorDomain):
+        pass
+    
     def new_design_points(self, size: int) -> list[Input]:
         check_int(
             size, TypeError(f"Expected 'size' of type 'int' but received {type(size)}.")
