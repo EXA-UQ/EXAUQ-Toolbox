@@ -1,12 +1,14 @@
 """Basic objects for expressing emulation of simulators."""
 
 import abc
-from collections.abc import Sequence
 import dataclasses
+from collections.abc import Sequence
 from numbers import Real
 from typing import Any, Union
+
 import numpy as np
-import exauq.utilities.validation.real as validation
+
+import exauq.utilities.validation as validation
 
 
 class Input(object):
