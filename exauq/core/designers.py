@@ -10,7 +10,7 @@ from exauq.utilities.validation import check_int
 
 
 class RandomSamplerDesigner:
-    def new_design_points(self, size: int):
+    def new_design_points(self, size: int) -> list[Input]:
         check_int(
             size, TypeError(f"Expected 'size' of type 'int' but received {type(size)}.")
         )
@@ -18,7 +18,7 @@ class RandomSamplerDesigner:
             raise ValueError(
                 f"Expected 'size' to be a non-negative integer but is equal to {size}."
             )
-        return [None] * size
+        return [Input(1)] * size
 
 
 class SingleLevelAdaptiveSampler:

@@ -41,6 +41,12 @@ class TestRandomSamplerDesigner(unittest.TestCase):
             self.assertIsInstance(design_points, list)
             self.assertEqual(size, len(design_points))
 
+    def test_new_design_points_returns_list_inputs(self):
+        """Test that a list of Input objects is returned."""
+
+        for x in self.designer.new_design_points(2):
+            self.assertIsInstance(x, Input)
+
 
 class TestSingleLevelAdaptiveSampler(unittest.TestCase):
     initial_design = [Input(0.2), Input(0.55)]
