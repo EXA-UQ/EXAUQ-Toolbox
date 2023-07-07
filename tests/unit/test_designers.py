@@ -12,10 +12,11 @@ class TestRandomSamplerDesigner(unittest.TestCase):
         as the size."""
 
         designer = RandomSamplerDesigner()
+        size = 2.3
         with self.assertRaisesRegex(
-            TypeError, exact("Argument 'size' must be of type 'int'.")
+            TypeError, exact(f"Expected 'size' of type 'int' but received {type(size)}.")
         ):
-            designer.new_design_points(2.3)
+            designer.new_design_points(size)
 
     def test_new_design_points_return_list_length(self):
         """Test that a list of the required size is returned."""

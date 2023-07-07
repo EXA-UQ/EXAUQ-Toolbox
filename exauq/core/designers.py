@@ -11,7 +11,9 @@ from exauq.utilities.validation import check_int
 
 class RandomSamplerDesigner:
     def new_design_points(self, size: int):
-        check_int(size, TypeError("Argument 'size' must be of type 'int'."))
+        check_int(
+            size, TypeError(f"Expected 'size' of type 'int' but received {type(size)}.")
+        )
         return [None] * size
 
 
