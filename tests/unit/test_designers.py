@@ -1,8 +1,20 @@
 import unittest
 
 import tests.unit.fakes as fakes
-from exauq.core.designers import SingleLevelAdaptiveSampler
+from exauq.core.designers import RandomSamplerDesigner, SingleLevelAdaptiveSampler
 from exauq.core.modelling import Input, TrainingDatum
+
+
+class TestRandomSamplerDesigner(unittest.TestCase):
+
+    def test_new_design_points_return_list_length(self):
+        """Test that a list of the required size is returned."""
+
+        designer = RandomSamplerDesigner()
+        for size in range(0, 3):
+            design_points = designer.new_design_points(size)
+            self.assertIsInstance(design_points, list)
+            self.assertEqual(size, len(design_points))
 
 
 class TestSingleLevelAdaptiveSampler(unittest.TestCase):

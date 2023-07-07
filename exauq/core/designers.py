@@ -1,10 +1,17 @@
 import copy
+
 from exauq.core.modelling import (
-    Input,
-    TrainingDatum,
     AbstractEmulator,
     AbstractSimulator,
+    Input,
+    TrainingDatum,
 )
+
+
+class RandomSamplerDesigner:
+
+    def new_design_points(self, size: int):
+        return [None] * size
 
 
 class SingleLevelAdaptiveSampler:
