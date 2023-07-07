@@ -7,35 +7,37 @@ from tests.utilities.utilities import exact
 
 
 class TestRandomSamplerDesigner(unittest.TestCase):
-    def test_size_type_error(self):
+    def setUp(self) -> None:
+        self.designer = RandomSamplerDesigner()
+
+    def test_new_design_points_size_type_error(self):
         """Test that a TypeError is raised if something other than an int is provided
         as the size."""
 
-        designer = RandomSamplerDesigner()
         size = 2.3
         with self.assertRaisesRegex(
-            TypeError, exact(f"Expected 'size' of type 'int' but received {type(size)}.")
+            TypeError,
+            exact(f"Expected 'size' of type 'int' but received {type(size)}."),
         ):
-            designer.new_design_points(size)
+            self.designer.new_design_points(size)
 
-    def test_size_negative_error(self):
+    def test_new_design_points_size_negative_error(self):
         """Test that a ValueError is raised if the size provided is negative."""
-        designer = RandomSamplerDesigner()
+
         size = -1
         with self.assertRaisesRegex(
             ValueError,
             exact(
                 f"Expected 'size' to be a non-negative integer but is equal to {size}."
-            )
+            ),
         ):
-            designer.new_design_points(size)
+            self.designer.new_design_points(size)
 
     def test_new_design_points_return_list_length(self):
         """Test that a list of the required size is returned."""
 
-        designer = RandomSamplerDesigner()
         for size in range(0, 3):
-            design_points = designer.new_design_points(size)
+            design_points = self.designer.new_design_points(size)
             self.assertIsInstance(design_points, list)
             self.assertEqual(size, len(design_points))
 
