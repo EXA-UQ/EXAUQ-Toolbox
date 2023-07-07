@@ -18,6 +18,18 @@ class TestRandomSamplerDesigner(unittest.TestCase):
         ):
             designer.new_design_points(size)
 
+    def test_size_negative_error(self):
+        """Test that a ValueError is raised if the size provided is negative."""
+        designer = RandomSamplerDesigner()
+        size = -1
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected 'size' to be a non-negative integer but is equal to {size}."
+            )
+        ):
+            designer.new_design_points(size)
+
     def test_new_design_points_return_list_length(self):
         """Test that a list of the required size is returned."""
 

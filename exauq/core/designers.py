@@ -14,6 +14,10 @@ class RandomSamplerDesigner:
         check_int(
             size, TypeError(f"Expected 'size' of type 'int' but received {type(size)}.")
         )
+        if size < 0:
+            raise ValueError(
+                f"Expected 'size' to be a non-negative integer but is equal to {size}."
+            )
         return [None] * size
 
 
