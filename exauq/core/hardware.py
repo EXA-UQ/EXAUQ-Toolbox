@@ -29,6 +29,28 @@ class HardwareInterface(ABC):
 
 class SSHInterface(HardwareInterface):
     def __init__(self, user: str, host: str, password: Optional[str] = None, key_filename: Optional[str] = None, ssh_config_path: Optional[str] = None):
+        """
+        SSH Interface to manage and submit jobs. Inherits from the HardwareInterface.
+
+        Parameters
+        ----------
+        user : str
+            The username to authenticate with the SSH server.
+        host : str
+            The hostname or IP address of the SSH server.
+        password : str, optional
+            The password to authenticate with the SSH server.
+        key_filename : str, optional
+            The path to the SSH private key file to authenticate with the SSH server.
+        ssh_config_path : str, optional
+            The path to the SSH configuration file.
+
+        Raises
+        ------
+        ValueError
+            If more than one method of authentication is provided.
+        """
+
         # Check if more than one method is provided
         if sum([password is not None, key_filename is not None, ssh_config_path is not None]) > 1:
             raise ValueError(
