@@ -28,6 +28,12 @@ class HardwareInterface(ABC):
 
 class SSHInterface(HardwareInterface):
     def __init__(self, user, host, password=None, key_filename=None, ssh_config_path=None):
+        # Check if more than one method is provided
+        if sum([password is not None, key_filename is not None, ssh_config_path is not None]) > 1:
+            raise ValueError(
+                "Only one method of authentication should be provided. Please specify either password, key_filename, "
+                "or ssh_config_path.")
+
         if password is not None:
             self.conn = Connection(f'{user}@{host}', connect_kwargs={"password": password})
         elif key_filename is not None:
