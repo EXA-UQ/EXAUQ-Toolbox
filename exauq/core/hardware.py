@@ -91,6 +91,12 @@ class SSHInterface(HardwareInterface):
                 f"{user}@{host}"
             )  # Defaults to SSH agent if no password or key is provided
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.conn.close()
+
     @abstractmethod
     def submit_job(self, job):
         pass
