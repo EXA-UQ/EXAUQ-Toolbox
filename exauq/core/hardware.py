@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from fabric import Connection
 
@@ -27,7 +28,7 @@ class HardwareInterface(ABC):
 
 
 class SSHInterface(HardwareInterface):
-    def __init__(self, user, host, password=None, key_filename=None, ssh_config_path=None):
+    def __init__(self, user: str, host: str, password: Optional[str] = None, key_filename: Optional[str] = None, ssh_config_path: Optional[str] = None):
         # Check if more than one method is provided
         if sum([password is not None, key_filename is not None, ssh_config_path is not None]) > 1:
             raise ValueError(
