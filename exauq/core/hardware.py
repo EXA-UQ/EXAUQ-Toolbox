@@ -27,8 +27,17 @@ class HardwareInterface(ABC):
 
 
 class SSHInterface(HardwareInterface):
-    def __init__(self, user, host, password):
-        self.conn = Connection(f'{user}@{host}', connect_kwargs={"password": password})
+    def __init__(self, user, host, password=None, key_filename=None, ssh_config_path=None):
+        if password is not None:
+            self.conn = Connection(f'{user}@{host}', connect_kwargs={"password": password})
+        elif key_filename is not None:
+            self.conn = Connection(f'{user}@{host}', connect_kwargs={"key_filename": key_filename})
+        elif ssh_config_path is not None:
+            from fabric import Config
+            ssh_config = Config(overrides={'ssh_config_path': ssh_config_path})
+            self.conn = Connection(host, config=ssh_config)
+        else:
+            self.conn = Connection(f'{user}@{host}')  # Defaults to SSH agent if no password or key is provided
 
     @abstractmethod
     def submit_job(self, job):
