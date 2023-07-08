@@ -5,7 +5,6 @@ from fabric import Connection
 
 
 class HardwareInterface(ABC):
-
     @abstractmethod
     def submit_job(self, job):
         pass
@@ -28,7 +27,14 @@ class HardwareInterface(ABC):
 
 
 class SSHInterface(HardwareInterface):
-    def __init__(self, user: str, host: str, password: Optional[str] = None, key_filename: Optional[str] = None, ssh_config_path: Optional[str] = None):
+    def __init__(
+        self,
+        user: str,
+        host: str,
+        password: Optional[str] = None,
+        key_filename: Optional[str] = None,
+        ssh_config_path: Optional[str] = None,
+    ):
         """
         SSH Interface to manage and submit jobs. Inherits from the HardwareInterface.
 
@@ -52,21 +58,38 @@ class SSHInterface(HardwareInterface):
         """
 
         # Check if more than one method is provided
-        if sum([password is not None, key_filename is not None, ssh_config_path is not None]) > 1:
+        if (
+            sum(
+                [
+                    password is not None,
+                    key_filename is not None,
+                    ssh_config_path is not None,
+                ]
+            )
+            > 1
+        ):
             raise ValueError(
                 "Only one method of authentication should be provided. Please specify either password, key_filename, "
-                "or ssh_config_path.")
+                "or ssh_config_path."
+            )
 
         if password is not None:
-            self.conn = Connection(f'{user}@{host}', connect_kwargs={"password": password})
+            self.conn = Connection(
+                f"{user}@{host}", connect_kwargs={"password": password}
+            )
         elif key_filename is not None:
-            self.conn = Connection(f'{user}@{host}', connect_kwargs={"key_filename": key_filename})
+            self.conn = Connection(
+                f"{user}@{host}", connect_kwargs={"key_filename": key_filename}
+            )
         elif ssh_config_path is not None:
             from fabric import Config
-            ssh_config = Config(overrides={'ssh_config_path': ssh_config_path})
+
+            ssh_config = Config(overrides={"ssh_config_path": ssh_config_path})
             self.conn = Connection(host, config=ssh_config)
         else:
-            self.conn = Connection(f'{user}@{host}')  # Defaults to SSH agent if no password or key is provided
+            self.conn = Connection(
+                f"{user}@{host}"
+            )  # Defaults to SSH agent if no password or key is provided
 
     @abstractmethod
     def submit_job(self, job):
