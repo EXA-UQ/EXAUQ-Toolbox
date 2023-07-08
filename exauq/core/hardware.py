@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from fabric import connection
+from fabric import Connection
 
 
 class HardwareInterface(ABC):
@@ -28,7 +28,7 @@ class HardwareInterface(ABC):
 
 class SSHInterface(HardwareInterface):
     def __init__(self, user, host, password):
-        pass
+        self.conn = Connection(f'{user}@{host}', connect_kwargs={"password": password})
 
     @abstractmethod
     def submit_job(self, job):
