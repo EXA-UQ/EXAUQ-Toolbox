@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from fabric import connection
+
 
 class HardwareInterface(ABC):
 
