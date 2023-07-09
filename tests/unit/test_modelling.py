@@ -1,6 +1,9 @@
 import unittest
-from exauq.core.modelling import Input, TrainingDatum
+
 import numpy as np
+
+from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
+from tests.utilities.utilities import exact
 
 
 class TestInput(unittest.TestCase):
@@ -34,8 +37,7 @@ class TestInput(unittest.TestCase):
             _ = Input(1.1, None)
 
         self.assertEqual(
-            "Input coordinates must be real numbers, not None",
-            str(cm.exception)
+            "Input coordinates must be real numbers, not None", str(cm.exception)
         )
 
     def test_input_non_finite_error(self):
@@ -108,6 +110,75 @@ class TestInput(unittest.TestCase):
         with self.assertRaises(AttributeError):
             x.value = 3
 
+    def test_len(self):
+        """Test that the length of the input is equal to the number of coordinates (or
+        0 if empty)."""
+        self.assertEqual(0, len(Input()))
+        self.assertEqual(1, len(Input(0)))
+        self.assertEqual(2, len(Input(0, 0)))
+
+    def test_getitem_int(self):
+        """Test that individual coordinates of the input can be accessed with ints
+        (with indexing starting at 0)."""
+
+        self.assertEqual(1, Input(1)[0])
+        self.assertEqual(2, Input(1, 2)[1])
+        self.assertEqual(2, Input(1, 2)[-1])
+
+    def test_getitem_slice(self):
+        """Test that a slice of the coordinates can be accessed, returned as a new Input
+        instance."""
+
+        x1 = Input(1, 2)
+        x2 = Input(1, 2, 3, 4)
+        x3 = Input(1)
+        self.assertEqual(Input(1), x1[0:1])
+        self.assertEqual(Input(1), x1[:-1])
+        self.assertEqual(Input(1, 2), x1[:])
+        self.assertEqual(Input(2), x1[1:])
+        self.assertEqual(Input(1, 3), x2[::2])
+        self.assertEqual(Input(2, 4), x2[1::2])
+        self.assertEqual(Input(2), x2[1:3:2])
+        self.assertEqual(Input(1), x3[:])
+        self.assertEqual(Input(), x3[:0])
+
+    def test_getitem_wrong_type_error(self):
+        """Test that a TypeError is raised if the indexing item is not an integer."""
+
+        i = "a"
+        x = Input(2)
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(f"Subscript must be an 'int' or slice, but received {type(i)}."),
+        ):
+            x[i]
+
+    def test_getitem_index_out_of_bounds_error(self):
+        """Test that an IndexError is raised if the indexing item does not fall within
+        the input's dimension."""
+
+        x = Input(2)
+        i = 1
+        with self.assertRaisesRegex(
+            IndexError, exact(f"Input index {i} out of range.")
+        ):
+            x[i]
+
+    def test_sequence_implementation(self):
+        """Test that an Input implements the collections.abc.Sequence interface."""
+
+        for method in [
+            "__getitem__",
+            "__len__",
+            "__contains__",
+            "__iter__",
+            "__reversed__",
+            "index",
+            "count",
+        ]:
+            with self.subTest(method=method):
+                self.assertTrue(hasattr(Input, method))
+
     def test_from_array(self):
         """Test that an input can be created from a Numpy array of data."""
 
@@ -124,7 +195,7 @@ class TestInput(unittest.TestCase):
 
         self.assertEqual(
             f"Expected 'input' of type numpy.ndarray but received {type(x)}.",
-            str(cm.exception)
+            str(cm.exception),
         )
 
     def test_from_array_wrong_shape_error(self):
@@ -138,7 +209,7 @@ class TestInput(unittest.TestCase):
         self.assertEqual(
             "Expected 'input' to be a 1-dimensional numpy.ndarray but received an "
             f"array with {arr.ndim} dimensions.",
-            str(cm.exception)
+            str(cm.exception),
         )
 
     def test_from_array_non_real_error(self):
@@ -280,6 +351,94 @@ class TestTrainingDatum(unittest.TestCase):
             TrainingDatum(Input(3.5, 9.87), 1.1),
         ]
         self.assertEqual(expected, TrainingDatum.list_from_arrays(inputs, outputs))
+
+
+class TestSimulatorDomain(unittest.TestCase):
+    def setUp(self) -> None:
+        self.bounds = [(0, 2), (0, 1)]
+        self.domain = SimulatorDomain(self.bounds)
+
+    def test_input_not_in_domain_wrong_type(self):
+        """Test that objects not of type Input are not contained in the domain."""
+
+        self.assertFalse(1.0 in self.domain)
+
+    def test_input_not_in_domain_wrong_dims(self):
+        """Test that an Input with the wrong number of dimensions cannot belong to
+        the domain."""
+
+        x1 = Input(1)
+        x2 = Input(1, 1, 1)
+        self.assertFalse(x1 in self.domain)
+        self.assertFalse(x2 in self.domain)
+
+    def test_input_not_in_domain_coord_out_of_bounds_one_dim(self):
+        """Test that an Input with a coordinate that lies outside the domain's bounds
+        cannot belong to the domain, in the case of a 1-dim domain."""
+
+        bounds = [(0, 1)]
+        domain = SimulatorDomain(bounds)
+        x1 = Input(1.1)
+        x2 = Input(-0.1)
+        self.assertFalse(x1 in domain)
+        self.assertFalse(x2 in domain)
+
+    def test_input_not_in_domain_coord_out_of_bounds_multi_dim(self):
+        """Test that an Input with a coordinate that lies outside the domain's bounds
+        cannot belong to the domain, in the case of a multi-dim domain."""
+
+        x1 = Input(2.1, 0)
+        x2 = Input(1, -0.1)
+        self.assertFalse(x1 in self.domain)
+        self.assertFalse(x2 in self.domain)
+
+    def test_dim_equal_number_of_supplied_bounds(self):
+        """Test that the dimension of the domain is equal to the length of the bounds
+        sequence that was supplied."""
+
+        self.assertEqual(len(self.bounds), self.domain.dim)
+
+    def test_dim_immutable(self):
+        """Test that the dim property is read-only."""
+
+        with self.assertRaises(AttributeError):
+            self.domain.dim = 1
+
+    def test_scale_returns_input(self):
+        """Test that the scale method returns a tuple of real numbers."""
+
+        coordinates = (0.5, 0.5)
+        transformed = self.domain.scale(coordinates)
+        self.assertIsInstance(transformed, Input)
+
+    def test_scale_wrong_dimension_input_error(self):
+        """Test that a ValueError is raised if the wrong number of coordinates are
+        present in the input arg."""
+
+        for coordinates in [(1,), (1, 1, 1)]:
+            with self.subTest(coordinates=coordinates):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    exact(
+                        f"Expected 'coordinates' to be a sequence of length "
+                        f"{self.domain.dim} but received sequence of length "
+                        f"{len(coordinates)}."
+                    ),
+                ):
+                    self.domain.scale(coordinates)
+
+    def test_scale_rescales_coordinates(self):
+        """Test that each coordinate is rescaled linearly according to the bounds in
+        the domain."""
+
+        bounds = [(0, 1), (-0.5, 0.5), (1, 11)]
+        domain = SimulatorDomain(bounds)
+        coordinates = (0.5, 1, 0.7)
+        transformed = domain.scale(coordinates)
+
+        for z, x, bnds in zip(transformed, coordinates, bounds):
+            with self.subTest(x=x, bnds=bnds, z=z):
+                self.assertAlmostEqual(z, bnds[0] + x * (bnds[1] - bnds[0]))
 
 
 if __name__ == "__main__":
