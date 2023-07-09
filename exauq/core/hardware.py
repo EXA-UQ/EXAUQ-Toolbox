@@ -74,20 +74,20 @@ class SSHInterface(HardwareInterface):
             )
 
         if password is not None:
-            self.conn = Connection(
+            self._conn = Connection(
                 f"{user}@{host}", connect_kwargs={"password": password}
             )
         elif key_filename is not None:
-            self.conn = Connection(
+            self._conn = Connection(
                 f"{user}@{host}", connect_kwargs={"key_filename": key_filename}
             )
         elif ssh_config_path is not None:
             from fabric import Config
 
             ssh_config = Config(overrides={"ssh_config_path": ssh_config_path})
-            self.conn = Connection(host, config=ssh_config)
+            self._conn = Connection(host, config=ssh_config)
         else:
-            self.conn = Connection(
+            self._conn = Connection(
                 f"{user}@{host}"
             )  # Defaults to SSH agent if no password or key is provided
 
@@ -95,7 +95,7 @@ class SSHInterface(HardwareInterface):
         return self
 
     def __exit__(self, type, value, traceback):
-        self.conn.close()
+        self._conn.close()
 
     @abstractmethod
     def submit_job(self, job):
