@@ -91,6 +91,18 @@ class SSHInterface(HardwareInterface):
                 f"{user}@{host}"
             )  # Defaults to SSH agent if no password or key is provided
 
+        self._check_connection()
+
+    def _check_connection(self):
+        try:
+            self._conn.run('echo "Testing connection"', hide=True)
+            print("Connection established.")
+            return True
+
+        except Exception as e:
+            print(f"Could not connect: {str(e)}")
+            return False
+
     def __enter__(self):
         return self
 
