@@ -1,6 +1,8 @@
 import unittest
-from exauq.core.modelling import Input, TrainingDatum, SimulatorDomain
+
 import numpy as np
+
+from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 
 
 class TestInput(unittest.TestCase):
@@ -106,6 +108,13 @@ class TestInput(unittest.TestCase):
         x = Input(2)
         with self.assertRaises(AttributeError):
             x.value = 3
+
+    def test_len(self):
+        """Test that the length of the input is equal to the number of coordinates (or
+        0 if empty)."""
+        self.assertEqual(0, len(Input()))
+        self.assertEqual(1, len(Input(0)))
+        self.assertEqual(2, len(Input(0, 0)))
 
     def test_from_array(self):
         """Test that an input can be created from a Numpy array of data."""
@@ -286,7 +295,7 @@ class TestSimulatorDomain(unittest.TestCase):
         """Test that an Input with the wrong number of dimensions cannot belong to
         the domain."""
 
-        bounds = ((0, 1), (0, 1), (0, 1))
+        bounds = [(0, 1), (0, 1), (0, 1)]
         domain = SimulatorDomain(bounds)
         x1 = Input(1, 1)
         x2 = Input(1, 1, 1, 1)

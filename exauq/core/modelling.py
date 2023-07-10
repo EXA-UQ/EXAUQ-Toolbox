@@ -52,6 +52,7 @@ class Input(object):
 
     def __init__(self, *args):
         self._value = self._unpack_args(self._validate_args(args))
+        self._dim = len(args)
 
     @staticmethod
     def _unpack_args(args: tuple[Any, ...]) -> Union[tuple[Any, ...], Any, None]:
@@ -155,6 +156,9 @@ class Input(object):
 
     def __eq__(self, other) -> bool:
         return type(other) == type(self) and self._value == other.value
+
+    def __len__(self) -> int:
+        return self._dim
 
     @property
     def value(self) -> Union[tuple[Real, ...], Real, None]:
@@ -302,10 +306,7 @@ class SimulatorDomain(object):
         self._dim = len(bounds)
 
     def __contains__(self, item: Input):
-        if isinstance(item.value, Real):
-            return self._dim == 1
-
-        return len(item.value) == self._dim
+        return len(item) == self._dim
 
 
 class AbstractSimulator(abc.ABC):
