@@ -331,20 +331,9 @@ class SimulatorDomain(object):
         self._dim = len(bounds)
 
     def __contains__(self, item: Input):
-        if not len(item) == self._dim:
-            return False
-
-        if len(item) == 1:
-            if not self._bounds[0][0] <= item.value <= self._bounds[0][1]:
-                return False
-        else:
-            if not all(
-                bound[0] <= item.value[i] <= bound[1]
-                for i, bound in enumerate(self._bounds)
-            ):
-                return False
-
-        return True
+        return len(item) == self._dim and all(
+            bound[0] <= item[i] <= bound[1] for i, bound in enumerate(self._bounds)
+        )
 
 
 class AbstractSimulator(abc.ABC):
