@@ -291,16 +291,37 @@ class TestTrainingDatum(unittest.TestCase):
 
 
 class TestSimulatorDomain(unittest.TestCase):
+    def setUp(self) -> None:
+        self.domain = SimulatorDomain([(0, 2), (0, 1)])
+
     def test_input_not_in_domain_wrong_dims(self):
         """Test that an Input with the wrong number of dimensions cannot belong to
         the domain."""
 
-        bounds = [(0, 1), (0, 1), (0, 1)]
+        x1 = Input(1)
+        x2 = Input(1, 1, 1)
+        self.assertFalse(x1 in self.domain)
+        self.assertFalse(x2 in self.domain)
+
+    def test_input_not_in_domain_coord_out_of_bounds_one_dim(self):
+        """Test that an Input with a coordinate that lies outside the domain's bounds
+        cannot belong to the domain, in the case of a 1-dim domain."""
+
+        bounds = [(0, 1)]
         domain = SimulatorDomain(bounds)
-        x1 = Input(1, 1)
-        x2 = Input(1, 1, 1, 1)
+        x1 = Input(1.1)
+        x2 = Input(-0.1)
         self.assertFalse(x1 in domain)
         self.assertFalse(x2 in domain)
+
+    def test_input_not_in_domain_coord_out_of_bounds_multi_dim(self):
+        """Test that an Input with a coordinate that lies outside the domain's bounds
+        cannot belong to the domain, in the case of a multi-dim domain."""
+
+        x1 = Input(2.1, 0)
+        x2 = Input(1, -0.1)
+        self.assertFalse(x1 in self.domain)
+        self.assertFalse(x2 in self.domain)
 
 
 if __name__ == "__main__":

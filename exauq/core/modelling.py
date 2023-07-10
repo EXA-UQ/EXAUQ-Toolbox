@@ -301,12 +301,25 @@ class AbstractEmulator(abc.ABC):
 
 
 class SimulatorDomain(object):
-
     def __init__(self, bounds: list[tuple[Real, Real]]):
+        self._bounds = bounds
         self._dim = len(bounds)
 
     def __contains__(self, item: Input):
-        return len(item) == self._dim
+        if not len(item) == self._dim:
+            return False
+
+        if len(item) == 1:
+            if not self._bounds[0][0] <= item.value <= self._bounds[0][1]:
+                return False
+        else:
+            if not all(
+                bound[0] <= item.value[i] <= bound[1]
+                for i, bound in enumerate(self._bounds)
+            ):
+                return False
+
+        return True
 
 
 class AbstractSimulator(abc.ABC):
