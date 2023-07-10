@@ -340,7 +340,8 @@ class TestTrainingDatum(unittest.TestCase):
 
 class TestSimulatorDomain(unittest.TestCase):
     def setUp(self) -> None:
-        self.domain = SimulatorDomain([(0, 2), (0, 1)])
+        self.bounds = [(0, 2), (0, 1)]
+        self.domain = SimulatorDomain(self.bounds)
 
     def test_input_not_in_domain_wrong_dims(self):
         """Test that an Input with the wrong number of dimensions cannot belong to
@@ -370,6 +371,18 @@ class TestSimulatorDomain(unittest.TestCase):
         x2 = Input(1, -0.1)
         self.assertFalse(x1 in self.domain)
         self.assertFalse(x2 in self.domain)
+
+    def test_dim_equal_number_of_supplied_bounds(self):
+        """Test that the dimension of the domain is equal to the length of the bounds
+        sequence that was supplied."""
+
+        self.assertEqual(len(self.bounds), self.domain.dim)
+
+    def test_dim_immutable(self):
+        """Test that the dim property is read-only."""
+
+        with self.assertRaises(AttributeError):
+            self.domain.dim = 1
 
 
 if __name__ == "__main__":

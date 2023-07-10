@@ -335,6 +335,10 @@ class SimulatorDomain(object):
             bound[0] <= item[i] <= bound[1] for i, bound in enumerate(self._bounds)
         )
 
+    @property
+    def dim(self) -> int:
+        return self._dim
+
 
 class AbstractSimulator(abc.ABC):
     """Represents an abstract simulator.

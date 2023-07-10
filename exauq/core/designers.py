@@ -12,7 +12,7 @@ from exauq.utilities.validation import check_int
 
 class SimpleDesigner:
     def __init__(self, domain: SimulatorDomain):
-        pass
+        self._domain = domain
     
     def new_design_points(self, size: int) -> list[Input]:
         check_int(
@@ -22,7 +22,9 @@ class SimpleDesigner:
             raise ValueError(
                 f"Expected 'size' to be a non-negative integer but is equal to {size}."
             )
-        return [Input(1)] * size
+
+        coordinates = (0.5,) * self._domain.dim
+        return [Input(*coordinates)] * size
 
 
 class SingleLevelAdaptiveSampler:

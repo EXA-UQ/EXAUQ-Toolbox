@@ -52,8 +52,11 @@ class TestSimpleDesigner(unittest.TestCase):
         """Test that the Input objects returned belong to the SimulatorDomain
         contained within the designer."""
 
-        for x in self.designer.new_design_points(2):
-            self.assertTrue(x in self.domain)
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        designer = SimpleDesigner(domain)
+
+        for x in designer.new_design_points(2):
+            self.assertTrue(x in domain)
 
 
 class TestSingleLevelAdaptiveSampler(unittest.TestCase):
