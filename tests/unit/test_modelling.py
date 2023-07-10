@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
+from tests.utilities.utilities import exact
 
 
 class TestInput(unittest.TestCase):
@@ -115,6 +116,53 @@ class TestInput(unittest.TestCase):
         self.assertEqual(0, len(Input()))
         self.assertEqual(1, len(Input(0)))
         self.assertEqual(2, len(Input(0, 0)))
+
+    def test_getitem_int(self):
+        """Test that individual coordinates of the input can be accessed with ints
+        (with indexing starting at 0)."""
+
+        self.assertEqual(1, Input(1)[0])
+        self.assertEqual(2, Input(1, 2)[1])
+        self.assertEqual(2, Input(1, 2)[-1])
+
+    def test_getitem_slice(self):
+        """Test that a slice of the coordinates can be accessed, returned as a new Input
+        instance."""
+
+        x1 = Input(1, 2)
+        x2 = Input(1, 2, 3, 4)
+        x3 = Input(1)
+        self.assertEqual(Input(1), x1[0:1])
+        self.assertEqual(Input(1), x1[:-1])
+        self.assertEqual(Input(1, 2), x1[:])
+        self.assertEqual(Input(2), x1[1:])
+        self.assertEqual(Input(1, 3), x2[::2])
+        self.assertEqual(Input(2, 4), x2[1::2])
+        self.assertEqual(Input(2), x2[1:3:2])
+        self.assertEqual(Input(1), x3[:])
+        self.assertEqual(Input(), x3[:0])
+
+    def test_getitem_wrong_type_error(self):
+        """Test that a TypeError is raised if the indexing item is not an integer."""
+
+        i = "a"
+        x = Input(2)
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(f"Subscript must be an 'int' or slice, but received {type(i)}."),
+        ):
+            x[i]
+
+    def test_getitem_index_out_of_bounds_error(self):
+        """Test that an IndexError is raised if the indexing item does not fall within
+        the input's dimension."""
+
+        x = Input(2)
+        i = 1
+        with self.assertRaisesRegex(
+            IndexError, exact(f"Input index {i} out of range.")
+        ):
+            x[i]
 
     def test_from_array(self):
         """Test that an input can be created from a Numpy array of data."""

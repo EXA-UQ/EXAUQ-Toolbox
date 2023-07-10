@@ -65,9 +65,9 @@ class Input(object):
         >>> x._unpack_args((1, 2, 3))
         (1, 2, 3)
 
-        Single arguments get simplified:
+        Single arguments remain in their tuples:
         >>> x._unpack_args(('a'))
-        'a'
+        ('a',)
 
         Empty argument list returns None:
         >>> x._unpack_args(())
@@ -77,7 +77,7 @@ class Input(object):
         if len(args) > 1:
             return args
         elif len(args) == 1:
-            return args[0]
+            return args
         else:
             return None
 
@@ -142,28 +142,53 @@ class Input(object):
         if self._value is None:
             return "()"
 
+        elif self._dim == 1:
+            return f"{self._value[0]}"
+
         return str(self._value)
 
     def __repr__(self) -> str:
         if self._value is None:
             return "Input()"
 
-        elif isinstance(self._value, Real):
-            return f"Input({repr(self._value)})"
+        elif self._dim == 1:
+            return f"Input({repr(self._value[0])})"
 
         else:
             return f"Input{repr(self._value)}"
 
     def __eq__(self, other) -> bool:
-        return type(other) == type(self) and self._value == other.value
+        return type(other) == type(self) and self.value == other.value
 
     def __len__(self) -> int:
         return self._dim
+
+    def __getitem__(self, item: int) -> Union["Input", Real]:
+        try:
+            subseq = self._value[item]
+            if isinstance(item, slice):
+                return self.__class__(*subseq)
+
+            return subseq
+
+        except TypeError:
+            raise TypeError(
+                f"Subscript must be an 'int' or slice, but received {type(item)}."
+            )
+
+        except IndexError:
+            raise IndexError(f"Input index {item} out of range.")
 
     @property
     def value(self) -> Union[tuple[Real, ...], Real, None]:
         """(Read-only) Gets the value of the input, as a tuple of real
         numbers (dim > 1), a single real number (dim = 1), or None (dim = 0)."""
+
+        if self._value is None:
+            return None
+
+        if len(self._value) == 1:
+            return self._value[0]
 
         return self._value
 
