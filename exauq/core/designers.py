@@ -10,7 +10,7 @@ from exauq.core.modelling import (
 from exauq.utilities.validation import check_int
 
 
-class RandomSamplerDesigner:
+class SimpleDesigner:
     def __init__(self, domain: SimulatorDomain):
         pass
     
