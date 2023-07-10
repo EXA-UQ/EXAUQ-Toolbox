@@ -34,8 +34,7 @@ class TestInput(unittest.TestCase):
             _ = Input(1.1, None)
 
         self.assertEqual(
-            "Input coordinates must be real numbers, not None",
-            str(cm.exception)
+            "Input coordinates must be real numbers, not None", str(cm.exception)
         )
 
     def test_input_non_finite_error(self):
@@ -124,7 +123,7 @@ class TestInput(unittest.TestCase):
 
         self.assertEqual(
             f"Expected 'input' of type numpy.ndarray but received {type(x)}.",
-            str(cm.exception)
+            str(cm.exception),
         )
 
     def test_from_array_wrong_shape_error(self):
@@ -138,7 +137,7 @@ class TestInput(unittest.TestCase):
         self.assertEqual(
             "Expected 'input' to be a 1-dimensional numpy.ndarray but received an "
             f"array with {arr.ndim} dimensions.",
-            str(cm.exception)
+            str(cm.exception),
         )
 
     def test_from_array_non_real_error(self):
