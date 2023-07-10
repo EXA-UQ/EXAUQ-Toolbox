@@ -8,7 +8,7 @@ from tests.utilities.utilities import exact
 
 class TestRandomSamplerDesigner(unittest.TestCase):
     def setUp(self) -> None:
-        self.domain = SimulatorDomain()
+        self.domain = SimulatorDomain([(0, 1)])
         self.designer = RandomSamplerDesigner(self.domain)
 
     def test_new_design_points_size_type_error(self):

@@ -1,5 +1,5 @@
 import unittest
-from exauq.core.modelling import Input, TrainingDatum
+from exauq.core.modelling import Input, TrainingDatum, SimulatorDomain
 import numpy as np
 
 
@@ -279,6 +279,19 @@ class TestTrainingDatum(unittest.TestCase):
             TrainingDatum(Input(3.5, 9.87), 1.1),
         ]
         self.assertEqual(expected, TrainingDatum.list_from_arrays(inputs, outputs))
+
+
+class TestSimulatorDomain(unittest.TestCase):
+    def test_input_not_in_domain_wrong_dims(self):
+        """Test that an Input with the wrong number of dimensions cannot belong to
+        the domain."""
+
+        bounds = ((0, 1), (0, 1), (0, 1))
+        domain = SimulatorDomain(bounds)
+        x1 = Input(1, 1)
+        x2 = Input(1, 1, 1, 1)
+        self.assertFalse(x1 in domain)
+        self.assertFalse(x2 in domain)
 
 
 if __name__ == "__main__":

@@ -297,8 +297,15 @@ class AbstractEmulator(abc.ABC):
 
 
 class SimulatorDomain(object):
-    def __contains__(self, item: Any):
-        return True
+
+    def __init__(self, bounds: list[tuple[Real, Real]]):
+        self._dim = len(bounds)
+
+    def __contains__(self, item: Input):
+        if isinstance(item.value, Real):
+            return self._dim == 1
+
+        return len(item.value) == self._dim
 
 
 class AbstractSimulator(abc.ABC):
