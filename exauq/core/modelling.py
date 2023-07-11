@@ -407,6 +407,70 @@ class SimulatorDomain(object):
         inputs from this domain have."""
         return self._dim
 
+    def scale(self, coordinates: Sequence[Real, ...]) -> tuple[Real, ...]:
+        """Scale coordinates from the unit hypercube into coordinates for this domain.
+
+        The unit hypercube is the set of points where each coordinate lies between ``0``
+        and ``1`` (inclusive). This method provides a transformation that rescales such
+        a point to a point lying in this domain. For each coordinate, if the bounds on
+        the coordinate in this domain are ``a_i`` and ``b_i``, then the coordinate
+        ``x_i`` lying between ``0`` and ``1`` is transformed to
+        ``a_i + x_i * (b_i - a_i)``.
+
+        If the coordinates supplied do not lie in the unit hypercube, then the
+        transformation described above will still be applied, in which case the
+        transformed coordinates returned will not represent a point within this domain.
+
+        Parameters
+        ----------
+        coordinates : collections.abc.Sequence[numbers.Real, ...]
+            Coordinates of a point lying in a unit hypercube.
+
+        Returns
+        -------
+        tuple[numbers.Real, ...]
+            The coordinates for the transformed point, which will define an `Input`
+            that is contained in this domain.
+
+        Raises
+        ------
+        ValueError
+            If the number of coordinates supplied in the input argument is not equal
+            to the dimension of this domain.
+
+        Examples
+        --------
+        Each coordinate is transformed according to the bounds supplied to the domain:
+
+        >>> bounds = [(0, 1), (-0.5, 0.5), (1, 11)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> coordinates = (0.5, 1, 0.7)
+        >>> transformed = domain.scale(coordinates)
+        >>> print(transformed)
+        (0.5, 0.5, 8.0)
+
+        If we create an `Input` object from the transformed coordinates, then this
+        belongs to the domain:
+
+        >>> Input(*transformed) in domain
+        True
+        """
+
+        n_coordinates = len(coordinates)
+        if not n_coordinates == self.dim:
+            raise ValueError(
+                f"Expected 'coordinates' to be a sequence of length {self.dim} but "
+                f"received sequence of length {n_coordinates}."
+            )
+
+        return tuple(
+            map(
+                lambda x, bnds: bnds[0] + x * (bnds[1] - bnds[0]),
+                coordinates,
+                self._bounds,
+            )
+        )
+
 
 class AbstractSimulator(abc.ABC):
     """Represents an abstract simulator.

@@ -1,4 +1,5 @@
 import unittest
+from numbers import Real
 
 import numpy as np
 
@@ -388,6 +389,45 @@ class TestSimulatorDomain(unittest.TestCase):
 
         with self.assertRaises(AttributeError):
             self.domain.dim = 1
+
+    def test_scale_returns_tuple(self):
+        """Test that the scale method returns a tuple of real numbers.
+        """
+
+        coordinates = np.array([0.5, 0.5])
+        transformed = self.domain.scale(coordinates)
+        self.assertIsInstance(transformed, tuple)
+        for x in transformed:
+            self.assertIsInstance(x, Real)
+
+    def test_scale_wrong_dimension_input_error(self):
+        """Test that a ValueError is raised if the wrong number of coordinates are
+        present in the input arg."""
+
+        for coordinates in [(1,), (1, 1, 1)]:
+            with self.subTest(coordinates=coordinates):
+                with self.assertRaisesRegex(
+                        ValueError,
+                        exact(
+                            f"Expected 'coordinates' to be a sequence of length "
+                            f"{self.domain.dim} but received sequence of length "
+                            f"{len(coordinates)}."
+                        )
+                ):
+                    self.domain.scale(coordinates)
+
+    def test_scale_rescales_coordinates(self):
+        """Test that each coordinate is rescaled linearly according to the bounds in
+        the domain."""
+
+        bounds = [(0, 1), (-0.5, 0.5), (1, 11)]
+        domain = SimulatorDomain(bounds)
+        coordinates = (0.5, 1, 0.7)
+        transformed = domain.scale(coordinates)
+
+        for z, x, bnds in zip(transformed, coordinates, bounds):
+            with self.subTest(x=x, bnds=bnds, z=z):
+                self.assertAlmostEqual(z, bnds[0] + x * (bnds[1] - bnds[0]))
 
 
 if __name__ == "__main__":
