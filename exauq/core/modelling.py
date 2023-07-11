@@ -392,9 +392,13 @@ class SimulatorDomain(object):
         self._bounds = bounds
         self._dim = len(bounds)
 
-    def __contains__(self, item: Input):
-        return len(item) == self._dim and all(
-            bound[0] <= item[i] <= bound[1] for i, bound in enumerate(self._bounds)
+    def __contains__(self, item: Any):
+        return (
+            isinstance(item, Input)
+            and len(item) == self._dim
+            and all(
+                bound[0] <= item[i] <= bound[1] for i, bound in enumerate(self._bounds)
+            )
         )
 
     @property

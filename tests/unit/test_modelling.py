@@ -343,6 +343,11 @@ class TestSimulatorDomain(unittest.TestCase):
         self.bounds = [(0, 2), (0, 1)]
         self.domain = SimulatorDomain(self.bounds)
 
+    def test_input_not_in_domain_wrong_type(self):
+        """Test that objects not of type Input are not contained in the domain."""
+
+        self.assertFalse(1.0 in self.domain)
+
     def test_input_not_in_domain_wrong_dims(self):
         """Test that an Input with the wrong number of dimensions cannot belong to
         the domain."""
