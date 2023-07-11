@@ -38,9 +38,10 @@ class TestSimpleDesigner(unittest.TestCase):
         """Test that a list of the required size is returned."""
 
         for size in range(0, 3):
-            design_points = self.designer.new_design_points(size)
-            self.assertIsInstance(design_points, list)
-            self.assertEqual(size, len(design_points))
+            with self.subTest(size=size):
+                design_points = self.designer.new_design_points(size)
+                self.assertIsInstance(design_points, list)
+                self.assertEqual(size, len(design_points))
 
     def test_new_design_points_returns_list_inputs(self):
         """Test that a list of Input objects is returned."""
