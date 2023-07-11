@@ -26,7 +26,7 @@ class SimpleDesigner(object):
     def __init__(self, domain: SimulatorDomain):
         self._domain = domain
 
-    def new_design_points(self, size: int) -> list[Input]:
+    def make_design_batch(self, size: int) -> list[Input]:
         """Create a batch of new simulator inputs.
 
         The inputs returned are created by sampling each coordinate uniformly.

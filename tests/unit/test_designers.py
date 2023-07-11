@@ -11,7 +11,7 @@ class TestSimpleDesigner(unittest.TestCase):
         self.domain = SimulatorDomain([(0, 1)])
         self.designer = SimpleDesigner(self.domain)
 
-    def test_new_design_points_size_type_error(self):
+    def test_make_design_batch_size_type_error(self):
         """Test that a TypeError is raised if something other than an int is provided
         as the size."""
 
@@ -20,9 +20,9 @@ class TestSimpleDesigner(unittest.TestCase):
             TypeError,
             exact(f"Expected 'size' of type 'int' but received {type(size)}."),
         ):
-            self.designer.new_design_points(size)
+            self.designer.make_design_batch(size)
 
-    def test_new_design_points_size_negative_error(self):
+    def test_make_design_batch_size_negative_error(self):
         """Test that a ValueError is raised if the size provided is negative."""
 
         size = -1
@@ -32,31 +32,31 @@ class TestSimpleDesigner(unittest.TestCase):
                 f"Expected 'size' to be a non-negative integer but is equal to {size}."
             ),
         ):
-            self.designer.new_design_points(size)
+            self.designer.make_design_batch(size)
 
-    def test_new_design_points_return_list_length(self):
+    def test_make_design_batch_return_list_length(self):
         """Test that a list of the required size is returned."""
 
         for size in range(0, 3):
             with self.subTest(size=size):
-                design_points = self.designer.new_design_points(size)
+                design_points = self.designer.make_design_batch(size)
                 self.assertIsInstance(design_points, list)
                 self.assertEqual(size, len(design_points))
 
-    def test_new_design_points_returns_list_inputs(self):
+    def test_make_design_batch_returns_list_inputs(self):
         """Test that a list of Input objects is returned."""
 
-        for x in self.designer.new_design_points(2):
+        for x in self.designer.make_design_batch(2):
             self.assertIsInstance(x, Input)
 
-    def test_new_design_points_returns_inputs_from_domain(self):
+    def test_make_design_batch_returns_inputs_from_domain(self):
         """Test that the Input objects returned belong to the SimulatorDomain
         contained within the designer."""
 
         domain = SimulatorDomain([(2, 3), (0.5, 1)])
         designer = SimpleDesigner(domain)
 
-        for x in designer.new_design_points(2):
+        for x in designer.make_design_batch(2):
             self.assertTrue(x in domain)
 
 
