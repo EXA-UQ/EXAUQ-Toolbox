@@ -165,6 +165,21 @@ class TestInput(unittest.TestCase):
         ):
             x[i]
 
+    def test_sequence_implementation(self):
+        """Test that an Input implements the collections.abc.Sequence interface."""
+
+        for method in [
+            "__getitem__",
+            "__len__",
+            "__contains__",
+            "__iter__",
+            "__reversed__",
+            "index",
+            "count",
+        ]:
+            with self.subTest(method=method):
+                self.assertTrue(hasattr(Input, method))
+
     def test_from_array(self):
         """Test that an input can be created from a Numpy array of data."""
 

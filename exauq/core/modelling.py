@@ -11,11 +11,12 @@ import numpy as np
 import exauq.utilities.validation as validation
 
 
-class Input(object):
+class Input(Sequence):
     """The input to a simulator or emulator.
 
-    `Input` objects should be thought of as coordinate vectors. Applying the ``len``
-    function to an `Input` object will return the number of coordinates in it.
+    `Input` objects should be thought of as coordinate vectors. They implement the
+    Sequence abstract base class from the ``collections.abc module``. Applying the
+    ``len`` function to an `Input` object will return the number of coordinates in it.
     Individual coordinates can be extracted from an `Input` by using index
     subscripting (with indexing starting at ``0``).
 
