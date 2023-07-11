@@ -394,6 +394,8 @@ class SimulatorDomain(object):
         self._dim = len(bounds)
 
     def __contains__(self, item: Any):
+        """Returns ``True`` when `item` is an `Input` of the correct dimension and
+        whose coordinates lie within the bounds defined by this domain."""
         return (
             isinstance(item, Input)
             and len(item) == self._dim
