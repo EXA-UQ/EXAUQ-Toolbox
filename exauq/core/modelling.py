@@ -14,6 +14,11 @@ import exauq.utilities.validation as validation
 class Input(object):
     """The input to a simulator or emulator.
 
+    `Input` objects should be thought of as coordinate vectors. Applying the ``len``
+    function to an `Input` object will return the number of coordinates in it.
+    Individual coordinates can be extracted from an `Input` by using index
+    subscripting (with indexing starting at ``0``).
+
     Parameters
     ----------
     *args : tuple of numbers.Real
@@ -34,23 +39,41 @@ class Input(object):
     (1, 2, 3)
 
     Single arguments just return a number:
+
     >>> x = Input(2.1)
     >>> x.value
     2.1
 
     Types are preserved coordinate-wise:
+
     >>> import numpy as np
     >>> x = Input(1.3, np.float64(2), np.int16(1))
     >>> print([type(a) for a in x.value])
     [<class 'float'>, <class 'numpy.float64'>, <class 'numpy.int16'>]
 
-    Empty argument list gives an input with value = None:
+    Empty argument list gives an input with `value` = ``None``:
+
     >>> x = Input()
-    >>> x.value
-    None
+    >>> x.value is None
+    True
+
+    The ``len`` function provides the number of coordinates:
+
+    >>> len(Input(0.5, 1, 2))
+    3
+
+    The individual coordinates and slices of inputs can be retrieved by indexing:
+
+    >>> x = Input(1, 2, 3)
+    >>> x[0]
+    1
+    >>> x[1:]
+    Input(2, 3)
+    >>> x[-1]
+    3
     """
 
-    def __init__(self, *args):
+    def __init__(self, *args: Real):
         self._value = self._unpack_args(self._validate_args(args))
         self._dim = len(args)
 
@@ -66,12 +89,12 @@ class Input(object):
         (1, 2, 3)
 
         Single arguments remain in their tuples:
-        >>> x._unpack_args(('a'))
+        >>> x._unpack_args(tuple(['a']))
         ('a',)
 
         Empty argument list returns None:
-        >>> x._unpack_args(())
-        None
+        >>> x._unpack_args(()) is None
+        True
         """
 
         if len(args) > 1:
@@ -157,15 +180,23 @@ class Input(object):
         else:
             return f"Input{repr(self._value)}"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Any) -> bool:
+        """Returns ``True`` precisely when `other` is an `Input` with the same
+        coordinates as this `Input`"""
+
         return type(other) == type(self) and self.value == other.value
 
     def __len__(self) -> int:
+        """Returns the number of coordinates in this input."""
+
         return self._dim
 
-    def __getitem__(self, item: int) -> Union["Input", Real]:
+    def __getitem__(self, item: Union[int, slice]) -> Union["Input", Real]:
+        """Gets the coordinate at the given index of this input, or returns a new
+        `Input` built from the given slice of coordinate entries."""
+
         try:
-            subseq = self._value[item]
+            subseq = self._value[item]  # could be a single entry or a subsequence
             if isinstance(item, slice):
                 return self.__class__(*subseq)
 
@@ -326,6 +357,37 @@ class AbstractEmulator(abc.ABC):
 
 
 class SimulatorDomain(object):
+    """
+    Class representing the domain of a simulator.
+
+    When considering a simulator as a mathematical function ``f(x)``, the domain is the
+    set of all inputs of the function. This class supports domains that are
+    n-dimensional rectangles, that is, sets of inputs whose coordinates lie between some
+    fixed bounds (which may differ for each coordinate). Membership of a given input
+    can be tested using the ``in`` operator; see the examples.
+
+    Attributes
+    ----------
+    dim : int
+        (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
+        from this domain have.
+
+    Examples
+    --------
+    Create a 3-dimensional domain for a simulator with inputs ``(x1, x2, x3)`` where
+    ``1 <= x1 <= 2``, ``-1 <= x2 <= 1`` and ``0 <= x3 <= 100``:
+
+    >>> bounds = [(1, 2), (-1, 1), (0, 100)]
+    >>> domain = SimulatorDomain(bounds)
+
+    Test whether various inputs lie in the domain:
+
+    >>> Input(1, 0, 100) in domain
+    True
+    >>> Input(1.5, -1, -1) in domain  # third coordinate outside bounds
+    False
+    """
+
     def __init__(self, bounds: list[tuple[Real, Real]]):
         self._bounds = bounds
         self._dim = len(bounds)
@@ -337,6 +399,8 @@ class SimulatorDomain(object):
 
     @property
     def dim(self) -> int:
+        """(Read-only) The dimension of this domain, i.e. the number of coordinates
+        inputs from this domain have."""
         return self._dim
 
 
