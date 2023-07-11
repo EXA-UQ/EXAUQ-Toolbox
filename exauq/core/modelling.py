@@ -284,7 +284,7 @@ class TrainingDatum(object):
     ) -> list["TrainingDatum"]:
         """Create a list of training data from Numpy arrays.
 
-        It is common when working with Numpy for staistical modelling to
+        It is common when working with Numpy for statistical modelling to
         represent a set of `inputs` and corresponding `outputs` with two arrays:
         a 2-dimensional array of inputs (with a row for each input) and a
         1-dimensional array of outputs, where the length of the `outputs` array
