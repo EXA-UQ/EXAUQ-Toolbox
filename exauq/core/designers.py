@@ -23,6 +23,7 @@ class SimpleDesigner(object):
     domain : SimulatorDomain
         A domain for a simulator.
     """
+
     def __init__(self, domain: SimulatorDomain):
         self._domain = domain
 
