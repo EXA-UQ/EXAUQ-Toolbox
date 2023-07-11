@@ -12,11 +12,35 @@ from exauq.core.modelling import (
 from exauq.utilities.validation import check_int
 
 
-class SimpleDesigner:
+class SimpleDesigner(object):
+    """A designer producing simulator inputs based on random generation.
+
+    This designer produces simulator inputs by sampling each coordinate uniformly. The
+    inputs created all belong to the supplied simulator domain.
+
+    Parameters
+    ----------
+    domain : SimulatorDomain
+        A domain for a simulator.
+    """
     def __init__(self, domain: SimulatorDomain):
         self._domain = domain
 
     def new_design_points(self, size: int) -> list[Input]:
+        """Create a batch of new simulator inputs.
+
+        The inputs returned are created by sampling each coordinate uniformly.
+
+        Parameters
+        ----------
+        size : int
+            The number of inputs to create.
+
+        Returns
+        -------
+        list[Input]
+            A batch of new simulator inputs.
+        """
         check_int(
             size, TypeError(f"Expected 'size' of type 'int' but received {type(size)}.")
         )
