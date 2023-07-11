@@ -52,7 +52,7 @@ class TestSimpleDesigner(unittest.TestCase):
         """Test that the Input objects returned belong to the SimulatorDomain
         contained within the designer."""
 
-        domain = SimulatorDomain([(0, 1), (0, 1)])
+        domain = SimulatorDomain([(2, 3), (0.5, 1)])
         designer = SimpleDesigner(domain)
 
         for x in designer.new_design_points(2):

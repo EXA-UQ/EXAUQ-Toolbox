@@ -1,5 +1,7 @@
 import copy
 
+import numpy as np
+
 from exauq.core.modelling import (
     AbstractEmulator,
     AbstractSimulator,
@@ -13,7 +15,7 @@ from exauq.utilities.validation import check_int
 class SimpleDesigner:
     def __init__(self, domain: SimulatorDomain):
         self._domain = domain
-    
+
     def new_design_points(self, size: int) -> list[Input]:
         check_int(
             size, TypeError(f"Expected 'size' of type 'int' but received {type(size)}.")
@@ -23,8 +25,10 @@ class SimpleDesigner:
                 f"Expected 'size' to be a non-negative integer but is equal to {size}."
             )
 
-        coordinates = (0.5,) * self._domain.dim
-        return [Input(*coordinates)] * size
+        rng = np.random.default_rng()
+        return [
+            self._domain.scale(rng.uniform(size=self._domain.dim)) for _ in range(size)
+        ]
 
 
 class SingleLevelAdaptiveSampler:
