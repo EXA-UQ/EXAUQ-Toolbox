@@ -408,7 +408,7 @@ class SimulatorDomain(object):
         inputs from this domain have."""
         return self._dim
 
-    def scale(self, coordinates: Sequence[Real, ...]) -> tuple[Real, ...]:
+    def scale(self, coordinates: Sequence[Real, ...]) -> Input:
         """Scale coordinates from the unit hypercube into coordinates for this domain.
 
         The unit hypercube is the set of points where each coordinate lies between ``0``
@@ -429,9 +429,8 @@ class SimulatorDomain(object):
 
         Returns
         -------
-        tuple[numbers.Real, ...]
-            The coordinates for the transformed point, which will define an `Input`
-            that is contained in this domain.
+        Input
+            The coordinates for the transformed point as a simulator input.
 
         Raises
         ------
@@ -447,13 +446,12 @@ class SimulatorDomain(object):
         >>> domain = SimulatorDomain(bounds)
         >>> coordinates = (0.5, 1, 0.7)
         >>> transformed = domain.scale(coordinates)
-        >>> print(transformed)
-        (0.5, 0.5, 8.0)
+        >>> transformed
+        Input(0.5, 0.5, 8.0)
 
-        If we create an `Input` object from the transformed coordinates, then this
-        belongs to the domain:
+        The resulting `Input` is contained in the domain:
 
-        >>> Input(*transformed) in domain
+        >>> transformed in domain
         True
         """
 
@@ -464,8 +462,8 @@ class SimulatorDomain(object):
                 f"received sequence of length {n_coordinates}."
             )
 
-        return tuple(
-            map(
+        return Input(
+            *map(
                 lambda x, bnds: bnds[0] + x * (bnds[1] - bnds[0]),
                 coordinates,
                 self._bounds,

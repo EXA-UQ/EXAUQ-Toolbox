@@ -1,5 +1,4 @@
 import unittest
-from numbers import Real
 
 import numpy as np
 
@@ -405,15 +404,12 @@ class TestSimulatorDomain(unittest.TestCase):
         with self.assertRaises(AttributeError):
             self.domain.dim = 1
 
-    def test_scale_returns_tuple(self):
-        """Test that the scale method returns a tuple of real numbers.
-        """
+    def test_scale_returns_input(self):
+        """Test that the scale method returns a tuple of real numbers."""
 
-        coordinates = np.array([0.5, 0.5])
+        coordinates = (0.5, 0.5)
         transformed = self.domain.scale(coordinates)
-        self.assertIsInstance(transformed, tuple)
-        for x in transformed:
-            self.assertIsInstance(x, Real)
+        self.assertIsInstance(transformed, Input)
 
     def test_scale_wrong_dimension_input_error(self):
         """Test that a ValueError is raised if the wrong number of coordinates are
@@ -422,12 +418,12 @@ class TestSimulatorDomain(unittest.TestCase):
         for coordinates in [(1,), (1, 1, 1)]:
             with self.subTest(coordinates=coordinates):
                 with self.assertRaisesRegex(
-                        ValueError,
-                        exact(
-                            f"Expected 'coordinates' to be a sequence of length "
-                            f"{self.domain.dim} but received sequence of length "
-                            f"{len(coordinates)}."
-                        )
+                    ValueError,
+                    exact(
+                        f"Expected 'coordinates' to be a sequence of length "
+                        f"{self.domain.dim} but received sequence of length "
+                        f"{len(coordinates)}."
+                    ),
                 ):
                     self.domain.scale(coordinates)
 
