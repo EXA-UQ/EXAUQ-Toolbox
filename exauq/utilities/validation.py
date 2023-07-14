@@ -58,5 +58,5 @@ def check_finite(x: Any, exception: Exception) -> None:
 
 def check_int(x: Any, exception: Exception) -> None:
     """Raise the given exception if an object is not an int."""
-    if not isinstance(x, int):
+    if type(x) is not int:
         raise exception
