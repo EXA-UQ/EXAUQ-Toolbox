@@ -4,6 +4,7 @@
 from collections.abc import Iterable
 from numbers import Real
 from typing import Any, Callable
+
 import numpy as np
 
 
@@ -52,4 +53,10 @@ def check_entries_finite(x: Iterable, exception: Exception) -> None:
 def check_finite(x: Any, exception: Exception) -> None:
     """Raise the given exception if an object is not a finite number."""
     if not np.isfinite(x):
+        raise exception
+
+
+def check_int(x: Any, exception: Exception) -> None:
+    """Raise the given exception if an object is not an int."""
+    if not isinstance(x, int):
         raise exception

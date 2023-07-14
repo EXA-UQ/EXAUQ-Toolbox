@@ -1,16 +1,24 @@
 """Basic objects for expressing emulation of simulators."""
 
 import abc
-from collections.abc import Sequence
 import dataclasses
+from collections.abc import Sequence
 from numbers import Real
 from typing import Any, Union
+
 import numpy as np
-import exauq.utilities.validation.real as validation
+
+import exauq.utilities.validation as validation
 
 
-class Input(object):
+class Input(Sequence):
     """The input to a simulator or emulator.
+
+    `Input` objects should be thought of as coordinate vectors. They implement the
+    Sequence abstract base class from the ``collections.abc module``. Applying the
+    ``len`` function to an `Input` object will return the number of coordinates in it.
+    Individual coordinates can be extracted from an `Input` by using index
+    subscripting (with indexing starting at ``0``).
 
     Parameters
     ----------
@@ -32,24 +40,43 @@ class Input(object):
     (1, 2, 3)
 
     Single arguments just return a number:
+
     >>> x = Input(2.1)
     >>> x.value
     2.1
 
     Types are preserved coordinate-wise:
+
     >>> import numpy as np
     >>> x = Input(1.3, np.float64(2), np.int16(1))
     >>> print([type(a) for a in x.value])
     [<class 'float'>, <class 'numpy.float64'>, <class 'numpy.int16'>]
 
-    Empty argument list gives an input with value = None:
+    Empty argument list gives an input with `value` = ``None``:
+
     >>> x = Input()
-    >>> x.value
-    None
+    >>> x.value is None
+    True
+
+    The ``len`` function provides the number of coordinates:
+
+    >>> len(Input(0.5, 1, 2))
+    3
+
+    The individual coordinates and slices of inputs can be retrieved by indexing:
+
+    >>> x = Input(1, 2, 3)
+    >>> x[0]
+    1
+    >>> x[1:]
+    Input(2, 3)
+    >>> x[-1]
+    3
     """
 
-    def __init__(self, *args):
+    def __init__(self, *args: Real):
         self._value = self._unpack_args(self._validate_args(args))
+        self._dim = len(args)
 
     @staticmethod
     def _unpack_args(args: tuple[Any, ...]) -> Union[tuple[Any, ...], Any, None]:
@@ -62,19 +89,19 @@ class Input(object):
         >>> x._unpack_args((1, 2, 3))
         (1, 2, 3)
 
-        Single arguments get simplified:
-        >>> x._unpack_args(('a'))
-        'a'
+        Single arguments remain in their tuples:
+        >>> x._unpack_args(tuple(['a']))
+        ('a',)
 
         Empty argument list returns None:
-        >>> x._unpack_args(())
-        None
+        >>> x._unpack_args(()) is None
+        True
         """
 
         if len(args) > 1:
             return args
         elif len(args) == 1:
-            return args[0]
+            return args
         else:
             return None
 
@@ -139,25 +166,61 @@ class Input(object):
         if self._value is None:
             return "()"
 
+        elif self._dim == 1:
+            return f"{self._value[0]}"
+
         return str(self._value)
 
     def __repr__(self) -> str:
         if self._value is None:
             return "Input()"
 
-        elif isinstance(self._value, Real):
-            return f"Input({repr(self._value)})"
+        elif self._dim == 1:
+            return f"Input({repr(self._value[0])})"
 
         else:
             return f"Input{repr(self._value)}"
 
-    def __eq__(self, other) -> bool:
-        return type(other) == type(self) and self._value == other.value
+    def __eq__(self, other: Any) -> bool:
+        """Returns ``True`` precisely when `other` is an `Input` with the same
+        coordinates as this `Input`"""
+
+        return type(other) == type(self) and self.value == other.value
+
+    def __len__(self) -> int:
+        """Returns the number of coordinates in this input."""
+
+        return self._dim
+
+    def __getitem__(self, item: Union[int, slice]) -> Union["Input", Real]:
+        """Gets the coordinate at the given index of this input, or returns a new
+        `Input` built from the given slice of coordinate entries."""
+
+        try:
+            subseq = self._value[item]  # could be a single entry or a subsequence
+            if isinstance(item, slice):
+                return self.__class__(*subseq)
+
+            return subseq
+
+        except TypeError:
+            raise TypeError(
+                f"Subscript must be an 'int' or slice, but received {type(item)}."
+            )
+
+        except IndexError:
+            raise IndexError(f"Input index {item} out of range.")
 
     @property
     def value(self) -> Union[tuple[Real, ...], Real, None]:
         """(Read-only) Gets the value of the input, as a tuple of real
         numbers (dim > 1), a single real number (dim = 1), or None (dim = 0)."""
+
+        if self._value is None:
+            return None
+
+        if len(self._value) == 1:
+            return self._value[0]
 
         return self._value
 
@@ -222,7 +285,7 @@ class TrainingDatum(object):
     ) -> list["TrainingDatum"]:
         """Create a list of training data from Numpy arrays.
 
-        It is common when working with Numpy for staistical modelling to
+        It is common when working with Numpy for statistical modelling to
         represent a set of `inputs` and corresponding `outputs` with two arrays:
         a 2-dimensional array of inputs (with a row for each input) and a
         1-dimensional array of outputs, where the length of the `outputs` array
@@ -292,6 +355,122 @@ class AbstractEmulator(abc.ABC):
         """
 
         pass
+
+
+class SimulatorDomain(object):
+    """
+    Class representing the domain of a simulator.
+
+    When considering a simulator as a mathematical function ``f(x)``, the domain is the
+    set of all inputs of the function. This class supports domains that are
+    n-dimensional rectangles, that is, sets of inputs whose coordinates lie between some
+    fixed bounds (which may differ for each coordinate). Membership of a given input
+    can be tested using the ``in`` operator; see the examples.
+
+    Attributes
+    ----------
+    dim : int
+        (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
+        from this domain have.
+
+    Examples
+    --------
+    Create a 3-dimensional domain for a simulator with inputs ``(x1, x2, x3)`` where
+    ``1 <= x1 <= 2``, ``-1 <= x2 <= 1`` and ``0 <= x3 <= 100``:
+
+    >>> bounds = [(1, 2), (-1, 1), (0, 100)]
+    >>> domain = SimulatorDomain(bounds)
+
+    Test whether various inputs lie in the domain:
+
+    >>> Input(1, 0, 100) in domain
+    True
+    >>> Input(1.5, -1, -1) in domain  # third coordinate outside bounds
+    False
+    """
+
+    def __init__(self, bounds: list[tuple[Real, Real]]):
+        self._bounds = bounds
+        self._dim = len(bounds)
+
+    def __contains__(self, item: Any):
+        """Returns ``True`` when `item` is an `Input` of the correct dimension and
+        whose coordinates lie within the bounds defined by this domain."""
+        return (
+            isinstance(item, Input)
+            and len(item) == self._dim
+            and all(
+                bound[0] <= item[i] <= bound[1] for i, bound in enumerate(self._bounds)
+            )
+        )
+
+    @property
+    def dim(self) -> int:
+        """(Read-only) The dimension of this domain, i.e. the number of coordinates
+        inputs from this domain have."""
+        return self._dim
+
+    def scale(self, coordinates: Sequence[Real, ...]) -> Input:
+        """Scale coordinates from the unit hypercube into coordinates for this domain.
+
+        The unit hypercube is the set of points where each coordinate lies between ``0``
+        and ``1`` (inclusive). This method provides a transformation that rescales such
+        a point to a point lying in this domain. For each coordinate, if the bounds on
+        the coordinate in this domain are ``a_i`` and ``b_i``, then the coordinate
+        ``x_i`` lying between ``0`` and ``1`` is transformed to
+        ``a_i + x_i * (b_i - a_i)``.
+
+        If the coordinates supplied do not lie in the unit hypercube, then the
+        transformation described above will still be applied, in which case the
+        transformed coordinates returned will not represent a point within this domain.
+
+        Parameters
+        ----------
+        coordinates : collections.abc.Sequence[numbers.Real, ...]
+            Coordinates of a point lying in a unit hypercube.
+
+        Returns
+        -------
+        Input
+            The coordinates for the transformed point as a simulator input.
+
+        Raises
+        ------
+        ValueError
+            If the number of coordinates supplied in the input argument is not equal
+            to the dimension of this domain.
+
+        Examples
+        --------
+        Each coordinate is transformed according to the bounds supplied to the domain:
+
+        >>> bounds = [(0, 1), (-0.5, 0.5), (1, 11)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> coordinates = (0.5, 1, 0.7)
+        >>> transformed = domain.scale(coordinates)
+        >>> transformed
+        Input(0.5, 0.5, 8.0)
+
+        The resulting `Input` is contained in the domain:
+
+        >>> transformed in domain
+        True
+        """
+
+        n_coordinates = len(coordinates)
+        if not n_coordinates == self.dim:
+            raise ValueError(
+                f"Expected 'coordinates' to be a sequence of length {self.dim} but "
+                f"received sequence of length {n_coordinates}."
+            )
+
+        return Input(
+            *map(
+                lambda x, bnds: bnds[0] + x * (bnds[1] - bnds[0]),
+                coordinates,
+                self._bounds,
+            )
+        )
 
 
 class AbstractSimulator(abc.ABC):
