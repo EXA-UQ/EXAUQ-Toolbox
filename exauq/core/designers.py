@@ -43,7 +43,7 @@ class SimpleDesigner(object):
             A batch of new simulator inputs.
         """
         check_int(
-            size, TypeError(f"Expected 'size' of type 'int' but received {type(size)}.")
+            size, TypeError(f"Expected 'size' to be an integer but received {type(size)}.")
         )
         if size < 0:
             raise ValueError(

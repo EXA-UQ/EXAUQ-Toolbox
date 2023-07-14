@@ -18,7 +18,7 @@ class TestSimpleDesigner(unittest.TestCase):
         size = 2.3
         with self.assertRaisesRegex(
             TypeError,
-            exact(f"Expected 'size' of type 'int' but received {type(size)}."),
+            exact(f"Expected 'size' to be an integer but received {type(size)}."),
         ):
             self.designer.make_design_batch(size)
 
