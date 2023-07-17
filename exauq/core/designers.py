@@ -1,6 +1,59 @@
 import copy
 from collections.abc import Collection
-from exauq.core.modelling import Input, TrainingDatum, AbstractEmulator
+
+import numpy as np
+
+from exauq.core.modelling import (
+    AbstractEmulator,
+    Input,
+    SimulatorDomain,
+    TrainingDatum,
+)
+from exauq.utilities.validation import check_int
+
+
+class SimpleDesigner(object):
+    """A designer producing simulator inputs based on random generation.
+
+    This designer produces simulator inputs by sampling each coordinate uniformly. The
+    inputs created all belong to the supplied simulator domain.
+
+    Parameters
+    ----------
+    domain : SimulatorDomain
+        A domain for a simulator.
+    """
+
+    def __init__(self, domain: SimulatorDomain):
+        self._domain = domain
+
+    def make_design_batch(self, size: int) -> list[Input]:
+        """Create a batch of new simulator inputs.
+
+        The inputs returned are created by sampling each coordinate uniformly.
+
+        Parameters
+        ----------
+        size : int
+            The number of inputs to create.
+
+        Returns
+        -------
+        list[Input]
+            A batch of new simulator inputs.
+        """
+        check_int(
+            size, TypeError(f"Expected 'size' to be an integer but received {type(size)}.")
+        )
+        if size < 0:
+            raise ValueError(
+                f"Expected 'size' to be a non-negative integer but is equal to {size}."
+            )
+
+        rng = np.random.default_rng()
+        return [
+            self._domain.scale(rng.uniform(size=self._domain.dim)) for _ in range(size)
+        ]
 
 
 class SingleLevelAdaptiveSampler:
