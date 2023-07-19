@@ -13,7 +13,7 @@ be run on an exascale computer, whereas a lower-fidelity, but cheaper, simulatio
 run on a more conventional HPC, or a departmental server).
 
 
-## Installation
+## Installing the latest development version
 
 We strongly recommend using virtual environments (e.g. Conda environments) to
 manage packages when using the EXAUQ-Toolbox in your work.
@@ -22,17 +22,17 @@ To install the `exauq` package from the toolbox, run the following command (afte
 activating the virtual environment, if necessary):
 
 ``` bash
-python -m pip install "exauq @ git+https://github.com/UniExeterRSE/EXAUQ-Toolbox.git"
+python -m pip install "exauq @ git+https://github.com/UniExeterRSE/EXAUQ-Toolbox.git@dev"
 ```
 This will install the version of `exauq` currently on the Git repository's `dev` branch.
 
 If you already have `exauq` installed and wish to update it, run
 
 ``` bash
-python -m pip install --upgrade "exauq @ git+https://github.com/UniExeterRSE/EXAUQ-Toolbox.git"
+python -m pip install --force-reinstall "exauq @ git+https://github.com/UniExeterRSE/EXAUQ-Toolbox.git@dev"
 ```
 
-## Installation for development
+## Installation for developers
 
 EXAUQ-Toolbox is written in Python and uses [Poetry](https://python-poetry.org/)
 for package development and dependency management.
