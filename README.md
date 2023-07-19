@@ -1,6 +1,6 @@
 # EXAscale Uncertainty Quantification Toolbox (EXAUQ-Toolbox)
 
-The EXAUQ-Toolbox is a Python package that supports the development of
+The EXAUQ-Toolbox is a collection of packages and utilities that supports the development of
 emulators of complex computer simulations. A key feature is support for fitting
 multi-level Gaussian Process emulators for hierarchies of simulation models. Here, simulations in the
 hierarchy are arranged according to differing levels of model fidelity, with the
@@ -12,6 +12,25 @@ multi-fidelity hierarchy. (For example, runs of the highest-fidelity simulation 
 be run on an exascale computer, whereas a lower-fidelity, but cheaper, simulation may be
 run on a more conventional HPC, or a departmental server).
 
+
+## Installation
+
+We strongly recommend using virtual environments (e.g. Conda environments) to
+manage packages when using the EXAUQ-Toolbox in your work.
+
+To install the `exauq` package from the toolbox, run the following command (after
+activating the virtual environment, if necessary):
+
+``` bash
+python -m pip install "exauq @ git+https://github.com/UniExeterRSE/EXAUQ-Toolbox.git"
+```
+This will install the version of `exauq` currently on the Git repository's `dev` branch.
+
+If you already have `exauq` installed and wish to update it, run
+
+``` bash
+python -m pip install --upgrade "exauq @ git+https://github.com/UniExeterRSE/EXAUQ-Toolbox.git"
+```
 
 ## Installation for development
 
