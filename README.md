@@ -69,10 +69,3 @@ with the versioning constraints specified in `pyproject.toml`, run
 ```bash
 $ poetry update
 ```
-
-## Software architecture
-
-The following diagram gives an indication of the main classes used within the
-software.
-
-![architecture](resources/images/architecture.png)
