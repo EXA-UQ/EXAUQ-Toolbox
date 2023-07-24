@@ -52,9 +52,9 @@ class SSHInterface(HardwareInterface):
     ssh_config_path : str, optional
         The path to the SSH configuration file.
     use_ssh_agent : bool, optional
-        If True, use SSH agent for authentication. Defaults to False.
+        If ``True``, use SSH agent for authentication. Defaults to ``False``.
     max_attempts : int, optional
-        The number of authentication attempts allowed. Defaults to 3.
+        The number of authentication attempts allowed. Defaults to ``3``.
 
     Raises
     ------
