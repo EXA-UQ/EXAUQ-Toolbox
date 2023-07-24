@@ -86,7 +86,7 @@ class SSHInterface(HardwareInterface):
         ):
             raise ValueError(
                 "Only one method of authentication should be provided. Please specify either "
-                "key_filename, ssh_config_path or set use_ssh_agent to True."
+                "'key_filename', 'ssh_config_path' or set 'use_ssh_agent' to True."
             )
 
         if key_filename is not None:
