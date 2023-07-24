@@ -2,7 +2,7 @@ import getpass
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from fabric import Connection
+from fabric import Config, Connection
 from paramiko.ssh_exception import AuthenticationException, SSHException
 
 
@@ -94,8 +94,6 @@ class SSHInterface(HardwareInterface):
                 f"{user}@{host}", connect_kwargs={"key_filename": key_filename}
             )
         elif ssh_config_path is not None:
-            from fabric import Config
-
             ssh_config = Config(overrides={"ssh_config_path": ssh_config_path})
             self._conn = Connection(host, config=ssh_config)
         elif use_ssh_agent:
