@@ -61,13 +61,17 @@ class SimulationsLog(object):
 
     The log file contains a record of simulations that have been submitted for
     computation. The input of each submission is recorded along with the simulator
-    output, if this has been computed. This is recorded in csv format.
+    output, if this has been computed. This is recorded in csv format. Columns that give
+    the input coordinates should have headings 'Input_n' where ``n`` is the index of
+    the coordinate (starting at 1). The column giving the simulator output should have
+    the heading 'Output'.
 
     Parameters
     ----------
     file : str, bytes or path-like, optional
         A path to the underlying log file containing details of simulations.
     """
+
     def __init__(self, file: Optional[Union[str, bytes, PathLike]] = None):
         self._log_file = file
 
@@ -85,11 +89,18 @@ class SimulationsLog(object):
             A tuple of ``(x, y)`` pairs, where ``x`` is an `Input` and ``y`` is the
             simulation output, or ``None`` if this hasn't yet been computed.
         """
-        simulations = []
         with open(self._log_file, mode="r", newline="") as log_file:
-            for row in csv.DictReader(log_file):
-                x = Input(float(row["Input"]))
-                y = float(row["Output"]) if row["Output"] else None
-                simulations.append((x, y))
+            return tuple(map(self._parse_row, csv.DictReader(log_file)))
 
-        return tuple(simulations)
+    @staticmethod
+    def _parse_row(record: dict[str, str]) -> tuple[Input, Real]:
+        """Convert a dictionary record read from the log file into a pair of simulator
+        inputs and outputs. Missing outputs are converted to the empty string."""
+        input_items = sorted(
+            ((k, v) for k, v in record.items() if k.startswith("Input")),
+            key=lambda x: x[0]
+        )
+        input_coords = (float(v) for _, v in input_items)
+        x = Input(*input_coords)
+        y = float(record["Output"]) if record["Output"] else None
+        return x, y
