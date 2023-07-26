@@ -12,9 +12,9 @@ class Simulator(AbstractSimulator):
 
     Simulations that have been previously submitted for computation can be retrieved
     using the ``previous_simulations` property. This returns a tuple of `Input`s and
-    simulation outputs; in the case where an `Input` has been submitted for evaluation
-    but no output from the simulator has been retrieved, the output is recorded as
-    ``None``.
+    simulation outputs that have been recorded in a simulations log file, if supplied.
+    In the case where an `Input` has been submitted for evaluation but no output from
+    the simulator has been retrieved, the output is recorded as ``None``.
 
     Parameters
     ----------
@@ -28,7 +28,12 @@ class Simulator(AbstractSimulator):
     """
 
     def __init__(self, simulations_log: Optional[Union[str, bytes, PathLike]] = None):
-        self._previous_simulations = []
+        if simulations_log is None:
+            self._previous_simulations = []
+        else:
+            self._previous_simulations = list(
+                SimulationsLog(simulations_log).get_simulations()
+            )
 
     @property
     def previous_simulations(self) -> tuple:
@@ -100,7 +105,7 @@ class SimulationsLog(object):
         inputs and outputs. Missing outputs are converted to the empty string."""
         input_items = sorted(
             ((k, v) for k, v in record.items() if k.startswith("Input")),
-            key=lambda x: x[0]
+            key=lambda x: x[0],
         )
         input_coords = (float(v) for _, v in input_items)
         x = Input(*input_coords)

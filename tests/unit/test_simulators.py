@@ -1,23 +1,48 @@
 import pathlib
 import unittest.mock
+from numbers import Real
 
 from exauq.core.modelling import Input
 from exauq.core.simulators import SimulationsLog, Simulator
 
 
+def make_fake_simulations_log_class(simulations: tuple[tuple[Input, Real]]):
+    """Make a class that fakes SimulationsLog by returning the prescribed
+    simulations."""
+
+    class FakeSimulationsLog(SimulationsLog):
+        def __init__(self, *args):
+            super().__init__(*args)
+            self.simulations = simulations if self._log_file else ()
+
+        def get_simulations(self):
+            return self.simulations
+
+    return FakeSimulationsLog
+
+
 class TestSimulator(unittest.TestCase):
     def setUp(self) -> None:
-        self.simulator = Simulator()
+        self.simulations = ((Input(1), 0),)
+        self.FakeSimulationsLog = make_fake_simulations_log_class(self.simulations)
+
+        with unittest.mock.patch(
+            "exauq.core.simulators.SimulationsLog", new=self.FakeSimulationsLog
+        ):
+            self.simulator = Simulator()
 
     def test_initialise_with_simulations_record_file(self):
-        """Test that a simulator can be initialised with a handle to a file containing
+        """Test that a simulator can be initialised with a path to a file containing
         records of previous simulations."""
 
-        _ = Simulator(r"a/b/c")  # Unix
-        _ = Simulator(rb"a/b/c")
-        _ = Simulator(r"a\b\c")  # Windows
-        _ = Simulator(rb"a\b\c")
-        _ = Simulator(pathlib.Path("a/b/c"))  # Platform independent
+        with unittest.mock.patch(
+            "exauq.core.simulators.SimulationsLog", new=self.FakeSimulationsLog
+        ):
+            _ = Simulator(r"a/b/c")  # Unix
+            _ = Simulator(rb"a/b/c")
+            _ = Simulator(r"a\b\c")  # Windows
+            _ = Simulator(rb"a\b\c")
+            _ = Simulator(pathlib.Path("a/b/c"))  # Platform independent
 
     def test_previous_simulations_no_simulations_run(self):
         """Test that an empty tuple is returned if there are no simulations in the
@@ -30,6 +55,16 @@ class TestSimulator(unittest.TestCase):
 
         with self.assertRaises(AttributeError):
             self.simulator.previous_simulations = tuple()
+
+    def test_previous_simulations_from_log_file(self):
+        """Test that the previously run simulations are returned from the log file
+        when this is supplied."""
+
+        with unittest.mock.patch(
+            "exauq.core.simulators.SimulationsLog", new=self.FakeSimulationsLog
+        ):
+            simulator = Simulator(r"a/b/c.log")
+            self.assertEqual(self.simulations, simulator.previous_simulations)
 
     def test_compute_output_unseen_input(self):
         """Test that None is returned as the value of a computation if a new input is
@@ -97,8 +132,8 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that simulation data with a 1-dimensional input is parsed correctly."""
 
         with unittest.mock.patch(
-                "builtins.open",
-                unittest.mock.mock_open(read_data="Input_1,Output\n1,2\n"),
+            "builtins.open",
+            unittest.mock.mock_open(read_data="Input_1,Output\n1,2\n"),
         ) as mock:
             expected = ((Input(1), 2),)
             self.assertEqual(expected, self.log.get_simulations())
@@ -121,8 +156,8 @@ class TestSimulationsLog(unittest.TestCase):
         and output columns."""
 
         with unittest.mock.patch(
-                "builtins.open",
-                unittest.mock.mock_open(read_data="Input_2,Output,Input_1\n1,2,10\n"),
+            "builtins.open",
+            unittest.mock.mock_open(read_data="Input_2,Output,Input_1\n1,2,10\n"),
         ) as mock:
             expected = ((Input(10, 1), 2),)
             self.assertEqual(expected, self.log.get_simulations())
