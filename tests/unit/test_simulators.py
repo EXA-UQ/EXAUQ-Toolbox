@@ -37,6 +37,25 @@ class TestSimulator(unittest.TestCase):
 
         self.assertIsNone(self.simulator.compute(Input(1)))
 
+    def test_compute_new_input_features_in_previous_simulations(self):
+        """Test that, when an unseen input is submitted for computation, that the
+        input features in the previous simulations."""
+
+        x = Input(1)
+        self.simulator.compute(x)
+        self.assertEqual(x, self.simulator.previous_simulations[-1][0])
+
+    def test_compute_new_input_features_in_previous_simulations_multiple(self):
+        """Test that, when multiple unseen inputs are submitted for computation
+        sequentially, that the these inputs feature in the previous simulations."""
+
+        x1 = Input(1)
+        x2 = Input(2)
+        self.simulator.compute(x1)
+        self.simulator.compute(x2)
+        self.assertEqual(x2, self.simulator.previous_simulations[-1][0])
+        self.assertEqual(x1, self.simulator.previous_simulations[-2][0])
+
 
 class TestSimulationsLog(unittest.TestCase):
     def setUp(self) -> None:

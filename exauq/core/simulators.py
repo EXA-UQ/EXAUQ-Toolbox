@@ -28,7 +28,7 @@ class Simulator(AbstractSimulator):
     """
 
     def __init__(self, simulations_log: Optional[Union[str, bytes, PathLike]] = None):
-        self._previous_simulations = tuple()
+        self._previous_simulations = []
 
     @property
     def previous_simulations(self) -> tuple:
@@ -36,11 +36,11 @@ class Simulator(AbstractSimulator):
         (Read-only) A tuple of simulations that have been previously submitted for
         computation.
         """
-        return self._previous_simulations
+        return tuple(self._previous_simulations)
 
     def compute(self, x: Input) -> Optional[Real]:
         """
-        Compute the simulation output of an input to the simulator.
+        Submit a simulation input for computation.
 
         Parameters
         ----------
@@ -52,7 +52,9 @@ class Simulator(AbstractSimulator):
         Optional[Real]
             ``None`` if a new input has been provided.
         """
-        pass
+
+        self._previous_simulations.append((x, None))
+        return None
 
 
 class SimulationsLog(object):
