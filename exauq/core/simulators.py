@@ -47,6 +47,12 @@ class Simulator(AbstractSimulator):
         """
         Submit a simulation input for computation.
 
+        In the case where a never-before seen input is supplied, this will be submitted
+        for computation and ``None`` will be returned. In the case where an input has been
+        seen before (that is, features in an entry in the simulations log file for this
+        simulator), the corresponding simulator output will be returned, if this is
+        available.
+
         Parameters
         ----------
         x : Input
@@ -55,8 +61,13 @@ class Simulator(AbstractSimulator):
         Returns
         -------
         Optional[Real]
-            ``None`` if a new input has been provided.
+            ``None`` if a new input has been provided or corresponding simulator output,
+            if this has previously been computed.
         """
+
+        for _input, output in self._previous_simulations:
+            if _input == x:
+                return output
 
         self._previous_simulations.append((x, None))
         return None
