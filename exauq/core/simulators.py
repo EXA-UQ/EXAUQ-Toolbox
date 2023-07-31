@@ -20,7 +20,9 @@ class Simulator(AbstractSimulator):
     Parameters
     ----------
     simulations_log : str or bytes or os.PathLike, optional
-        (Default: ``None``) A path to the simulation log file.
+        (Default: ``simulations.csv``) A path to the simulation log file. The default
+        will work with a file called ``simulations.csv`` in the current working directory
+        for the calling Python process.
 
     Attributes
     ----------
@@ -28,13 +30,10 @@ class Simulator(AbstractSimulator):
         (Read-only) Simulations that have been previously submitted for evaluation.
     """
 
-    def __init__(self, simulations_log: Optional[Union[str, bytes, PathLike]] = None):
-        if simulations_log is None:
-            self._previous_simulations = []
-        else:
-            self._previous_simulations = list(
-                SimulationsLog(simulations_log).get_simulations()
-            )
+    def __init__(self, simulations_log: Union[str, bytes, PathLike] = "simulations.csv"):
+        self._previous_simulations = list(
+            SimulationsLog(simulations_log).get_simulations()
+        )
 
     @property
     def previous_simulations(self) -> tuple:

@@ -73,6 +73,14 @@ class TestSimulator(unittest.TestCase):
             _ = Simulator(rb"a\b\c")
             _ = Simulator(pathlib.Path("a/b/c"))  # Platform independent
 
+    def test_initialise_default_log_file(self):
+        """Test that a new log file with name 'simulations.csv' is created in the
+        working directory as the default."""
+
+        with unittest.mock.patch("exauq.core.simulators.SimulationsLog") as mock:
+            _ = Simulator()
+            mock.assert_called_once_with("simulations.csv")
+
     def test_previous_simulations_no_simulations_run(self):
         """Test that an empty tuple is returned if there are no simulations in the
         log file."""
