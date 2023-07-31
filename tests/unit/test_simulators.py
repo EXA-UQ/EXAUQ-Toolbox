@@ -127,10 +127,6 @@ class TestSimulationsLog(unittest.TestCase):
         self.simulations_file = "foo.csv"
         self.log = SimulationsLog(self.simulations_file)
 
-        # For testing log file row parsing
-        self.x = Input(1, 2, 3)
-        self.y = 100
-
     def assert_file_read(self, mock_open, file_path):
         """Check that a mocked ``open()`` is called once in read mode on the specified
         path."""
