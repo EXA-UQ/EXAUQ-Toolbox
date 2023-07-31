@@ -1,4 +1,6 @@
+import os
 import pathlib
+import tempfile
 import unittest.mock
 from numbers import Real
 from os import PathLike
@@ -135,6 +137,7 @@ class TestSimulator(unittest.TestCase):
 
 class TestSimulationsLog(unittest.TestCase):
     def setUp(self) -> None:
+        super().setUp()
         self.simulations_file = "foo.csv"
         with unittest.mock.patch("builtins.open", unittest.mock.mock_open()):
             self.log = SimulationsLog(self.simulations_file)
@@ -167,6 +170,21 @@ class TestSimulationsLog(unittest.TestCase):
         with unittest.mock.patch("builtins.open", unittest.mock.mock_open()) as mock:
             _ = SimulationsLog(file_path)
             self.assert_file_opened(mock, file_path, mode="w")
+
+    def test_initialise_new_log_file_not_opened_if_exists(self):
+        """Test that an existing simulator log file is not opened for writing upon
+        initialisation."""
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = pathlib.Path(tmp_dir, "log.csv")
+            path.touch(mode=0o400)  # read-only
+            try:
+                _ = SimulationsLog(path)
+            except PermissionError:
+                self.fail("Tried writing to pre-existing log file, should not have done.")
+            finally:
+                os.chmod(path, 0o600)  # read/write mode, to allow deletion
+                os.remove(path)
 
     def test_get_simulations_no_simulations_in_file(self):
         """Test that an empty tuple is returned if the simulations log file does not

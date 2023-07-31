@@ -1,4 +1,5 @@
 import csv
+import os
 from numbers import Real
 from os import PathLike
 from typing import Optional, Union
@@ -97,9 +98,10 @@ class SimulationsLog(object):
     def _initialise_log_file(
         file: Optional[Union[str, bytes, PathLike]] = None
     ) -> Optional[Union[str, bytes, PathLike]]:
-        """Create a new file at the given path and return the path."""
+        """Create a new file at the given path if it doesn't already exist and return
+        the path."""
 
-        if file is not None:
+        if file is not None and not os.path.exists(file):
             with open(file, mode="w"):
                 pass
 
