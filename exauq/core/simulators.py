@@ -107,6 +107,7 @@ class SimulationsLog(object):
             A tuple of ``(x, y)`` pairs, where ``x`` is an `Input` and ``y`` is the
             simulation output, or ``None`` if this hasn't yet been computed.
         """
+
         with open(self._log_file, mode="r", newline="") as log_file:
             return tuple(map(self._parse_row, csv.DictReader(log_file)))
 
@@ -114,6 +115,7 @@ class SimulationsLog(object):
     def _parse_row(record: dict[str, str]) -> tuple[Input, Optional[Real]]:
         """Convert a dictionary record read from the log file into a pair of simulator
         inputs and outputs. Missing outputs are converted to the empty string."""
+
         input_items = sorted(
             ((k, v) for k, v in record.items() if k.startswith("Input")),
             key=lambda x: x[0],
