@@ -77,12 +77,12 @@ class SimulationsLog(object):
     """
     An interface to a log file containing details of simulations.
 
-    The log file contains a record of simulations that have been submitted for
-    computation. The input of each submission is recorded along with the simulator
-    output, if this has been computed. This is recorded in csv format. Columns that give
-    the input coordinates should have headings 'Input_n' where ``n`` is the index of
-    the coordinate (starting at 1). The column giving the simulator output should have
-    the heading 'Output'.
+    The log file is a csv file containing a record of simulations that have been submitted
+    for computation; it will be created at the supplied file path upon initialisation. The
+    input of each submission is recorded along with the simulator output, if this has been
+    computed. Columns that give the input coordinates should have headings 'Input_n' where
+    ``n`` is the index of the coordinate (starting at 1). The column giving the simulator
+    output should have the heading 'Output'.
 
     Parameters
     ----------
@@ -91,7 +91,19 @@ class SimulationsLog(object):
     """
 
     def __init__(self, file: Optional[Union[str, bytes, PathLike]] = None):
-        self._log_file = file
+        self._log_file = self._initialise_log_file(file)
+
+    @staticmethod
+    def _initialise_log_file(
+        file: Optional[Union[str, bytes, PathLike]] = None
+    ) -> Optional[Union[str, bytes, PathLike]]:
+        """Create a new file at the given path and return the path."""
+
+        if file is not None:
+            with open(file, mode="w"):
+                pass
+
+        return file
 
     def get_simulations(self):
         """

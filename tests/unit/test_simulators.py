@@ -1,7 +1,8 @@
 import pathlib
 import unittest.mock
 from numbers import Real
-from typing import Optional, Type
+from os import PathLike
+from typing import Optional, Type, Union
 
 from exauq.core.modelling import Input
 from exauq.core.simulators import SimulationsLog, Simulator
@@ -18,7 +19,17 @@ def make_fake_simulations_log_class(
             super().__init__(*args)
             self.simulations = simulations if self._log_file else ()
 
+        @staticmethod
+        def _initialise_log_file(
+            file: Optional[Union[str, bytes, PathLike]] = None
+        ) -> Optional[Union[str, bytes, PathLike]]:
+            """Return the path without creating a file there."""
+
+            return file
+
         def get_simulations(self):
+            """Return the pre-loaded simulations."""
+
             return self.simulations
 
     return FakeSimulationsLog
@@ -125,24 +136,37 @@ class TestSimulator(unittest.TestCase):
 class TestSimulationsLog(unittest.TestCase):
     def setUp(self) -> None:
         self.simulations_file = "foo.csv"
-        self.log = SimulationsLog(self.simulations_file)
+        with unittest.mock.patch("builtins.open", unittest.mock.mock_open()):
+            self.log = SimulationsLog(self.simulations_file)
 
-    def assert_file_read(self, mock_open, file_path):
-        """Check that a mocked ``open()`` is called once in read mode on the specified
-        path."""
+    def assert_file_opened(self, mock_open, file_path, mode="r"):
+        """Check that a mocked ``open()`` is called once on the specified file path in
+        the given mode ("read" by default")."""
 
         mock_open.assert_called_once()
         self.assertEqual((file_path,), mock_open.call_args.args)
-        self.assertTrue(("mode", "r") in mock_open.call_args.kwargs.items())
+        self.assertTrue(("mode", mode) in mock_open.call_args.kwargs.items())
 
     def test_initialise_with_simulations_record_file(self):
         """Test that a simulator log can be initialised with a handle to the log file."""
 
-        _ = SimulationsLog(r"a/b/c")  # Unix
-        _ = SimulationsLog(rb"a/b/c")
-        _ = SimulationsLog(r"a\b\c")  # Windows
-        _ = SimulationsLog(rb"a\b\c")
-        _ = SimulationsLog(pathlib.Path("a/b/c"))  # Platform independent
+        with unittest.mock.patch(
+            "builtins.open", unittest.mock.mock_open(read_data="Input_1,Output\n")
+        ):
+            _ = SimulationsLog(r"a/b/c.log")  # Unix
+            _ = SimulationsLog(rb"a/b/c.log")
+            _ = SimulationsLog(r"a\b\c.log")  # Windows
+            _ = SimulationsLog(rb"a\b\c.log")
+            _ = SimulationsLog(pathlib.Path("a/b/c.log"))  # Platform independent
+
+    def test_initialise_new_log_file_created(self):
+        """Test that a new simulator log file at a given path is created upon object
+        initialisation."""
+
+        file_path = pathlib.Path("a/b/c.log")
+        with unittest.mock.patch("builtins.open", unittest.mock.mock_open()) as mock:
+            _ = SimulationsLog(file_path)
+            self.assert_file_opened(mock, file_path, mode="w")
 
     def test_get_simulations_no_simulations_in_file(self):
         """Test that an empty tuple is returned if the simulations log file does not
@@ -152,7 +176,7 @@ class TestSimulationsLog(unittest.TestCase):
             "builtins.open", unittest.mock.mock_open(read_data="Input_1,Output\n")
         ) as mock:
             self.assertEqual(tuple(), self.log.get_simulations())
-            self.assert_file_read(mock, self.simulations_file)
+            self.assert_file_opened(mock, self.simulations_file)
 
     def test_get_simulations_one_dim_input(self):
         """Test that simulation data with a 1-dimensional input is parsed correctly."""
@@ -163,7 +187,7 @@ class TestSimulationsLog(unittest.TestCase):
         ) as mock:
             expected = ((Input(1), 2),)
             self.assertEqual(expected, self.log.get_simulations())
-            self.assert_file_read(mock, self.simulations_file)
+            self.assert_file_opened(mock, self.simulations_file)
 
     def test_get_simulations_returns_simulations_from_file(self):
         """Test that a record of all simulations (pending or otherwise) recorded
@@ -175,7 +199,7 @@ class TestSimulationsLog(unittest.TestCase):
         ) as mock:
             expected = ((Input(1, 2), 10), (Input(3, 4), None))
             self.assertEqual(expected, self.log.get_simulations())
-            self.assert_file_read(mock, self.simulations_file)
+            self.assert_file_opened(mock, self.simulations_file)
 
     def test_get_simulations_unusual_column_order(self):
         """Test that a log file is parsed correctly irrespective of the order of input
@@ -187,7 +211,7 @@ class TestSimulationsLog(unittest.TestCase):
         ) as mock:
             expected = ((Input(10, 1), 2),)
             self.assertEqual(expected, self.log.get_simulations())
-            self.assert_file_read(mock, self.simulations_file)
+            self.assert_file_opened(mock, self.simulations_file)
 
 
 if __name__ == "__main__":
