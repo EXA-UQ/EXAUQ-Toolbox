@@ -70,13 +70,13 @@ class TestSimulator(unittest.TestCase):
         """Test that None is returned as the value of a computation if a new input is
         supplied."""
 
-        self.assertIsNone(self.simulator.compute(Input(1)))
+        self.assertIsNone(self.simulator.compute(Input(2)))
 
     def test_compute_new_input_features_in_previous_simulations(self):
         """Test that, when an unseen input is submitted for computation, the
         input features in the previous simulations."""
 
-        x = Input(1)
+        x = Input(2)
         self.simulator.compute(x)
         self.assertEqual(x, self.simulator.previous_simulations[-1][0])
 
@@ -84,8 +84,8 @@ class TestSimulator(unittest.TestCase):
         """Test that, when multiple unseen inputs are submitted for computation
         sequentially, these inputs feature in the previous simulations."""
 
-        x1 = Input(1)
-        x2 = Input(2)
+        x1 = Input(2)
+        x2 = Input(3)
         self.simulator.compute(x1)
         self.simulator.compute(x2)
         self.assertEqual(x2, self.simulator.previous_simulations[-1][0])
