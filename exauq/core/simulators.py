@@ -90,17 +90,22 @@ class SimulationsLog(object):
         A path to the underlying log file containing details of simulations.
     """
 
-    def __init__(self, file: Optional[Union[str, bytes, PathLike]] = None):
+    def __init__(self, file: Union[str, bytes, PathLike]):
         self._log_file = self._initialise_log_file(file)
 
     @staticmethod
     def _initialise_log_file(
-        file: Optional[Union[str, bytes, PathLike]] = None
-    ) -> Optional[Union[str, bytes, PathLike]]:
+        file: Union[str, bytes, PathLike]
+    ) -> Union[str, bytes, PathLike]:
         """Create a new file at the given path if it doesn't already exist and return
         the path."""
 
-        if file is not None and not os.path.exists(file):
+        if not isinstance(file, Union[str, bytes, PathLike]):
+            raise ValueError(
+                f"Argument 'file' must define a file path, got {file} instead."
+            )
+
+        if not os.path.exists(file):
             with open(file, mode="w"):
                 pass
 

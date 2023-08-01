@@ -8,6 +8,7 @@ from typing import Optional, Type, Union
 
 from exauq.core.modelling import Input
 from exauq.core.simulators import SimulationsLog, Simulator
+from tests.utilities.utilities import exact
 
 
 def make_fake_simulations_log_class(
@@ -157,6 +158,20 @@ class TestSimulationsLog(unittest.TestCase):
         mock_open.assert_called_once()
         self.assertEqual((file_path,), mock_open.call_args.args)
         self.assertTrue(("mode", mode) in mock_open.call_args.kwargs.items())
+
+    def test_initialise_missing_log_file_error(self):
+        """Test that a ValueError is raised if a simulator log is initialised without a
+        path to a log file."""
+
+        for path in [None, 0, 1]:
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    exact(
+                        f"Argument 'file' must define a file path, got {path} instead."
+                    ),
+                ):
+                    _ = SimulationsLog(path)
 
     def test_initialise_with_simulations_record_file(self):
         """Test that a simulator log can be initialised with a handle to the log file."""
