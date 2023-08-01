@@ -38,7 +38,7 @@ def make_fake_simulations_log_class(
 
 def make_fake_simulator(
     simulations: tuple[tuple[Input, Real]],
-    simulations_log: str = r"a/b/c.log",
+    simulations_log: str = r"a/b/c.csv",
 ) -> Simulator:
     """Make a Simulator object whose previous simulations are pre-loaded to be the given
     simulations, if a path to a simulations log file is supplied (the default). If
@@ -204,17 +204,17 @@ class TestSimulationsLog(unittest.TestCase):
         with unittest.mock.patch(
             "builtins.open", unittest.mock.mock_open(read_data="Input_1,Output\n")
         ):
-            _ = SimulationsLog(r"a/b/c.log")  # Unix
-            _ = SimulationsLog(rb"a/b/c.log")
-            _ = SimulationsLog(r"a\b\c.log")  # Windows
-            _ = SimulationsLog(rb"a\b\c.log")
-            _ = SimulationsLog(pathlib.Path("a/b/c.log"))  # Platform independent
+            _ = SimulationsLog(r"a/b/c.csv")  # Unix
+            _ = SimulationsLog(rb"a/b/c.csv")
+            _ = SimulationsLog(r"a\b\c.csv")  # Windows
+            _ = SimulationsLog(rb"a\b\c.csv")
+            _ = SimulationsLog(pathlib.Path("a/b/c.csv"))  # Platform independent
 
     def test_initialise_new_log_file_created(self):
         """Test that a new simulator log file at a given path is created upon object
         initialisation."""
 
-        file_path = pathlib.Path("a/b/c.log")
+        file_path = pathlib.Path("a/b/c.csv")
         with unittest.mock.patch("builtins.open", unittest.mock.mock_open()) as mock:
             _ = SimulationsLog(file_path)
             self.assert_file_opened(mock, file_path, mode="w")
