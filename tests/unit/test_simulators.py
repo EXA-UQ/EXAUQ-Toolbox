@@ -159,9 +159,9 @@ class TestSimulationsLog(unittest.TestCase):
         self.assertEqual((file_path,), mock_open.call_args.args)
         self.assertTrue(("mode", mode) in mock_open.call_args.kwargs.items())
 
-    def test_initialise_missing_log_file_error(self):
+    def test_initialise_invalid_log_file_error(self):
         """Test that a ValueError is raised if a simulator log is initialised without a
-        path to a log file."""
+        valid path to a log file."""
 
         for path in [None, 0, 1]:
             with self.subTest(path=path):

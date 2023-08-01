@@ -1,10 +1,11 @@
 import csv
 import os
 from numbers import Real
-from os import PathLike
-from typing import Optional, Union
+from typing import Optional
 
 from exauq.core.modelling import AbstractSimulator, Input
+from exauq.core.types import FilePath
+from exauq.utilities.validation import check_file_path
 
 
 class Simulator(AbstractSimulator):
@@ -30,7 +31,7 @@ class Simulator(AbstractSimulator):
         (Read-only) Simulations that have been previously submitted for evaluation.
     """
 
-    def __init__(self, simulations_log: Union[str, bytes, PathLike] = "simulations.csv"):
+    def __init__(self, simulations_log: FilePath = "simulations.csv"):
         self._previous_simulations = list(
             SimulationsLog(simulations_log).get_simulations()
         )
@@ -86,24 +87,22 @@ class SimulationsLog(object):
 
     Parameters
     ----------
-    file : str, bytes or path-like, optional
+    file : str, bytes or path-like
         A path to the underlying log file containing details of simulations.
     """
 
-    def __init__(self, file: Union[str, bytes, PathLike]):
+    def __init__(self, file: FilePath):
         self._log_file = self._initialise_log_file(file)
 
     @staticmethod
-    def _initialise_log_file(
-        file: Union[str, bytes, PathLike]
-    ) -> Union[str, bytes, PathLike]:
+    def _initialise_log_file(file: FilePath) -> FilePath:
         """Create a new file at the given path if it doesn't already exist and return
         the path."""
 
-        if not isinstance(file, Union[str, bytes, PathLike]):
-            raise ValueError(
-                f"Argument 'file' must define a file path, got {file} instead."
-            )
+        check_file_path(
+            file,
+            ValueError(f"Argument 'file' must define a file path, got {file} instead."),
+        )
 
         if not os.path.exists(file):
             with open(file, mode="w"):
