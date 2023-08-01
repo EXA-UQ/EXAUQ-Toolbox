@@ -3,11 +3,11 @@ import pathlib
 import tempfile
 import unittest.mock
 from numbers import Real
-from os import PathLike
-from typing import Optional, Type, Union
+from typing import Type
 
 from exauq.core.modelling import Input
 from exauq.core.simulators import SimulationsLog, Simulator
+from exauq.core.types import FilePath
 from tests.utilities.utilities import exact
 
 
@@ -18,14 +18,12 @@ def make_fake_simulations_log_class(
     simulations."""
 
     class FakeSimulationsLog(SimulationsLog):
-        def __init__(self, *args):
-            super().__init__(*args)
-            self.simulations = simulations if self._log_file else ()
+        def __init__(self, file: FilePath, *args):
+            super().__init__(file, *args)
+            self.simulations = simulations
 
         @staticmethod
-        def _initialise_log_file(
-            file: Optional[Union[str, bytes, PathLike]] = None
-        ) -> Optional[Union[str, bytes, PathLike]]:
+        def _initialise_log_file(file: FilePath) -> FilePath:
             """Return the path without creating a file there."""
 
             return file
@@ -40,7 +38,7 @@ def make_fake_simulations_log_class(
 
 def make_fake_simulator(
     simulations: tuple[tuple[Input, Real]],
-    simulations_log: Optional[str] = r"a/b/c.log",
+    simulations_log: str = r"a/b/c.log",
 ) -> Simulator:
     """Make a Simulator object whose previous simulations are pre-loaded to be the given
     simulations, if a path to a simulations log file is supplied (the default). If
@@ -57,8 +55,23 @@ def make_fake_simulator(
 class TestSimulator(unittest.TestCase):
     def setUp(self) -> None:
         self.simulations = ((Input(1), 0),)
-        self.empty_simulator = make_fake_simulator(tuple(), simulations_log=None)
+        self.empty_simulator = make_fake_simulator(tuple())
         self.simulator_with_sim = make_fake_simulator(self.simulations)
+
+    def test_initialise_invalid_log_file_error(self):
+        """Test that a ValueError is raised if an invalid path is supplied for the log
+        file."""
+
+        for path in [None, 0, 1]:
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    exact(
+                        f"Argument 'simulations_log' must define a file path, got {path} "
+                        "instead."
+                    ),
+                ):
+                    _ = Simulator(path)
 
     def test_initialise_with_simulations_record_file(self):
         """Test that a simulator can be initialised with a path to a file containing

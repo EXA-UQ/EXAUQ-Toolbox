@@ -32,9 +32,23 @@ class Simulator(AbstractSimulator):
     """
 
     def __init__(self, simulations_log: FilePath = "simulations.csv"):
-        self._previous_simulations = list(
-            SimulationsLog(simulations_log).get_simulations()
+        self._previous_simulations = self._load_simulations(simulations_log)
+
+    @staticmethod
+    def _load_simulations(
+        simulations_log: FilePath,
+    ) -> list[tuple[Input, Optional[Real]]]:
+        """Get a list of simulations contained in the given log file."""
+
+        check_file_path(
+            simulations_log,
+            ValueError(
+                "Argument 'simulations_log' must define a file path, got "
+                f"{simulations_log} instead."
+            ),
         )
+
+        return list(SimulationsLog(simulations_log).get_simulations())
 
     @property
     def previous_simulations(self) -> tuple:
