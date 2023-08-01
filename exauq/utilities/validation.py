@@ -7,6 +7,8 @@ from typing import Any, Callable
 
 import numpy as np
 
+from exauq.core.types import FilePath
+
 
 def check_entries_not_none(x: Iterable, exception: Exception) -> None:
     """Raise the given exception if one of the elements of an iterable is
@@ -59,4 +61,10 @@ def check_finite(x: Any, exception: Exception) -> None:
 def check_int(x: Any, exception: Exception) -> None:
     """Raise the given exception if an object is not an int."""
     if type(x) is not int:
+        raise exception
+
+
+def check_file_path(file: Any, exception: Exception):
+    """Raise the given exception if an object doesn't define a path to a file."""
+    if not isinstance(file, FilePath):
         raise exception
