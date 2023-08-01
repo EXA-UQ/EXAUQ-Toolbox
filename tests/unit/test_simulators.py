@@ -113,6 +113,18 @@ class TestSimulator(unittest.TestCase):
 
         self.assertEqual(self.simulations, self.simulator_with_sim.previous_simulations)
 
+    def test_compute_non_input_error(self):
+        """Test that a ValueError is raised if an argument of type other than Input is
+        supplied for computation."""
+
+        for x in ["a", 1, (0, 0)]:
+            with self.subTest(x=x):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    exact(f"Argument 'x' must be of type Input, but received {type(x)}."),
+                ):
+                    self.empty_simulator.compute(x)
+
     def test_compute_output_unseen_input(self):
         """Test that None is returned as the value of a computation if a new input is
         supplied."""

@@ -80,6 +80,11 @@ class Simulator(AbstractSimulator):
             if this has previously been computed.
         """
 
+        if not isinstance(x, Input):
+            raise ValueError(
+                f"Argument 'x' must be of type Input, but received {type(x)}."
+            )
+
         for _input, output in self._previous_simulations:
             if _input == x:
                 return output
