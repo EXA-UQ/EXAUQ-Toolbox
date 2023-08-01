@@ -42,9 +42,9 @@ class Simulator(AbstractSimulator):
 
         check_file_path(
             simulations_log,
-            ValueError(
-                "Argument 'simulations_log' must define a file path, got "
-                f"{simulations_log} instead."
+            TypeError(
+                "Argument 'simulations_log' must define a file path, but received "
+                f"object of type {type(simulations_log)} instead."
             ),
         )
 
@@ -81,7 +81,7 @@ class Simulator(AbstractSimulator):
         """
 
         if not isinstance(x, Input):
-            raise ValueError(
+            raise TypeError(
                 f"Argument 'x' must be of type Input, but received {type(x)}."
             )
 
@@ -120,7 +120,10 @@ class SimulationsLog(object):
 
         check_file_path(
             file,
-            ValueError(f"Argument 'file' must define a file path, got {file} instead."),
+            TypeError(
+                "Argument 'file' must define a file path, but received object of "
+                f"type {type(file)} instead."
+            ),
         )
 
         if not os.path.exists(file):

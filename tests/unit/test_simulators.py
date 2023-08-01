@@ -65,10 +65,10 @@ class TestSimulator(unittest.TestCase):
         for path in [None, 0, 1]:
             with self.subTest(path=path):
                 with self.assertRaisesRegex(
-                    ValueError,
+                    TypeError,
                     exact(
-                        f"Argument 'simulations_log' must define a file path, got {path} "
-                        "instead."
+                        "Argument 'simulations_log' must define a file path, but received "
+                        f"object of type {type(path)} instead."
                     ),
                 ):
                     _ = Simulator(path)
@@ -120,7 +120,7 @@ class TestSimulator(unittest.TestCase):
         for x in ["a", 1, (0, 0)]:
             with self.subTest(x=x):
                 with self.assertRaisesRegex(
-                    ValueError,
+                    TypeError,
                     exact(f"Argument 'x' must be of type Input, but received {type(x)}."),
                 ):
                     self.empty_simulator.compute(x)
@@ -191,9 +191,10 @@ class TestSimulationsLog(unittest.TestCase):
         for path in [None, 0, 1]:
             with self.subTest(path=path):
                 with self.assertRaisesRegex(
-                    ValueError,
+                    TypeError,
                     exact(
-                        f"Argument 'file' must define a file path, got {path} instead."
+                        "Argument 'file' must define a file path, but received object of "
+                        f"type {type(path)} instead."
                     ),
                 ):
                     _ = SimulationsLog(path)
