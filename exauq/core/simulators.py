@@ -76,8 +76,8 @@ class Simulator(AbstractSimulator):
         Returns
         -------
         Optional[Real]
-            ``None`` if a new input has been provided or corresponding simulator output,
-            if this has previously been computed.
+            ``None`` if a new input has been provided, or else the corresponding simulator
+            output, if this has previously been computed.
         """
 
         if not isinstance(x, Input):
