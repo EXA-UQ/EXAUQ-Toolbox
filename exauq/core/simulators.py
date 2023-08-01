@@ -150,7 +150,7 @@ class SimulationsLog(object):
     @staticmethod
     def _parse_row(record: dict[str, str]) -> tuple[Input, Optional[Real]]:
         """Convert a dictionary record read from the log file into a pair of simulator
-        inputs and outputs. Missing outputs are converted to the empty string."""
+        inputs and outputs. Missing outputs are converted to ``None``."""
 
         input_items = sorted(
             ((k, v) for k, v in record.items() if k.startswith("Input")),
