@@ -10,7 +10,24 @@ class HardwareInterface(ABC):
     """
     Abstract base class for a hardware interface.
 
-    This class defines the abstract methods that any hardware interface should implement.
+    This class defines the abstract methods that any hardware interface should implement,
+    providing a consistent API for interacting with different types of hardware resources.
+
+    The HardwareInterface class is not specific to any type of hardware or infrastructure.
+    It can be extended to provide interfaces for various types of hardware resources,
+    such as supercomputers, GPU clusters, servers, personal laptops, or even potatoes!
+    Whether the hardware is local or remote is also abstracted away by this interface.
+
+    The goal is to provide a unified way to submit jobs, query job status, fetch job output,
+    cancel jobs, and wait for jobs across all types of hardware resources. This enables
+    writing hardware-agnostic code for running simulations or performing other computational tasks.
+
+    Implementations should provide the following methods:
+    - submit_job
+    - get_job_status
+    - get_job_output
+    - cancel_job
+    - wait_for_job
     """
     @abstractmethod
     def submit_job(self, job):
