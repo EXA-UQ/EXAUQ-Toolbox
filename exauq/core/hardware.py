@@ -50,7 +50,7 @@ class HardwareInterface(ABC):
         pass
 
 
-class SSHInterface(HardwareInterface):
+class SSHInterface(HardwareInterface, ABC):
     """
     SSH Interface to manage and submit jobs. Inherits from the HardwareInterface.
 
