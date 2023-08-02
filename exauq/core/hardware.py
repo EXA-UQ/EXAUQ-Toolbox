@@ -127,8 +127,8 @@ class SSHInterface(HardwareInterface):
             return
 
         except Exception as e:
-            print(f"Could not connect to {self._conn.original_host}: {str(e)}")
-            raise
+            message = f"Could not connect to {self._conn.original_host}: {str(e)}"
+            raise Exception(message) from None
 
     def _init_with_password(self, user: str, host: str):
         for attempt in range(self.max_attempts):
