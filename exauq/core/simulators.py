@@ -31,15 +31,14 @@ class Simulator(AbstractSimulator):
         (Read-only) Simulations that have been previously submitted for evaluation.
     """
 
+    # TODO: rename simulations_log
     def __init__(self, simulations_log: FilePath = "simulations.csv"):
-        self._previous_simulations = self._load_simulations(simulations_log)
+        self._simulations_log = self._make_simulations_log(simulations_log)
+        self._manager = JobManager(self._simulations_log)
+        self._previous_simulations = list(self._simulations_log.get_simulations())
 
     @staticmethod
-    def _load_simulations(
-        simulations_log: FilePath,
-    ) -> list[tuple[Input, Optional[Real]]]:
-        """Get a list of simulations contained in the given log file."""
-
+    def _make_simulations_log(simulations_log: FilePath):
         check_file_path(
             simulations_log,
             TypeError(
@@ -48,7 +47,7 @@ class Simulator(AbstractSimulator):
             ),
         )
 
-        return list(SimulationsLog(simulations_log).get_simulations())
+        return SimulationsLog(simulations_log)
 
     @property
     def previous_simulations(self) -> tuple:
@@ -89,6 +88,7 @@ class Simulator(AbstractSimulator):
             if _input == x:
                 return output
 
+        self._manager.submit(x)
         self._previous_simulations.append((x, None))
         return None
 
@@ -127,8 +127,9 @@ class SimulationsLog(object):
         )
 
         if not os.path.exists(file):
-            with open(file, mode="w"):
-                pass
+            with open(file, mode="w", newline="") as _file:
+                writer = csv.writer(_file)
+                writer.writerow(["Input_1", "Input_2", "Output"])
 
         return file
 
@@ -163,3 +164,16 @@ class SimulationsLog(object):
         x = Input(*input_coords)
         y = float(record["Output"]) if record["Output"] else None
         return x, y
+
+    def add_new_record(self, x: Input):
+        with open(self._log_file, mode="a", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(list(x) + [""])
+
+
+class JobManager(object):
+    def __init__(self, simulations_log: SimulationsLog):
+        self._simulations_log = simulations_log
+
+    def submit(self, x: Input):
+        self._simulations_log.add_new_record(x)
