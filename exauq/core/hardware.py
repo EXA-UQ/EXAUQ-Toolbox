@@ -131,7 +131,7 @@ class SSHInterface(HardwareInterface):
             raise Exception(message) from None
 
     def _init_with_password(self, user: str, host: str):
-        for attempt in range(self.max_attempts):
+        for attempt in range(1, self.max_attempts + 1):
             password = getpass.getpass(prompt=f"Password for {user}@{host}: ")
             try:
                 self._conn = Connection(
@@ -143,7 +143,7 @@ class SSHInterface(HardwareInterface):
 
             except AuthenticationException:  # Catch the specific exception
                 if (
-                    attempt < self.max_attempts - 1
+                    attempt < self.max_attempts
                 ):  # Don't say this on the last attempt
                     print("Failed to authenticate. Please try again.")
                 else:
