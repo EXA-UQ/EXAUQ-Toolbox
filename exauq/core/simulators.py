@@ -1,6 +1,8 @@
 import csv
 import os
+from multiprocessing import Process, Manager, Value
 from numbers import Real
+from time import sleep
 from typing import Optional
 
 from exauq.core.hardware import HardwareInterface
@@ -214,6 +216,27 @@ class SimulationsLog(object):
 class JobManager(object):
     def __init__(self, simulations_log: SimulationsLog, interface: HardwareInterface):
         self._simulations_log = simulations_log
+        self._interface = interface
+        self._manager = Manager()
+        self._jobs = self._manager.list()
+        self._running = Value('b', False)
 
     def submit(self, x: Input):
         self._simulations_log.add_new_record(x)
+        job_id = self._interface.submit_job(x)
+        self._jobs.append(job_id)
+        if not self._running.value:
+            process = Process(target=self._monitor_jobs)
+            process.start()
+
+    def _monitor_jobs(self):
+        self._running.value = True
+        while self._jobs:
+            for job_id in self._jobs:
+                status = self._interface.get_job_status(job_id)
+                if status: # Currently job status either true (job complete) or false (not complete)
+                    result = self._interface.get_job_output(job_id)
+                    self._simulations_log.insert_result(job_id, result)
+                    self._jobs.remove(job_id)
+            sleep(1)  # Add param...
+        self._running.value = False
