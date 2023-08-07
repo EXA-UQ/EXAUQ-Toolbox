@@ -3,6 +3,7 @@ import os
 from numbers import Real
 from typing import Optional
 
+from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import AbstractSimulator, Input
 from exauq.core.types import FilePath
 from exauq.utilities.validation import check_file_path
@@ -32,9 +33,9 @@ class Simulator(AbstractSimulator):
     """
 
     # TODO: rename simulations_log
-    def __init__(self, simulations_log: FilePath = "simulations.csv"):
+    def __init__(self, interface: HardwareInterface, simulations_log: FilePath = "simulations.csv"):
         self._simulations_log = self._make_simulations_log(simulations_log)
-        self._manager = JobManager(self._simulations_log)
+        self._manager = JobManager(self._simulations_log, interface)
         self._previous_simulations = list(self._simulations_log.get_simulations())
 
     @staticmethod
@@ -211,7 +212,7 @@ class SimulationsLog(object):
 
 
 class JobManager(object):
-    def __init__(self, simulations_log: SimulationsLog):
+    def __init__(self, simulations_log: SimulationsLog, interface: HardwareInterface):
         self._simulations_log = simulations_log
 
     def submit(self, x: Input):
