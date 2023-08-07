@@ -50,7 +50,7 @@ class Simulator(AbstractSimulator):
             ),
         )
 
-        return SimulationsLog(simulations_log)
+        return SimulationsLog(simulations_log, 4) # Todo: Pass domain object for num_inputs?
 
     @property
     def previous_simulations(self) -> tuple:
@@ -113,11 +113,11 @@ class SimulationsLog(object):
         A path to the underlying log file containing details of simulations.
     """
 
-    def __init__(self, file: FilePath):
-        self._log_file = self._initialise_log_file(file)
+    def __init__(self, file: FilePath, num_inputs: int):
+        self._log_file = self._initialise_log_file(file, num_inputs)
 
     @staticmethod
-    def _initialise_log_file(file: FilePath) -> FilePath:
+    def _initialise_log_file(file: FilePath, num_inputs: int) -> FilePath:
         """Create a new file at the given path if it doesn't already exist and return
         the path."""
 
@@ -132,7 +132,8 @@ class SimulationsLog(object):
         if not os.path.exists(file):
             with open(file, mode="w", newline="") as _file:
                 writer = csv.writer(_file)
-                writer.writerow(["Input_1", "Input_2", "Output"])
+                header = [f"Input_{i + 1}" for i in range(num_inputs)] + ["Output", "Job_ID"]
+                writer.writerow(header)
 
         return file
 
