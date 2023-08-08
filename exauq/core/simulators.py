@@ -88,6 +88,8 @@ class Simulator(AbstractSimulator):
                 f"Argument 'x' must be of type Input, but received {type(x)}."
             )
 
+        self._previous_simulations = list(self._simulations_log.get_simulations())
+
         for _input, output in self._previous_simulations:
             if _input == x:
                 return output
