@@ -188,7 +188,7 @@ class SimulationsLog(object):
         job_id_index = header.index('Job_ID')
 
         for i, row in enumerate(data_rows):
-            if row[:len(input_set)] == input_set:
+            if [float(x) for x in row[:len(input_set)]] == list(input_set[:]):
                 row[job_id_index] = job_id
 
         with open(self._log_file, 'w', newline='') as csvfile:
