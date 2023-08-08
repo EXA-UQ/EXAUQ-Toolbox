@@ -47,8 +47,9 @@ def _shutdown(sig_number, stack_frame):
     """Shutdown the application by deleting the workspace directory. This is
     expected to be used as a callback to a keyboard interruption issued by the
     user."""
-    print(f"Cleaning up workspace directory '{WORKSPACE}'")
-    _clean_up_workspace()
+    if WORKSPACE.exists():
+        print(f"Cleaning up workspace directory '{WORKSPACE}'")
+        shutil.rmtree(WORKSPACE)
     sys.exit(0)
 
 
@@ -67,12 +68,6 @@ def _watch():
             print(f"Running simulation {job.id}...")
             _write_output(simulate(job.input), job.id)
             print("Done.")
-
-
-def _clean_up_workspace():
-    """Delete the workspace directory and its contents, if it exists."""
-    if WORKSPACE.exists():
-        shutil.rmtree(WORKSPACE)
 
 
 def _get_new_jobs() -> list["Job"]:
