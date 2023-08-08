@@ -1,14 +1,11 @@
 import time
 
 from exauq.core.modelling import Input
-from tests.utilities.local_simulator import WORKSPACE, LocalSimulatorInterface
+from tests.utilities.local_simulator import LocalSimulatorInterface
 
-# We need to keep a handle to the directory which acts as the 'workspace' for
-# the local simulator, i.e. where it receives jobs and returns outputs.
-local_simulator_workspace = WORKSPACE
-
-# Initialise our interface to the local simulator
-interface = LocalSimulatorInterface(local_simulator_workspace)
+# Initialise our interface to the local simulator, using the default workspace
+# directory.
+interface = LocalSimulatorInterface()
 
 # Note that, in this particular case, the local simulator runs simulations that
 # take a 4-dim input. These are submitted as jobs.
