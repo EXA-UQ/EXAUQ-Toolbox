@@ -21,6 +21,10 @@ SIM_SLEEP = 5
 """Default amount of time, in seconds, that the simulator should sleep for
 before evaluating its function on the inputs."""
 
+CLEANUP = False
+"""Whether the simulator's workspace directory should be deleted upon application
+shutdown."""
+
 
 def simulate(x: Input, sim_sleep: float):
     """A mock simulator. Computes the value of a function after a pause, to
@@ -42,8 +46,9 @@ def run_from_command_line():
         "contents of input files as they are received. Outputs for each "
         "simulation are written as '.out' files in the workspace, with the same "
         "name as the corresponding input file. The application runs continually "
-        "until it receives an interrupt from the user, upon which it deletes "
-        "the workspace folder and its contents before exiting."
+        "until it receives an interrupt from the user. Optionally, the "
+        "workspace folder and its contents will be deleted before exiting, so "
+        "long as the directory didn't already exist before running the application."
     )
     parser = argparse.ArgumentParser(description=description, epilog=epilog)
     parser.add_argument(
@@ -68,11 +73,24 @@ def run_from_command_line():
         const=SIM_SLEEP,
         type=float,
     )
+    parser.add_argument(
+        "--cleanup",
+        help=(
+            "Whether to delete the workspace directory upon shutdown. Note that cleanup "
+            "will only occur if the workspace directory doesn't exist before "
+            f"running this application. Default: {CLEANUP}."
+        ),
+        dest="cleanup",
+        default=CLEANUP,
+        nargs="?",
+        const=CLEANUP,
+        type=bool,
+    )
     args = parser.parse_args()
-    run(args.workspace, args.sim_sleep)
+    run(args.workspace, args.sim_sleep, args.cleanup)
 
 
-def run(workspace: str, sim_sleep: float):
+def run(workspace: str, sim_sleep: float, cleanup: bool):
     """Main entry point into the application.
 
     The application evaluates a simulator on inputs as these are received. The
@@ -84,30 +102,44 @@ def run(workspace: str, sim_sleep: float):
     as the corresponding input file.
 
     The application runs continually until it receives an interrupt from the
-    user, upon which it deletes the workspace folder and its contents before
-    exiting.
+    user. Optionally, the application will delete the workspace folder and its
+    contents before exiting. so long as the directory didn't already exist.
     """
-    signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
-    print("\n*** Simulator running, use Ctrl+C to stop. ***\n")
+    # Define shutdown handling
     _workspace = pathlib.Path(workspace)
+    signal.signal(signal.SIGINT, _make_shutdown_handler(_workspace, cleanup))
+
+    print("\n*** Simulator running, use Ctrl+C to stop. ***\n")
     if _workspace.exists():
         print(
             f"WARNING: workspace directory '{workspace}' already exists, "
             "contents may be overwritten.",
             file=sys.stderr,
         )
+
     _make_workspace(_workspace)
     _watch(_workspace, sim_sleep)
 
 
-def _shutdown(sig_number, stack_frame):
-    """Shutdown the application by deleting the workspace directory. This is
-    expected to be used as a callback to a keyboard interruption issued by the
-    user."""
-    if WORKSPACE.exists():
-        print(f"Cleaning up workspace directory '{WORKSPACE}'")
-        shutil.rmtree(WORKSPACE)
-    sys.exit(0)
+def _make_shutdown_handler(workspace: pathlib.Path, cleanup: bool):
+    """Make a handler for a signal event (typically, upon an interrupt being
+    issued by the user). If the workspace doesn't already exist and
+    `cleanup=True` then the workspace will be deleted upon shutdown. Otherwise,
+    exit with 0 exit code."""
+    if cleanup and not workspace.exists():
+
+        def _shutdown(sig_number, stack_frame):
+            """Shutdown the application by deleting the workspace directory. This is
+            expected to be used as a callback to a keyboard interruption issued by the
+            user."""
+            if WORKSPACE.exists():
+                print(f"Cleaning up workspace directory '{WORKSPACE}'")
+                shutil.rmtree(WORKSPACE)
+            sys.exit(0)
+
+        return _shutdown
+
+    return lambda x, y: sys.exit(0)
 
 
 def _make_workspace(workspace: pathlib.Path):
