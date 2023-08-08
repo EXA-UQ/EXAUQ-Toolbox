@@ -216,6 +216,11 @@ class SimulationsLog(object):
             writer.writerow(header)
             writer.writerows(data_rows)
 
+    def get_pending_jobs(self):
+        with open(self._log_file, 'r', newline='') as file:
+            reader = csv.DictReader(file)
+            return [row["Job_ID"] for row in reader if row["Job_ID"] and not row["Output"]]
+
 
 class JobManager(object):
     def __init__(self, simulations_log: SimulationsLog, interface: HardwareInterface):
