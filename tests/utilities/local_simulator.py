@@ -1,8 +1,8 @@
 import argparse
 import dataclasses
 import math
+import os
 import pathlib
-import shutil
 import signal
 import sys
 import time
@@ -134,12 +134,23 @@ def _make_shutdown_handler(workspace: pathlib.Path, cleanup: bool):
             user."""
             if workspace.exists():
                 print(f"Cleaning up workspace directory '{workspace}'")
-                shutil.rmtree(workspace)
+                _cleanup_workspace(workspace)
             sys.exit(0)
 
         return _shutdown
 
     return lambda x, y: sys.exit(0)
+
+
+def _cleanup_workspace(workspace: pathlib.Path):
+    """Delete the contents of a workspace."""
+    contents = workspace.glob("*")
+    try:
+        for path in contents:
+            os.remove(path)
+        os.rmdir(workspace)
+    except Exception as e:
+        raise PermissionError(f"Could not clean up workspace: {str(e)}")
 
 
 def _make_workspace(workspace: pathlib.Path):
