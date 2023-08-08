@@ -151,20 +151,26 @@ class LocalSimulatorInterface(HardwareInterface):
     def _make_job_id(self):
         """Make a new ID for the job, based on the jobs that have already been
         submitted in the workspace directory."""
-        previous_jobs = _get_filenames(".in", self._workspace_dir)
-        last_job = max(previous_jobs) if previous_jobs else 0
-        return str(int(last_job) + 1)
+        previous_job_ids = _get_filenames(".in", self._workspace_dir)
+        last_job_id = max(previous_job_ids) if previous_job_ids else "0"
+        return str(int(last_job_id) + 1)
 
     def get_job_output(self, job_id: str) -> Optional[Real]:
         """Get the output from the simulation with given job ID, if it exists,
         or return ``None`` otherwise."""
-        output_file = pathlib.Path(self._workspace_dir / f"{job_id}.out")
-        if output_file.exists():
-            return float(output_file.read_text())
+        if self.get_job_status(job_id) == 1:
+            return float(self._output_path(job_id).read_text())
         return None
 
-    def get_job_status(self, job_id: str) -> bool:
-        pass
+    def _output_path(self, job_id: str):
+        return pathlib.Path(self._workspace_dir / f"{job_id}.out")
+
+    def get_job_status(self, job_id: str) -> int:
+        """Get the status of job, returning 1 if the job has been completed and
+        0 otherwise."""
+        if self._output_path(job_id).exists():
+            return 1
+        return 0
 
     def cancel_job(self, job_id: str):
         pass
