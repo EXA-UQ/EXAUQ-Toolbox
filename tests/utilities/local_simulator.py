@@ -132,9 +132,9 @@ def _make_shutdown_handler(workspace: pathlib.Path, cleanup: bool):
             """Shutdown the application by deleting the workspace directory. This is
             expected to be used as a callback to a keyboard interruption issued by the
             user."""
-            if WORKSPACE.exists():
-                print(f"Cleaning up workspace directory '{WORKSPACE}'")
-                shutil.rmtree(WORKSPACE)
+            if workspace.exists():
+                print(f"Cleaning up workspace directory '{workspace}'")
+                shutil.rmtree(workspace)
             sys.exit(0)
 
         return _shutdown
