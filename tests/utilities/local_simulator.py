@@ -1,3 +1,4 @@
+import argparse
 import dataclasses
 import math
 import pathlib
@@ -12,16 +13,66 @@ from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import Input
 
 WORKSPACE = pathlib.Path("./simulator_workspace")
+"""Default workspace directory for the simulator to use. The application
+continually watches for new input files created within the workspace directory
+and writes output files to the same directory."""
+
+SIM_SLEEP = 5
+"""Default amount of time, in seconds, that the simulator should sleep for
+before evaluating its function on the inputs."""
 
 
-def simulate(x: Input):
+def simulate(x: Input, sim_sleep: float):
     """A mock simulator. Computes the value of a function after a pause, to
     imitate an intensive computation."""
-    time.sleep(5)
+    time.sleep(sim_sleep)
     return x[1] + (x[0] ** 2) + (x[1] ** 2) - math.sqrt(2)
 
 
-def main():
+def run_from_command_line():
+    description = "A simple simulator to support experimentation with the EXAUQ-Toolbox."
+    epilog = (
+        "The application evaluates a simulator on inputs as these are received. "
+        "The simulator is defined by a simple mathematical function, but "
+        "but including a set amount of sleep to mimic more intensive work being "
+        "done. Users submit and retrieve simulations by writing/reading files "
+        "to/from a dedicated 'workspace' directory. The application continually "
+        "watches this workspace for new input files (defined as those with "
+        "extension '.in') created within, running the simulator on the "
+        "contents of input files as they are received. Outputs for each "
+        "simulation are written as '.out' files in the workspace, with the same "
+        "name as the corresponding input file. The application runs continually "
+        "until it receives an interrupt from the user, upon which it deletes "
+        "the workspace folder and its contents before exiting."
+    )
+    parser = argparse.ArgumentParser(description=description, epilog=epilog)
+    parser.add_argument(
+        "--workspace",
+        help=(
+            "Path to a directory to act as the simulator's workspace. "
+            f"Default: '{WORKSPACE.absolute()}'"
+        ),
+        default=WORKSPACE,
+        nargs="?",
+        const=WORKSPACE,
+    )
+    parser.add_argument(
+        "--sim_sleep",
+        help=(
+            "The amount of time, in seconds, for the simulator to sleep before "
+            f"evaluating its function. Default: {SIM_SLEEP}s."
+        ),
+        dest="sim_sleep",
+        default=SIM_SLEEP,
+        nargs="?",
+        const=SIM_SLEEP,
+        type=float,
+    )
+    args = parser.parse_args()
+    run(args.workspace, args.sim_sleep)
+
+
+def run(workspace: str, sim_sleep: float):
     """Main entry point into the application.
 
     The application evaluates a simulator on inputs as these are received. The
@@ -36,11 +87,11 @@ def main():
     user, upon which it deletes the workspace folder and its contents before
     exiting.
     """
-
-    signal.signal(signal.SIGINT, _shutdown)
+    signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
     print("*** Simulator running, use Ctrl+C to stop. ***")
-    _make_workspace()
-    _watch()
+    _workspace = pathlib.Path(workspace)
+    _make_workspace(_workspace)
+    _watch(_workspace, sim_sleep)
 
 
 def _shutdown(sig_number, stack_frame):
@@ -53,37 +104,38 @@ def _shutdown(sig_number, stack_frame):
     sys.exit(0)
 
 
-def _make_workspace():
-    """Create the workspace folder on the file system."""
-    WORKSPACE.mkdir(exist_ok=True)
+def _make_workspace(workspace: pathlib.Path):
+    """Create a given workspace folder on the file system."""
+    workspace.mkdir(exist_ok=True)
 
 
-def _watch():
+def _watch(workspace: pathlib.Path, sim_sleep: float):
     """Monitor the workspace folder for new simulation jobs and run the
     simulator on any new ones, outputting the results to the workspace
-    directory."""
+    directory. The simulator sleeps for the given number of seconds as part of
+    its execution."""
     while True:
-        jobs = _get_new_jobs()
+        jobs = _get_new_jobs(workspace)
         for job in jobs:
             print(f"Running simulation {job.id}...")
-            _write_output(simulate(job.input), job.id)
+            _write_output(simulate(job.input, sim_sleep), job.id, workspace)
             print("Done.")
 
 
-def _get_new_jobs() -> list["Job"]:
+def _get_new_jobs(workspace: pathlib.Path) -> list["Job"]:
     """Gather new jobs from the workspace folder, as represented by new '.in'
     files."""
-    input_files = WORKSPACE.glob("*.in")
-    output_ids = _get_filenames(".out")
+    input_files = workspace.glob("*.in")
+    output_ids = _get_filenames(".out", workspace)
     new_input_files = [p for p in input_files if _extract_filename(p) not in output_ids]
     return [Job.from_file(p) for p in new_input_files]
 
 
-def _write_output(y: Real, _id: str):
+def _write_output(y: Real, _id: str, workspace: pathlib.Path):
     """Write a simulator output to an output file with the given ID in the
     workspace directory. Raises a ``FileExistsError`` if the output file already
     exists."""
-    output_file = pathlib.Path(WORKSPACE / f"{_id}.out")
+    output_file = pathlib.Path(workspace / f"{_id}.out")
     if output_file.exists():
         raise FileExistsError(
             f"Cannot write output file {output_file}: it already exists."
@@ -91,11 +143,11 @@ def _write_output(y: Real, _id: str):
     output_file.write_text(str(y))
 
 
-def _get_filenames(extension: str, workspace_dir: pathlib.Path = WORKSPACE) -> set[str]:
+def _get_filenames(extension: str, workspace: pathlib.Path) -> set[str]:
     """Return the names of all files in a workspace directory with the given
     extension. In this case, the name returned does not contain the file
     extension."""
-    return set(map(_extract_filename, workspace_dir.glob(f"*{extension}")))
+    return set(map(_extract_filename, workspace.glob(f"*{extension}")))
 
 
 def _extract_filename(p: pathlib.Path):
@@ -180,4 +232,4 @@ class LocalSimulatorInterface(HardwareInterface):
 
 
 if __name__ == "__main__":
-    main()
+    run_from_command_line()
