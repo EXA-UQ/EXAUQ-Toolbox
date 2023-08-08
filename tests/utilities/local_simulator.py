@@ -1,3 +1,4 @@
+import dataclasses
 import math
 import pathlib
 import shutil
@@ -63,46 +64,24 @@ def _watch():
     while True:
         jobs = _get_new_jobs()
         for job in jobs:
-            print(f"Running simulation {_get_id(job)}...")
-            _write_output(simulate(_get_input(job)), _get_id(job))
+            print(f"Running simulation {job.id}...")
+            _write_output(simulate(job.input), job.id)
             print("Done.")
 
 
-def _get_new_jobs() -> list[tuple[Input, str]]:
+def _clean_up_workspace():
+    """Delete the workspace directory and its contents, if it exists."""
+    if WORKSPACE.exists():
+        shutil.rmtree(WORKSPACE)
+
+
+def _get_new_jobs() -> list["Job"]:
     """Gather new jobs from the workspace folder, as represented by new '.in'
     files."""
     input_files = WORKSPACE.glob("*.in")
     output_ids = _get_filenames(".out")
     new_input_files = [p for p in input_files if _extract_filename(p) not in output_ids]
-    return [(_read_input(p), _extract_filename(p)) for p in new_input_files]
-
-
-def _get_input(job) -> Input:
-    """Get the simulator `Input` from a job."""
-    return job[0]
-
-
-def _get_id(job) -> str:
-    """Get the ID of a job."""
-    return job[1]
-
-
-def _read_input(input_path: pathlib.Path) -> Input:
-    """Create a new simulator input from the contents of an input file."""
-    file_contents = input_path.read_text().strip()
-    return Input(*(map(float, file_contents.split(","))))
-
-
-def _get_filenames(extension: str, workspace_dir: pathlib.Path = WORKSPACE) -> set[str]:
-    """Return the names of all files in a workspace directory with the given
-    extension. In this case, the name returned does not contain the file
-    extension."""
-    return set(map(_extract_filename, workspace_dir.glob(f"*{extension}")))
-
-
-def _extract_filename(p: pathlib.Path):
-    """Get the file name from a path (without the extension)."""
-    return p.name.split(".")[0]
+    return [Job.from_file(p) for p in new_input_files]
 
 
 def _write_output(y: Real, _id: str):
@@ -117,10 +96,29 @@ def _write_output(y: Real, _id: str):
     output_file.write_text(str(y))
 
 
-def _clean_up_workspace():
-    """Delete the workspace directory and its contents, if it exists."""
-    if WORKSPACE.exists():
-        shutil.rmtree(WORKSPACE)
+def _get_filenames(extension: str, workspace_dir: pathlib.Path = WORKSPACE) -> set[str]:
+    """Return the names of all files in a workspace directory with the given
+    extension. In this case, the name returned does not contain the file
+    extension."""
+    return set(map(_extract_filename, workspace_dir.glob(f"*{extension}")))
+
+
+def _extract_filename(p: pathlib.Path):
+    """Get the file name from a path (without the extension)."""
+    return p.name.split(".")[0]
+
+
+@dataclasses.dataclass(frozen=True)
+class Job(object):
+    id: str
+    input: Input
+
+    @classmethod
+    def from_file(cls, path: pathlib.Path):
+        """Make a simulation job from a given input file."""
+        file_contents = path.read_text().strip()
+        _input = Input(*(map(float, file_contents.split(","))))
+        return cls(id=_extract_filename(path), input=_input)
 
 
 class LocalSimulatorInterface(HardwareInterface):
