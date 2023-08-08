@@ -11,7 +11,7 @@ from typing import Optional, Union
 from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import Input
 
-WORKSPACE = pathlib.Path("./sim_workspace")
+WORKSPACE = pathlib.Path("./simulator_workspace")
 
 
 def simulate(x: Input):
@@ -117,10 +117,31 @@ class Job(object):
 
 
 class LocalSimulatorInterface(HardwareInterface):
-    def __init__(self, workspace_dir: Union[str, pathlib.Path]):
+    """An interface to a local simulator.
+
+    The local simulator is a command line application intended for testing
+    purposes. It runs in its own process and the means of communicating with it
+    (e.g. submitting jobs and retrieving output values) is by modifying the
+    contents of the application's 'workspace' directory. For example, to submit
+    a new simulation job, write the input to be evaluated to a '.in' file in
+    the workspace, with filename being the ID of the job (e.g. '1.in'). When
+    the simulation has completed, the output will be written to a corresponding
+    output file in the workspace directory (e.g. to '1.out').
+
+    Parameters
+    ----------
+    workspace_dir : str or pathlib.Path, optional
+        A path to the directory of the local simulator's workspace (see above).
+        Defaults to the value of the `WORKSPACE` constant defined in this
+        module.
+    """
+
+    def __init__(self, workspace_dir: Union[str, pathlib.Path] = WORKSPACE):
         self._workspace_dir = pathlib.Path(workspace_dir)
 
     def submit_job(self, job: Input) -> str:
+        """Submit a new job by writing it as an input file in the workspace
+        directory."""
         job_id = self._make_job_id()
         input_file = pathlib.Path(self._workspace_dir / f"{job_id}.in")
         content = ",".join(map(str, job))
@@ -134,14 +155,16 @@ class LocalSimulatorInterface(HardwareInterface):
         last_job = max(previous_jobs) if previous_jobs else 0
         return str(int(last_job) + 1)
 
-    def get_job_status(self, job_id: str) -> bool:
-        pass
-
     def get_job_output(self, job_id: str) -> Optional[Real]:
+        """Get the output from the simulation with given job ID, if it exists,
+        or return ``None`` otherwise."""
         output_file = pathlib.Path(self._workspace_dir / f"{job_id}.out")
         if output_file.exists():
             return float(output_file.read_text())
         return None
+
+    def get_job_status(self, job_id: str) -> bool:
+        pass
 
     def cancel_job(self, job_id: str):
         pass
