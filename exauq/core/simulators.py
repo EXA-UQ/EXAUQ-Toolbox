@@ -223,7 +223,7 @@ class SimulationsLog(object):
 
 
 class JobManager(object):
-    def __init__(self, simulations_log: SimulationsLog, interface: HardwareInterface):
+    def __init__(self, simulations_log: SimulationsLog, interface: HardwareInterface, polling_interval: int = 10, wait_for_pending: bool = True):
         self._simulations_log = simulations_log
         self._interface = interface
         self._manager = Manager()
