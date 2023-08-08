@@ -175,7 +175,7 @@ class SimulationsLog(object):
     def add_new_record(self, x: Input):
         with open(self._log_file, mode="a", newline="") as file:
             writer = csv.writer(file)
-            writer.writerow(list(x) + [""])
+            writer.writerow(list(x) + ["", ""])
 
     def insert_job_id(self, input_set: Input, job_id):
         with open(self._log_file, 'r') as csvfile:
