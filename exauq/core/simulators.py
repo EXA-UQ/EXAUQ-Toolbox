@@ -226,26 +226,43 @@ class JobManager(object):
     def __init__(self, simulations_log: SimulationsLog, interface: HardwareInterface, polling_interval: int = 10, wait_for_pending: bool = True):
         self._simulations_log = simulations_log
         self._interface = interface
-        self._manager = Manager()
-        self._jobs = self._manager.list()
-        self._running = Value('b', False)
+        self._polling_interval = polling_interval
+        self._jobs = []
+        self._running = False
+        self._lock = Lock()
+        self._thread = None
+
+        self._monitor(self._simulations_log.get_pending_jobs())
+        if wait_for_pending and self._thread is not None:
+            self._thread.join()
 
     def submit(self, x: Input):
         self._simulations_log.add_new_record(x)
         job_id = self._interface.submit_job(x)
-        self._jobs.append(job_id)
-        if not self._running.value:
-            process = Process(target=self._monitor_jobs)
-            process.start()
+        self._simulations_log.insert_job_id(x, job_id)
+        self._monitor([job_id])
+
+    def _monitor(self, job_ids: list):
+        with self._lock:
+            self._jobs.extend(job_ids)
+        if not self._running and self._jobs:
+            self._thread = Thread(target=self._monitor_jobs)
+            self._thread.start()
 
     def _monitor_jobs(self):
-        self._running.value = True
+        with self._lock:
+            self._running = True
         while self._jobs:
-            for job_id in self._jobs:
+            with self._lock:
+                job_ids = self._jobs[:]
+            for job_id in job_ids:
                 status = self._interface.get_job_status(job_id)
-                if status: # Currently job status either true (job complete) or false (not complete)
+                if status:  # Job complete
                     result = self._interface.get_job_output(job_id)
                     self._simulations_log.insert_result(job_id, result)
-                    self._jobs.remove(job_id)
-            sleep(1)  # Add param...
-        self._running.value = False
+                    with self._lock:
+                        self._jobs.remove(job_id)
+            if self._jobs:
+                sleep(self._polling_interval)
+        with self._lock:
+            self._running = False
