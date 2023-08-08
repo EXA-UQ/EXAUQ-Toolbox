@@ -1,6 +1,8 @@
 import math
 import pathlib
 import shutil
+import signal
+import sys
 import time
 from numbers import Real
 from typing import Optional, Union
@@ -33,15 +35,20 @@ def main():
     user, upon which it deletes the workspace folder and its contents before
     exiting.
     """
-    try:
-        print("Simulator running, use Ctrl+C to stop.")
-        _make_workspace()
-        _watch()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        print(f"Cleaning up workspace directory {WORKSPACE}")
-        _clean_up_workspace()
+
+    signal.signal(signal.SIGINT, _shutdown)
+    print("*** Simulator running, use Ctrl+C to stop. ***")
+    _make_workspace()
+    _watch()
+
+
+def _shutdown(sig_number, stack_frame):
+    """Shutdown the application by deleting the workspace directory. This is
+    expected to be used as a callback to a keyboard interruption issued by the
+    user."""
+    print(f"Cleaning up workspace directory '{WORKSPACE}'")
+    _clean_up_workspace()
+    sys.exit(0)
 
 
 def _make_workspace():
