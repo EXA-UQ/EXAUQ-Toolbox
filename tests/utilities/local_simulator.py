@@ -88,8 +88,14 @@ def run(workspace: str, sim_sleep: float):
     exiting.
     """
     signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
-    print("*** Simulator running, use Ctrl+C to stop. ***")
+    print("\n*** Simulator running, use Ctrl+C to stop. ***\n")
     _workspace = pathlib.Path(workspace)
+    if _workspace.exists():
+        print(
+            f"WARNING: workspace directory '{workspace}' already exists, "
+            "contents may be overwritten.",
+            file=sys.stderr,
+        )
     _make_workspace(_workspace)
     _watch(_workspace, sim_sleep)
 
