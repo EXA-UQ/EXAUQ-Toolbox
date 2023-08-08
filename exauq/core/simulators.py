@@ -1,12 +1,13 @@
 import csv
 import os
-from multiprocessing import Process, Manager, Value
+
 from numbers import Real
+from threading import Thread, Lock
 from time import sleep
 from typing import Optional
 
 from exauq.core.hardware import HardwareInterface
-from exauq.core.modelling import AbstractSimulator, Input
+from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.core.types import FilePath
 from exauq.utilities.validation import check_file_path
 
@@ -35,13 +36,13 @@ class Simulator(AbstractSimulator):
     """
 
     # TODO: rename simulations_log
-    def __init__(self, interface: HardwareInterface, simulations_log: FilePath = "simulations.csv"):
-        self._simulations_log = self._make_simulations_log(simulations_log)
+    def __init__(self, domain: SimulatorDomain, interface: HardwareInterface, simulations_log: FilePath = "simulations.csv"):
+        self._simulations_log = self._make_simulations_log(simulations_log, domain.dim)
         self._manager = JobManager(self._simulations_log, interface)
         self._previous_simulations = list(self._simulations_log.get_simulations())
 
     @staticmethod
-    def _make_simulations_log(simulations_log: FilePath):
+    def _make_simulations_log(simulations_log: FilePath, num_inputs: int):
         check_file_path(
             simulations_log,
             TypeError(
@@ -50,7 +51,7 @@ class Simulator(AbstractSimulator):
             ),
         )
 
-        return SimulationsLog(simulations_log, 4) # Todo: Pass domain object for num_inputs?
+        return SimulationsLog(simulations_log, num_inputs)
 
     @property
     def previous_simulations(self) -> tuple:
