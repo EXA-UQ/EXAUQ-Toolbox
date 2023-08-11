@@ -195,7 +195,7 @@ class SimulationsLog(object):
         job_id_index = header.index('Job_ID')
 
         for i, row in enumerate(data_rows):
-            if [float(x) for x in row[:len(input_set)]] == list(input_set[:]):
+            if [float(x) for x in row[: len(input_set)]] == list(input_set[:]):
                 row[job_id_index] = job_id
 
         with open(self._log_file, 'w', newline='') as csvfile:
@@ -232,7 +232,32 @@ class SimulationsLog(object):
 
 
 class JobManager(object):
-    def __init__(self, simulations_log: SimulationsLog, interface: HardwareInterface, polling_interval: int = 10, wait_for_pending: bool = True):
+    """
+    Manages and monitors simulation jobs.
+
+    The `JobManager` class handles the submission and monitoring of simulation jobs
+    through the given hardware interface. It ensures that the results of completed
+    jobs are logged and provides functionality to handle pending jobs.
+
+    Parameters
+    ----------
+    simulations_log : SimulationsLog
+        The log object where simulations are recorded.
+    interface : HardwareInterface
+        The hardware interface to interact with the simulation hardware.
+    polling_interval : int, optional
+        The interval in seconds at which the job status is polled. Default is 10.
+    wait_for_pending : bool, optional
+        If True, waits for pending jobs to complete during initialization. Default is True.
+    """
+
+    def __init__(
+        self,
+        simulations_log: SimulationsLog,
+        interface: HardwareInterface,
+        polling_interval: int = 10,
+        wait_for_pending: bool = True,
+    ):
         self._simulations_log = simulations_log
         self._interface = interface
         self._polling_interval = polling_interval
@@ -246,12 +271,16 @@ class JobManager(object):
             self._thread.join()
 
     def submit(self, x: Input):
+        """Submit a new simulation job."""
+
         self._simulations_log.add_new_record(x)
         job_id = self._interface.submit_job(x)
         self._simulations_log.insert_job_id(x, job_id)
         self._monitor([job_id])
 
     def _monitor(self, job_ids: list):
+        """Start monitoring the given job IDs."""
+
         with self._lock:
             self._jobs.extend(job_ids)
         if not self._running and self._jobs:
@@ -259,6 +288,8 @@ class JobManager(object):
             self._thread.start()
 
     def _monitor_jobs(self):
+        """Continuously monitor the status of jobs and handle their completion."""
+
         with self._lock:
             self._running = True
         while self._jobs:
