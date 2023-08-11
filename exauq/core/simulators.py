@@ -1,9 +1,12 @@
 import csv
 import os
 from numbers import Real
+from threading import Lock, Thread
+from time import sleep
 from typing import Optional
 
-from exauq.core.modelling import AbstractSimulator, Input
+from exauq.core.hardware import HardwareInterface
+from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.core.types import FilePath
 from exauq.utilities.validation import check_file_path
 
@@ -31,15 +34,19 @@ class Simulator(AbstractSimulator):
         (Read-only) Simulations that have been previously submitted for evaluation.
     """
 
-    def __init__(self, simulations_log: FilePath = "simulations.csv"):
-        self._previous_simulations = self._load_simulations(simulations_log)
+    # TODO: rename simulations_log
+    def __init__(
+        self,
+        domain: SimulatorDomain,
+        interface: HardwareInterface,
+        simulations_log: FilePath = "simulations.csv",
+    ):
+        self._simulations_log = self._make_simulations_log(simulations_log, domain.dim)
+        self._manager = JobManager(self._simulations_log, interface)
+        self._previous_simulations = list(self._simulations_log.get_simulations())
 
     @staticmethod
-    def _load_simulations(
-        simulations_log: FilePath,
-    ) -> list[tuple[Input, Optional[Real]]]:
-        """Get a list of simulations contained in the given log file."""
-
+    def _make_simulations_log(simulations_log: FilePath, num_inputs: int):
         check_file_path(
             simulations_log,
             TypeError(
@@ -48,7 +55,7 @@ class Simulator(AbstractSimulator):
             ),
         )
 
-        return list(SimulationsLog(simulations_log).get_simulations())
+        return SimulationsLog(simulations_log, num_inputs)
 
     @property
     def previous_simulations(self) -> tuple:
@@ -85,10 +92,13 @@ class Simulator(AbstractSimulator):
                 f"Argument 'x' must be of type Input, but received {type(x)}."
             )
 
+        self._previous_simulations = list(self._simulations_log.get_simulations())
+
         for _input, output in self._previous_simulations:
             if _input == x:
                 return output
 
+        self._manager.submit(x)
         self._previous_simulations.append((x, None))
         return None
 
@@ -110,11 +120,11 @@ class SimulationsLog(object):
         A path to the underlying log file containing details of simulations.
     """
 
-    def __init__(self, file: FilePath):
-        self._log_file = self._initialise_log_file(file)
+    def __init__(self, file: FilePath, num_inputs: int):
+        self._log_file = self._initialise_log_file(file, num_inputs)
 
     @staticmethod
-    def _initialise_log_file(file: FilePath) -> FilePath:
+    def _initialise_log_file(file: FilePath, num_inputs: int) -> FilePath:
         """Create a new file at the given path if it doesn't already exist and return
         the path."""
 
@@ -127,8 +137,13 @@ class SimulationsLog(object):
         )
 
         if not os.path.exists(file):
-            with open(file, mode="w"):
-                pass
+            with open(file, mode="w", newline="") as _file:
+                writer = csv.writer(_file)
+                header = [f"Input_{i + 1}" for i in range(num_inputs)] + [
+                    "Output",
+                    "Job_ID",
+                ]
+                writer.writerow(header)
 
         return file
 
@@ -163,3 +178,131 @@ class SimulationsLog(object):
         x = Input(*input_coords)
         y = float(record["Output"]) if record["Output"] else None
         return x, y
+
+    def add_new_record(self, x: Input):
+        with open(self._log_file, mode="a", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(list(x) + ["", ""])
+
+    def insert_job_id(self, input_set: Input, job_id):
+        with open(self._log_file, 'r') as csvfile:
+            reader = csv.reader(csvfile)
+            rows = list(reader)
+
+        header = rows[0]
+        data_rows = rows[1:]
+
+        job_id_index = header.index('Job_ID')
+
+        for i, row in enumerate(data_rows):
+            if [float(x) for x in row[: len(input_set)]] == list(input_set[:]):
+                row[job_id_index] = job_id
+
+        with open(self._log_file, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(header)
+            writer.writerows(data_rows)
+
+    def insert_result(self, job_id, result):
+        with open(self._log_file, 'r') as csvfile:
+            reader = csv.reader(csvfile)
+            rows = list(reader)
+
+        header = rows[0]
+        data_rows = rows[1:]
+
+        result_index = header.index('Output')
+        job_id_index = header.index('Job_ID')
+
+        for i, row in enumerate(data_rows):
+            if row[job_id_index] == str(job_id):
+                row[result_index] = result
+
+        with open(self._log_file, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(header)
+            writer.writerows(data_rows)
+
+    def get_pending_jobs(self):
+        with open(self._log_file, 'r', newline='') as file:
+            reader = csv.DictReader(file)
+            return [
+                row["Job_ID"] for row in reader if row["Job_ID"] and not row["Output"]
+            ]
+
+
+class JobManager(object):
+    """
+    Manages and monitors simulation jobs.
+
+    The `JobManager` class handles the submission and monitoring of simulation jobs
+    through the given hardware interface. It ensures that the results of completed
+    jobs are logged and provides functionality to handle pending jobs.
+
+    Parameters
+    ----------
+    simulations_log : SimulationsLog
+        The log object where simulations are recorded.
+    interface : HardwareInterface
+        The hardware interface to interact with the simulation hardware.
+    polling_interval : int, optional
+        The interval in seconds at which the job status is polled. Default is 10.
+    wait_for_pending : bool, optional
+        If True, waits for pending jobs to complete during initialization. Default is True.
+    """
+
+    def __init__(
+        self,
+        simulations_log: SimulationsLog,
+        interface: HardwareInterface,
+        polling_interval: int = 10,
+        wait_for_pending: bool = True,
+    ):
+        self._simulations_log = simulations_log
+        self._interface = interface
+        self._polling_interval = polling_interval
+        self._jobs = []
+        self._running = False
+        self._lock = Lock()
+        self._thread = None
+
+        self._monitor(self._simulations_log.get_pending_jobs())
+        if wait_for_pending and self._thread is not None:
+            self._thread.join()
+
+    def submit(self, x: Input):
+        """Submit a new simulation job."""
+
+        self._simulations_log.add_new_record(x)
+        job_id = self._interface.submit_job(x)
+        self._simulations_log.insert_job_id(x, job_id)
+        self._monitor([job_id])
+
+    def _monitor(self, job_ids: list):
+        """Start monitoring the given job IDs."""
+
+        with self._lock:
+            self._jobs.extend(job_ids)
+        if not self._running and self._jobs:
+            self._thread = Thread(target=self._monitor_jobs)
+            self._thread.start()
+
+    def _monitor_jobs(self):
+        """Continuously monitor the status of jobs and handle their completion."""
+
+        with self._lock:
+            self._running = True
+        while self._jobs:
+            with self._lock:
+                job_ids = self._jobs[:]
+            for job_id in job_ids:
+                status = self._interface.get_job_status(job_id)
+                if status:  # Job complete
+                    result = self._interface.get_job_output(job_id)
+                    self._simulations_log.insert_result(job_id, result)
+                    with self._lock:
+                        self._jobs.remove(job_id)
+            if self._jobs:
+                sleep(self._polling_interval)
+        with self._lock:
+            self._running = False

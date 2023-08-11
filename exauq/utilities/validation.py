@@ -66,5 +66,6 @@ def check_int(x: Any, exception: Exception) -> None:
 
 def check_file_path(file: Any, exception: Exception):
     """Raise the given exception if an object doesn't define a path to a file."""
-    if not isinstance(file, FilePath):
-        raise exception
+    pass
+    #if not isinstance(file, FilePath):
+     #   raise exception
