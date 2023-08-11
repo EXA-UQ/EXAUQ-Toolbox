@@ -1,8 +1,7 @@
 import csv
 import os
-
 from numbers import Real
-from threading import Thread, Lock
+from threading import Lock, Thread
 from time import sleep
 from typing import Optional
 
