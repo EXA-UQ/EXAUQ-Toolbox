@@ -35,7 +35,12 @@ class Simulator(AbstractSimulator):
     """
 
     # TODO: rename simulations_log
-    def __init__(self, domain: SimulatorDomain, interface: HardwareInterface, simulations_log: FilePath = "simulations.csv"):
+    def __init__(
+        self,
+        domain: SimulatorDomain,
+        interface: HardwareInterface,
+        simulations_log: FilePath = "simulations.csv",
+    ):
         self._simulations_log = self._make_simulations_log(simulations_log, domain.dim)
         self._manager = JobManager(self._simulations_log, interface)
         self._previous_simulations = list(self._simulations_log.get_simulations())
@@ -134,7 +139,10 @@ class SimulationsLog(object):
         if not os.path.exists(file):
             with open(file, mode="w", newline="") as _file:
                 writer = csv.writer(_file)
-                header = [f"Input_{i + 1}" for i in range(num_inputs)] + ["Output", "Job_ID"]
+                header = [f"Input_{i + 1}" for i in range(num_inputs)] + [
+                    "Output",
+                    "Job_ID",
+                ]
                 writer.writerow(header)
 
         return file
@@ -218,7 +226,9 @@ class SimulationsLog(object):
     def get_pending_jobs(self):
         with open(self._log_file, 'r', newline='') as file:
             reader = csv.DictReader(file)
-            return [row["Job_ID"] for row in reader if row["Job_ID"] and not row["Output"]]
+            return [
+                row["Job_ID"] for row in reader if row["Job_ID"] and not row["Output"]
+            ]
 
 
 class JobManager(object):
