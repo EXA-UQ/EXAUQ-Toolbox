@@ -8,7 +8,6 @@ on:
   push:
     branches: [ "dev", "main", "release/*" ]
   repository_dispatch:
-  pull_request:
 
 jobs:
   build:
@@ -25,15 +24,13 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install Poetry
+    - name: Install Poetry, dependencies and run tests
       run: |
         # Cf. Using pip (aka manually) section of:
         # https://python-poetry.org/docs/#ci-recommendations 
         export POETRY_HOME=/opt/poetry
         python3 -m venv $POETRY_HOME
+        echo $POETRY_HOME
         $POETRY_HOME/bin/pip install poetry
-        $POETRY_HOME/bin/poetry --version
-    - name: Install development dependencies
-      run: $POETRY_HOME/bin/poetry install --with=dev
-    - name: Run unit tests
-      run: $POETRY_HOME/bin/poetry run python -m unittest discover tests/
+        $POETRY_HOME/bin/poetry install --with=dev
+        $POETRY_HOME/bin/poetry run python -m unittest discover tests/
