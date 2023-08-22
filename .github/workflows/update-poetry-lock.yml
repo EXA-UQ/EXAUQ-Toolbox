@@ -4,6 +4,7 @@ on:
   schedule:
     # On 1, 15, 29 day of each month at 5:45am UTC
     - cron: '45 5 1,15,29 * *'
+  workflow_dispatch:
 jobs:
   update-lock-file-and-pr:
     runs-on: ubuntu-latest
