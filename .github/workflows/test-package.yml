@@ -23,18 +23,23 @@ jobs:
         python-version: ["3.9", "3.10", "3.11"]
     steps:
     - uses: actions/checkout@v3
+    - name: Install Poetry
+      run: pipx install poetry
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install Poetry
-      # Cf. 'Using pip (aka manually)' section of:
-      # https://python-poetry.org/docs/#ci-recommendations   
-      run: |
-        python3 -m venv ${{ env.POETRY_HOME }}
-        ${{ env.POETRY_HOME }}/bin/pip install poetry
-        echo "Installed $(${{ env.POETRY_HOME }}/bin/poetry --version)"
+        cache: "poetry"
+    # - name: Install Poetry
+    #   # Cf. 'Using pip (aka manually)' section of:
+    #   # https://python-poetry.org/docs/#ci-recommendations   
+    #   run: |
+    #     python3 -m venv ${{ env.POETRY_HOME }}
+    #     ${{ env.POETRY_HOME }}/bin/pip install poetry
+    #     echo "Installed $(${{ env.POETRY_HOME }}/bin/poetry --version)"
     - name: Install dependencies
-      run: ${{ env.POETRY_HOME }}/bin/poetry install --with=dev
+      # run: ${{ env.POETRY_HOME }}/bin/poetry install --with=dev
+      run: poetry install --with=dev
     - name: Run unit tests
-      run: ${{ env.POETRY_HOME }}/bin/poetry run python -m unittest discover tests/
+      # run: ${{ env.POETRY_HOME }}/bin/poetry run python -m unittest discover tests/
+      run: poetry run python -m unittest discover tests/
