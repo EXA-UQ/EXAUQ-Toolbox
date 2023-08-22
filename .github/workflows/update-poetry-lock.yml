@@ -1,12 +1,12 @@
-name: update-poetry-lock
-run-name: ${{ github.actor }} updated the Poetry lock file
+name: Update Poetry lock file 
+run-name: Update the Poetry lock file with latest versions of dependencies
 on:
   schedule:
     # On 1, 15, 29 day of each month at 5:45am UTC
     - cron: '45 5 1,15,29 * *'
   workflow_dispatch:
 jobs:
-  update-lock-file-and-pr:
+  main:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -23,8 +23,6 @@ jobs:
         run: poetry --version
       - name: Install dependencies
         run: rm -r poetry.lock && poetry install --with=dev
-      - name: Run unit tests
-        run: poetry run python -m unittest discover tests/
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:
@@ -35,3 +33,5 @@ jobs:
             Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action.
             
             Updates Python packages as specified in the `pyproject.toml` file and updates `Poetry.lock` accordingly. 
+      - name: Run unit tests
+        run: poetry run python -m unittest discover tests/
