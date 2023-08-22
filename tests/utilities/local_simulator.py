@@ -162,6 +162,7 @@ def _watch(workspace: pathlib.Path, sim_sleep: float):
             print(f"Running simulation {job.id}...")
             _write_output(simulate(job.input, sim_sleep), job.id, workspace)
             print("Done.")
+        time.sleep(2)
 
 
 def _get_new_jobs(workspace: pathlib.Path) -> list["Job"]:
