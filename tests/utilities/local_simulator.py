@@ -21,10 +21,6 @@ SIM_SLEEP = 5
 """Default amount of time, in seconds, that the simulator should sleep for
 before evaluating its function on the inputs."""
 
-CLEANUP = False
-"""Whether the simulator's workspace directory should be deleted upon application
-shutdown."""
-
 
 def simulate(x: Input, sim_sleep: float):
     """A mock simulator. Computes the value of a function after a pause, to
@@ -76,15 +72,12 @@ def run_from_command_line():
     parser.add_argument(
         "--cleanup",
         help=(
-            "Whether to delete the workspace directory upon shutdown. Note that cleanup "
-            "will only occur if the workspace directory doesn't exist before "
-            f"running this application. Default: {CLEANUP}."
+            "Additionally, delete the workspace directory upon shutdown. This "
+            "will only occur if the workspace directory didn't exist before "
+            "running this application."
         ),
         dest="cleanup",
-        default=CLEANUP,
-        nargs="?",
-        const=CLEANUP,
-        type=bool,
+        action="store_true",
     )
     args = parser.parse_args()
     run(args.workspace, args.sim_sleep, args.cleanup)
