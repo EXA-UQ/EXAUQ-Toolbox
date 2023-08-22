@@ -9,10 +9,13 @@ on:
     branches: [ "dev", "main", "release/*" ]
   repository_dispatch:
   workflow_dispatch:
+  workflow_call:
 env:
   POETRY_HOME: "/opt/poetry"
+
 jobs:
-  build:
+  job1:
+    name: Run unittest tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

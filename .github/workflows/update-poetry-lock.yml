@@ -1,12 +1,15 @@
-name: Update Poetry lock file 
-run-name: Update the Poetry lock file with latest versions of dependencies
+name: Update dependencies
+run-name: Update Poetry lock file and run tests upon ${{ github.event_name }}
 on:
   schedule:
     # On 1, 15, 29 day of each month at 5:45am UTC
     - cron: '45 5 1,15,29 * *'
   workflow_dispatch:
+
 jobs:
-  main:
+
+  job1:
+    name: Update Poetry lockfile and create PR
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -33,5 +36,8 @@ jobs:
             Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action.
             
             Updates Python packages as specified in the `pyproject.toml` file and updates `Poetry.lock` accordingly. 
-      - name: Run unit tests
-        run: poetry run python -m unittest discover tests/
+
+  job2:
+    name: Run unit tests
+    needs: job1
+    uses: ./.github/workflows/test-package.yml
