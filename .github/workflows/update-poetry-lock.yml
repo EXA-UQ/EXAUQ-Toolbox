@@ -20,11 +20,10 @@ jobs:
         uses: abatilo/actions-poetry@v2
       - name: View Poetry version
         run: poetry --version
-      - name: Install packages
-        # The --no-root option means don't install the EXAUQ-Toolbox package.
-        # May want to remove this in the future e.g. to build package and run tests.
-        run: rm -r poetry.lock && poetry install --no-root
-      
+      - name: Install dependencies
+        run: rm -r poetry.lock && poetry install --with=dev
+      - name: Run unit tests
+        run: poetry run python -m unittest discover tests/
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v4
         with:

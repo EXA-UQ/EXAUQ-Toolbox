@@ -9,29 +9,29 @@ on:
     branches: [ "dev", "main", "release/*" ]
   repository_dispatch:
   workflow_dispatch:
-
+env:
+  POETRY_HOME: "/opt/poetry"
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11"]
-
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install Poetry, dependencies and run tests
+    - name: Install Poetry
+      # Cf. 'Using pip (aka manually)' section of:
+      # https://python-poetry.org/docs/#ci-recommendations   
       run: |
-        # Cf. Using pip (aka manually) section of:
-        # https://python-poetry.org/docs/#ci-recommendations 
-        export POETRY_HOME=/opt/poetry
-        python3 -m venv $POETRY_HOME
-        echo $POETRY_HOME
-        $POETRY_HOME/bin/pip install poetry
-        $POETRY_HOME/bin/poetry install --with=dev
-        $POETRY_HOME/bin/poetry run python -m unittest discover tests/
+        python3 -m venv ${{ env.POETRY_HOME }}
+        ${{ env.POETRY_HOME }}/bin/pip install poetry
+        echo "Installed $(${{ env.POETRY_HOME }}/bin/poetry --version)"
+    - name: Install dependencies
+      run: ${{ env.POETRY_HOME }}/bin/poetry install --with=dev
+    - name: Run unit tests
+      run: ${{ env.POETRY_HOME }}/bin/poetry run python -m unittest discover tests/
