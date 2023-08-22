@@ -10,8 +10,6 @@ on:
   repository_dispatch:
   workflow_dispatch:
   workflow_call:
-env:
-  POETRY_HOME: "/opt/poetry"
 
 jobs:
   job1:
@@ -30,16 +28,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: "poetry"
-    # - name: Install Poetry
-    #   # Cf. 'Using pip (aka manually)' section of:
-    #   # https://python-poetry.org/docs/#ci-recommendations   
-    #   run: |
-    #     python3 -m venv ${{ env.POETRY_HOME }}
-    #     ${{ env.POETRY_HOME }}/bin/pip install poetry
-    #     echo "Installed $(${{ env.POETRY_HOME }}/bin/poetry --version)"
     - name: Install dependencies
-      # run: ${{ env.POETRY_HOME }}/bin/poetry install --with=dev
       run: poetry install --with=dev
     - name: Run unit tests
-      # run: ${{ env.POETRY_HOME }}/bin/poetry run python -m unittest discover tests/
       run: poetry run python -m unittest discover tests/
