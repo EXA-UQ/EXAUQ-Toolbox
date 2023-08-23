@@ -1,12 +1,9 @@
 """Contains fakes used to support unit tests
 """
 import typing
-from exauq.core.modelling import (
-    Input,
-    TrainingDatum,
-    AbstractEmulator,
-    AbstractSimulator,
-)
+
+from exauq.core.hardware import HardwareInterface
+from exauq.core.modelling import AbstractEmulator, AbstractSimulator, Input, TrainingDatum
 
 # The tolerance used for determining if two floating point numbers are equal.
 TOLERANCE_PLACES: float = 7
@@ -112,3 +109,20 @@ class OneDimSimulator(AbstractSimulator):
             The value of the input `x`.
         """
         return x.value
+
+
+class DumbHardwareInterface(HardwareInterface):
+    def submit_job(self, job):
+        return super().submit_job(job)
+
+    def get_job_status(self, job_id):
+        return super().get_job_status(job_id)
+
+    def get_job_output(self, job_id):
+        return super().get_job_output(job_id)
+
+    def cancel_job(self, job_id):
+        return super().cancel_job(job_id)
+
+    def wait_for_job(self, job_id):
+        return super().wait_for_job(job_id)

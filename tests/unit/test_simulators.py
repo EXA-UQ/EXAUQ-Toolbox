@@ -5,28 +5,11 @@ import unittest.mock
 from numbers import Real
 from typing import Type
 
-from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.simulators import SimulationsLog, Simulator
 from exauq.core.types import FilePath
+from tests.unit.fakes import DumbHardwareInterface
 from tests.utilities.utilities import exact
-
-
-class FakeHardwareInterface(HardwareInterface):
-    def submit_job(self, job):
-        return super().submit_job(job)
-
-    def get_job_status(self, job_id):
-        return super().get_job_status(job_id)
-
-    def get_job_output(self, job_id):
-        return super().get_job_output(job_id)
-
-    def cancel_job(self, job_id):
-        return super().cancel_job(job_id)
-
-    def wait_for_job(self, job_id):
-        return super().wait_for_job(job_id)
 
 
 def make_fake_simulations_log_class(
@@ -85,14 +68,14 @@ def make_fake_simulator(
         new=make_fake_simulations_log_class(simulations),
     ):
         return Simulator(
-            SimulatorDomain([(-10, 10)]), FakeHardwareInterface(), simulations_log
+            SimulatorDomain([(-10, 10)]), DumbHardwareInterface(), simulations_log
         )
 
 
 class TestSimulator(unittest.TestCase):
     def setUp(self) -> None:
         self.simulator_domain = SimulatorDomain([(-1, 1)])
-        self.hardware_interface = FakeHardwareInterface()
+        self.hardware_interface = DumbHardwareInterface()
         self.simulations = ((Input(1), 0),)
         self.empty_simulator = make_fake_simulator(tuple())
         self.simulator_with_sim = make_fake_simulator(self.simulations)
