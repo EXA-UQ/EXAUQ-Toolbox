@@ -219,8 +219,9 @@ class TestSimulationsLog(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.simulations_file = "foo.csv"
+        self.num_inputs = 1
         with unittest.mock.patch("builtins.open", unittest.mock.mock_open()):
-            self.log = SimulationsLog(self.simulations_file)
+            self.log = SimulationsLog(self.simulations_file, self.num_inputs)
 
     def assert_file_opened(self, mock_open, file_path, mode="r"):
         """Check that a mocked ``open()`` is called once on the specified file path in
@@ -243,7 +244,7 @@ class TestSimulationsLog(unittest.TestCase):
                         f"type {type(path)} instead."
                     ),
                 ):
-                    _ = SimulationsLog(path)
+                    _ = SimulationsLog(path, self.num_inputs)
 
     def test_initialise_with_simulations_record_file(self):
         """Test that a simulator log can be initialised with a handle to the log file."""
@@ -251,11 +252,13 @@ class TestSimulationsLog(unittest.TestCase):
         with unittest.mock.patch(
             "builtins.open", unittest.mock.mock_open(read_data="Input_1,Output\n")
         ):
-            _ = SimulationsLog(r"a/b/c.csv")  # Unix
-            _ = SimulationsLog(rb"a/b/c.csv")
-            _ = SimulationsLog(r"a\b\c.csv")  # Windows
-            _ = SimulationsLog(rb"a\b\c.csv")
-            _ = SimulationsLog(pathlib.Path("a/b/c.csv"))  # Platform independent
+            _ = SimulationsLog(r"a/b/c.csv", self.num_inputs)  # Unix
+            _ = SimulationsLog(rb"a/b/c.csv", self.num_inputs)
+            _ = SimulationsLog(r"a\b\c.csv", self.num_inputs)  # Windows
+            _ = SimulationsLog(rb"a\b\c.csv", self.num_inputs)
+            _ = SimulationsLog(
+                pathlib.Path("a/b/c.csv"), self.num_inputs
+            )  # Platform independent
 
     def test_initialise_new_log_file_created(self):
         """Test that a new simulator log file at a given path is created upon object
@@ -263,7 +266,7 @@ class TestSimulationsLog(unittest.TestCase):
 
         file_path = pathlib.Path("a/b/c.csv")
         with unittest.mock.patch("builtins.open", unittest.mock.mock_open()) as mock:
-            _ = SimulationsLog(file_path)
+            _ = SimulationsLog(file_path, self.num_inputs)
             self.assert_file_opened(mock, file_path, mode="w")
 
     def test_initialise_new_log_file_not_opened_if_exists(self):
@@ -274,7 +277,7 @@ class TestSimulationsLog(unittest.TestCase):
             path = pathlib.Path(tmp_dir, "log.csv")
             path.touch(mode=0o400)  # read-only
             try:
-                _ = SimulationsLog(path)
+                _ = SimulationsLog(path, self.num_inputs)
             except PermissionError:
                 self.fail("Tried writing to pre-existing log file, should not have done.")
             finally:
