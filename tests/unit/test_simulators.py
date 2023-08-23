@@ -5,10 +5,28 @@ import unittest.mock
 from numbers import Real
 from typing import Type
 
-from exauq.core.modelling import Input
+from exauq.core.hardware import HardwareInterface
+from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.simulators import SimulationsLog, Simulator
 from exauq.core.types import FilePath
 from tests.utilities.utilities import exact
+
+
+class FakeHardwareInterface(HardwareInterface):
+    def submit_job(self, job):
+        return super().submit_job(job)
+
+    def get_job_status(self, job_id):
+        return super().get_job_status(job_id)
+
+    def get_job_output(self, job_id):
+        return super().get_job_output(job_id)
+
+    def cancel_job(self, job_id):
+        return super().cancel_job(job_id)
+
+    def wait_for_job(self, job_id):
+        return super().wait_for_job(job_id)
 
 
 def make_fake_simulations_log_class(
@@ -18,12 +36,12 @@ def make_fake_simulations_log_class(
     simulations."""
 
     class FakeSimulationsLog(SimulationsLog):
-        def __init__(self, file: FilePath, *args):
-            super().__init__(file, *args)
+        def __init__(self, file: FilePath, num_inputs: int, *args):
+            super().__init__(file, num_inputs, *args)
             self.simulations = simulations
 
         @staticmethod
-        def _initialise_log_file(file: FilePath) -> FilePath:
+        def _initialise_log_file(file: FilePath, num_inputs: int) -> FilePath:
             """Return the path without creating a file there."""
 
             return file
@@ -32,6 +50,20 @@ def make_fake_simulations_log_class(
             """Return the pre-loaded simulations."""
 
             return self.simulations
+
+        def add_new_record(self, x: Input):
+            pass
+
+        def insert_job_id(self, input_set: Input, job_id):
+            pass
+
+        def insert_result(self, job_id, result):
+            pass
+
+        def get_pending_jobs(self):
+            """Return an empty list, indicating that there are no outstanding jobs."""
+
+            return []
 
     return FakeSimulationsLog
 
@@ -49,7 +81,9 @@ def make_fake_simulator(
         "exauq.core.simulators.SimulationsLog",
         new=make_fake_simulations_log_class(simulations),
     ):
-        return Simulator(simulations_log)
+        return Simulator(
+            SimulatorDomain([(-10, 10)]), FakeHardwareInterface(), simulations_log
+        )
 
 
 class TestSimulator(unittest.TestCase):
@@ -71,7 +105,9 @@ class TestSimulator(unittest.TestCase):
                         f"object of type {type(path)} instead."
                     ),
                 ):
-                    _ = Simulator(path)
+                    _ = Simulator(
+                        SimulatorDomain([(-1, 1)]), FakeHardwareInterface(), path
+                    )
 
     def test_initialise_with_simulations_record_file(self):
         """Test that a simulator can be initialised with a path to a file containing
