@@ -52,7 +52,10 @@ def make_fake_simulations_log_class(
             return self.simulations
 
         def add_new_record(self, x: Input):
-            pass
+            """Add the input to the list of simulations, with ``None`` as output. This
+            represents a simulation being added as a pending job."""
+
+            self.simulations += ((x, None),)
 
         def insert_job_id(self, input_set: Input, job_id):
             pass
@@ -88,6 +91,8 @@ def make_fake_simulator(
 
 class TestSimulator(unittest.TestCase):
     def setUp(self) -> None:
+        self.simulator_domain = SimulatorDomain([(-1, 1)])
+        self.hardware_interface = FakeHardwareInterface()
         self.simulations = ((Input(1), 0),)
         self.empty_simulator = make_fake_simulator(tuple())
         self.simulator_with_sim = make_fake_simulator(self.simulations)
@@ -105,9 +110,7 @@ class TestSimulator(unittest.TestCase):
                         f"object of type {type(path)} instead."
                     ),
                 ):
-                    _ = Simulator(
-                        SimulatorDomain([(-1, 1)]), FakeHardwareInterface(), path
-                    )
+                    _ = Simulator(self.simulator_domain, self.hardware_interface, path)
 
     def test_initialise_with_simulations_record_file(self):
         """Test that a simulator can be initialised with a path to a file containing
@@ -117,19 +120,26 @@ class TestSimulator(unittest.TestCase):
             "exauq.core.simulators.SimulationsLog",
             new=make_fake_simulations_log_class(tuple()),
         ):
-            _ = Simulator(r"a/b/c")  # Unix
-            _ = Simulator(rb"a/b/c")
-            _ = Simulator(r"a\b\c")  # Windows
-            _ = Simulator(rb"a\b\c")
-            _ = Simulator(pathlib.Path("a/b/c"))  # Platform independent
+            # Unix
+            _ = Simulator(self.simulator_domain, self.hardware_interface, r"a/b/c")
+            _ = Simulator(self.simulator_domain, self.hardware_interface, rb"a/b/c")
+
+            # Windows
+            _ = Simulator(self.simulator_domain, self.hardware_interface, r"a\b\c")
+            _ = Simulator(self.simulator_domain, self.hardware_interface, rb"a\b\c")
+
+            # Platform independent
+            _ = Simulator(
+                self.simulator_domain, self.hardware_interface, pathlib.Path("a/b/c")
+            )
 
     def test_initialise_default_log_file(self):
         """Test that a new log file with name 'simulations.csv' is created in the
         working directory as the default."""
 
         with unittest.mock.patch("exauq.core.simulators.SimulationsLog") as mock:
-            _ = Simulator()
-            mock.assert_called_once_with("simulations.csv")
+            _ = Simulator(self.simulator_domain, self.hardware_interface)
+            mock.assert_called_once_with("simulations.csv", self.simulator_domain.dim)
 
     def test_previous_simulations_no_simulations_run(self):
         """Test that an empty tuple is returned if there are no simulations in the
