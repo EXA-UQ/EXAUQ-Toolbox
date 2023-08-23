@@ -314,8 +314,7 @@ class TrainingDatum(object):
         """
 
         return [
-            cls(Input.from_array(input), output)
-            for input, output in zip(inputs, outputs)
+            cls(Input.from_array(input), output) for input, output in zip(inputs, outputs)
         ]
 
     def __str__(self) -> str:
@@ -410,7 +409,7 @@ class SimulatorDomain(object):
         inputs from this domain have."""
         return self._dim
 
-    def scale(self, coordinates: Sequence[Real, ...]) -> Input:
+    def scale(self, coordinates: Sequence[Real]) -> Input:
         """Scale coordinates from the unit hypercube into coordinates for this domain.
 
         The unit hypercube is the set of points where each coordinate lies between ``0``
@@ -426,7 +425,7 @@ class SimulatorDomain(object):
 
         Parameters
         ----------
-        coordinates : collections.abc.Sequence[numbers.Real, ...]
+        coordinates : collections.abc.Sequence[numbers.Real]
             Coordinates of a point lying in a unit hypercube.
 
         Returns
