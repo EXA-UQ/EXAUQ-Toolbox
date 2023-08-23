@@ -3,7 +3,7 @@ import os
 from numbers import Real
 from threading import Lock, Thread
 from time import sleep
-from typing import Optional
+from typing import Any, Optional
 
 from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
@@ -41,9 +41,24 @@ class Simulator(AbstractSimulator):
         interface: HardwareInterface,
         simulations_log: FilePath = "simulations.csv",
     ):
+        self._check_arg_types(domain, interface)
         self._simulations_log = self._make_simulations_log(simulations_log, domain.dim)
         self._manager = JobManager(self._simulations_log, interface)
         self._previous_simulations = list(self._simulations_log.get_simulations())
+
+    @staticmethod
+    def _check_arg_types(domain: Any, interface: Any):
+        if not isinstance(domain, SimulatorDomain):
+            raise TypeError(
+                "Argument 'domain' must define a SimulatorDomain, but received object "
+                f"of type {type(domain)} instead."
+            )
+
+        if not isinstance(interface, HardwareInterface):
+            raise TypeError(
+                "Argument 'interface' must inherit from HardwareInterface, but received "
+                f"object of type {type(interface)} instead."
+            )
 
     @staticmethod
     def _make_simulations_log(simulations_log: FilePath, num_inputs: int):
@@ -185,46 +200,46 @@ class SimulationsLog(object):
             writer.writerow(list(x) + ["", ""])
 
     def insert_job_id(self, input_set: Input, job_id):
-        with open(self._log_file, 'r') as csvfile:
+        with open(self._log_file, "r") as csvfile:
             reader = csv.reader(csvfile)
             rows = list(reader)
 
         header = rows[0]
         data_rows = rows[1:]
 
-        job_id_index = header.index('Job_ID')
+        job_id_index = header.index("Job_ID")
 
         for i, row in enumerate(data_rows):
             if [float(x) for x in row[: len(input_set)]] == list(input_set[:]):
                 row[job_id_index] = job_id
 
-        with open(self._log_file, 'w', newline='') as csvfile:
+        with open(self._log_file, "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(header)
             writer.writerows(data_rows)
 
     def insert_result(self, job_id, result):
-        with open(self._log_file, 'r') as csvfile:
+        with open(self._log_file, "r") as csvfile:
             reader = csv.reader(csvfile)
             rows = list(reader)
 
         header = rows[0]
         data_rows = rows[1:]
 
-        result_index = header.index('Output')
-        job_id_index = header.index('Job_ID')
+        result_index = header.index("Output")
+        job_id_index = header.index("Job_ID")
 
         for i, row in enumerate(data_rows):
             if row[job_id_index] == str(job_id):
                 row[result_index] = result
 
-        with open(self._log_file, 'w', newline='') as csvfile:
+        with open(self._log_file, "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow(header)
             writer.writerows(data_rows)
 
     def get_pending_jobs(self):
-        with open(self._log_file, 'r', newline='') as file:
+        with open(self._log_file, "r", newline="") as file:
             reader = csv.DictReader(file)
             return [
                 row["Job_ID"] for row in reader if row["Job_ID"] and not row["Output"]

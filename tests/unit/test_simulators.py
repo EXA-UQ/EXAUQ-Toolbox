@@ -80,8 +80,32 @@ class TestSimulator(unittest.TestCase):
         self.empty_simulator = make_fake_simulator(tuple())
         self.simulator_with_sim = make_fake_simulator(self.simulations)
 
+    def test_initialise_incorrect_types(self):
+        """Test that a TypeError is raised if one of the arguments passed to the
+        initialiser is of the incorrect type."""
+
+        domain = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Argument 'domain' must define a SimulatorDomain, but received object "
+                f"of type {type(domain)} instead."
+            ),
+        ):
+            Simulator(domain, self.hardware_interface)
+
+        interface = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Argument 'interface' must inherit from HardwareInterface, but received "
+                f"object of type {type(interface)} instead."
+            ),
+        ):
+            Simulator(self.simulator_domain, interface)
+
     def test_initialise_invalid_log_file_error(self):
-        """Test that a ValueError is raised if an invalid path is supplied for the log
+        """Test that a TypeError is raised if an invalid path is supplied for the log
         file."""
 
         for path in [None, 0, 1]:
