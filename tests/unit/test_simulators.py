@@ -1,3 +1,5 @@
+import csv
+import io
 import os
 import pathlib
 import tempfile
@@ -70,6 +72,37 @@ def make_fake_simulations_log_class(
             return []
 
     return FakeSimulationsLog
+
+
+def make_csv_string(data: dict[str, list]) -> str:
+    """Make a CSV string representation of data.
+
+    `data` should be a dict with keys being the column headers and values being a list
+    giving the column values. E.g.
+
+    ``data = {'col1': [1, 2, 3], 'col2': ['dog', 'cat', 'fish']}``
+
+    A value of ``None`` is converted to the empty string.
+    """
+
+    buffer = io.StringIO()
+    header = (
+        sorted([col for col in data.keys() if col.startswith("Input_")])
+        + ["Output"]
+        + ["Job_ID"]
+    )
+    writer = csv.DictWriter(buffer, header)
+    writer.writeheader()
+
+    def to_str(x):
+        output = str(x) if x is not None else ""
+        return output
+
+    for i in range(len(data[header[0]])):
+        record = {col: to_str(data[col][i]) for col in header}
+        writer.writerow(record)
+
+    return buffer.getvalue()
 
 
 class TestSimulator(unittest.TestCase):
@@ -247,16 +280,18 @@ class TestSimulationsLog(unittest.TestCase):
         with unittest.mock.patch("builtins.open", unittest.mock.mock_open()):
             self.log = SimulationsLog(self.simulations_file, self.num_inputs)
 
+        self.empty_log_data = make_csv_string({"Input_1": [], "Output": [], "Job_ID": []})
+
     def assert_file_opened(self, mock_open, file_path, mode="r"):
         """Check that a mocked ``open()`` is called once on the specified file path in
-        the given mode ("read" by default")."""
+        the given mode ("read" by default)."""
 
         mock_open.assert_called_once()
         self.assertEqual((file_path,), mock_open.call_args.args)
         self.assertTrue(("mode", mode) in mock_open.call_args.kwargs.items())
 
     def test_initialise_invalid_log_file_error(self):
-        """Test that a ValueError is raised if a simulator log is initialised without a
+        """Test that a TypeError is raised if a simulator log is initialised without a
         valid path to a log file."""
 
         for path in [None, 0, 1]:
@@ -274,7 +309,7 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that a simulator log can be initialised with a handle to the log file."""
 
         with unittest.mock.patch(
-            "builtins.open", unittest.mock.mock_open(read_data="Input_1,Output\n")
+            "builtins.open", unittest.mock.mock_open(read_data=self.empty_log_data)
         ):
             _ = SimulationsLog(r"a/b/c.csv", self.num_inputs)  # Unix
             _ = SimulationsLog(rb"a/b/c.csv", self.num_inputs)
@@ -313,7 +348,7 @@ class TestSimulationsLog(unittest.TestCase):
         contain any simulations."""
 
         with unittest.mock.patch(
-            "builtins.open", unittest.mock.mock_open(read_data="Input_1,Output\n")
+            "builtins.open", unittest.mock.mock_open(read_data=self.empty_log_data)
         ) as mock:
             self.assertEqual(tuple(), self.log.get_simulations())
             self.assert_file_opened(mock, self.simulations_file)
@@ -321,9 +356,10 @@ class TestSimulationsLog(unittest.TestCase):
     def test_get_simulations_one_dim_input(self):
         """Test that simulation data with a 1-dimensional input is parsed correctly."""
 
+        csv_data = make_csv_string({"Input_1": [1], "Output": [2], "Job_ID": [1]})
         with unittest.mock.patch(
             "builtins.open",
-            unittest.mock.mock_open(read_data="Input_1,Output\n1,2\n"),
+            unittest.mock.mock_open(read_data=csv_data),
         ) as mock:
             expected = ((Input(1), 2),)
             self.assertEqual(expected, self.log.get_simulations())
@@ -333,9 +369,12 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that a record of all simulations (pending or otherwise) recorded
         in the log file are returned."""
 
+        csv_data = make_csv_string(
+            {"Input_1": [1, 3], "Input_2": [2, 4], "Output": [10, None], "Job_ID": [1, 2]}
+        )
         with unittest.mock.patch(
             "builtins.open",
-            unittest.mock.mock_open(read_data="Input_1,Input_2,Output\n1,2,10\n3,4,\n"),
+            unittest.mock.mock_open(read_data=csv_data),
         ) as mock:
             expected = ((Input(1, 2), 10), (Input(3, 4), None))
             self.assertEqual(expected, self.log.get_simulations())
