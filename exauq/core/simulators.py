@@ -44,7 +44,6 @@ class Simulator(AbstractSimulator):
         self._check_arg_types(domain, interface)
         self._simulations_log = self._make_simulations_log(simulations_log, domain.dim)
         self._manager = JobManager(self._simulations_log, interface)
-        self._previous_simulations = list(self._simulations_log.get_simulations())
 
     @staticmethod
     def _check_arg_types(domain: Any, interface: Any):
@@ -78,7 +77,7 @@ class Simulator(AbstractSimulator):
         (Read-only) A tuple of simulations that have been previously submitted for
         computation.
         """
-        return tuple(self._previous_simulations)
+        return tuple(self._simulations_log.get_simulations())
 
     def compute(self, x: Input) -> Optional[Real]:
         """
@@ -107,14 +106,11 @@ class Simulator(AbstractSimulator):
                 f"Argument 'x' must be of type Input, but received {type(x)}."
             )
 
-        self._previous_simulations = list(self._simulations_log.get_simulations())
-
-        for _input, output in self._previous_simulations:
+        for _input, output in self.previous_simulations:
             if _input == x:
                 return output
 
         self._manager.submit(x)
-        self._previous_simulations.append((x, None))
         return None
 
 
