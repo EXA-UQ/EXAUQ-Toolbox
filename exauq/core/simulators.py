@@ -13,17 +13,28 @@ from exauq.utilities.validation import check_file_path
 
 class Simulator(AbstractSimulator):
     """
-    Represents a simulation code that can be run on inputs.
+    Represents a simulation code that can be run with inputs.
 
-    Simulations that have been previously submitted for computation can be retrieved
-    using the ``previous_simulations` property. This returns a tuple of `Input`s and
-    simulation outputs that have been recorded in a simulations log file, if supplied.
-    In the case where an `Input` has been submitted for evaluation but no output from
-    the simulator has been retrieved, the output is recorded as ``None``.
+    This class provides a way of working with some simulation code as a black box,
+    abstracting away details of how to submit simulator inputs for computation and
+    retrieve the results. The set of valid simulator inputs is represented by the
+    `domain` supplied at initialisation, while the `interface` provided at initialisation
+    encapsulates the details of how to actually run the simulation code with a
+    collection of inputs and retrieve outputs.
+
+    A simulations log file records inputs that have been submitted for computation, as
+    well as any simulation outputs. These can be retrieved using the
+    ``previous_simulations` property of this class.
 
     Parameters
     ----------
-    simulations_log : str or bytes or os.PathLike, optional
+    domain : SimulatorDomain
+        The domain of the simulator, representing the set of valid inputs for the
+        simulator.
+    interface : HardwareInterface
+        An implementation of the ``HardwareInterface`` base class, providing the interface
+        to a computer that the simulation code runs on.
+    simulations_log_file : str or bytes or os.PathLike, optional
         (Default: ``simulations.csv``) A path to the simulation log file. The default
         will work with a file called ``simulations.csv`` in the current working directory
         for the calling Python process.
@@ -32,17 +43,20 @@ class Simulator(AbstractSimulator):
     ----------
     previous_simulations : tuple
         (Read-only) Simulations that have been previously submitted for evaluation.
+        In the case where an `Input` has been submitted for evaluation but no output from
+        the simulator has been retrieved, the output is recorded as ``None``.
     """
 
-    # TODO: rename simulations_log
     def __init__(
         self,
         domain: SimulatorDomain,
         interface: HardwareInterface,
-        simulations_log: FilePath = "simulations.csv",
+        simulations_log_file: FilePath = "simulations.csv",
     ):
         self._check_arg_types(domain, interface)
-        self._simulations_log = self._make_simulations_log(simulations_log, domain.dim)
+        self._simulations_log = self._make_simulations_log(
+            simulations_log_file, domain.dim
+        )
         self._manager = JobManager(self._simulations_log, interface)
 
     @staticmethod
@@ -75,7 +89,9 @@ class Simulator(AbstractSimulator):
     def previous_simulations(self) -> tuple:
         """
         (Read-only) A tuple of simulations that have been previously submitted for
-        computation.
+        computation. In the case where an `Input` has been submitted for evaluation but
+        no output from the simulator has been retrieved, the output is recorded as
+        ``None``.
         """
         return tuple(self._simulations_log.get_simulations())
 
@@ -84,10 +100,10 @@ class Simulator(AbstractSimulator):
         Submit a simulation input for computation.
 
         In the case where a never-before seen input is supplied, this will be submitted
-        for computation and ``None`` will be returned. In the case where an input has been
-        seen before (that is, features in an entry in the simulations log file for this
-        simulator), the corresponding simulator output will be returned, if this is
-        available.
+        for computation and ``None`` will be returned. If the input has been seen before
+        (that is, features in an entry in the simulations log file for this simulator),
+        then the corresponding simulator output will be returned, or ``None`` if this is
+        not yet available.
 
         Parameters
         ----------

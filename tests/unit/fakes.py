@@ -113,25 +113,47 @@ class OneDimSimulator(AbstractSimulator):
 
 
 class DumbHardwareInterface(HardwareInterface):
-    def submit_job(self, job):
+    """A stub for a hardware interface that doesn't do anything beyond the implementations
+    in the abstract HardwareInterface class."""
+
+    def submit_job(self, job) -> None:
         return super().submit_job(job)
 
-    def get_job_status(self, job_id):
+    def get_job_status(self, job_id) -> None:
         return super().get_job_status(job_id)
 
-    def get_job_output(self, job_id):
+    def get_job_output(self, job_id) -> None:
         return super().get_job_output(job_id)
 
-    def cancel_job(self, job_id):
+    def cancel_job(self, job_id) -> None:
         return super().cancel_job(job_id)
 
-    def wait_for_job(self, job_id):
+    def wait_for_job(self, job_id) -> None:
         return super().wait_for_job(job_id)
 
 
 class DumbJobManager:
+    """A fake job manager that simply records new simulations in the log.
+
+    Parameters
+    ----------
+    simulations_log : SimulationsLog
+        The log to record simulations to.
+    *args : tuple
+        Additional arguments that may be required in constructing a JobManager instance.
+    """
+
     def __init__(self, simulations_log: SimulationsLog, *args):
         self._simulations_log = simulations_log
 
-    def submit(self, x: Input):
+    def submit(self, x: Input) -> None:
+        """Submit an input to be recorded in the log.
+
+        This is intended to mock out submission of inputs for computation by a simulator.
+
+        Parameters
+        ----------
+        x : Input
+            The simulator input to record.
+        """
         self._simulations_log.add_new_record(x)
