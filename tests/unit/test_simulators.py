@@ -8,8 +8,26 @@ from typing import Type
 from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.simulators import SimulationsLog, Simulator
 from exauq.core.types import FilePath
-from tests.unit.fakes import DumbHardwareInterface
+from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
 from tests.utilities.utilities import exact
+
+
+def make_fake_simulator(
+    simulations: tuple[tuple[Input, Real]],
+    simulations_log: str = r"a/b/c.csv",
+) -> Simulator:
+    """Make a Simulator object whose previous simulations are pre-loaded to be the given
+    simulations, if a path to a simulations log file is supplied (the default). If
+    `simulations_log` is ``None`` then the simulator returned has no previous simulations.
+    """
+
+    with unittest.mock.patch(
+        "exauq.core.simulators.SimulationsLog",
+        new=make_fake_simulations_log_class(simulations),
+    ), unittest.mock.patch("exauq.core.simulators.JobManager", new=DumbJobManager):
+        return Simulator(
+            SimulatorDomain([(-10, 10)]), DumbHardwareInterface(), simulations_log
+        )
 
 
 def make_fake_simulations_log_class(
@@ -52,24 +70,6 @@ def make_fake_simulations_log_class(
             return []
 
     return FakeSimulationsLog
-
-
-def make_fake_simulator(
-    simulations: tuple[tuple[Input, Real]],
-    simulations_log: str = r"a/b/c.csv",
-) -> Simulator:
-    """Make a Simulator object whose previous simulations are pre-loaded to be the given
-    simulations, if a path to a simulations log file is supplied (the default). If
-    `simulations_log` is ``None`` then the simulator returned has no previous simulations.
-    """
-
-    with unittest.mock.patch(
-        "exauq.core.simulators.SimulationsLog",
-        new=make_fake_simulations_log_class(simulations),
-    ):
-        return Simulator(
-            SimulatorDomain([(-10, 10)]), DumbHardwareInterface(), simulations_log
-        )
 
 
 class TestSimulator(unittest.TestCase):
@@ -167,7 +167,7 @@ class TestSimulator(unittest.TestCase):
         self.assertEqual(self.simulations, self.simulator_with_sim.previous_simulations)
 
     def test_compute_non_input_error(self):
-        """Test that a ValueError is raised if an argument of type other than Input is
+        """Test that a TypeError is raised if an argument of type other than Input is
         supplied for computation."""
 
         for x in ["a", 1, (0, 0)]:

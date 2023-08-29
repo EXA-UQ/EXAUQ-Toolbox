@@ -4,6 +4,7 @@ import typing
 
 from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import AbstractEmulator, AbstractSimulator, Input, TrainingDatum
+from exauq.core.simulators import SimulationsLog
 
 # The tolerance used for determining if two floating point numbers are equal.
 TOLERANCE_PLACES: float = 7
@@ -126,3 +127,11 @@ class DumbHardwareInterface(HardwareInterface):
 
     def wait_for_job(self, job_id):
         return super().wait_for_job(job_id)
+
+
+class DumbJobManager:
+    def __init__(self, simulations_log: SimulationsLog, *args):
+        self._simulations_log = simulations_log
+
+    def submit(self, x: Input):
+        self._simulations_log.add_new_record(x)
