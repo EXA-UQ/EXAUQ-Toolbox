@@ -210,6 +210,23 @@ class TestSimulator(unittest.TestCase):
         x, y = self.simulator_with_sim.previous_simulations[0]
         self.assertEqual(y, self.simulator_with_sim.compute(x))
 
+    def test_compute_for_computed_input_previous_sims_unchanged(self):
+        """Test that, when compute is called on an input for which an output has
+        been computed, the collection of previous simulations remains unchanged."""
+
+        previous_sims = self.simulator_with_sim.previous_simulations
+        _ = self.simulator_with_sim.compute(previous_sims[0][0])
+        self.assertEqual(previous_sims, self.simulator_with_sim.previous_simulations)
+
+    def test_compute_for_submitted_input_previous_sims_unchanged(self):
+        """Test that, when compute is called on an input for which the computed result
+        is pending, the collection of previous simulations remains unchanged."""
+
+        simulations = ((Input(1), None),)
+        simulator = make_fake_simulator(simulations)
+        _ = simulator.compute(simulations[0][0])
+        self.assertEqual(simulations, simulator.previous_simulations)
+
     def test_compute_returns_output_for_computed_input_multiple_simulations(self):
         """Test that, when compute is called on an input for which an output has
         been computed, this output is returned, in the case where there are multiple
