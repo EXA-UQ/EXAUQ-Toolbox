@@ -281,6 +281,9 @@ class TestSimulationsLog(unittest.TestCase):
             self.log = SimulationsLog(self.simulations_file, self.num_inputs)
 
         self.empty_log_data = make_csv_string({"Input_1": [], "Output": [], "Job_ID": []})
+        self.nonempty_log_data = make_csv_string(
+            {"Input_1": [1, 2], "Output": [10, None], "Job_ID": [1, 2]}
+        )
 
     def assert_file_opened(self, mock_open, file_path, mode="r"):
         """Check that a mocked ``open()`` is called once on the specified file path in
@@ -406,7 +409,7 @@ class TestSimulationsLog(unittest.TestCase):
 
     def test_get_simulations_adding_multiple_records_same_input(self):
         """Test that, when multiple records for the same input are added, one simulation
-        for each record show up in the list of previous simulations."""
+        for each record shows up in the list of previous simulations."""
 
         x = Input(1)
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -418,8 +421,8 @@ class TestSimulationsLog(unittest.TestCase):
             self.assertEqual(((x, None), (x, None)), log.get_simulations())
 
     def test_get_simulations_adding_multiple_records_different_inputs(self):
-        """Test that, records for different inputs are added, one simulation
-        for each record show up in the list of previous simulations."""
+        """Test that, when records for different inputs are added, one simulation
+        for each record shows up in the list of previous simulations."""
 
         x1 = Input(1)
         x2 = Input(2)
@@ -430,6 +433,47 @@ class TestSimulationsLog(unittest.TestCase):
             log.add_new_record(x1)
             log.add_new_record(x2)
             self.assertEqual(((x1, None), (x2, None)), log.get_simulations())
+
+    def test_get_records_single_job_id(self):
+        """Test that the record with a specified job ID can be successfully retrieved."""
+
+        with unittest.mock.patch(
+            "builtins.open",
+            unittest.mock.mock_open(read_data=self.nonempty_log_data),
+        ) as mock:
+            job_id = "2"
+            expected = ({"Input_1": "2", "Output": "", "Job_ID": job_id},)
+            self.assertEqual(expected, self.log.get_records({job_id}))
+            self.assert_file_opened(mock, self.simulations_file)
+
+    def test_get_records_multiple_job_ids(self):
+        """Test that the record with a specified job ID can be successfully retrieved."""
+
+        with unittest.mock.patch(
+            "builtins.open",
+            unittest.mock.mock_open(read_data=self.nonempty_log_data),
+        ) as mock:
+            job_ids = {"1", "2"}
+            expected = (
+                {"Input_1": "1", "Output": "10", "Job_ID": "1"},
+                {"Input_1": "2", "Output": "", "Job_ID": "2"},
+            )
+            self.assertEqual(expected, self.log.get_records(job_ids))
+            self.assert_file_opened(mock, self.simulations_file)
+
+    def test_get_records_all_records(self):
+        """Test that all records are retrieved when no job IDs are specified."""
+
+        with unittest.mock.patch(
+            "builtins.open",
+            unittest.mock.mock_open(read_data=self.nonempty_log_data),
+        ) as mock:
+            expected = (
+                {"Input_1": "1", "Output": "10", "Job_ID": "1"},
+                {"Input_1": "2", "Output": "", "Job_ID": "2"},
+            )
+            self.assertEqual(expected, self.log.get_records())
+            self.assert_file_opened(mock, self.simulations_file)
 
 
 if __name__ == "__main__":

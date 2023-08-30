@@ -206,6 +206,17 @@ class SimulationsLog(object):
         y = float(record["Output"]) if record["Output"] else None
         return x, y
 
+    def get_records(self, job_ids: Optional[set[str]] = None) -> tuple[dict[str, str]]:
+        """Retrieve records of jobs from the simulations log file."""
+
+        with open(self._log_file, mode="r", newline="") as csvfile:
+            if job_ids is None:
+                return tuple(csv.DictReader(csvfile))
+
+            return tuple(
+                row for row in csv.DictReader(csvfile) if row["Job_ID"] in job_ids
+            )
+
     def add_new_record(self, x: Input):
         with open(self._log_file, mode="a", newline="") as file:
             writer = csv.writer(file)
