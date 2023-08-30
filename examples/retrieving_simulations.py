@@ -1,29 +1,24 @@
-import math
+import pathlib
 import time
-import timeit
 
 from exauq.core.modelling import Input
-from exauq.core.simulators import Simulator
-from tests.unit.fakes import InMemoryHardware
+from exauq.core.simulators import Simulator, SimulatorDomain
+from tests.utilities.local_simulator import WORKSPACE, LocalSimulatorInterface
 
-
-# Initialise a pretend piece of hardware, which computes a 'costly' function in memory.
-# For real use cases, a class implementing the HardwareInterface abstract class would
-# instead be used.
-def f(x: Input):
-    time.sleep(1)
-    return x[1] + (x[0] ** 2) + (x[1] ** 2) - math.sqrt(2)
-
-hardware = InMemoryHardware(f)
+# Initialise our interface to the local simulator, using the default workspace
+# directory.
+interface = LocalSimulatorInterface(WORKSPACE)
 
 # Initialise simulator with previously-created simulations log file
-simulator = Simulator(hardware, "./simulations.csv")
+domain = SimulatorDomain([(0, 1)] * 4)
+log_file = pathlib.Path("./simulations.csv")
+simulator = Simulator(domain, interface, log_file)
 
 # Evaluate some simulator inputs. Notice that these evaluate immediately, but each
 # returned output is None because the computations haven't finished.
-x1 = Input(0.1, 0.1)
-x2 = Input(0.3, 0.3)
-x3 = Input(0.6, 0.8)
+x1 = Input(0.1, 0.1, 0.1, 0.1)
+x2 = Input(0.2, 0.2, 0.2, 0.2)
+x3 = Input(0.3, 0.3, 0.3, 0.3)
 out1 = simulator.compute(x1)
 out2 = simulator.compute(x2)
 out3 = simulator.compute(x3)
@@ -33,14 +28,10 @@ assert out2 is None
 assert out3 is None
 
 # Wait for the simulations to complete
-time.sleep(5)
+# Note: this needs to account for (1) time to run the simulations (incl. any
+# delays in picking up the jobs to run) and (2) the polling period in the job
+# manager.
+time.sleep(15)
 
-# View the previous simulations
-print("Previous simulations:")
-for simulation in simulator.previous_simulations:
-    print(simulation)
-
-# The simulator object evaluates previously-computed inputs quickly, because the
-# simulation is cached:
-print(f"Simulator value at {x1}: {simulator.compute(x1)}")
-timeit.timeit("simulator.compute(x1)", globals=globals(), number=1)
+# Check that the previous simulations now have output values
+assert all(sim[1] is not None for sim in simulator.previous_simulations)
