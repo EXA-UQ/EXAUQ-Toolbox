@@ -251,32 +251,25 @@ class SimulationsLog(object):
         self.create_record(record)
 
     def insert_result(self, job_id, result):
-        with open(self._log_file, "r") as csvfile:
-            reader = csv.reader(csvfile)
-            rows = list(reader)
+        records_changed = 0
+        new_records = []
+        for record in self.get_records():
+            if record["Job_ID"] == str(job_id):
+                new_records.append(record | {"Output": result})
+                records_changed += 1
+            else:
+                new_records.append(record)
 
-        header = rows[0]
-        data_rows = rows[1:]
-
-        result_index = header.index("Output")
-        job_id_index = header.index("Job_ID")
-
-        record_found = False
-        for i, row in enumerate(data_rows):
-            if row[job_id_index] == str(job_id):
-                record_found = True
-                row[result_index] = result
-
-        if not record_found:
+        if records_changed == 0:
             raise SimulationsLogLookupError(
-                f"Could not add output to simulation with job ID {job_id}: "
+                f"Could not add output to simulation with job ID = {job_id}: "
                 "no such simulation exists."
             )
 
         with open(self._log_file, "w", newline="") as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(header)
-            writer.writerows(data_rows)
+            writer = csv.DictWriter(csvfile, self._log_file_header)
+            writer.writeheader()
+            writer.writerows(new_records)
 
     def get_pending_jobs(self):
         with open(self._log_file, "r", newline="") as file:

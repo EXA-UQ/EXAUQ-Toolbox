@@ -585,7 +585,7 @@ class TestSimulationsLog(unittest.TestCase):
             with self.assertRaisesRegex(
                 SimulationsLogLookupError,
                 exact(
-                    f"Could not add output to simulation with job ID {job_id}: "
+                    f"Could not add output to simulation with job ID = {job_id}: "
                     "no such simulation exists."
                 ),
             ):
