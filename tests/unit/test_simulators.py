@@ -59,9 +59,6 @@ def make_fake_simulations_log_class(
 
             self.simulations += ((x, None),)
 
-        def insert_job_id(self, input_set: Input, job_id):
-            pass
-
         def insert_result(self, job_id, result):
             pass
 

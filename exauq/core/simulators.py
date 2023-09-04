@@ -250,25 +250,6 @@ class SimulationsLog(object):
 
         self.create_record(record)
 
-    def insert_job_id(self, input_set: Input, job_id):
-        with open(self._log_file, "r") as csvfile:
-            reader = csv.reader(csvfile)
-            rows = list(reader)
-
-        header = rows[0]
-        data_rows = rows[1:]
-
-        job_id_index = header.index("Job_ID")
-
-        for i, row in enumerate(data_rows):
-            if [float(x) for x in row[: len(input_set)]] == list(input_set[:]):
-                row[job_id_index] = job_id
-
-        with open(self._log_file, "w", newline="") as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(header)
-            writer.writerows(data_rows)
-
     def insert_result(self, job_id, result):
         with open(self._log_file, "r") as csvfile:
             reader = csv.reader(csvfile)
