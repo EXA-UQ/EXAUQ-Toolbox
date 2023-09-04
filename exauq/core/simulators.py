@@ -337,11 +337,20 @@ class JobManager(object):
             self._thread.join()
 
     def submit(self, x: Input):
-        """Submit a new simulation job."""
+        """Submit a new simulation job.
 
-        self._simulations_log.add_new_record(x)
-        job_id = self._interface.submit_job(x)
-        self._simulations_log.insert_job_id(x, job_id)
+        If the job gets submitted without error, then the simulations log file will
+        have a record of the corresponding simulator input along with a job ID.
+        Conversely, if there is an error in submitting the job then only the input
+        is recorded in the log file, with blank job ID.
+        """
+
+        job_id = None
+        try:
+            job_id = self._interface.submit_job(x)
+        finally:
+            self._simulations_log.add_new_record(x, job_id)
+
         self._monitor([job_id])
 
     def _monitor(self, job_ids: list):

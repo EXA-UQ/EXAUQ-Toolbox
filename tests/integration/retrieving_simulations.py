@@ -3,7 +3,7 @@ import pathlib
 import time
 
 from exauq.core.modelling import Input
-from exauq.core.simulators import Simulator, SimulatorDomain
+from exauq.core.simulators import SimulationsLog, Simulator, SimulatorDomain
 from tests.utilities.local_simulator import WORKSPACE, LocalSimulatorInterface
 
 log_file = pathlib.Path("./simulations.csv")
@@ -12,7 +12,7 @@ try:
     # directory.
     interface = LocalSimulatorInterface(WORKSPACE)
 
-    # Initialise simulator with previously-created simulations log file
+    # Initialise simulator with new simulations log file
     domain = SimulatorDomain([(0, 1)] * 4)
     simulator = Simulator(domain, interface, log_file)
 
@@ -28,6 +28,11 @@ try:
     assert out1 is None
     assert out2 is None
     assert out3 is None
+
+    # Check that job IDs in the log file are present (indicates successful submission of
+    # jobs)
+    log = SimulationsLog(log_file, domain.dim)
+    assert all([record["Job_ID"] != "" for record in log.get_records()])
 
     # Wait for the simulations to complete
     # Note: this needs to account for (1) time to run the simulations (incl. any
