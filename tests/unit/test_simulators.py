@@ -395,7 +395,7 @@ class TestSimulationsLog(unittest.TestCase):
             self.assertEqual(expected, self.log.get_simulations())
             self.assert_file_opened(mock, self.simulations_file)
 
-    def test_get_simulations_adding_one_record(self):
+    def test_add_new_record_single_input(self):
         """Test that, when a record for a given input is added, the corresponding
         simulation shows up in the list of previous simulations."""
 
@@ -407,7 +407,7 @@ class TestSimulationsLog(unittest.TestCase):
             log.add_new_record(x)
             self.assertEqual(((x, None),), log.get_simulations())
 
-    def test_get_simulations_adding_multiple_records_same_input(self):
+    def test_add_new_record_multiple_records_same_input(self):
         """Test that, when multiple records for the same input are added, one simulation
         for each record shows up in the list of previous simulations."""
 
@@ -420,7 +420,7 @@ class TestSimulationsLog(unittest.TestCase):
             log.add_new_record(x)
             self.assertEqual(((x, None), (x, None)), log.get_simulations())
 
-    def test_get_simulations_adding_multiple_records_different_inputs(self):
+    def test_add_new_record_multiple_records_different_inputs(self):
         """Test that, when records for different inputs are added, one simulation
         for each record shows up in the list of previous simulations."""
 
@@ -433,6 +433,33 @@ class TestSimulationsLog(unittest.TestCase):
             log.add_new_record(x1)
             log.add_new_record(x2)
             self.assertEqual(((x1, None), (x2, None)), log.get_simulations())
+
+    def test_add_new_record_no_job_id(self):
+        """Test that the the job ID field is correctly recorded as missing if not
+        supplied with adding a new record."""
+
+        x = Input(1)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log = SimulationsLog(
+                pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=len(x)
+            )
+            log.add_new_record(x)
+            record = log.get_records({""})[0]
+            self.assertEqual(record["Job_ID"], "")
+
+    def test_add_new_record_with_job_id(self):
+        """Test that the provided job ID is correctly recorded when adding a new
+        record."""
+
+        x = Input(1)
+        job_id = "0"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log = SimulationsLog(
+                pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=len(x)
+            )
+            log.add_new_record(x, job_id)
+            record = log.get_records({job_id})[0]
+            self.assertEqual(record["Job_ID"], job_id)
 
     def test_get_records_single_job_id(self):
         """Test that the record with a specified job ID can be successfully retrieved."""

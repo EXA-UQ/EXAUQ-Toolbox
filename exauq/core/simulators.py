@@ -245,10 +245,15 @@ class SimulationsLog(object):
                 f"{', '.join(extra_fields)}."
             )
 
-    def add_new_record(self, x: Input):
-        with open(self._log_file, mode="a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(list(x) + ["", ""])
+    def add_new_record(self, x: Input, job_id: Optional[str] = None):
+        record = {h: "" for h in self._log_file_header}
+        record.update(
+            dict(zip([h for h in self._log_file_header if h.startswith("Input")], x))
+        )
+        if job_id is not None:
+            record.update({"Job_ID": job_id})
+
+        self.create_record(record)
 
     def insert_job_id(self, input_set: Input, job_id):
         with open(self._log_file, "r") as csvfile:
