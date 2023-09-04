@@ -280,11 +280,11 @@ class SimulationsLog(object):
             writer.writerows(new_records)
 
     def get_pending_jobs(self) -> tuple:
-        with open(self._log_file, mode="r", newline="") as file:
-            reader = csv.DictReader(file)
-            return tuple(
-                row["Job_ID"] for row in reader if row["Job_ID"] and not row["Output"]
-            )
+        return tuple(
+            record["Job_ID"]
+            for record in self.get_records()
+            if record["Job_ID"] and not record["Output"]
+        )
 
 
 class SimulationsLogLookupError(Exception):
