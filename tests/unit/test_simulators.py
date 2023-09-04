@@ -609,6 +609,50 @@ class TestSimulationsLog(unittest.TestCase):
             ):
                 log.insert_result(job_id, 10)
 
+    def test_get_pending_jobs_empty_log_file(self):
+        """Test that an empty tuple is returned if there are no records in the
+        simulations log file."""
+
+        with unittest.mock.patch(
+            "builtins.open",
+            unittest.mock.mock_open(read_data=self.empty_log_data),
+        ) as mock:
+            expected = tuple()
+            self.assertEqual(expected, self.log.get_pending_jobs())
+            self.assert_file_opened(mock, self.simulations_file, mode="r")
+
+    def test_get_pending_jobs_empty_when_all_completed(self):
+        """Test that an empty tuple is returned if all jobs in the simulations
+        log file have a simulator output."""
+
+        csv_data = make_csv_string(
+            {"Input_1": [1, 2], "Output": [10.1, 20.2], "Job_ID": ["1", "2"]}
+        )
+        with unittest.mock.patch(
+            "builtins.open",
+            unittest.mock.mock_open(read_data=csv_data),
+        ) as mock:
+            expected = tuple()
+            self.assertEqual(expected, self.log.get_pending_jobs())
+            self.assert_file_opened(mock, self.simulations_file, mode="r")
+
+    def test_get_pending_jobs_selects_correct_jobs(self):
+        """Test that the jobs selected are those that have a Job ID but not an
+        output."""
+
+        csv_data = make_csv_string(
+            {
+                "Input_1": [1, 2, 3, 4],
+                "Output": [10.1, None, None, None],
+                "Job_ID": ["1", "2", "3", None],
+            }
+        )
+        with unittest.mock.patch(
+            "builtins.open", unittest.mock.mock_open(read_data=csv_data)
+        ) as mock:
+            self.assertEqual(("2", "3"), self.log.get_pending_jobs())
+            self.assert_file_opened(mock, self.simulations_file, mode="r")
+
 
 if __name__ == "__main__":
     unittest.main()
