@@ -261,9 +261,17 @@ class SimulationsLog(object):
         result_index = header.index("Output")
         job_id_index = header.index("Job_ID")
 
+        record_found = False
         for i, row in enumerate(data_rows):
             if row[job_id_index] == str(job_id):
+                record_found = True
                 row[result_index] = result
+
+        if not record_found:
+            raise SimulationsLogLookupError(
+                f"Could not add output to simulation with job ID {job_id}: "
+                "no such simulation exists."
+            )
 
         with open(self._log_file, "w", newline="") as csvfile:
             writer = csv.writer(csvfile)
@@ -276,6 +284,12 @@ class SimulationsLog(object):
             return [
                 row["Job_ID"] for row in reader if row["Job_ID"] and not row["Output"]
             ]
+
+
+class SimulationsLogLookupError(Exception):
+    """Raised when a simulations log does not contain a particular record."""
+
+    pass
 
 
 class JobManager(object):

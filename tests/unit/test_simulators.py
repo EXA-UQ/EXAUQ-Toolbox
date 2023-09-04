@@ -8,7 +8,7 @@ from numbers import Real
 from typing import Type
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.core.simulators import SimulationsLog, Simulator
+from exauq.core.simulators import SimulationsLog, SimulationsLogLookupError, Simulator
 from exauq.core.types import FilePath
 from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
 from tests.utilities.utilities import exact
@@ -560,6 +560,36 @@ class TestSimulationsLog(unittest.TestCase):
                 ),
             ):
                 log.create_record(record)
+
+    def test_insert_result_output_added(self):
+        """Test that a simulator output is added alongside a simulator input and
+        can be retrieved from the previous simulations."""
+
+        x = Input(1)
+        y = 10
+        job_id = "0"
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
+            log.add_new_record(x, job_id)
+            log.insert_result(job_id, y)
+            self.assertEqual(((x, y),), log.get_simulations())
+
+    def test_insert_result_missing_job_id_error(self):
+        """Test that a SimulationsLogLookupError is raised if one attempts to add an
+        output with a job ID that doesn't exist in the simulations log file."""
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
+            log.add_new_record(Input(1), "0")
+            job_id = "1"
+            with self.assertRaisesRegex(
+                SimulationsLogLookupError,
+                exact(
+                    f"Could not add output to simulation with job ID {job_id}: "
+                    "no such simulation exists."
+                ),
+            ):
+                log.insert_result(job_id, 10)
 
 
 if __name__ == "__main__":
