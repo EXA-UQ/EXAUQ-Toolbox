@@ -447,7 +447,8 @@ class TestSimulationsLog(unittest.TestCase):
             self.assert_file_opened(mock, self.simulations_file)
 
     def test_get_records_multiple_job_ids(self):
-        """Test that the record with a specified job ID can be successfully retrieved."""
+        """Test that records with a specified job IDs can be successfully retrieved, in
+        the case where multiple records are requested."""
 
         with unittest.mock.patch(
             "builtins.open",
@@ -474,6 +475,68 @@ class TestSimulationsLog(unittest.TestCase):
             )
             self.assertEqual(expected, self.log.get_records())
             self.assert_file_opened(mock, self.simulations_file)
+
+    def test_create_record_one_dim_input(self):
+        """Test that a record can be added to the simulations log file, in the
+        case where the input space is one-dimensional."""
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
+            record = {"Input_1": "1.1", "Output": "2", "Job_ID": "1"}
+            log.create_record(record)
+            self.assertEqual((record,), log.get_records(record["Job_ID"]))
+
+    def test_create_record_multi_dim_input(self):
+        """Test that a record can be added to the simulations log file, in the
+        case where the input space is multi-dimensional."""
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=2)
+            record = {"Input_1": "1.1", "Input_2": "2.2", "Output": "2", "Job_ID": "1"}
+            log.create_record(record)
+            self.assertEqual((record,), log.get_records(record["Job_ID"]))
+
+    def test_create_record_appends(self):
+        """Test that multiple applications of creating records appends the records to
+        the simulations log file."""
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
+            record1 = {"Input_1": "1.1", "Output": "2", "Job_ID": "1"}
+            record2 = {"Input_1": "2.2", "Output": "2", "Job_ID": "2"}
+            log.create_record(record1)
+            log.create_record(record2)
+            self.assertEqual((record1, record2), log.get_records({"1", "2"}))
+
+    def test_create_record_missing_field_error(self):
+        """Test that a ValueError is raised if one of the log file fields is missing
+        from it."""
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
+            record = {"Input_2": "1.1", "Output": "2", "Job_ID": "1"}
+            with self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "The record does not contain entries for the required fields: Input_1."
+                ),
+            ):
+                log.create_record(record)
+
+    def test_create_record_extra_field_error(self):
+        """Test that a ValueError is raised if the record contains a field that is not
+        in the simulations log file header."""
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
+            record = {"Input_1": "1", "Input_2": "1.1", "Output": "2", "Job_ID": "1"}
+            with self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "The record contains fields not in the simulations log file: Input_2."
+                ),
+            ):
+                log.create_record(record)
 
 
 if __name__ == "__main__":

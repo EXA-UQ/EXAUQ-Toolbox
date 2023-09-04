@@ -148,6 +148,10 @@ class SimulationsLog(object):
     """
 
     def __init__(self, file: FilePath, num_inputs: int):
+        self._log_file_header = [f"Input_{i}" for i in range(1, num_inputs + 1)] + [
+            "Output",
+            "Job_ID",
+        ]
         self._log_file = self._initialise_log_file(file, num_inputs)
 
     @staticmethod
@@ -214,6 +218,31 @@ class SimulationsLog(object):
 
             return tuple(
                 row for row in csv.DictReader(csvfile) if row["Job_ID"] in job_ids
+            )
+
+    def create_record(self, record: dict[str, Any]):
+        """Creates a new record in the simulations log file."""
+
+        self._check_fields(record)
+        with open(self._log_file, mode="a", newline="") as csvfile:
+            csv.DictWriter(csvfile, fieldnames=self._log_file_header).writerow(record)
+
+    def _check_fields(self, record: dict[str, Any]):
+        """Check that a record has exactly the fields required for the simlations log
+        file."""
+
+        fields_missing = [h for h in self._log_file_header if h not in record]
+        if fields_missing:
+            raise ValueError(
+                "The record does not contain entries for the required fields: "
+                f"{', '.join(fields_missing)}."
+            )
+
+        extra_fields = [h for h in sorted(record) if h not in self._log_file_header]
+        if extra_fields:
+            raise ValueError(
+                "The record contains fields not in the simulations log file: "
+                f"{', '.join(extra_fields)}."
             )
 
     def add_new_record(self, x: Input):
