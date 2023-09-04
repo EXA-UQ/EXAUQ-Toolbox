@@ -260,11 +260,19 @@ class SimulationsLog(object):
             else:
                 new_records.append(record)
 
-        if records_changed == 0:
-            raise SimulationsLogLookupError(
-                f"Could not add output to simulation with job ID = {job_id}: "
-                "no such simulation exists."
+        if records_changed != 1:
+            msg = (
+                (
+                    f"Could not add output to simulation with job ID = {job_id}: "
+                    "no such simulation exists."
+                )
+                if records_changed == 0
+                else (
+                    f"Could not add output to simulation with job ID = {job_id}: "
+                    "multiple records with this ID found."
+                )
             )
+            raise SimulationsLogLookupError(msg)
 
         with open(self._log_file, "w", newline="") as csvfile:
             writer = csv.DictWriter(csvfile, self._log_file_header)

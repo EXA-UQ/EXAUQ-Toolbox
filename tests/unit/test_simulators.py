@@ -591,6 +591,24 @@ class TestSimulationsLog(unittest.TestCase):
             ):
                 log.insert_result(job_id, 10)
 
+    def test_insert_result_multiple_job_id_error(self):
+        """Test that a SimulationsLogLookupError is raised if there are multiple
+        records with the same job ID when trying to insert a simulator output."""
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
+            job_id = "0"
+            log.add_new_record(Input(1), job_id)
+            log.add_new_record(Input(1), job_id)
+            with self.assertRaisesRegex(
+                SimulationsLogLookupError,
+                exact(
+                    f"Could not add output to simulation with job ID = {job_id}: "
+                    "multiple records with this ID found."
+                ),
+            ):
+                log.insert_result(job_id, 10)
+
 
 if __name__ == "__main__":
     unittest.main()
