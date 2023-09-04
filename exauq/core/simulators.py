@@ -152,12 +152,11 @@ class SimulationsLog(object):
             "Output",
             "Job_ID",
         ]
-        self._log_file = self._initialise_log_file(file, num_inputs)
+        self._log_file = self._initialise_log_file(file)
 
-    @staticmethod
-    def _initialise_log_file(file: FilePath, num_inputs: int) -> FilePath:
-        """Create a new file at the given path if it doesn't already exist and return
-        the path."""
+    def _initialise_log_file(self, file: FilePath) -> FilePath:
+        """Create a new simulations log file at the given path if it doesn't already exist
+        and return the path."""
 
         check_file_path(
             file,
@@ -170,11 +169,7 @@ class SimulationsLog(object):
         if not os.path.exists(file):
             with open(file, mode="w", newline="") as _file:
                 writer = csv.writer(_file)
-                header = [f"Input_{i + 1}" for i in range(num_inputs)] + [
-                    "Output",
-                    "Job_ID",
-                ]
-                writer.writerow(header)
+                writer.writerow(self._log_file_header)
 
         return file
 

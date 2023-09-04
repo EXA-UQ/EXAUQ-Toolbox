@@ -43,8 +43,7 @@ def make_fake_simulations_log_class(
             super().__init__(file, num_inputs, *args)
             self.simulations = simulations
 
-        @staticmethod
-        def _initialise_log_file(file: FilePath, num_inputs: int) -> FilePath:
+        def _initialise_log_file(self, file: FilePath) -> FilePath:
             """Return the path without creating a file there."""
 
             return file
