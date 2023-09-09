@@ -10,6 +10,9 @@ from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.core.types import FilePath
 from exauq.utilities.validation import check_file_path
 
+Simulation = tuple[Input, Optional[Real]]
+"""A type to represent a simulator input, possibly with corresponding simulator output."""
+
 
 class Simulator(AbstractSimulator):
     """
@@ -41,7 +44,7 @@ class Simulator(AbstractSimulator):
 
     Attributes
     ----------
-    previous_simulations : tuple
+    previous_simulations : tuple[Input, Optional[Real]]
         (Read-only) Simulations that have been previously submitted for evaluation.
         In the case where an `Input` has been submitted for evaluation but no output from
         the simulator has been retrieved, the output is recorded as ``None``.
@@ -86,7 +89,7 @@ class Simulator(AbstractSimulator):
         return SimulationsLog(simulations_log, num_inputs)
 
     @property
-    def previous_simulations(self) -> tuple:
+    def previous_simulations(self) -> Simulation:
         """
         (Read-only) A tuple of simulations that have been previously submitted for
         computation. In the case where an `Input` has been submitted for evaluation but
@@ -145,6 +148,8 @@ class SimulationsLog(object):
     ----------
     file : str, bytes or path-like
         A path to the underlying log file containing details of simulations.
+    num_inputs : int
+        The number of coordinates needed to define an input to the simultor.
     """
 
     def __init__(self, file: FilePath, num_inputs: int):
@@ -173,7 +178,7 @@ class SimulationsLog(object):
 
         return file
 
-    def get_simulations(self):
+    def get_simulations(self) -> tuple[Simulation]:
         """
         Get all simulations contained in the log file.
 
@@ -191,7 +196,7 @@ class SimulationsLog(object):
         return tuple(map(self._extract_simulation, self.get_records()))
 
     @staticmethod
-    def _extract_simulation(record: dict[str, str]) -> tuple[Input, Optional[Real]]:
+    def _extract_simulation(record: dict[str, str]) -> Simulation:
         """Extract a pair of simulator inputs and outputs from a dictionary record read
         from the log file. Missing outputs are converted to ``None``."""
 
@@ -205,7 +210,23 @@ class SimulationsLog(object):
         return x, y
 
     def get_records(self, job_ids: Optional[set[str]] = None) -> tuple[dict[str, str]]:
-        """Retrieve records of jobs from the simulations log file."""
+        """Retrieve records of jobs from the simulations log file.
+
+        Records are represented as dictionaries where the keys are the headings in the
+        log file and values are string representations of the corresponding values in the
+        log file.
+
+        Parameters
+        ----------
+        job_ids : set[str] or None, optional
+            (Default: ``None``) The IDs of jobs whose records should be retrieved. If
+            ``None`` then records for all jobs will be retrieved.
+
+        Returns
+        -------
+        tuple[dict[str, str]]
+            The log file records for the supplied job IDs.
+        """
 
         with open(self._log_file, mode="r", newline="") as csvfile:
             if job_ids is None:
@@ -215,8 +236,21 @@ class SimulationsLog(object):
                 row for row in csv.DictReader(csvfile) if row["Job_ID"] in job_ids
             )
 
-    def create_record(self, record: dict[str, Any]):
-        """Creates a new record in the simulations log file."""
+    def create_record(self, record: dict[str, Any]) -> None:
+        """Creates a new record in the simulations log file.
+
+        Parameters
+        ----------
+        record : dict[str, Any]
+            The record to write to the simulations log file, as a dictionary mapping
+            log file column headings to the corresponding values.
+
+        Raises
+        ------
+        ValueError
+            If the keys of the supplied `record` don't correspond to the log file
+            headings.
+        """
 
         self._check_fields(record)
         with open(self._log_file, mode="a", newline="") as csvfile:
@@ -240,7 +274,18 @@ class SimulationsLog(object):
                 f"{', '.join(extra_fields)}."
             )
 
-    def add_new_record(self, x: Input, job_id: Optional[str] = None):
+    def add_new_record(self, x: Input, job_id: Optional[str] = None) -> None:
+        """Record a new simulation job in the log file.
+
+        Parameters
+        ----------
+        x : Input
+            An input for the simulator to evaluate.
+        job_id: str, Optional
+            (Default: ``None``) The ID for the job of evaluating the simulator at `x`.
+            If ``None`` then no job ID will be recorded alongside the input `x` in the
+            simulations log file.
+        """
         record = {h: "" for h in self._log_file_header}
         record.update(
             dict(zip([h for h in self._log_file_header if h.startswith("Input")], x))
@@ -250,7 +295,22 @@ class SimulationsLog(object):
 
         self.create_record(record)
 
-    def insert_result(self, job_id, result):
+    def insert_result(self, job_id: str, result: Real) -> None:
+        """Insert the output of a simulation into a job record in the simulations log
+        file.
+
+        Parameters
+        ----------
+        job_id : str
+            The ID of the job that the `result` should be added to.
+        result : Real
+            The output of a simulation.
+
+        Raises
+        ------
+        SimulationsLogLookupError
+            If there isn't a unique simulations log record having job ID `job_id`.
+        """
         records_changed = 0
         new_records = []
         for record in self.get_records():
@@ -279,7 +339,17 @@ class SimulationsLog(object):
             writer.writeheader()
             writer.writerows(new_records)
 
-    def get_pending_jobs(self) -> tuple:
+    def get_pending_jobs(self) -> tuple[str]:
+        """Return the IDs of all submitted jobs which don't have results.
+
+        A job is considered to have been submitted if the corresponding record in the
+        simulations log contains a job ID.
+
+        Returns
+        -------
+        tuple[str]
+            The IDs of all jobs that have been submitted but don't have a result recorded.
+        """
         return tuple(
             record["Job_ID"]
             for record in self.get_records()
