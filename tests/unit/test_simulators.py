@@ -333,6 +333,7 @@ class TestSimulationsLog(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             path = pathlib.Path(tmp_dir, "log.csv")
+            path.write_text(self.empty_log_data)
             path.touch(mode=0o400)  # read-only
             try:
                 _ = SimulationsLog(path, self.num_inputs)

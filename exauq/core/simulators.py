@@ -8,6 +8,7 @@ from typing import Any, Optional
 from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.core.types import FilePath
+from exauq.utilities.csv_db import CsvDB
 from exauq.utilities.validation import check_file_path
 
 Simulation = tuple[Input, Optional[Real]]
@@ -158,6 +159,7 @@ class SimulationsLog(object):
             "Job_ID",
         ]
         self._log_file = self._initialise_log_file(file)
+        self._simulations_db = self._make_db(self._log_file, self._log_file_header)
 
     def _initialise_log_file(self, file: FilePath) -> FilePath:
         """Create a new simulations log file at the given path if it doesn't already exist
@@ -177,6 +179,13 @@ class SimulationsLog(object):
                 writer.writerow(self._log_file_header)
 
         return file
+
+    @staticmethod
+    def _make_db(log_file: FilePath, fields: list[str]) -> CsvDB:
+        if isinstance(log_file, bytes):
+            return CsvDB(log_file.decode(), fields)
+
+        return CsvDB(log_file, fields)
 
     def get_simulations(self) -> tuple[Simulation]:
         """
