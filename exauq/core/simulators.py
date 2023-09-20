@@ -7,8 +7,11 @@ from typing import Any, Optional
 
 from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
-from exauq.core.types import FilePath, Simulation
+from exauq.core.types import FilePath
 from exauq.utilities.validation import check_file_path
+
+Simulation = tuple[Input, Optional[Real]]
+"""A type to represent a simulator input, possibly with corresponding simulator output."""
 
 
 class Simulator(AbstractSimulator):
