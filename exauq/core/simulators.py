@@ -237,13 +237,12 @@ class SimulationsLog(object):
             The log file records for the supplied job IDs.
         """
 
-        with open(self._log_file, mode="r", newline="") as csvfile:
-            if job_ids is None:
-                return tuple(csv.DictReader(csvfile))
+        if job_ids is None:
+            return self._simulations_db.query()
 
-            return tuple(
-                row for row in csv.DictReader(csvfile) if row["Job_ID"] in job_ids
-            )
+        return self._simulations_db.query(
+            lambda x: x[self._log_file_header[-1]] in job_ids
+        )
 
     def create_record(self, record: dict[str, Any]) -> None:
         """Creates a new record in the simulations log file.
