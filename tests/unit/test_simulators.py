@@ -1,11 +1,10 @@
 import csv
-import io
 import os
 import pathlib
 import tempfile
 import unittest.mock
 from numbers import Real
-from typing import Type
+from typing import Optional, Type
 
 from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.simulators import SimulationsLog, SimulationsLogLookupError, Simulator
@@ -70,8 +69,10 @@ def make_fake_simulations_log_class(
     return FakeSimulationsLog
 
 
-def make_csv_string(data: dict[str, list]) -> str:
-    """Make a CSV string representation of data.
+def write_to_csv(
+    data: dict[str, list], path: FilePath, write_header: Optional[bool] = True
+) -> str:
+    """Write data to a CSV file.
 
     `data` should be a dict with keys being the column headers and values being a list
     giving the column values. E.g.
@@ -81,24 +82,26 @@ def make_csv_string(data: dict[str, list]) -> str:
     A value of ``None`` is converted to the empty string.
     """
 
-    buffer = io.StringIO()
     header = (
         sorted([col for col in data.keys() if col.startswith("Input_")])
         + ["Output"]
         + ["Job_ID"]
     )
-    writer = csv.DictWriter(buffer, header)
-    writer.writeheader()
 
     def to_str(x):
         output = str(x) if x is not None else ""
         return output
 
-    for i in range(len(data[header[0]])):
-        record = {col: to_str(data[col][i]) for col in header}
-        writer.writerow(record)
-
-    return buffer.getvalue()
+    with open(path, mode="w", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=header)
+        if write_header:
+            writer.writeheader()
+        writer.writerows(
+            [
+                {col: to_str(data[col][i]) for col in header}
+                for i in range(len(data[header[0]]))
+            ]
+        )
 
 
 class TestSimulator(unittest.TestCase):
@@ -271,15 +274,21 @@ class TestSimulator(unittest.TestCase):
 class TestSimulationsLog(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.simulations_file = "foo.csv"
-        self.num_inputs = 1
-        with unittest.mock.patch("builtins.open", unittest.mock.mock_open()):
-            self.log = SimulationsLog(self.simulations_file, self.num_inputs)
+        self.tmp = tempfile.TemporaryDirectory()
+        self.tmp_dir = self.tmp.name
 
-        self.empty_log_data = make_csv_string({"Input_1": [], "Output": [], "Job_ID": []})
-        self.nonempty_log_data = make_csv_string(
-            {"Input_1": [1, 2], "Output": [10, None], "Job_ID": [1, 2]}
-        )
+        self.log_data1 = {"Input_1": [], "Output": [], "Job_ID": []}
+        self.log_data2 = {
+            "Input_1": [1, 2],
+            "Output": [10, None],
+            "Job_ID": [1, 2],
+        }
+        self.simulations_file = pathlib.Path(self.tmp_dir, "simulations.csv")
+        self.num_inputs = 1
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        self.tmp.cleanup()
 
     def assert_file_opened(self, mock_open, file_path, mode="r"):
         """Check that a mocked ``open()`` is called once on the specified file path in
@@ -307,94 +316,89 @@ class TestSimulationsLog(unittest.TestCase):
     def test_initialise_with_simulations_record_file(self):
         """Test that a simulator log can be initialised with a handle to the log file."""
 
-        with unittest.mock.patch(
-            "builtins.open", unittest.mock.mock_open(read_data=self.empty_log_data)
-        ):
-            _ = SimulationsLog(r"a/b/c.csv", self.num_inputs)  # Unix
-            _ = SimulationsLog(rb"a/b/c.csv", self.num_inputs)
-            _ = SimulationsLog(r"a\b\c.csv", self.num_inputs)  # Windows
-            _ = SimulationsLog(rb"a\b\c.csv", self.num_inputs)
-            _ = SimulationsLog(
-                pathlib.Path("a/b/c.csv"), self.num_inputs
-            )  # Platform independent
+        tmp_dir_canonical = pathlib.Path(self.tmp_dir).as_posix()
+
+        # Unix
+        path = str(pathlib.PurePosixPath(tmp_dir_canonical, "simulations.csv"))
+        _ = SimulationsLog(path, self.num_inputs)
+        _ = SimulationsLog(path.encode(), self.num_inputs)
+
+        # Windows
+        path = str(pathlib.PureWindowsPath(tmp_dir_canonical, "simulations.csv"))
+        _ = SimulationsLog(path, self.num_inputs)
+        _ = SimulationsLog(path.encode(), self.num_inputs)
+
+        # Platform independent
+        _ = SimulationsLog(
+            pathlib.Path(tmp_dir_canonical, "simulations.csv"), self.num_inputs
+        )
 
     def test_initialise_new_log_file_created(self):
         """Test that a new simulator log file at a given path is created upon object
         initialisation."""
 
-        file_path = pathlib.Path("a/b/c.csv")
-        with unittest.mock.patch("builtins.open", unittest.mock.mock_open()) as mock:
-            _ = SimulationsLog(file_path, self.num_inputs)
-            self.assert_file_opened(mock, file_path, mode="w")
+        path = pathlib.Path(self.tmp_dir, "simulations.csv")
+        _ = SimulationsLog(path, self.num_inputs)
+        self.assertTrue(path.exists())
 
     def test_initialise_new_log_file_not_opened_if_exists(self):
         """Test that an existing simulator log file is not opened for writing upon
         initialisation."""
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            path = pathlib.Path(tmp_dir, "log.csv")
-            path.write_text(self.empty_log_data)
-            path.touch(mode=0o400)  # read-only
-            try:
-                _ = SimulationsLog(path, self.num_inputs)
-            except PermissionError:
-                self.fail("Tried writing to pre-existing log file, should not have done.")
-            finally:
-                os.chmod(path, 0o600)  # read/write mode, to allow deletion
-                os.remove(path)
+        path = pathlib.Path(self.tmp_dir, "log.csv")
+        write_to_csv(self.log_data1, path)
+        path.touch(mode=0o400)  # read-only
+        try:
+            _ = SimulationsLog(path, self.num_inputs)
+        except PermissionError:
+            self.fail("Tried writing to pre-existing log file, should not have done.")
+        finally:
+            os.chmod(path, 0o600)  # read/write mode, to allow deletion
+            os.remove(path)
 
-    @unittest.skip("uses patched open()")
     def test_get_simulations_no_simulations_in_file(self):
         """Test that an empty tuple is returned if the simulations log file does not
         contain any simulations."""
 
-        with unittest.mock.patch(
-            "builtins.open", unittest.mock.mock_open(read_data=self.empty_log_data)
-        ) as mock:
-            self.assertEqual(tuple(), self.log.get_simulations())
-            self.assert_file_opened(mock, self.simulations_file)
+        write_to_csv(self.log_data1, self.simulations_file)
+        log = SimulationsLog(self.simulations_file, num_inputs=1)
+        self.assertEqual(tuple(), log.get_simulations())
 
-    @unittest.skip("uses patched open()")
     def test_get_simulations_one_dim_input(self):
         """Test that simulation data with a 1-dimensional input is parsed correctly."""
 
-        csv_data = make_csv_string({"Input_1": [1], "Output": [2], "Job_ID": [1]})
-        with unittest.mock.patch(
-            "builtins.open",
-            unittest.mock.mock_open(read_data=csv_data),
-        ) as mock:
-            expected = ((Input(1), 2),)
-            self.assertEqual(expected, self.log.get_simulations())
-            self.assert_file_opened(mock, self.simulations_file)
+        data = {"Input_1": [1], "Output": [2], "Job_ID": [1]}
+        write_to_csv(data, self.simulations_file)
+        log = SimulationsLog(self.simulations_file, num_inputs=1)
+        expected = ((Input(1), 2),)
+        self.assertEqual(expected, log.get_simulations())
 
-    @unittest.skip("uses patched open()")
     def test_get_simulations_returns_simulations_from_file(self):
         """Test that a record of all simulations (pending or otherwise) recorded
         in the log file are returned."""
 
-        csv_data = make_csv_string(
-            {"Input_1": [1, 3], "Input_2": [2, 4], "Output": [10, None], "Job_ID": [1, 2]}
-        )
-        with unittest.mock.patch(
-            "builtins.open",
-            unittest.mock.mock_open(read_data=csv_data),
-        ) as mock:
-            expected = ((Input(1, 2), 10), (Input(3, 4), None))
-            self.assertEqual(expected, self.log.get_simulations())
-            self.assert_file_opened(mock, self.simulations_file)
+        data = {
+            "Input_1": [1, 3],
+            "Input_2": [2, 4],
+            "Output": [10, None],
+            "Job_ID": [1, 2],
+        }
+        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
+        log = SimulationsLog(simulations_file, num_inputs=2)
+        write_to_csv(data, simulations_file)
+        expected = ((Input(1, 2), 10), (Input(3, 4), None))
+        self.assertEqual(expected, log.get_simulations())
 
-    @unittest.skip("uses patched open()")
+    @unittest.skip("known failure")
     def test_get_simulations_unusual_column_order(self):
         """Test that a log file is parsed correctly irrespective of the order of input
         and output columns."""
 
-        with unittest.mock.patch(
-            "builtins.open",
-            unittest.mock.mock_open(read_data="Input_2,Output,Input_1\n1,2,10\n"),
-        ) as mock:
-            expected = ((Input(10, 1), 2),)
-            self.assertEqual(expected, self.log.get_simulations())
-            self.assert_file_opened(mock, self.simulations_file)
+        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
+        simulations_file.write_text("Input_2,Job_ID,Output,Input_1\n1,0,2,10\n")
+        log = SimulationsLog(simulations_file, num_inputs=2)
+        expected = ((Input(10, 1), 2),)
+        self.assertEqual(expected, log.get_simulations())
 
     def test_add_new_record_single_input(self):
         """Test that, when a record for a given input is added, the corresponding
@@ -462,50 +466,41 @@ class TestSimulationsLog(unittest.TestCase):
             record = log.get_records({job_id})[0]
             self.assertEqual(record["Job_ID"], job_id)
 
-    @unittest.skip("uses patched open()")
     def test_get_records_single_job_id(self):
         """Test that the record with a specified job ID can be successfully retrieved."""
 
-        with unittest.mock.patch(
-            "builtins.open",
-            unittest.mock.mock_open(read_data=self.nonempty_log_data),
-        ) as mock:
-            job_id = "2"
-            expected = ({"Input_1": "2", "Output": "", "Job_ID": job_id},)
-            self.assertEqual(expected, self.log.get_records({job_id}))
-            self.assert_file_opened(mock, self.simulations_file)
+        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
+        log = SimulationsLog(simulations_file, num_inputs=1)
+        write_to_csv(self.log_data2, simulations_file)
+        job_id = "2"
+        expected = ({"Input_1": "2", "Output": "", "Job_ID": job_id},)
+        self.assertEqual(expected, log.get_records({job_id}))
 
-    @unittest.skip("uses patched open()")
     def test_get_records_multiple_job_ids(self):
         """Test that records with a specified job IDs can be successfully retrieved, in
         the case where multiple records are requested."""
 
-        with unittest.mock.patch(
-            "builtins.open",
-            unittest.mock.mock_open(read_data=self.nonempty_log_data),
-        ) as mock:
-            job_ids = {"1", "2"}
-            expected = (
-                {"Input_1": "1", "Output": "10", "Job_ID": "1"},
-                {"Input_1": "2", "Output": "", "Job_ID": "2"},
-            )
-            self.assertEqual(expected, self.log.get_records(job_ids))
-            self.assert_file_opened(mock, self.simulations_file)
+        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
+        log = SimulationsLog(simulations_file, num_inputs=1)
+        write_to_csv(self.log_data2, simulations_file)
+        job_ids = {"1", "2"}
+        expected = (
+            {"Input_1": "1", "Output": "10", "Job_ID": "1"},
+            {"Input_1": "2", "Output": "", "Job_ID": "2"},
+        )
+        self.assertEqual(expected, log.get_records(job_ids))
 
-    @unittest.skip("uses patched open()")
     def test_get_records_all_records(self):
         """Test that all records are retrieved when no job IDs are specified."""
 
-        with unittest.mock.patch(
-            "builtins.open",
-            unittest.mock.mock_open(read_data=self.nonempty_log_data),
-        ) as mock:
-            expected = (
-                {"Input_1": "1", "Output": "10", "Job_ID": "1"},
-                {"Input_1": "2", "Output": "", "Job_ID": "2"},
-            )
-            self.assertEqual(expected, self.log.get_records())
-            self.assert_file_opened(mock, self.simulations_file)
+        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
+        log = SimulationsLog(simulations_file, num_inputs=1)
+        write_to_csv(self.log_data2, simulations_file)
+        expected = (
+            {"Input_1": "1", "Output": "10", "Job_ID": "1"},
+            {"Input_1": "2", "Output": "", "Job_ID": "2"},
+        )
+        self.assertEqual(expected, log.get_records())
 
     def test_create_record_one_dim_input(self):
         """Test that a record can be added to the simulations log file, in the
@@ -617,52 +612,42 @@ class TestSimulationsLog(unittest.TestCase):
             ):
                 log.insert_result(job_id, 10)
 
-    @unittest.skip("uses patched open()")
     def test_get_pending_jobs_empty_log_file(self):
         """Test that an empty tuple is returned if there are no records in the
         simulations log file."""
 
-        with unittest.mock.patch(
-            "builtins.open",
-            unittest.mock.mock_open(read_data=self.empty_log_data),
-        ) as mock:
-            expected = tuple()
-            self.assertEqual(expected, self.log.get_pending_jobs())
-            self.assert_file_opened(mock, self.simulations_file, mode="r")
+        log = SimulationsLog(pathlib.Path(self.tmp_dir, "simulations2.csv"), num_inputs=1)
+        expected = tuple()
+        self.assertEqual(expected, log.get_pending_jobs())
 
-    @unittest.skip("uses patched open()")
     def test_get_pending_jobs_empty_when_all_completed(self):
         """Test that an empty tuple is returned if all jobs in the simulations
         log file have a simulator output."""
 
-        csv_data = make_csv_string(
-            {"Input_1": [1, 2], "Output": [10.1, 20.2], "Job_ID": ["1", "2"]}
+        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
+        write_to_csv(
+            {"Input_1": [1, 2], "Output": [10.1, 20.2], "Job_ID": ["1", "2"]},
+            simulations_file,
         )
-        with unittest.mock.patch(
-            "builtins.open",
-            unittest.mock.mock_open(read_data=csv_data),
-        ) as mock:
-            expected = tuple()
-            self.assertEqual(expected, self.log.get_pending_jobs())
-            self.assert_file_opened(mock, self.simulations_file, mode="r")
+        log = SimulationsLog(simulations_file, num_inputs=1)
+        expected = tuple()
+        self.assertEqual(expected, log.get_pending_jobs())
 
-    @unittest.skip("uses patched open()")
     def test_get_pending_jobs_selects_correct_jobs(self):
         """Test that the jobs selected are those that have a Job ID but not an
         output."""
 
-        csv_data = make_csv_string(
+        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
+        write_to_csv(
             {
                 "Input_1": [1, 2, 3, 4],
                 "Output": [10.1, None, None, None],
                 "Job_ID": ["1", "2", "3", None],
-            }
+            },
+            simulations_file,
         )
-        with unittest.mock.patch(
-            "builtins.open", unittest.mock.mock_open(read_data=csv_data)
-        ) as mock:
-            self.assertEqual(("2", "3"), self.log.get_pending_jobs())
-            self.assert_file_opened(mock, self.simulations_file, mode="r")
+        log = SimulationsLog(simulations_file, num_inputs=1)
+        self.assertEqual(("2", "3"), log.get_pending_jobs())
 
 
 if __name__ == "__main__":
