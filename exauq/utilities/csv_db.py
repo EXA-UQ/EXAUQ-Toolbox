@@ -48,35 +48,39 @@ class CsvDB(object):
 
     def __init__(self, path: Path, fields: Collection[str]):
         self._path = pathlib.Path(path)
-        self._fields = fields
         self._fields_arg = "fields"  # should match the name of the argument in __init__
-        self._validate_fields()
+        self._fields = self._make_fields(fields)
 
-    def _validate_fields(self) -> None:
-        """Perform checks on the supplied fields and, if present, those in the csv file.
+    def _make_fields(self, fields: Collection[str]) -> None:
+        """Make the fields to store reference in database operations.
 
-        Checks that:
+        Along the way, this method performs checks on the supplied fields and, if present,
+        those in the csv file. The checks performed are:
+
         * The collection of field names is not empty.
         * None of the field names are missing, i.e. the empty string.
         * None of the field names are repeated.
         * The supplied fields agree with those in the csv file, if the latter is present.
+
+        If all relevant checks pass, then the fields as ordered in the csv file are
+        returned. Otherwise, the supplied `fields` are returned.
         """
 
-        if len(self._fields) == 0:
+        if len(fields) == 0:
             raise ValueError(
                 f"Argument '{self._fields_arg}' defines an empty collection."
             )
 
-        if self._any_missing(self._fields):
+        if self._any_missing(fields):
             raise ValueError(f"Argument '{self._fields_arg}' contains empty field names.")
 
-        if repeated_fields := self._make_repetitions_str(self._fields):
+        if repeated_fields := self._make_repetitions_str(fields):
             raise ValueError(
                 f"Argument '{self._fields_arg}' contains repeated fields: {repeated_fields}."
             )
 
         if not self._path.exists():
-            return
+            return fields
 
         with open(self._path, mode="r") as csvfile:
             file_fields = tuple(csvfile.readline().strip().split(","))
@@ -91,10 +95,12 @@ class CsvDB(object):
                 f"Database file {self._path} contains repeated fields: {repeated_fields}."
             )
 
-        if not set(self._fields) == set(file_fields):
+        if not set(fields) == set(file_fields):
             raise FieldsMismatchError(
                 f"'{self._fields_arg}' does not agree with the fields defined in {self._path}."
             )
+
+        return file_fields
 
     @staticmethod
     def _any_missing(coll: Collection[str]) -> bool:

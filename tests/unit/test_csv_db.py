@@ -269,6 +269,16 @@ class TestCsvDB(unittest.TestCase):
         ):
             self.db2.retrieve(field, "1")
 
+    def test_retrieve_field_order_in_file_differs_to_instantiation(self):
+        """Test that a record can be correctly retrieved when it belongs to a csv file
+        where the order of fields differs from that given at instantiation of a new
+        database."""
+
+        write_csv_row(self.path3, ["1", "a"], mode="a")
+        self.assertEqual(
+            {self.pkey: "1", self.col1: "a"}, self.dbrev.retrieve(self.pkey, "1")
+        )
+
     def test_update_replaces_correct_record(self):
         """Test that the record with the specified field value gets updated and no other
         records get updated."""

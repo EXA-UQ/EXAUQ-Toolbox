@@ -380,7 +380,6 @@ class TestSimulationsLog(unittest.TestCase):
         expected = ((Input(1, 2), 10), (Input(3, 4), None))
         self.assertEqual(expected, log.get_simulations())
 
-    @unittest.skip("known failure")
     def test_get_simulations_unusual_column_order(self):
         """Test that a log file is parsed correctly irrespective of the order of input
         and output columns."""
