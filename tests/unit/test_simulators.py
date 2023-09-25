@@ -4,7 +4,7 @@ import pathlib
 import tempfile
 import unittest.mock
 from numbers import Real
-from typing import Optional, Type
+from typing import Any, Optional, Type
 
 from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.simulators import SimulationsLog, SimulationsLogLookupError, Simulator
@@ -102,6 +102,10 @@ def write_to_csv(
                 for i in range(len(data[header[0]]))
             ]
         )
+
+
+def get_num_inputs(data: dict[str, Any]):
+    return len(list(filter(lambda x: x.startswith("Input_"), data.keys())))
 
 
 class TestSimulator(unittest.TestCase):
@@ -275,7 +279,8 @@ class TestSimulationsLog(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.tmp = tempfile.TemporaryDirectory()
-        self.tmp_dir = self.tmp.name
+        self.tmp_dir = pathlib.Path(self.tmp.name).as_posix()
+        self.simulations_file = pathlib.Path(self.tmp_dir, "simulations.csv")
 
         self.log_data1 = {"Input_1": [], "Output": [], "Job_ID": []}
         self.log_data2 = {
@@ -283,20 +288,16 @@ class TestSimulationsLog(unittest.TestCase):
             "Output": [10, None],
             "Job_ID": [1, 2],
         }
-        self.simulations_file = pathlib.Path(self.tmp_dir, "simulations.csv")
-        self.num_inputs = 1
 
     def tearDown(self) -> None:
         super().tearDown()
         self.tmp.cleanup()
 
-    def assert_file_opened(self, mock_open, file_path, mode="r"):
-        """Check that a mocked ``open()`` is called once on the specified file path in
-        the given mode ("read" by default)."""
+    def make_simulations_log(self, data: dict[str, list]):
+        """Create a simulations log file pre-populated with the given data."""
 
-        mock_open.assert_called_once()
-        self.assertEqual((file_path,), mock_open.call_args.args)
-        self.assertTrue(("mode", mode) in mock_open.call_args.kwargs.items())
+        write_to_csv(data, self.simulations_file)
+        return SimulationsLog(self.simulations_file, get_num_inputs(data))
 
     def test_initialise_invalid_log_file_error(self):
         """Test that a TypeError is raised if a simulator log is initialised without a
@@ -311,65 +312,57 @@ class TestSimulationsLog(unittest.TestCase):
                         f"type {type(path)} instead."
                     ),
                 ):
-                    _ = SimulationsLog(path, self.num_inputs)
+                    _ = SimulationsLog(path, num_inputs=3)
 
     def test_initialise_with_simulations_record_file(self):
         """Test that a simulator log can be initialised with a handle to the log file."""
 
-        tmp_dir_canonical = pathlib.Path(self.tmp_dir).as_posix()
-
         # Unix
-        path = str(pathlib.PurePosixPath(tmp_dir_canonical, "simulations.csv"))
-        _ = SimulationsLog(path, self.num_inputs)
-        _ = SimulationsLog(path.encode(), self.num_inputs)
+        path = str(pathlib.PurePosixPath(self.tmp_dir, "simulations.csv"))
+        _ = SimulationsLog(path, num_inputs=3)
+        _ = SimulationsLog(path.encode(), num_inputs=3)
 
         # Windows
-        path = str(pathlib.PureWindowsPath(tmp_dir_canonical, "simulations.csv"))
-        _ = SimulationsLog(path, self.num_inputs)
-        _ = SimulationsLog(path.encode(), self.num_inputs)
+        path = str(pathlib.PureWindowsPath(self.tmp_dir, "simulations.csv"))
+        _ = SimulationsLog(path, num_inputs=3)
+        _ = SimulationsLog(path.encode(), num_inputs=3)
 
         # Platform independent
-        _ = SimulationsLog(
-            pathlib.Path(tmp_dir_canonical, "simulations.csv"), self.num_inputs
-        )
+        _ = SimulationsLog(pathlib.Path(self.tmp_dir, "simulations.csv"), num_inputs=3)
 
     def test_initialise_new_log_file_created(self):
         """Test that a new simulator log file at a given path is created upon object
         initialisation."""
 
-        path = pathlib.Path(self.tmp_dir, "simulations.csv")
-        _ = SimulationsLog(path, self.num_inputs)
-        self.assertTrue(path.exists())
+        _ = SimulationsLog(self.simulations_file, num_inputs=3)
+        self.assertTrue(self.simulations_file.exists())
 
     def test_initialise_new_log_file_not_opened_if_exists(self):
         """Test that an existing simulator log file is not opened for writing upon
         initialisation."""
 
-        path = pathlib.Path(self.tmp_dir, "log.csv")
-        write_to_csv(self.log_data1, path)
-        path.touch(mode=0o400)  # read-only
+        write_to_csv(self.log_data1, self.simulations_file)
+        self.simulations_file.touch(mode=0o400)  # read-only
         try:
-            _ = SimulationsLog(path, self.num_inputs)
+            _ = SimulationsLog(self.simulations_file, get_num_inputs(self.log_data1))
         except PermissionError:
             self.fail("Tried writing to pre-existing log file, should not have done.")
         finally:
-            os.chmod(path, 0o600)  # read/write mode, to allow deletion
-            os.remove(path)
+            os.chmod(self.simulations_file, 0o600)  # read/write mode, to allow deletion
+            os.remove(self.simulations_file)
 
     def test_get_simulations_no_simulations_in_file(self):
         """Test that an empty tuple is returned if the simulations log file does not
         contain any simulations."""
 
-        write_to_csv(self.log_data1, self.simulations_file)
-        log = SimulationsLog(self.simulations_file, num_inputs=1)
+        log = self.make_simulations_log(self.log_data1)
         self.assertEqual(tuple(), log.get_simulations())
 
     def test_get_simulations_one_dim_input(self):
         """Test that simulation data with a 1-dimensional input is parsed correctly."""
 
         data = {"Input_1": [1], "Output": [2], "Job_ID": [1]}
-        write_to_csv(data, self.simulations_file)
-        log = SimulationsLog(self.simulations_file, num_inputs=1)
+        log = self.make_simulations_log(data)
         expected = ((Input(1), 2),)
         self.assertEqual(expected, log.get_simulations())
 
@@ -383,9 +376,7 @@ class TestSimulationsLog(unittest.TestCase):
             "Output": [10, None],
             "Job_ID": [1, 2],
         }
-        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
-        log = SimulationsLog(simulations_file, num_inputs=2)
-        write_to_csv(data, simulations_file)
+        log = self.make_simulations_log(data)
         expected = ((Input(1, 2), 10), (Input(3, 4), None))
         self.assertEqual(expected, log.get_simulations())
 
@@ -394,9 +385,8 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that a log file is parsed correctly irrespective of the order of input
         and output columns."""
 
-        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
-        simulations_file.write_text("Input_2,Job_ID,Output,Input_1\n1,0,2,10\n")
-        log = SimulationsLog(simulations_file, num_inputs=2)
+        self.simulations_file.write_text("Input_2,Job_ID,Output,Input_1\n1,0,2,10\n")
+        log = SimulationsLog(self.simulations_file, num_inputs=2)
         expected = ((Input(10, 1), 2),)
         self.assertEqual(expected, log.get_simulations())
 
@@ -405,25 +395,19 @@ class TestSimulationsLog(unittest.TestCase):
         simulation shows up in the list of previous simulations."""
 
         x = Input(1)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(
-                pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=len(x)
-            )
-            log.add_new_record(x)
-            self.assertEqual(((x, None),), log.get_simulations())
+        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log.add_new_record(x)
+        self.assertEqual(((x, None),), log.get_simulations())
 
     def test_add_new_record_multiple_records_same_input(self):
         """Test that, when multiple records for the same input are added, one simulation
         for each record shows up in the list of previous simulations."""
 
         x = Input(1)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(
-                pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=len(x)
-            )
-            log.add_new_record(x)
-            log.add_new_record(x)
-            self.assertEqual(((x, None), (x, None)), log.get_simulations())
+        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log.add_new_record(x)
+        log.add_new_record(x)
+        self.assertEqual(((x, None), (x, None)), log.get_simulations())
 
     def test_add_new_record_multiple_records_different_inputs(self):
         """Test that, when records for different inputs are added, one simulation
@@ -431,26 +415,20 @@ class TestSimulationsLog(unittest.TestCase):
 
         x1 = Input(1)
         x2 = Input(2)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(
-                pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=len(x1)
-            )
-            log.add_new_record(x1)
-            log.add_new_record(x2)
-            self.assertEqual(((x1, None), (x2, None)), log.get_simulations())
+        log = SimulationsLog(self.simulations_file, num_inputs=len(x1))
+        log.add_new_record(x1)
+        log.add_new_record(x2)
+        self.assertEqual(((x1, None), (x2, None)), log.get_simulations())
 
     def test_add_new_record_no_job_id(self):
         """Test that the the job ID field is correctly recorded as missing if not
         supplied with adding a new record."""
 
         x = Input(1)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(
-                pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=len(x)
-            )
-            log.add_new_record(x)
-            record = log.get_records({""})[0]
-            self.assertEqual(record["Job_ID"], "")
+        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log.add_new_record(x)
+        record = log.get_records({""})[0]
+        self.assertEqual(record["Job_ID"], "")
 
     def test_add_new_record_with_job_id(self):
         """Test that the provided job ID is correctly recorded when adding a new
@@ -458,20 +436,15 @@ class TestSimulationsLog(unittest.TestCase):
 
         x = Input(1)
         job_id = "0"
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(
-                pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=len(x)
-            )
-            log.add_new_record(x, job_id)
-            record = log.get_records({job_id})[0]
-            self.assertEqual(record["Job_ID"], job_id)
+        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log.add_new_record(x, job_id)
+        record = log.get_records({job_id})[0]
+        self.assertEqual(record["Job_ID"], job_id)
 
     def test_get_records_single_job_id(self):
         """Test that the record with a specified job ID can be successfully retrieved."""
 
-        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
-        log = SimulationsLog(simulations_file, num_inputs=1)
-        write_to_csv(self.log_data2, simulations_file)
+        log = self.make_simulations_log(self.log_data2)
         job_id = "2"
         expected = ({"Input_1": "2", "Output": "", "Job_ID": job_id},)
         self.assertEqual(expected, log.get_records({job_id}))
@@ -480,9 +453,7 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that records with a specified job IDs can be successfully retrieved, in
         the case where multiple records are requested."""
 
-        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
-        log = SimulationsLog(simulations_file, num_inputs=1)
-        write_to_csv(self.log_data2, simulations_file)
+        log = self.make_simulations_log(self.log_data2)
         job_ids = {"1", "2"}
         expected = (
             {"Input_1": "1", "Output": "10", "Job_ID": "1"},
@@ -493,9 +464,7 @@ class TestSimulationsLog(unittest.TestCase):
     def test_get_records_all_records(self):
         """Test that all records are retrieved when no job IDs are specified."""
 
-        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
-        log = SimulationsLog(simulations_file, num_inputs=1)
-        write_to_csv(self.log_data2, simulations_file)
+        log = self.make_simulations_log(self.log_data2)
         expected = (
             {"Input_1": "1", "Output": "10", "Job_ID": "1"},
             {"Input_1": "2", "Output": "", "Job_ID": "2"},
@@ -506,63 +475,56 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that a record can be added to the simulations log file, in the
         case where the input space is one-dimensional."""
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
-            record = {"Input_1": "1.1", "Output": "2", "Job_ID": "1"}
-            log.create_record(record)
-            self.assertEqual((record,), log.get_records(record["Job_ID"]))
+        record = {"Input_1": "1.1", "Output": "2", "Job_ID": "1"}
+        log = SimulationsLog(self.simulations_file, get_num_inputs(record))
+        log.create_record(record)
+        self.assertEqual((record,), log.get_records(record["Job_ID"]))
 
     def test_create_record_multi_dim_input(self):
         """Test that a record can be added to the simulations log file, in the
         case where the input space is multi-dimensional."""
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=2)
-            record = {"Input_1": "1.1", "Input_2": "2.2", "Output": "2", "Job_ID": "1"}
-            log.create_record(record)
-            self.assertEqual((record,), log.get_records(record["Job_ID"]))
+        record = {"Input_1": "1.1", "Input_2": "2.2", "Output": "2", "Job_ID": "1"}
+        log = SimulationsLog(self.simulations_file, get_num_inputs(record))
+        log.create_record(record)
+        self.assertEqual((record,), log.get_records(record["Job_ID"]))
 
     def test_create_record_appends(self):
         """Test that multiple applications of creating records appends the records to
         the simulations log file."""
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
-            record1 = {"Input_1": "1.1", "Output": "2", "Job_ID": "1"}
-            record2 = {"Input_1": "2.2", "Output": "2", "Job_ID": "2"}
-            log.create_record(record1)
-            log.create_record(record2)
-            self.assertEqual((record1, record2), log.get_records({"1", "2"}))
+        record1 = {"Input_1": "1.1", "Output": "2", "Job_ID": "1"}
+        record2 = {"Input_1": "2.2", "Output": "2", "Job_ID": "2"}
+        log = SimulationsLog(self.simulations_file, get_num_inputs(record1))
+        log.create_record(record1)
+        log.create_record(record2)
+        self.assertEqual((record1, record2), log.get_records({"1", "2"}))
 
     def test_create_record_missing_field_error(self):
         """Test that a ValueError is raised if one of the log file fields is missing
         from it."""
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
-            record = {"Input_2": "1.1", "Output": "2", "Job_ID": "1"}
-            with self.assertRaisesRegex(
-                ValueError,
-                exact(
-                    "The record does not contain entries for the required fields: Input_1."
-                ),
-            ):
-                log.create_record(record)
+        record = {"Input_2": "1.1", "Output": "2", "Job_ID": "1"}
+        log = SimulationsLog(self.simulations_file, get_num_inputs(record))
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "The record does not contain entries for the required fields: Input_1."
+            ),
+        ):
+            log.create_record(record)
 
     def test_create_record_extra_field_error(self):
         """Test that a ValueError is raised if the record contains a field that is not
         in the simulations log file header."""
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
-            record = {"Input_1": "1", "Input_2": "1.1", "Output": "2", "Job_ID": "1"}
-            with self.assertRaisesRegex(
-                ValueError,
-                exact(
-                    "The record contains fields not in the simulations log file: Input_2."
-                ),
-            ):
-                log.create_record(record)
+        record = {"Input_1": "1", "Input_2": "1.1", "Output": "2", "Job_ID": "1"}
+        log = SimulationsLog(self.simulations_file, get_num_inputs(record) - 1)
+        with self.assertRaisesRegex(
+            ValueError,
+            exact("The record contains fields not in the simulations log file: Input_2."),
+        ):
+            log.create_record(record)
 
     def test_insert_result_output_added(self):
         """Test that a simulator output is added alongside a simulator input and
@@ -571,82 +533,71 @@ class TestSimulationsLog(unittest.TestCase):
         x = Input(1)
         y = 10
         job_id = "0"
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
-            log.add_new_record(x, job_id)
-            log.insert_result(job_id, y)
-            self.assertEqual(((x, y),), log.get_simulations())
+        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log.add_new_record(x, job_id)
+        log.insert_result(job_id, y)
+        self.assertEqual(((x, y),), log.get_simulations())
 
     def test_insert_result_missing_job_id_error(self):
         """Test that a SimulationsLogLookupError is raised if one attempts to add an
         output with a job ID that doesn't exist in the simulations log file."""
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
-            log.add_new_record(Input(1), "0")
-            job_id = "1"
-            with self.assertRaisesRegex(
-                SimulationsLogLookupError,
-                exact(
-                    f"Could not add output to simulation with job ID = {job_id}: "
-                    "no such simulation exists."
-                ),
-            ):
-                log.insert_result(job_id, 10)
+        x = Input(1)
+        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log.add_new_record(x, "0")
+        job_id = "1"
+        with self.assertRaisesRegex(
+            SimulationsLogLookupError,
+            exact(
+                f"Could not add output to simulation with job ID = {job_id}: "
+                "no such simulation exists."
+            ),
+        ):
+            log.insert_result(job_id, 10)
 
     def test_insert_result_multiple_job_id_error(self):
         """Test that a SimulationsLogLookupError is raised if there are multiple
         records with the same job ID when trying to insert a simulator output."""
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            log = SimulationsLog(pathlib.Path(tmp_dir, "simulations.csv"), num_inputs=1)
-            job_id = "0"
-            log.add_new_record(Input(1), job_id)
-            log.add_new_record(Input(1), job_id)
-            with self.assertRaisesRegex(
-                SimulationsLogLookupError,
-                exact(
-                    f"Could not add output to simulation with job ID = {job_id}: "
-                    "multiple records with this ID found."
-                ),
-            ):
-                log.insert_result(job_id, 10)
+        x = Input(1)
+        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        job_id = "0"
+        log.add_new_record(x, job_id)
+        log.add_new_record(x, job_id)
+        with self.assertRaisesRegex(
+            SimulationsLogLookupError,
+            exact(
+                f"Could not add output to simulation with job ID = {job_id}: "
+                "multiple records with this ID found."
+            ),
+        ):
+            log.insert_result(job_id, 10)
 
     def test_get_pending_jobs_empty_log_file(self):
         """Test that an empty tuple is returned if there are no records in the
         simulations log file."""
 
-        log = SimulationsLog(pathlib.Path(self.tmp_dir, "simulations2.csv"), num_inputs=1)
-        expected = tuple()
-        self.assertEqual(expected, log.get_pending_jobs())
+        log = SimulationsLog(self.simulations_file, num_inputs=1)
+        self.assertEqual(tuple(), log.get_pending_jobs())
 
     def test_get_pending_jobs_empty_when_all_completed(self):
         """Test that an empty tuple is returned if all jobs in the simulations
         log file have a simulator output."""
 
-        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
-        write_to_csv(
-            {"Input_1": [1, 2], "Output": [10.1, 20.2], "Job_ID": ["1", "2"]},
-            simulations_file,
-        )
-        log = SimulationsLog(simulations_file, num_inputs=1)
-        expected = tuple()
-        self.assertEqual(expected, log.get_pending_jobs())
+        data = {"Input_1": [1, 2], "Output": [10.1, 20.2], "Job_ID": ["1", "2"]}
+        log = self.make_simulations_log(data)
+        self.assertEqual(tuple(), log.get_pending_jobs())
 
     def test_get_pending_jobs_selects_correct_jobs(self):
         """Test that the jobs selected are those that have a Job ID but not an
         output."""
 
-        simulations_file = pathlib.Path(self.tmp_dir, "simulations2.csv")
-        write_to_csv(
-            {
-                "Input_1": [1, 2, 3, 4],
-                "Output": [10.1, None, None, None],
-                "Job_ID": ["1", "2", "3", None],
-            },
-            simulations_file,
-        )
-        log = SimulationsLog(simulations_file, num_inputs=1)
+        data = {
+            "Input_1": [1, 2, 3, 4],
+            "Output": [10.1, None, None, None],
+            "Job_ID": ["1", "2", "3", None],
+        }
+        log = self.make_simulations_log(data)
         self.assertEqual(("2", "3"), log.get_pending_jobs())
 
 
