@@ -352,11 +352,10 @@ class SimulationsLog(object):
         tuple[str]
             The IDs of all jobs that have been submitted but don't have a result recorded.
         """
-        return tuple(
-            record["Job_ID"]
-            for record in self.get_records()
-            if record["Job_ID"] and not record["Output"]
+        pending_records = self._simulations_db.query(
+            lambda x: x["Job_ID"] != "" and x["Output"] == ""
         )
+        return tuple(record["Job_ID"] for record in pending_records)
 
 
 class SimulationsLogLookupError(Exception):
