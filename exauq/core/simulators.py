@@ -182,15 +182,20 @@ class SimulationsLog(object):
 
     @staticmethod
     def _make_db(log_file: FilePath, fields: list[str]) -> CsvDB:
+        """Make the underlying database used to store details of simulation jobs."""
+
         if isinstance(log_file, bytes):
             return CsvDB(log_file.decode(), fields)
 
         return CsvDB(log_file, fields)
 
     def _get_job_id(self, record: Record) -> str:
+        """Get the job ID from a database record."""
+
         return record[self._job_id_key]
 
     def _get_output(self, record: Record) -> str:
+        """Get the simulator output from a database record, as a string."""
         return record[self._output_key]
 
     def get_simulations(self) -> tuple[Simulation]:
@@ -296,12 +301,24 @@ class SimulationsLog(object):
         tuple[str]
             The IDs of all jobs that have been submitted but don't have a result recorded.
         """
+
         pending_records = self._simulations_db.query(
             lambda x: self._get_job_id(x) != "" and self._get_output(x) == ""
         )
         return tuple(self._get_job_id(record) for record in pending_records)
 
     def get_unsubmitted_inputs(self) -> tuple[Input]:
+        """Get all simulator inputs that have not been submitted as jobs.
+
+        This is defined to be the collection of inputs in the log file that do not have a
+        corresponding job ID.
+
+        Returns
+        -------
+        tuple[Input]
+            The inputs that have not been submitted as jobs.
+        """
+
         unsubmitted_records = self._simulations_db.query(
             lambda x: self._get_job_id(x) == ""
         )
