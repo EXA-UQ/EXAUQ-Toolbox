@@ -359,6 +359,12 @@ class SimulationsLog(object):
         )
         return tuple(record["Job_ID"] for record in pending_records)
 
+    def get_unsubmitted_inputs(self) -> tuple[Input]:
+        unsubmitted_records = self._simulations_db.query(lambda x: x["Job_ID"] == "")
+        return tuple(
+            self._extract_simulation(record)[0] for record in unsubmitted_records
+        )
+
 
 class SimulationsLogLookupError(Exception):
     """Raised when a simulations log does not contain a particular record."""

@@ -32,7 +32,7 @@ try:
     # Check that job IDs in the log file are present (indicates successful submission of
     # jobs)
     log = SimulationsLog(log_file, domain.dim)
-    assert all([record["Job_ID"] != "" for record in log.get_records()])
+    assert (x1, x2, x3) == log.get_unsubmitted_inputs()
 
     # Wait for the simulations to complete
     # Note: this needs to account for (1) time to run the simulations (incl. any
