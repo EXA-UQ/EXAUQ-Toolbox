@@ -301,7 +301,7 @@ class SimulationsLog(object):
         if job_id is not None:
             record.update({"Job_ID": job_id})
 
-        self.create_record(record)
+        self._simulations_db.create(record)
 
     def insert_result(self, job_id: str, result: Real) -> None:
         """Insert the output of a simulation into a job record in the simulations log
