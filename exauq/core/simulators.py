@@ -319,22 +319,18 @@ class SimulationsLog(object):
         SimulationsLogLookupError
             If there isn't a unique simulations log record having job ID `job_id`.
         """
-        records_changed = 0
-        new_records = []
-        for record in self.get_records():
-            if record["Job_ID"] == str(job_id):
-                new_records.append(record | {"Output": result})
-                records_changed += 1
-            else:
-                new_records.append(record)
 
-        if records_changed != 1:
+        job_id_key = "Job_ID"
+        matched_records = self._simulations_db.query(lambda x: x[job_id_key] == job_id)
+        num_matched_records = len(matched_records)
+
+        if num_matched_records != 1:
             msg = (
                 (
                     f"Could not add output to simulation with job ID = {job_id}: "
                     "no such simulation exists."
                 )
-                if records_changed == 0
+                if num_matched_records == 0
                 else (
                     f"Could not add output to simulation with job ID = {job_id}: "
                     "multiple records with this ID found."
@@ -342,10 +338,8 @@ class SimulationsLog(object):
             )
             raise SimulationsLogLookupError(msg)
 
-        with open(self._log_file, "w", newline="") as csvfile:
-            writer = csv.DictWriter(csvfile, self._log_file_header)
-            writer.writeheader()
-            writer.writerows(new_records)
+        new_record = matched_records[0] | {"Output": result}
+        self._simulations_db.update(job_id_key, job_id, new_record)
 
     def get_pending_jobs(self) -> tuple[str]:
         """Return the IDs of all submitted jobs which don't have results.
