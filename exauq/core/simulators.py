@@ -202,7 +202,9 @@ class SimulationsLog(object):
             simulation output, or ``None`` if this hasn't yet been computed.
         """
 
-        return tuple(map(self._extract_simulation, self.get_records()))
+        return tuple(
+            self._extract_simulation(record) for record in self._simulations_db.query()
+        )
 
     @staticmethod
     def _extract_simulation(record: dict[str, str]) -> Simulation:
