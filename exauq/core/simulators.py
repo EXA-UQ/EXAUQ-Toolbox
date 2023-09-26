@@ -8,7 +8,7 @@ from typing import Any, Optional
 from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.core.types import FilePath
-from exauq.utilities.csv_db import CsvDB
+from exauq.utilities.csv_db import CsvDB, Record
 from exauq.utilities.validation import check_file_path
 
 Simulation = tuple[Input, Optional[Real]]
@@ -154,10 +154,10 @@ class SimulationsLog(object):
     """
 
     def __init__(self, file: FilePath, num_inputs: int):
-        self._log_file_header = [f"Input_{i}" for i in range(1, num_inputs + 1)] + [
-            "Output",
-            "Job_ID",
-        ]
+        self._job_id_key = "Job_ID"
+        self._output_key = "Output"
+        self._input_keys = tuple(f"Input_{i}" for i in range(1, num_inputs + 1))
+        self._log_file_header = self._input_keys + (self._output_key, self._job_id_key)
         self._log_file = self._initialise_log_file(file)
         self._simulations_db = self._make_db(self._log_file, self._log_file_header)
 
@@ -187,6 +187,12 @@ class SimulationsLog(object):
 
         return CsvDB(log_file, fields)
 
+    def _get_job_id(self, record: Record) -> str:
+        return record[self._job_id_key]
+
+    def _get_output(self, record: Record) -> str:
+        return record[self._output_key]
+
     def get_simulations(self) -> tuple[Simulation]:
         """
         Get all simulations contained in the log file.
@@ -206,8 +212,7 @@ class SimulationsLog(object):
             self._extract_simulation(record) for record in self._simulations_db.query()
         )
 
-    @staticmethod
-    def _extract_simulation(record: dict[str, str]) -> Simulation:
+    def _extract_simulation(self, record: dict[str, str]) -> Simulation:
         """Extract a pair of simulator inputs and outputs from a dictionary record read
         from the log file. Missing outputs are converted to ``None``."""
 
@@ -217,7 +222,8 @@ class SimulationsLog(object):
         )
         input_coords = (float(v) for _, v in input_items)
         x = Input(*input_coords)
-        y = float(record["Output"]) if record["Output"] else None
+        output = self._get_output(record)
+        y = float(output) if output else None
         return x, y
 
     def add_new_record(self, x: Input, job_id: Optional[str] = None) -> None:
@@ -232,12 +238,11 @@ class SimulationsLog(object):
             If ``None`` then no job ID will be recorded alongside the input `x` in the
             simulations log file.
         """
+
         record = {h: "" for h in self._log_file_header}
-        record.update(
-            dict(zip([h for h in self._log_file_header if h.startswith("Input")], x))
-        )
+        record.update(dict(zip(self._input_keys, x)))
         if job_id is not None:
-            record.update({"Job_ID": job_id})
+            record.update({self._job_id_key: job_id})
 
         self._simulations_db.create(record)
 
@@ -258,8 +263,9 @@ class SimulationsLog(object):
             If there isn't a unique simulations log record having job ID `job_id`.
         """
 
-        job_id_key = "Job_ID"
-        matched_records = self._simulations_db.query(lambda x: x[job_id_key] == job_id)
+        matched_records = self._simulations_db.query(
+            lambda x: self._get_job_id(x) == job_id
+        )
         num_matched_records = len(matched_records)
 
         if num_matched_records != 1:
@@ -276,8 +282,8 @@ class SimulationsLog(object):
             )
             raise SimulationsLogLookupError(msg)
 
-        new_record = matched_records[0] | {"Output": result}
-        self._simulations_db.update(job_id_key, job_id, new_record)
+        new_record = matched_records[0] | {self._output_key: result}
+        self._simulations_db.update(self._job_id_key, job_id, new_record)
 
     def get_pending_jobs(self) -> tuple[str]:
         """Return the IDs of all submitted jobs which don't have results.
@@ -291,12 +297,14 @@ class SimulationsLog(object):
             The IDs of all jobs that have been submitted but don't have a result recorded.
         """
         pending_records = self._simulations_db.query(
-            lambda x: x["Job_ID"] != "" and x["Output"] == ""
+            lambda x: self._get_job_id(x) != "" and self._get_output(x) == ""
         )
-        return tuple(record["Job_ID"] for record in pending_records)
+        return tuple(self._get_job_id(record) for record in pending_records)
 
     def get_unsubmitted_inputs(self) -> tuple[Input]:
-        unsubmitted_records = self._simulations_db.query(lambda x: x["Job_ID"] == "")
+        unsubmitted_records = self._simulations_db.query(
+            lambda x: self._get_job_id(x) == ""
+        )
         return tuple(
             self._extract_simulation(record)[0] for record in unsubmitted_records
         )
