@@ -183,6 +183,8 @@ class SimulationsLog(object):
 
     @staticmethod
     def _validate_input_dim(input_dim: Any):
+        """Check that the supplied arg is a positive integer, returning it if so."""
+
         if not isinstance(input_dim, int):
             raise TypeError(
                 "Expected 'input_dim' to be of type integer, but received "
