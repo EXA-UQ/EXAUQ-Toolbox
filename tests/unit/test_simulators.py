@@ -351,6 +351,34 @@ class TestSimulationsLog(unittest.TestCase):
             os.chmod(self.simulations_file, 0o600)  # read/write mode, to allow deletion
             os.remove(self.simulations_file)
 
+    def test_initialise_input_dim_type_error(self):
+        """Test that a TypeError is raised if the input dimension supplied is not
+        an integer."""
+
+        for dim in (1.1, "1"):
+            with self.subTest(dim=dim), self.assertRaisesRegex(
+                TypeError,
+                exact(
+                    "Expected 'num_inputs' to be of type integer, "
+                    f"but received {type(dim)} instead."
+                ),
+            ):
+                _ = SimulationsLog(self.simulations_file, dim)
+
+    def test_initialise_bad_input_dim_error(self):
+        """Test that a ValueError is raised if a non-positive integer is supplied
+        as the input dimension."""
+
+        for dim in (-1, 0):
+            with self.subTest(dim=dim), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "Expected 'num_inputs' to be a positive integer, "
+                    f"but received {dim} instead."
+                ),
+            ):
+                _ = SimulationsLog(self.simulations_file, dim)
+
     def test_get_simulations_no_simulations_in_file(self):
         """Test that an empty tuple is returned if the simulations log file does not
         contain any simulations."""
@@ -396,16 +424,15 @@ class TestSimulationsLog(unittest.TestCase):
         expected_dim = 2
         log = SimulationsLog(self.simulations_file, num_inputs=expected_dim)
         inputs = (Input(1), Input(1, 1, 1))
-        with self.subTest(inputs=inputs):
-            for x in inputs:
-                with self.assertRaisesRegex(
-                    ValueError,
-                    exact(
-                        f"Expected input 'x' to have {expected_dim} coordinates, "
-                        f"but got {len(x)} instead."
-                    ),
-                ):
-                    log.add_new_record(x)
+        for x in inputs:
+            with self.subTest(x=x), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected input 'x' to have {expected_dim} coordinates, "
+                    f"but got {len(x)} instead."
+                ),
+            ):
+                log.add_new_record(x)
 
     def test_add_new_record_single_input(self):
         """Test that, when a record for a given input is added, the corresponding

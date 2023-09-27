@@ -154,12 +154,12 @@ class SimulationsLog(object):
     """
 
     def __init__(self, file: FilePath, num_inputs: int):
+        self._input_dim = self._validate_input_dim(num_inputs)
         self._job_id_key = "Job_ID"
         self._output_key = "Output"
-        self._input_keys = tuple(f"Input_{i}" for i in range(1, num_inputs + 1))
+        self._input_keys = tuple(f"Input_{i}" for i in range(1, self._input_dim + 1))
         self._log_file_header = self._input_keys + (self._output_key, self._job_id_key)
         self._log_file = self._initialise_log_file(file)
-        self._input_dim = num_inputs
         self._simulations_db = self._make_db(self._log_file, self._log_file_header)
 
     def _initialise_log_file(self, file: FilePath) -> FilePath:
@@ -180,6 +180,22 @@ class SimulationsLog(object):
                 writer.writerow(self._log_file_header)
 
         return file
+
+    @staticmethod
+    def _validate_input_dim(input_dim: Any):
+        if not isinstance(input_dim, int):
+            raise TypeError(
+                "Expected 'num_inputs' to be of type integer, but received "
+                f"{type(input_dim)} instead."
+            )
+
+        if not input_dim > 0:
+            raise ValueError(
+                "Expected 'num_inputs' to be a positive integer, but received "
+                f"{input_dim} instead."
+            )
+
+        return input_dim
 
     @staticmethod
     def _make_db(log_file: FilePath, fields: list[str]) -> CsvDB:
