@@ -78,7 +78,7 @@ class Simulator(AbstractSimulator):
             )
 
     @staticmethod
-    def _make_simulations_log(simulations_log: FilePath, num_inputs: int):
+    def _make_simulations_log(simulations_log: FilePath, input_dim: int):
         check_file_path(
             simulations_log,
             TypeError(
@@ -87,7 +87,7 @@ class Simulator(AbstractSimulator):
             ),
         )
 
-        return SimulationsLog(simulations_log, num_inputs)
+        return SimulationsLog(simulations_log, input_dim)
 
     @property
     def previous_simulations(self) -> Simulation:
@@ -149,12 +149,12 @@ class SimulationsLog(object):
     ----------
     file : str, bytes or path-like
         A path to the underlying log file containing details of simulations.
-    num_inputs : int
+    input_dim : int
         The number of coordinates needed to define an input to the simultor.
     """
 
-    def __init__(self, file: FilePath, num_inputs: int):
-        self._input_dim = self._validate_input_dim(num_inputs)
+    def __init__(self, file: FilePath, input_dim: int):
+        self._input_dim = self._validate_input_dim(input_dim)
         self._job_id_key = "Job_ID"
         self._output_key = "Output"
         self._input_keys = tuple(f"Input_{i}" for i in range(1, self._input_dim + 1))
@@ -185,13 +185,13 @@ class SimulationsLog(object):
     def _validate_input_dim(input_dim: Any):
         if not isinstance(input_dim, int):
             raise TypeError(
-                "Expected 'num_inputs' to be of type integer, but received "
+                "Expected 'input_dim' to be of type integer, but received "
                 f"{type(input_dim)} instead."
             )
 
         if not input_dim > 0:
             raise ValueError(
-                "Expected 'num_inputs' to be a positive integer, but received "
+                "Expected 'input_dim' to be a positive integer, but received "
                 f"{input_dim} instead."
             )
 

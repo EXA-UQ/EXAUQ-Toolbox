@@ -38,8 +38,8 @@ def make_fake_simulations_log_class(
     simulations."""
 
     class FakeSimulationsLog(SimulationsLog):
-        def __init__(self, file: FilePath, num_inputs: int, *args):
-            super().__init__(file, num_inputs, *args)
+        def __init__(self, file: FilePath, input_dim: int, *args):
+            super().__init__(file, input_dim, *args)
             self.simulations = simulations
 
         def _initialise_log_file(self, file: FilePath) -> FilePath:
@@ -312,29 +312,29 @@ class TestSimulationsLog(unittest.TestCase):
                         f"type {type(path)} instead."
                     ),
                 ):
-                    _ = SimulationsLog(path, num_inputs=3)
+                    _ = SimulationsLog(path, input_dim=3)
 
     def test_initialise_with_simulations_record_file(self):
         """Test that a simulator log can be initialised with a handle to the log file."""
 
         # Unix
         path = str(pathlib.PurePosixPath(self.tmp_dir, "simulations.csv"))
-        _ = SimulationsLog(path, num_inputs=3)
-        _ = SimulationsLog(path.encode(), num_inputs=3)
+        _ = SimulationsLog(path, input_dim=3)
+        _ = SimulationsLog(path.encode(), input_dim=3)
 
         # Windows
         path = str(pathlib.PureWindowsPath(self.tmp_dir, "simulations.csv"))
-        _ = SimulationsLog(path, num_inputs=3)
-        _ = SimulationsLog(path.encode(), num_inputs=3)
+        _ = SimulationsLog(path, input_dim=3)
+        _ = SimulationsLog(path.encode(), input_dim=3)
 
         # Platform independent
-        _ = SimulationsLog(pathlib.Path(self.tmp_dir, "simulations.csv"), num_inputs=3)
+        _ = SimulationsLog(pathlib.Path(self.tmp_dir, "simulations.csv"), input_dim=3)
 
     def test_initialise_new_log_file_created(self):
         """Test that a new simulator log file at a given path is created upon object
         initialisation."""
 
-        _ = SimulationsLog(self.simulations_file, num_inputs=3)
+        _ = SimulationsLog(self.simulations_file, input_dim=3)
         self.assertTrue(self.simulations_file.exists())
 
     def test_initialise_new_log_file_not_opened_if_exists(self):
@@ -359,7 +359,7 @@ class TestSimulationsLog(unittest.TestCase):
             with self.subTest(dim=dim), self.assertRaisesRegex(
                 TypeError,
                 exact(
-                    "Expected 'num_inputs' to be of type integer, "
+                    "Expected 'input_dim' to be of type integer, "
                     f"but received {type(dim)} instead."
                 ),
             ):
@@ -373,7 +373,7 @@ class TestSimulationsLog(unittest.TestCase):
             with self.subTest(dim=dim), self.assertRaisesRegex(
                 ValueError,
                 exact(
-                    "Expected 'num_inputs' to be a positive integer, "
+                    "Expected 'input_dim' to be a positive integer, "
                     f"but received {dim} instead."
                 ),
             ):
@@ -413,7 +413,7 @@ class TestSimulationsLog(unittest.TestCase):
         and output columns."""
 
         self.simulations_file.write_text("Input_2,Job_ID,Output,Input_1\n1,0,2,10\n")
-        log = SimulationsLog(self.simulations_file, num_inputs=2)
+        log = SimulationsLog(self.simulations_file, input_dim=2)
         expected = ((Input(10, 1), 2),)
         self.assertEqual(expected, log.get_simulations())
 
@@ -422,7 +422,7 @@ class TestSimulationsLog(unittest.TestCase):
         of coordinates to that expected of simulator inputs in the log file."""
 
         expected_dim = 2
-        log = SimulationsLog(self.simulations_file, num_inputs=expected_dim)
+        log = SimulationsLog(self.simulations_file, input_dim=expected_dim)
         inputs = (Input(1), Input(1, 1, 1))
         for x in inputs:
             with self.subTest(x=x), self.assertRaisesRegex(
@@ -439,7 +439,7 @@ class TestSimulationsLog(unittest.TestCase):
         simulation shows up in the list of previous simulations."""
 
         x = Input(1)
-        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log = SimulationsLog(self.simulations_file, input_dim=len(x))
         log.add_new_record(x)
         self.assertEqual(((x, None),), log.get_simulations())
 
@@ -448,7 +448,7 @@ class TestSimulationsLog(unittest.TestCase):
         for each record shows up in the list of previous simulations."""
 
         x = Input(1)
-        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log = SimulationsLog(self.simulations_file, input_dim=len(x))
         log.add_new_record(x)
         log.add_new_record(x)
         self.assertEqual(((x, None), (x, None)), log.get_simulations())
@@ -459,7 +459,7 @@ class TestSimulationsLog(unittest.TestCase):
 
         x1 = Input(1)
         x2 = Input(2)
-        log = SimulationsLog(self.simulations_file, num_inputs=len(x1))
+        log = SimulationsLog(self.simulations_file, input_dim=len(x1))
         log.add_new_record(x1)
         log.add_new_record(x2)
         self.assertEqual(((x1, None), (x2, None)), log.get_simulations())
@@ -471,7 +471,7 @@ class TestSimulationsLog(unittest.TestCase):
         x = Input(1)
         y = 10
         job_id = "0"
-        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log = SimulationsLog(self.simulations_file, input_dim=len(x))
         log.add_new_record(x, job_id)
         log.insert_result(job_id, y)
         self.assertEqual(((x, y),), log.get_simulations())
@@ -481,7 +481,7 @@ class TestSimulationsLog(unittest.TestCase):
         output with a job ID that doesn't exist in the simulations log file."""
 
         x = Input(1)
-        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log = SimulationsLog(self.simulations_file, input_dim=len(x))
         log.add_new_record(x, "0")
         job_id = "1"
         with self.assertRaisesRegex(
@@ -498,7 +498,7 @@ class TestSimulationsLog(unittest.TestCase):
         records with the same job ID when trying to insert a simulator output."""
 
         x = Input(1)
-        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log = SimulationsLog(self.simulations_file, input_dim=len(x))
         job_id = "0"
         log.add_new_record(x, job_id)
         log.add_new_record(x, job_id)
@@ -515,7 +515,7 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that an empty tuple is returned if there are no records in the
         simulations log file."""
 
-        log = SimulationsLog(self.simulations_file, num_inputs=1)
+        log = SimulationsLog(self.simulations_file, input_dim=1)
         self.assertEqual(tuple(), log.get_pending_jobs())
 
     def test_get_pending_jobs_empty_when_all_completed(self):
@@ -542,7 +542,7 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that an empty tuple is returned if no inputs have been submitted to the
         log file."""
 
-        log = SimulationsLog(self.simulations_file, num_inputs=1)
+        log = SimulationsLog(self.simulations_file, input_dim=1)
         self.assertEqual(tuple(), log.get_unsubmitted_inputs())
 
     def test_get_unsubmitted_inputs_unsubmitted_input(self):
@@ -550,7 +550,7 @@ class TestSimulationsLog(unittest.TestCase):
         unsubmitted input."""
 
         x = Input(1)
-        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log = SimulationsLog(self.simulations_file, input_dim=len(x))
         log.add_new_record(x)
         self.assertEqual((x,), log.get_unsubmitted_inputs())
 
@@ -560,7 +560,7 @@ class TestSimulationsLog(unittest.TestCase):
 
         x = Input(1)
         job_id = "0"
-        log = SimulationsLog(self.simulations_file, num_inputs=len(x))
+        log = SimulationsLog(self.simulations_file, input_dim=len(x))
         log.add_new_record(x, job_id)
         self.assertTrue(x not in log.get_unsubmitted_inputs())
 
@@ -572,7 +572,7 @@ class TestSimulationsLog(unittest.TestCase):
         x2 = Input(2)
         x3 = Input(3)
         x4 = Input(4)
-        log = SimulationsLog(self.simulations_file, num_inputs=len(x1))
+        log = SimulationsLog(self.simulations_file, input_dim=len(x1))
         log.add_new_record(x1, job_id="0")
         log.add_new_record(x2)
         log.add_new_record(
