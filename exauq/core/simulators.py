@@ -159,6 +159,7 @@ class SimulationsLog(object):
         self._input_keys = tuple(f"Input_{i}" for i in range(1, num_inputs + 1))
         self._log_file_header = self._input_keys + (self._output_key, self._job_id_key)
         self._log_file = self._initialise_log_file(file)
+        self._input_dim = num_inputs
         self._simulations_db = self._make_db(self._log_file, self._log_file_header)
 
     def _initialise_log_file(self, file: FilePath) -> FilePath:
@@ -243,6 +244,11 @@ class SimulationsLog(object):
             If ``None`` then no job ID will be recorded alongside the input `x` in the
             simulations log file.
         """
+        if len(x) != self._input_dim:
+            raise ValueError(
+                f"Expected input 'x' to have {self._input_dim} coordinates, but got "
+                f"{len(x)} instead."
+            )
 
         record = {h: "" for h in self._log_file_header}
         record.update(dict(zip(self._input_keys, x)))

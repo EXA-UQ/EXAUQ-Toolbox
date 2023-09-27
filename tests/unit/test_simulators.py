@@ -389,6 +389,24 @@ class TestSimulationsLog(unittest.TestCase):
         expected = ((Input(10, 1), 2),)
         self.assertEqual(expected, log.get_simulations())
 
+    def test_add_new_record_input_wrong_dim_error(self):
+        """Test that a ValueError is raised if the supplied input has a different number
+        of coordinates to that expected of simulator inputs in the log file."""
+
+        expected_dim = 2
+        log = SimulationsLog(self.simulations_file, num_inputs=expected_dim)
+        inputs = (Input(1), Input(1, 1, 1))
+        with self.subTest(inputs=inputs):
+            for x in inputs:
+                with self.assertRaisesRegex(
+                    ValueError,
+                    exact(
+                        f"Expected input 'x' to have {expected_dim} coordinates, "
+                        f"but got {len(x)} instead."
+                    ),
+                ):
+                    log.add_new_record(x)
+
     def test_add_new_record_single_input(self):
         """Test that, when a record for a given input is added, the corresponding
         simulation shows up in the list of previous simulations."""
