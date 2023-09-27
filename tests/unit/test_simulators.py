@@ -1,10 +1,9 @@
-import csv
 import os
 import pathlib
 import tempfile
 import unittest.mock
 from numbers import Real
-from typing import Any, Optional, Type
+from typing import Type
 
 from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.simulators import SimulationsLog, SimulationsLogLookupError, Simulator
@@ -67,45 +66,6 @@ def make_fake_simulations_log_class(
             return []
 
     return FakeSimulationsLog
-
-
-def write_to_csv(
-    data: dict[str, list], path: FilePath, write_header: Optional[bool] = True
-) -> str:
-    """Write data to a CSV file.
-
-    `data` should be a dict with keys being the column headers and values being a list
-    giving the column values. E.g.
-
-    ``data = {'col1': [1, 2, 3], 'col2': ['dog', 'cat', 'fish']}``
-
-    A value of ``None`` is converted to the empty string.
-    """
-
-    header = (
-        sorted([col for col in data.keys() if col.startswith("Input_")])
-        + ["Output"]
-        + ["Job_ID"]
-    )
-
-    def to_str(x):
-        output = str(x) if x is not None else ""
-        return output
-
-    with open(path, mode="w", newline="") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=header)
-        if write_header:
-            writer.writeheader()
-        writer.writerows(
-            [
-                {col: to_str(data[col][i]) for col in header}
-                for i in range(len(data[header[0]]))
-            ]
-        )
-
-
-def get_num_inputs(data: dict[str, Any]):
-    return len(list(filter(lambda x: x.startswith("Input_"), data.keys())))
 
 
 class TestSimulator(unittest.TestCase):
@@ -293,12 +253,6 @@ class TestSimulationsLog(unittest.TestCase):
         super().tearDown()
         self.tmp.cleanup()
 
-    def make_simulations_log(self, data: dict[str, list]):
-        """Create a simulations log file pre-populated with the given data."""
-
-        write_to_csv(data, self.simulations_file)
-        return SimulationsLog(self.simulations_file, get_num_inputs(data))
-
     def test_initialise_invalid_log_file_error(self):
         """Test that a TypeError is raised if a simulator log is initialised without a
         valid path to a log file."""
@@ -341,10 +295,10 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that an existing simulator log file is not opened for writing upon
         initialisation."""
 
-        write_to_csv(self.log_data1, self.simulations_file)
+        self.simulations_file.write_text("Input_1,Output,Job_ID\n")
         self.simulations_file.touch(mode=0o400)  # read-only
         try:
-            _ = SimulationsLog(self.simulations_file, get_num_inputs(self.log_data1))
+            _ = SimulationsLog(self.simulations_file, input_dim=1)
         except PermissionError:
             self.fail("Tried writing to pre-existing log file, should not have done.")
         finally:
@@ -383,29 +337,26 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that an empty tuple is returned if the simulations log file does not
         contain any simulations."""
 
-        log = self.make_simulations_log(self.log_data1)
+        log = SimulationsLog(self.simulations_file, input_dim=1)
         self.assertEqual(tuple(), log.get_simulations())
 
-    def test_get_simulations_one_dim_input(self):
-        """Test that simulation data with a 1-dimensional input is parsed correctly."""
-
-        data = {"Input_1": [1], "Output": [2], "Job_ID": [1]}
-        log = self.make_simulations_log(data)
-        expected = ((Input(1), 2),)
-        self.assertEqual(expected, log.get_simulations())
-
     def test_get_simulations_returns_simulations_from_file(self):
-        """Test that a record of all simulations (pending or otherwise) recorded
-        in the log file are returned."""
+        """Test that a record of all simulations recorded in the log file are
+        returned."""
 
-        data = {
-            "Input_1": [1, 3],
-            "Input_2": [2, 4],
-            "Output": [10, None],
-            "Job_ID": [1, 2],
-        }
-        log = self.make_simulations_log(data)
-        expected = ((Input(1, 2), 10), (Input(3, 4), None))
+        log = SimulationsLog(self.simulations_file, input_dim=2)
+
+        x1 = Input(1, 1)
+        log.add_new_record(x1, job_id="1")
+        log.insert_result(job_id="1", result=10)
+
+        x2 = Input(2, 2)
+        log.add_new_record(x2, job_id="2")
+
+        x3 = Input(3, 3)
+        log.add_new_record(x3)
+
+        expected = ((x1, 10), (x2, None), (x3, None))
         self.assertEqual(expected, log.get_simulations())
 
     def test_get_simulations_unusual_column_order(self):
@@ -453,29 +404,6 @@ class TestSimulationsLog(unittest.TestCase):
         log.add_new_record(x)
         self.assertEqual(((x, None), (x, None)), log.get_simulations())
 
-    def test_add_new_record_multiple_records_different_inputs(self):
-        """Test that, when records for different inputs are added, one simulation
-        for each record shows up in the list of previous simulations."""
-
-        x1 = Input(1)
-        x2 = Input(2)
-        log = SimulationsLog(self.simulations_file, input_dim=len(x1))
-        log.add_new_record(x1)
-        log.add_new_record(x2)
-        self.assertEqual(((x1, None), (x2, None)), log.get_simulations())
-
-    def test_insert_result_output_added(self):
-        """Test that a simulator output is added alongside a simulator input and
-        can be retrieved from the previous simulations."""
-
-        x = Input(1)
-        y = 10
-        job_id = "0"
-        log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        log.add_new_record(x, job_id)
-        log.insert_result(job_id, y)
-        self.assertEqual(((x, y),), log.get_simulations())
-
     def test_insert_result_missing_job_id_error(self):
         """Test that a SimulationsLogLookupError is raised if one attempts to add an
         output with a job ID that doesn't exist in the simulations log file."""
@@ -512,8 +440,8 @@ class TestSimulationsLog(unittest.TestCase):
             log.insert_result(job_id, 10)
 
     def test_get_pending_jobs_empty_log_file(self):
-        """Test that an empty tuple is returned if there are no records in the
-        simulations log file."""
+        """Test that an empty tuple of pending jobs is returned if there are no
+        records in the simulations log file."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
         self.assertEqual(tuple(), log.get_pending_jobs())
@@ -522,20 +450,31 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that an empty tuple is returned if all jobs in the simulations
         log file have a simulator output."""
 
-        data = {"Input_1": [1, 2], "Output": [10.1, 20.2], "Job_ID": ["1", "2"]}
-        log = self.make_simulations_log(data)
+        log = SimulationsLog(self.simulations_file, input_dim=1)
+
+        log.add_new_record(Input(1), job_id="1")
+        log.insert_result(job_id="1", result=10.1)
+
+        log.add_new_record(Input(2), job_id="2")
+        log.insert_result(job_id="2", result=20.2)
+
         self.assertEqual(tuple(), log.get_pending_jobs())
 
     def test_get_pending_jobs_selects_correct_jobs(self):
         """Test that the jobs selected are those that have a Job ID but not an
         output."""
 
-        data = {
-            "Input_1": [1, 2, 3, 4],
-            "Output": [10.1, None, None, None],
-            "Job_ID": ["1", "2", "3", None],
-        }
-        log = self.make_simulations_log(data)
+        log = SimulationsLog(self.simulations_file, input_dim=1)
+        for x, job_id, y in (
+            (Input(1), "1", 10.1),
+            (Input(2), "2", None),
+            (Input(3), "3", None),
+            (Input(4), None, None),
+        ):
+            log.add_new_record(x, job_id)
+            if job_id is not None:
+                log.insert_result(job_id, y)
+
         self.assertEqual(("2", "3"), log.get_pending_jobs())
 
     def test_get_unsubmitted_inputs_no_inputs(self):
@@ -575,9 +514,7 @@ class TestSimulationsLog(unittest.TestCase):
         log = SimulationsLog(self.simulations_file, input_dim=len(x1))
         log.add_new_record(x1, job_id="0")
         log.add_new_record(x2)
-        log.add_new_record(
-            x3,
-        )
+        log.add_new_record(x3)
         log.add_new_record(x4, job_id="1")
         self.assertEqual((x2, x3), log.get_unsubmitted_inputs())
 
