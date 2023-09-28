@@ -46,6 +46,11 @@ try:
     # Check that the previous simulations now have output values
     assert all(sim[1] is not None for sim in simulator.previous_simulations)
 
+    # Check output values are returned when calling compute with previously submitted Inputs
+    assert simulator.compute(x1) is not None
+    assert simulator.compute(x2) is not None
+    assert simulator.compute(x3) is not None
+
 finally:
     # Clean up simulations log file
     if log_file.exists():
