@@ -30,6 +30,8 @@ class MockedSSHInterface(SSHInterface):
 
 
 class TestSSHInterface(unittest.TestCase):
+    """Test cases for the SSHInterface class."""
+
     @patch("exauq.core.hardware.getpass.getpass", return_value="mock_password")
     @patch("exauq.core.hardware.Connection")
     def test_init_with_key_filename(self, MockConnection, MockGetpass):
