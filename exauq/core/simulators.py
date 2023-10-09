@@ -3,50 +3,82 @@ import os
 from numbers import Real
 from threading import Lock, Thread
 from time import sleep
-from typing import Optional
+from typing import Any, Optional
 
 from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.core.types import FilePath
+from exauq.utilities.csv_db import CsvDB, Record
 from exauq.utilities.validation import check_file_path
+
+Simulation = tuple[Input, Optional[Real]]
+"""A type to represent a simulator input, possibly with corresponding simulator output."""
 
 
 class Simulator(AbstractSimulator):
     """
-    Represents a simulation code that can be run on inputs.
+    Represents a simulation code that can be run with inputs.
 
-    Simulations that have been previously submitted for computation can be retrieved
-    using the ``previous_simulations` property. This returns a tuple of `Input`s and
-    simulation outputs that have been recorded in a simulations log file, if supplied.
-    In the case where an `Input` has been submitted for evaluation but no output from
-    the simulator has been retrieved, the output is recorded as ``None``.
+    This class provides a way of working with some simulation code as a black box,
+    abstracting away details of how to submit simulator inputs for computation and
+    retrieve the results. The set of valid simulator inputs is represented by the
+    `domain` supplied at initialisation, while the `interface` provided at initialisation
+    encapsulates the details of how to actually run the simulation code with a
+    collection of inputs and retrieve outputs.
+
+    A simulations log file records inputs that have been submitted for computation, as
+    well as any simulation outputs. These can be retrieved using the
+    ``previous_simulations` property of this class.
 
     Parameters
     ----------
-    simulations_log : str or bytes or os.PathLike, optional
+    domain : SimulatorDomain
+        The domain of the simulator, representing the set of valid inputs for the
+        simulator.
+    interface : HardwareInterface
+        An implementation of the ``HardwareInterface`` base class, providing the interface
+        to a computer that the simulation code runs on.
+    simulations_log_file : str or bytes or os.PathLike, optional
         (Default: ``simulations.csv``) A path to the simulation log file. The default
         will work with a file called ``simulations.csv`` in the current working directory
         for the calling Python process.
 
     Attributes
     ----------
-    previous_simulations : tuple
+    previous_simulations : tuple[Input, Optional[Real]]
         (Read-only) Simulations that have been previously submitted for evaluation.
+        In the case where an `Input` has been submitted for evaluation but no output from
+        the simulator has been retrieved, the output is recorded as ``None``.
     """
 
-    # TODO: rename simulations_log
     def __init__(
         self,
         domain: SimulatorDomain,
         interface: HardwareInterface,
-        simulations_log: FilePath = "simulations.csv",
+        simulations_log_file: FilePath = "simulations.csv",
     ):
-        self._simulations_log = self._make_simulations_log(simulations_log, domain.dim)
+        self._check_arg_types(domain, interface)
+        self._simulations_log = self._make_simulations_log(
+            simulations_log_file, domain.dim
+        )
         self._manager = JobManager(self._simulations_log, interface)
-        self._previous_simulations = list(self._simulations_log.get_simulations())
 
     @staticmethod
-    def _make_simulations_log(simulations_log: FilePath, num_inputs: int):
+    def _check_arg_types(domain: Any, interface: Any):
+        if not isinstance(domain, SimulatorDomain):
+            raise TypeError(
+                "Argument 'domain' must define a SimulatorDomain, but received object "
+                f"of type {type(domain)} instead."
+            )
+
+        if not isinstance(interface, HardwareInterface):
+            raise TypeError(
+                "Argument 'interface' must inherit from HardwareInterface, but received "
+                f"object of type {type(interface)} instead."
+            )
+
+    @staticmethod
+    def _make_simulations_log(simulations_log: FilePath, input_dim: int):
         check_file_path(
             simulations_log,
             TypeError(
@@ -55,25 +87,27 @@ class Simulator(AbstractSimulator):
             ),
         )
 
-        return SimulationsLog(simulations_log, num_inputs)
+        return SimulationsLog(simulations_log, input_dim)
 
     @property
-    def previous_simulations(self) -> tuple:
+    def previous_simulations(self) -> Simulation:
         """
         (Read-only) A tuple of simulations that have been previously submitted for
-        computation.
+        computation. In the case where an `Input` has been submitted for evaluation but
+        no output from the simulator has been retrieved, the output is recorded as
+        ``None``.
         """
-        return tuple(self._previous_simulations)
+        return tuple(self._simulations_log.get_simulations())
 
     def compute(self, x: Input) -> Optional[Real]:
         """
         Submit a simulation input for computation.
 
         In the case where a never-before seen input is supplied, this will be submitted
-        for computation and ``None`` will be returned. In the case where an input has been
-        seen before (that is, features in an entry in the simulations log file for this
-        simulator), the corresponding simulator output will be returned, if this is
-        available.
+        for computation and ``None`` will be returned. If the input has been seen before
+        (that is, features in an entry in the simulations log file for this simulator),
+        then the corresponding simulator output will be returned, or ``None`` if this is
+        not yet available.
 
         Parameters
         ----------
@@ -92,14 +126,11 @@ class Simulator(AbstractSimulator):
                 f"Argument 'x' must be of type Input, but received {type(x)}."
             )
 
-        self._previous_simulations = list(self._simulations_log.get_simulations())
-
-        for _input, output in self._previous_simulations:
+        for _input, output in self.previous_simulations:
             if _input == x:
                 return output
 
         self._manager.submit(x)
-        self._previous_simulations.append((x, None))
         return None
 
 
@@ -118,15 +149,22 @@ class SimulationsLog(object):
     ----------
     file : str, bytes or path-like
         A path to the underlying log file containing details of simulations.
+    input_dim : int
+        The number of coordinates needed to define an input to the simultor.
     """
 
-    def __init__(self, file: FilePath, num_inputs: int):
-        self._log_file = self._initialise_log_file(file, num_inputs)
+    def __init__(self, file: FilePath, input_dim: int):
+        self._input_dim = self._validate_input_dim(input_dim)
+        self._job_id_key = "Job_ID"
+        self._output_key = "Output"
+        self._input_keys = tuple(f"Input_{i}" for i in range(1, self._input_dim + 1))
+        self._log_file_header = self._input_keys + (self._output_key, self._job_id_key)
+        self._log_file = self._initialise_log_file(file)
+        self._simulations_db = self._make_db(self._log_file, self._log_file_header)
 
-    @staticmethod
-    def _initialise_log_file(file: FilePath, num_inputs: int) -> FilePath:
-        """Create a new file at the given path if it doesn't already exist and return
-        the path."""
+    def _initialise_log_file(self, file: FilePath) -> FilePath:
+        """Create a new simulations log file at the given path if it doesn't already exist
+        and return the path."""
 
         check_file_path(
             file,
@@ -139,15 +177,47 @@ class SimulationsLog(object):
         if not os.path.exists(file):
             with open(file, mode="w", newline="") as _file:
                 writer = csv.writer(_file)
-                header = [f"Input_{i + 1}" for i in range(num_inputs)] + [
-                    "Output",
-                    "Job_ID",
-                ]
-                writer.writerow(header)
+                writer.writerow(self._log_file_header)
 
         return file
 
-    def get_simulations(self):
+    @staticmethod
+    def _validate_input_dim(input_dim: Any):
+        """Check that the supplied arg is a positive integer, returning it if so."""
+
+        if not isinstance(input_dim, int):
+            raise TypeError(
+                "Expected 'input_dim' to be of type integer, but received "
+                f"{type(input_dim)} instead."
+            )
+
+        if not input_dim > 0:
+            raise ValueError(
+                "Expected 'input_dim' to be a positive integer, but received "
+                f"{input_dim} instead."
+            )
+
+        return input_dim
+
+    @staticmethod
+    def _make_db(log_file: FilePath, fields: list[str]) -> CsvDB:
+        """Make the underlying database used to store details of simulation jobs."""
+
+        if isinstance(log_file, bytes):
+            return CsvDB(log_file.decode(), fields)
+
+        return CsvDB(log_file, fields)
+
+    def _get_job_id(self, record: Record) -> str:
+        """Get the job ID from a database record."""
+
+        return record[self._job_id_key]
+
+    def _get_output(self, record: Record) -> str:
+        """Get the simulator output from a database record, as a string."""
+        return record[self._output_key]
+
+    def get_simulations(self) -> tuple[Simulation]:
         """
         Get all simulations contained in the log file.
 
@@ -162,13 +232,13 @@ class SimulationsLog(object):
             simulation output, or ``None`` if this hasn't yet been computed.
         """
 
-        with open(self._log_file, mode="r", newline="") as log_file:
-            return tuple(map(self._parse_row, csv.DictReader(log_file)))
+        return tuple(
+            self._extract_simulation(record) for record in self._simulations_db.query()
+        )
 
-    @staticmethod
-    def _parse_row(record: dict[str, str]) -> tuple[Input, Optional[Real]]:
-        """Convert a dictionary record read from the log file into a pair of simulator
-        inputs and outputs. Missing outputs are converted to ``None``."""
+    def _extract_simulation(self, record: dict[str, str]) -> Simulation:
+        """Extract a pair of simulator inputs and outputs from a dictionary record read
+        from the log file. Missing outputs are converted to ``None``."""
 
         input_items = sorted(
             ((k, v) for k, v in record.items() if k.startswith("Input")),
@@ -176,59 +246,115 @@ class SimulationsLog(object):
         )
         input_coords = (float(v) for _, v in input_items)
         x = Input(*input_coords)
-        y = float(record["Output"]) if record["Output"] else None
+        output = self._get_output(record)
+        y = float(output) if output else None
         return x, y
 
-    def add_new_record(self, x: Input):
-        with open(self._log_file, mode="a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(list(x) + ["", ""])
+    def add_new_record(self, x: Input, job_id: Optional[str] = None) -> None:
+        """Record a new simulation job in the log file.
 
-    def insert_job_id(self, input_set: Input, job_id):
-        with open(self._log_file, 'r') as csvfile:
-            reader = csv.reader(csvfile)
-            rows = list(reader)
+        Parameters
+        ----------
+        x : Input
+            An input for the simulator to evaluate.
+        job_id: str, Optional
+            (Default: ``None``) The ID for the job of evaluating the simulator at `x`.
+            If ``None`` then no job ID will be recorded alongside the input `x` in the
+            simulations log file.
+        """
+        if len(x) != self._input_dim:
+            raise ValueError(
+                f"Expected input 'x' to have {self._input_dim} coordinates, but got "
+                f"{len(x)} instead."
+            )
 
-        header = rows[0]
-        data_rows = rows[1:]
+        record = {h: "" for h in self._log_file_header}
+        record.update(dict(zip(self._input_keys, x)))
+        if job_id is not None:
+            record.update({self._job_id_key: job_id})
 
-        job_id_index = header.index('Job_ID')
+        self._simulations_db.create(record)
 
-        for i, row in enumerate(data_rows):
-            if [float(x) for x in row[: len(input_set)]] == list(input_set[:]):
-                row[job_id_index] = job_id
+    def insert_result(self, job_id: str, result: Real) -> None:
+        """Insert the output of a simulation into a job record in the simulations log
+        file.
 
-        with open(self._log_file, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(header)
-            writer.writerows(data_rows)
+        Parameters
+        ----------
+        job_id : str
+            The ID of the job that the `result` should be added to.
+        result : Real
+            The output of a simulation.
 
-    def insert_result(self, job_id, result):
-        with open(self._log_file, 'r') as csvfile:
-            reader = csv.reader(csvfile)
-            rows = list(reader)
+        Raises
+        ------
+        SimulationsLogLookupError
+            If there isn't a unique simulations log record having job ID `job_id`.
+        """
 
-        header = rows[0]
-        data_rows = rows[1:]
+        matched_records = self._simulations_db.query(
+            lambda x: self._get_job_id(x) == job_id
+        )
+        num_matched_records = len(matched_records)
 
-        result_index = header.index('Output')
-        job_id_index = header.index('Job_ID')
+        if num_matched_records != 1:
+            msg = (
+                (
+                    f"Could not add output to simulation with job ID = {job_id}: "
+                    "no such simulation exists."
+                )
+                if num_matched_records == 0
+                else (
+                    f"Could not add output to simulation with job ID = {job_id}: "
+                    "multiple records with this ID found."
+                )
+            )
+            raise SimulationsLogLookupError(msg)
 
-        for i, row in enumerate(data_rows):
-            if row[job_id_index] == str(job_id):
-                row[result_index] = result
+        new_record = matched_records[0] | {self._output_key: result}
+        self._simulations_db.update(self._job_id_key, job_id, new_record)
 
-        with open(self._log_file, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(header)
-            writer.writerows(data_rows)
+    def get_pending_jobs(self) -> tuple[str]:
+        """Return the IDs of all submitted jobs which don't have results.
 
-    def get_pending_jobs(self):
-        with open(self._log_file, 'r', newline='') as file:
-            reader = csv.DictReader(file)
-            return [
-                row["Job_ID"] for row in reader if row["Job_ID"] and not row["Output"]
-            ]
+        A job is considered to have been submitted if the corresponding record in the
+        simulations log contains a job ID.
+
+        Returns
+        -------
+        tuple[str]
+            The IDs of all jobs that have been submitted but don't have a result recorded.
+        """
+
+        pending_records = self._simulations_db.query(
+            lambda x: self._get_job_id(x) != "" and self._get_output(x) == ""
+        )
+        return tuple(self._get_job_id(record) for record in pending_records)
+
+    def get_unsubmitted_inputs(self) -> tuple[Input]:
+        """Get all simulator inputs that have not been submitted as jobs.
+
+        This is defined to be the collection of inputs in the log file that do not have a
+        corresponding job ID.
+
+        Returns
+        -------
+        tuple[Input]
+            The inputs that have not been submitted as jobs.
+        """
+
+        unsubmitted_records = self._simulations_db.query(
+            lambda x: self._get_job_id(x) == ""
+        )
+        return tuple(
+            self._extract_simulation(record)[0] for record in unsubmitted_records
+        )
+
+
+class SimulationsLogLookupError(Exception):
+    """Raised when a simulations log does not contain a particular record."""
+
+    pass
 
 
 class JobManager(object):
@@ -271,11 +397,20 @@ class JobManager(object):
             self._thread.join()
 
     def submit(self, x: Input):
-        """Submit a new simulation job."""
+        """Submit a new simulation job.
 
-        self._simulations_log.add_new_record(x)
-        job_id = self._interface.submit_job(x)
-        self._simulations_log.insert_job_id(x, job_id)
+        If the job gets submitted without error, then the simulations log file will
+        have a record of the corresponding simulator input along with a job ID.
+        Conversely, if there is an error in submitting the job then only the input
+        is recorded in the log file, with blank job ID.
+        """
+
+        job_id = None
+        try:
+            job_id = self._interface.submit_job(x)
+        finally:
+            self._simulations_log.add_new_record(x, job_id)
+
         self._monitor([job_id])
 
     def _monitor(self, job_ids: list):
