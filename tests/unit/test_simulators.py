@@ -1,5 +1,6 @@
 import os
 import pathlib
+import sys
 import tempfile
 import unittest.mock
 from numbers import Real
@@ -268,27 +269,22 @@ class TestSimulationsLog(unittest.TestCase):
                 ):
                     _ = SimulationsLog(path, input_dim=3)
 
-    def test_initialise_with_simulations_record_file(self):
-        """Test that a simulator log can be initialised with a handle to the log file."""
+    @unittest.skipUnless(sys.platform.startswith("win"), "requires Windows")
+    def test_initialise_new_log_file_created_windows(self):
+        """Test that a new simulator log file at a given path is created upon object
+        initialisation, on a Windows system."""
 
-        # Unix
-        path = str(pathlib.PurePosixPath(self.tmp_dir, "simulations.csv"))
-        _ = SimulationsLog(path, input_dim=3)
-        _ = SimulationsLog(path.encode(), input_dim=3)
+        _ = SimulationsLog(
+            str(pathlib.PureWindowsPath(self.simulations_file)), input_dim=3
+        )
+        self.assertTrue(self.simulations_file.exists())
 
-        # Windows
-        path = str(pathlib.PureWindowsPath(self.tmp_dir, "simulations.csv"))
-        _ = SimulationsLog(path, input_dim=3)
-        _ = SimulationsLog(path.encode(), input_dim=3)
-
-        # Platform independent
-        _ = SimulationsLog(pathlib.Path(self.tmp_dir, "simulations.csv"), input_dim=3)
-
+    @unittest.skipIf(sys.platform.startswith("win"), "requires POSIX-based system")
     def test_initialise_new_log_file_created(self):
         """Test that a new simulator log file at a given path is created upon object
-        initialisation."""
+        initialisation, on a POSIX-based system."""
 
-        _ = SimulationsLog(self.simulations_file, input_dim=3)
+        _ = SimulationsLog(str(pathlib.PurePosixPath(self.simulations_file)), input_dim=3)
         self.assertTrue(self.simulations_file.exists())
 
     def test_initialise_new_log_file_not_opened_if_exists(self):

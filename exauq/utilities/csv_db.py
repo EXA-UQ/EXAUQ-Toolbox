@@ -4,10 +4,10 @@ import csv
 import pathlib
 from collections.abc import Callable, Collection, Iterator
 from os import PathLike
-from typing import Any, Optional, TypeAlias, Union
+from typing import Any, Optional, Union
 
-Record: TypeAlias = dict[str, str]
-Path: TypeAlias = Union[str, PathLike]
+Record = dict[str, str]
+Path = Union[str, PathLike]
 
 
 class CsvDB(object):
