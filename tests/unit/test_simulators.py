@@ -7,8 +7,7 @@ from numbers import Real
 from typing import Type
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.core.simulators import (JobManager, SimulationsLog,
-                                   SimulationsLogLookupError, Simulator)
+from exauq.core.simulators import SimulationsLog, SimulationsLogLookupError, Simulator
 from exauq.core.types import FilePath
 from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
 from tests.utilities.utilities import exact
