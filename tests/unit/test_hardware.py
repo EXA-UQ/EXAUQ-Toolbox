@@ -1,8 +1,10 @@
+import itertools
 import unittest
 from unittest.mock import MagicMock, patch
 
-from exauq.core.hardware import HardwareInterface, SSHInterface
 from paramiko.ssh_exception import AuthenticationException
+
+from exauq.core.hardware import HardwareInterface, SSHInterface
 
 
 class TestHardwareInterface(unittest.TestCase):
@@ -71,13 +73,19 @@ class TestSSHInterface(unittest.TestCase):
         """Test that initialisation raises an error when multiple authentication methods are
         specified."""
 
+        nondefaults = {
+            "key_filename": "/path/to/key",
+            "ssh_config_path": "/path/to/config",
+            "use_ssh_agent": True,
+        }
+        pairwise_kwargs = map(dict, itertools.combinations(nondefaults.items(), 2))
+        for kwargs in pairwise_kwargs:
+            with self.subTest(kwargs=kwargs):
+                with self.assertRaises(ValueError):
+                    MockedSSHInterface("user", "host", **kwargs)
+
         with self.assertRaises(ValueError):
-            MockedSSHInterface(
-                "user",
-                "host",
-                key_filename="/path/to/key",
-                ssh_config_path="/path/to/config",
-            )
+            MockedSSHInterface("user", "host", **nondefaults)
 
     @patch("exauq.core.hardware.getpass.getpass", return_value="mock_password")
     @patch("exauq.core.hardware.Connection", side_effect=Exception("Connection failed"))
