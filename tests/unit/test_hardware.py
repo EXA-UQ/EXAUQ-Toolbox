@@ -1,6 +1,6 @@
 import itertools
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 from paramiko.ssh_exception import AuthenticationException
 
@@ -95,12 +95,15 @@ class TestSSHInterface(unittest.TestCase):
         with self.assertRaises(Exception):
             MockedSSHInterface("user", "host")
 
+    @patch("builtins.print")
     @patch(
         "exauq.core.hardware.getpass.getpass",
         side_effect=["wrong_pass1", "wrong_pass2", "wrong_pass3"],
     )
     @patch("exauq.core.hardware.Connection", side_effect=AuthenticationException())
-    def test_max_attempts_authentication_exception(self, MockConnection, MockGetpass):
+    def test_max_attempts_authentication_exception(
+        self, MockConnection, MockGetpass, MockPrint
+    ):
         """Test that an AuthenticationException is raised after the maximum number of wrong
         password attempts."""
 
@@ -110,6 +113,15 @@ class TestSSHInterface(unittest.TestCase):
 
         # Ensure getpass was called 3 times (once for each wrong password attempt)
         self.assertEqual(MockGetpass.call_count, 3)
+
+        # Check the arguments passed to the print function on each call
+        MockPrint.assert_has_calls(
+            [
+                call("Failed to authenticate. Please try again."),
+                call("Failed to authenticate. Please try again."),
+                call("Maximum number of attempts exceeded."),
+            ]
+        )
 
     @patch("exauq.core.hardware.getpass.getpass", side_effect=["correct_pass"])
     @patch("exauq.core.hardware.Connection")
