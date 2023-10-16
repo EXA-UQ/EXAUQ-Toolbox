@@ -131,6 +131,11 @@ class TestSSHInterface(unittest.TestCase):
         # Ensure getpass was called only once
         self.assertEqual(MockGetpass.call_count, 1)
 
+        # Ensure Connection was called using correct password
+        MockConnection.assert_called_once_with(
+            "user@host", connect_kwargs={"password": "correct_pass"}
+        )
+
     @patch.object(MockedSSHInterface, "_conn", create=True)
     def test_successful_check_connection(self, mock_conn):
         """Test that checking the connection succeeds without raising an exception when it's
