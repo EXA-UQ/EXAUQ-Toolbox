@@ -136,73 +136,48 @@ class TestSSHInterface(unittest.TestCase):
             "user@host", connect_kwargs={"password": "correct_pass"}
         )
 
-    @patch.object(MockedSSHInterface, "_conn", create=True)
-    def test_successful_check_connection(self, mock_conn):
-        """Test that checking the connection succeeds without raising an exception when it's
-        valid."""
-
-        # Mock the run method to simulate a successful command execution
-        mock_conn.run.return_value = True
-        mock_conn.original_host = "sample_host"
-
-        # Create an instance of SSHInterface (without triggering the actual constructor)
-        interface = MockedSSHInterface.__new__(MockedSSHInterface)
-
-        # Assign the mock connection to the instance
-        interface._conn = mock_conn
+    @patch("exauq.core.hardware.Connection.run", return_value=True)
+    def test_successful_check_connection(self, mock):
+        """Test checking a connection when it's successful."""
 
         try:
-            interface._check_connection()
+            _ = MockedSSHInterface("user", "host", key_filename="")
             # If we've reached here, no exception was raised, which is what we want
         except Exception as e:
             self.fail(f"_check_connection raised an exception: {e}")
 
-    @patch.object(MockedSSHInterface, "_conn", create=True)
-    def test_failed_check_connection(self, mock_conn):
-        """Test that checking a connection raises an exception when it fails."""
-
-        # Mock the run method to raise an Exception
-        mock_conn.run.side_effect = Exception("Command failed")
-        mock_conn.original_host = "sample_host"
-
-        # Create an instance of SSHInterface (without triggering the actual constructor)
-        interface = MockedSSHInterface.__new__(MockedSSHInterface)
-
-        # Assign the mock connection to the instance
-        interface._conn = mock_conn
+    @patch("exauq.core.hardware.Connection.run", side_effect=Exception("Command failed"))
+    def test_failed_check_connection(self, mock):
+        """Test checking a connection when it fails."""
 
         with self.assertRaises(Exception) as context:
-            interface._check_connection()
+            _ = MockedSSHInterface("user", "sample_host", key_filename="")
 
         # Check the exception message
         self.assertEqual(
             str(context.exception), "Could not connect to sample_host: Command failed"
         )
 
-    @patch.object(MockedSSHInterface, "_conn", create=True)
-    def test_entry_method(self, mock_conn):
+    @patch("exauq.core.hardware.Connection")
+    def test_entry_method(self, mock):
         """Test that the __enter__ method of the context manager returns the instance itself."""
 
-        # Create an instance of SSHInterface (without triggering the actual constructor)
-        interface = MockedSSHInterface.__new__(MockedSSHInterface)
-        interface._conn = mock_conn
+        interface = MockedSSHInterface("user", "sample_host", key_filename="")
 
-        # Test the __enter__ method
-        with interface as returned_instance:
-            self.assertEqual(returned_instance, interface)
+        with interface as result:
+            self.assertIs(interface, result)
 
-    @patch.object(MockedSSHInterface, "_conn", create=True)
+    @patch("exauq.core.hardware.Connection")
     def test_exit_method(self, mock_conn):
         """Test that the __exit__ method of the context manager closes the connection."""
 
-        # Create an instance of SSHInterface (without triggering the actual constructor)
-        interface = MockedSSHInterface.__new__(MockedSSHInterface)
-        interface._conn = mock_conn
+        interface = MockedSSHInterface("user", "sample_host", key_filename="")
 
         # Test the __exit__ method
         with interface:
             pass
-        mock_conn.close.assert_called_once()
+
+        interface._conn.close.assert_called_once()
 
 
 if __name__ == "__main__":
