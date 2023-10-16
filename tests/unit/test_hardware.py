@@ -34,9 +34,8 @@ class MockedSSHInterface(SSHInterface):
 class TestSSHInterface(unittest.TestCase):
     """Test cases for the SSHInterface class."""
 
-    @patch("exauq.core.hardware.getpass.getpass", return_value="mock_password")
     @patch("exauq.core.hardware.Connection")
-    def test_init_with_key_filename(self, MockConnection, MockGetpass):
+    def test_init_with_key_filename(self, MockConnection):
         """Test that a connection to a server is established using a specified private key file
         upon initialisation."""
 
@@ -45,10 +44,9 @@ class TestSSHInterface(unittest.TestCase):
             "user@host", connect_kwargs={"key_filename": "/path/to/key"}
         )
 
-    @patch("exauq.core.hardware.getpass.getpass", return_value="mock_password")
     @patch("exauq.core.hardware.Connection")
     @patch("exauq.core.hardware.Config", return_value=MagicMock())
-    def test_init_with_ssh_config_path(self, MockConfig, MockConnection, MockGetpass):
+    def test_init_with_ssh_config_path(self, MockConfig, MockConnection):
         """Test that a connection to a server is established using the specified SSH config path
         upon initialisation."""
 
@@ -60,17 +58,15 @@ class TestSSHInterface(unittest.TestCase):
         )
         MockConnection.assert_called_once_with("host", config=MockConfig.return_value)
 
-    @patch("exauq.core.hardware.getpass.getpass", return_value="mock_password")
     @patch("exauq.core.hardware.Connection")
-    def test_init_with_ssh_agent(self, MockConnection, MockGetpass):
+    def test_init_with_ssh_agent(self, MockConnection):
         """Test that a connection to a server is established using the SSH agent upon
         initialisation."""
 
         interface = MockedSSHInterface("user", "host", use_ssh_agent=True)
         MockConnection.assert_called_once_with("user@host")
 
-    @patch("exauq.core.hardware.getpass.getpass", return_value="mock_password")
-    def test_init_with_multiple_auth_methods(self, MockGetpass):
+    def test_init_with_multiple_auth_methods(self):
         """Test that initialisation raises an error when multiple authentication methods are
         specified."""
 
