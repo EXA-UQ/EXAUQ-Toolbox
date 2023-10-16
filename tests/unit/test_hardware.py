@@ -58,6 +58,7 @@ class TestSSHInterface(unittest.TestCase):
         MockConfig.assert_called_once_with(
             overrides={"ssh_config_path": "/path/to/config"}
         )
+        MockConnection.assert_called_once_with("host", config=MockConfig.return_value)
 
     @patch("exauq.core.hardware.getpass.getpass", return_value="mock_password")
     @patch("exauq.core.hardware.Connection")
