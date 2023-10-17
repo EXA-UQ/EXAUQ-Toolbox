@@ -171,7 +171,9 @@ class TestSimulator(unittest.TestCase):
             with self.subTest(x=x):
                 with self.assertRaisesRegex(
                     TypeError,
-                    exact(f"Argument 'x' must be of type Input, but received {type(x)}."),
+                    exact(
+                        f"Argument 'x' must be of type Input, but received {type(x)}."
+                    ),
                 ):
                     self.empty_simulator.compute(x)
 
@@ -284,7 +286,9 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that a new simulator log file at a given path is created upon object
         initialisation, on a POSIX-based system."""
 
-        _ = SimulationsLog(str(pathlib.PurePosixPath(self.simulations_file)), input_dim=3)
+        _ = SimulationsLog(
+            str(pathlib.PurePosixPath(self.simulations_file)), input_dim=3
+        )
         self.assertTrue(self.simulations_file.exists())
 
     def test_initialise_new_log_file_not_opened_if_exists(self):
