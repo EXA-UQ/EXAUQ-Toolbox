@@ -7,6 +7,7 @@ import numpy as np
 
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import Input, Prediction, TrainingDatum
+from tests.utilities.utilities import exact
 
 
 class TestMogpEmulator(unittest.TestCase):
@@ -33,6 +34,9 @@ class TestMogpEmulator(unittest.TestCase):
             TrainingDatum(Input(0.7, 0.4), 4),
             TrainingDatum(Input(0.9, 0.8), 5),
         ]
+
+        # Input not contained in training data, for making predictions
+        self.x = Input(0.1, 0.1)
 
     def assertAlmostBetween(self, x, lower, upper, **kwargs) -> None:
         """Checks whether a number lies between bounds up to a tolerance.
@@ -307,11 +311,24 @@ class TestMogpEmulator(unittest.TestCase):
     def test_predict_returns_prediction_object(self):
         """Given a trained emulator, check that predict() returns a Prediction object."""
 
-        gp = MogpEmulator()
-        gp.fit(self.training_data)
-        x = Input(0.1, 0.1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
 
-        self.assertIsInstance(gp.predict(x), Prediction)
+        self.assertIsInstance(emulator.predict(self.x), Prediction)
+
+    def test_predict_not_trained_error(self):
+        """Given an emulator that hasn't been trained on data, test that an
+        AssertionError is raised when using the emulator to make a prediction."""
+
+        emulator = MogpEmulator()
+
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(
+                "Cannot make prediction because emulator has not been trained on any data."
+            ),
+        ):
+            emulator.predict(self.x)
 
 
 if __name__ == "__main__":

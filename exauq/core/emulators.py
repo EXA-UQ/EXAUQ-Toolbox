@@ -198,4 +198,8 @@ class MogpEmulator(AbstractEmulator):
         return math.log(cov)
 
     def predict(self, x: Input) -> Prediction:
+        assert (
+            len(self.training_data) > 0
+        ), "Cannot make prediction because emulator has not been trained on any data."
+
         return Prediction()
