@@ -1,10 +1,12 @@
+import math
 import unittest
 import unittest.mock
-import math
+
 import mogp_emulator as mogp
 import numpy as np
+
 from exauq.core.emulators import MogpEmulator
-from exauq.core.modelling import TrainingDatum, Input
+from exauq.core.modelling import Input, Prediction, TrainingDatum
 
 
 class TestMogpEmulator(unittest.TestCase):
@@ -20,7 +22,7 @@ class TestMogpEmulator(unittest.TestCase):
             "priors": None,
             "nugget": "pivot",  # non-default
             "inputdict": {},
-            "use_patsy": False  # non-default
+            "use_patsy": False,  # non-default
         }
 
         # Default training data for fitting an emulator
@@ -46,9 +48,7 @@ class TestMogpEmulator(unittest.TestCase):
             or math.isclose(x, lower, **kwargs)
             or math.isclose(x, upper, **kwargs)
         )
-        assert (
-            almost_between
-        ), "'x' not between lower and upper bounds to given tolerance"
+        assert almost_between, "'x' not between lower and upper bounds to given tolerance"
 
     def test_initialiser(self):
         """Test that an instance of MogpEmulator can be initialised from args
@@ -73,8 +73,7 @@ class TestMogpEmulator(unittest.TestCase):
 
     @unittest.mock.patch("exauq.core.emulators.GaussianProcess")
     def test_initialiser_base_exception_bubbled(self, mock):
-        """Test that an exception that isn't derived from Exception gets raised as-is.
-        """
+        """Test that an exception that isn't derived from Exception gets raised as-is."""
 
         mock.side_effect = BaseException("msg")
         with self.assertRaises(BaseException) as cm:
@@ -88,12 +87,11 @@ class TestMogpEmulator(unittest.TestCase):
 
         # Non-default choices for some kwargs
         emulator = MogpEmulator(
-            kernel=self.gp_kwargs['kernel'],
-            nugget=self.gp_kwargs['nugget']
+            kernel=self.gp_kwargs["kernel"], nugget=self.gp_kwargs["nugget"]
         )
 
         self.assertEqual("Matern 5/2 Kernel", str(emulator.gp.kernel))
-        self.assertEqual(self.gp_kwargs['nugget'], emulator.gp.nugget_type)
+        self.assertEqual(self.gp_kwargs["nugget"], emulator.gp.nugget_type)
 
     def test_initialiser_inputs_targets_ignored(self):
         """Test that inputs and targets kwargs are ignored when initialising
@@ -305,6 +303,15 @@ class TestMogpEmulator(unittest.TestCase):
         self.assertTrue(np.allclose(expected_inputs, emulator.gp.inputs))
         self.assertTrue(np.allclose(expected_targets, emulator.gp.targets))
         self.assertEqual(expected_training_data, emulator.training_data)
+
+    def test_predict_returns_prediction_object(self):
+        """Given a trained emulator, check that predict() returns a Prediction object."""
+
+        gp = MogpEmulator()
+        gp.fit(self.training_data)
+        x = Input(0.1, 0.1)
+
+        self.assertIsInstance(gp.predict(x), Prediction)
 
 
 if __name__ == "__main__":

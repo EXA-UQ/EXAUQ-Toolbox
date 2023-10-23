@@ -321,6 +321,10 @@ class TrainingDatum(object):
         return f"({str(self.input)}, {str(self.output)})"
 
 
+class Prediction:
+    pass
+
+
 class AbstractEmulator(abc.ABC):
     """Represents an abstract emulator for simulators.
 

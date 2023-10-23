@@ -1,11 +1,13 @@
 """Provides emulators for simulators."""
 
-from collections.abc import Sequence
 import math
+from collections.abc import Sequence
 from typing import Optional
-from mogp_emulator import GaussianProcess
+
 import numpy as np
-from exauq.core.modelling import TrainingDatum, AbstractEmulator
+from mogp_emulator import GaussianProcess
+
+from exauq.core.modelling import AbstractEmulator, Input, Prediction, TrainingDatum
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
@@ -194,3 +196,6 @@ class MogpEmulator(AbstractEmulator):
             return None
 
         return math.log(cov)
+
+    def predict(self, x: Input) -> Prediction:
+        return Prediction()
