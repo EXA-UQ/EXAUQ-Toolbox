@@ -202,4 +202,16 @@ class MogpEmulator(AbstractEmulator):
             len(self.training_data) > 0
         ), "Cannot make prediction because emulator has not been trained on any data."
 
+        if not len(x) == (expected_dim := self._get_input_dim()):
+            raise ValueError(
+                f"Expected 'x' to be an Input with {expected_dim} coordinates, but "
+                f"it has {len(x)} instead."
+            )
+
         return Prediction()
+
+    def _get_input_dim(self) -> int:
+        try:
+            return len(self.training_data[0].input)
+        except IndexError:
+            return None

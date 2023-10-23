@@ -330,6 +330,24 @@ class TestMogpEmulator(unittest.TestCase):
         ):
             emulator.predict(self.x)
 
+    def test_predict_input_wrong_dim_error(self):
+        """Given a trained emulator, test that a ValueError is raised if the dimension
+        of the input is not the same as for the training data."""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+        expected_dim = len(self.training_data[0].input)
+
+        for x in [Input(), Input(0.5), Input(0.5, 0.5, 0.5)]:
+            with self.subTest(x=x), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected 'x' to be an Input with {expected_dim} coordinates, but "
+                    f"it has {len(x)} instead."
+                ),
+            ):
+                emulator.predict(x)
+
 
 if __name__ == "__main__":
     unittest.main()
