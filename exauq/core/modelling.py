@@ -185,7 +185,7 @@ class Input(Sequence):
         """Returns ``True`` precisely when `other` is an `Input` with the same
         coordinates as this `Input`"""
 
-        return type(other) == type(self) and self.value == other.value
+        return type(other) is type(self) and self.value == other.value
 
     def __len__(self) -> int:
         """Returns the number of coordinates in this input."""
