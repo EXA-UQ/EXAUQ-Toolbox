@@ -198,6 +198,9 @@ class MogpEmulator(AbstractEmulator):
         return math.log(cov)
 
     def predict(self, x: Input) -> Prediction:
+        if not isinstance(x, Input):
+            raise TypeError(f"Expected 'x' to be of type Input, but received {type(x)}.")
+
         assert (
             len(self.training_data) > 0
         ), "Cannot make prediction because emulator has not been trained on any data."

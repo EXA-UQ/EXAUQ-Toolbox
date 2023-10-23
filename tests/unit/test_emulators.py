@@ -316,6 +316,19 @@ class TestMogpEmulator(unittest.TestCase):
 
         self.assertIsInstance(emulator.predict(self.x), Prediction)
 
+    def test_predict_non_input_error(self):
+        """Given an emulator, test that a TypeError is raised when trying to predict on
+        an object not of type Input."""
+
+        emulator = MogpEmulator()
+
+        for x in [0.5, None, "0.5"]:
+            with self.subTest(x=x), self.assertRaisesRegex(
+                TypeError,
+                exact(f"Expected 'x' to be of type Input, but received {type(x)}."),
+            ):
+                emulator.predict(x)
+
     def test_predict_not_trained_error(self):
         """Given an emulator that hasn't been trained on data, test that an
         AssertionError is raised when using the emulator to make a prediction."""
