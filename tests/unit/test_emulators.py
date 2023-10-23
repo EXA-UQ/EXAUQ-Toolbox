@@ -361,6 +361,31 @@ class TestMogpEmulator(unittest.TestCase):
             ):
                 emulator.predict(x)
 
+    def test_predict_training_data_points(self):
+        """Given an emulator trained on data, test that the training data inputs are
+        predicted exactly with no uncertainty."""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+        for datum in self.training_data:
+            self.assertEqual(
+                Prediction(mean=datum.output, variance=0), emulator.predict(datum.input)
+            )
+
+    def test_predict_away_training_data_points(self):
+        """Given an emulator trained on data, test that predictions away from the data
+        inputs have uncertainty."""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+
+        # Note: use list in the following because Inputs aren't hashable
+        training_inputs = [datum.input for datum in self.training_data]
+
+        for x in (Input(0.1 * n, 0.1 * n) for n in range(1, 10)):
+            assert x not in training_inputs
+            self.assertTrue(emulator.predict(x).variance > 0)
+
 
 if __name__ == "__main__":
     unittest.main()

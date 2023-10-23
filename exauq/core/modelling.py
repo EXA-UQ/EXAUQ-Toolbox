@@ -2,6 +2,7 @@
 
 import abc
 import dataclasses
+import math
 from collections.abc import Sequence
 from numbers import Real
 from typing import Any, Union
@@ -322,7 +323,18 @@ class TrainingDatum(object):
 
 
 class Prediction:
-    pass
+    def __init__(self, mean: Real, variance: Real):
+        self.mean = mean
+        self.variance = variance
+
+    def __eq__(self, other: Any) -> bool:
+        return all(
+            (
+                type(self) is type(other),
+                math.isclose(self.mean, other.mean, abs_tol=1e-9),
+                math.isclose(self.variance, other.variance, abs_tol=1e-9),
+            )
+        )
 
 
 class AbstractEmulator(abc.ABC):

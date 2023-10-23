@@ -211,10 +211,14 @@ class MogpEmulator(AbstractEmulator):
                 f"it has {len(x)} instead."
             )
 
-        return Prediction()
+        return self._to_prediction(self.gp.predict(np.array(x)))
 
     def _get_input_dim(self) -> int:
         try:
             return len(self.training_data[0].input)
         except IndexError:
             return None
+
+    @staticmethod
+    def _to_prediction(mogp_prediction) -> Prediction:
+        return Prediction(mean=mogp_prediction.mean[0], variance=mogp_prediction.unc[0])
