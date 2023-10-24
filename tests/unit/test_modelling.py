@@ -1,9 +1,11 @@
+import itertools
 import unittest
 
 import numpy as np
 
 from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
-from tests.utilities.utilities import exact
+from exauq.core.numerics import FLOAT_TOLERANCE, equal_to_tolerance
+from tests.utilities.utilities import exact, make_window
 
 
 class TestInput(unittest.TestCase):
@@ -403,6 +405,49 @@ class TestPrediction(unittest.TestCase):
 
         with self.assertRaises(AttributeError):
             prediction.variance = 0
+
+    def test_equality_with_different_type(self):
+        """Test that a Prediction object is not equal to an object of a different type."""
+
+        p = Prediction(mean=1, variance=1)
+        for other in [1, "1", (1, 1)]:
+            self.assertNotEqual(p, other)
+
+    def test_equality_of_means(self):
+        """Given two predictions with the same variances, test that they are equal if
+        and only if the means are close according to the default tolerance."""
+
+        variance = 0
+        for mean1 in [0.5 * n for n in range(-100, 101)]:
+            p1 = Prediction(mean1, variance)
+            for mean2 in make_window(mean1, tol=FLOAT_TOLERANCE):
+                p2 = Prediction(mean2, variance)
+                self.assertIs(p1 == p2, equal_to_tolerance(mean1, mean2))
+                self.assertIs(p2 == p1, equal_to_tolerance(mean1, mean2))
+
+    def test_equality_of_variances(self):
+        """Given two predictions with the same means, test that they are equal if
+        and only if the variances are close according to the default tolerance."""
+
+        mean = 0
+        for var1 in [0.1 * n for n in range(101)]:
+            p1 = Prediction(mean, var1)
+            for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
+                p2 = Prediction(mean, var2)
+                self.assertIs(p1 == p2, equal_to_tolerance(var1, var2))
+                self.assertIs(p2 == p1, p1 == p2)
+
+    def test_equality_symmetric(self):
+        """Test that equality of predictions doesn't depend on the order of the objects
+        in the comparison."""
+
+        for mean1, var1 in itertools.product([-0.5, 0, 0.5], [0, 0.1, 0.2]):
+            p1 = Prediction(mean1, var1)
+            means = make_window(mean1, tol=FLOAT_TOLERANCE)
+            variances = filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE))
+            for mean2, var2 in itertools.product(means, variances):
+                p2 = Prediction(mean2, var2)
+                self.assertIs(p1 == p2, p2 == p1)
 
 
 class TestSimulatorDomain(unittest.TestCase):

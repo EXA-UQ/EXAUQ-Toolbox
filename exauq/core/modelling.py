@@ -2,7 +2,6 @@
 
 import abc
 import dataclasses
-import math
 from collections.abc import Sequence
 from numbers import Real
 from typing import Any, Union
@@ -10,6 +9,7 @@ from typing import Any, Union
 import numpy as np
 
 import exauq.utilities.validation as validation
+from exauq.core.numerics import equal_to_tolerance
 
 
 class Input(Sequence):
@@ -355,12 +355,11 @@ class Prediction:
         return variance
 
     def __eq__(self, other: Any) -> bool:
-        return all(
-            (
-                type(self) is type(other),
-                math.isclose(self._mean, other.mean, abs_tol=1e-9),
-                math.isclose(self.variance, other.variance, abs_tol=1e-9),
-            )
+        if type(other) is not type(self):
+            return False
+
+        return equal_to_tolerance(self.mean, other.mean) and equal_to_tolerance(
+            self.variance, other.variance
         )
 
     @property

@@ -1,7 +1,7 @@
 """Functions etc. to support testing"""
 
 from numbers import Real
-from typing import Literal
+from typing import Literal, Optional
 
 import numpy as np
 
@@ -21,7 +21,9 @@ def _escape(char):
     return "\\" + char
 
 
-def make_window(x: Real, tol: float, type: Literal["abs", "rel"] = "abs", num: int = 50):
+def make_window(
+    x: Real, tol: float, type: Optional[Literal["abs", "rel"]] = None, num: int = 50
+):
     """Make a range of numbers around a number with boundaries defined by a tolerance.
 
     This function is useful for generating ranges of numbers that will form part of a
@@ -30,9 +32,13 @@ def make_window(x: Real, tol: float, type: Literal["abs", "rel"] = "abs", num: i
     If `type` is equal to ``'abs'``, then the range returned will be `num` equally-spaced
     numbers between ``x - tol`` and ``x + tol``. If `type` is ``'rel'``, then the range
     will be `num` (linearly) equally-spaced numbers between ``(1 - tol) * x`` and
-    ``x / (1 - tol)``.
+    ``x / (1 - tol)``. If `type` is equal to ``None`` then the type will be set to
+    ``"abs"`` if ``abs(x) < tol`` or to ``"rel"`` otherwise.
     """
 
+    if type is None:
+        _type = "abs" if abs(x) < tol else "rel"
+        return make_window(x, tol, type=_type, num=num)
     if type == "abs":
         return np.linspace(x - tol, x + tol, num=num)
     elif type == "rel":
