@@ -383,6 +383,17 @@ class TestPrediction(unittest.TestCase):
         ):
             Prediction(mean=1, variance=non_real)
 
+    def test_negative_variance_error(self):
+        """Test that a ValueError is raised if a negative variance is provided at
+        initialisation."""
+
+        var = -0.1
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(f"'variance' must be a non-negative real number, but received {var}."),
+        ):
+            Prediction(mean=1, variance=var)
+
 
 class TestSimulatorDomain(unittest.TestCase):
     def setUp(self) -> None:

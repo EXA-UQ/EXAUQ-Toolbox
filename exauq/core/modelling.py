@@ -347,6 +347,11 @@ class Prediction:
                 f"{type(variance)} instead."
             ),
         )
+
+        if variance < 0:
+            raise ValueError(
+                f"'variance' must be a non-negative real number, but received {variance}."
+            )
         return variance
 
     def __eq__(self, other: Any) -> bool:
