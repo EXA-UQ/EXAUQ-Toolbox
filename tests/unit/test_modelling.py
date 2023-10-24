@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
+from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
 from tests.utilities.utilities import exact
 
 
@@ -19,16 +19,12 @@ class TestInput(unittest.TestCase):
         with self.assertRaises(TypeError) as cm:
             Input(1, "a")
 
-        self.assertEqual(
-            "Arguments must be instances of real numbers", str(cm.exception)
-        )
+        self.assertEqual("Arguments must be instances of real numbers", str(cm.exception))
 
         with self.assertRaises(TypeError) as cm:
             Input(1, complex(1, 1))
 
-        self.assertEqual(
-            "Arguments must be instances of real numbers", str(cm.exception)
-        )
+        self.assertEqual("Arguments must be instances of real numbers", str(cm.exception))
 
     def test_input_none_error(self):
         """Test that a TypeError is raised if the input array contains None."""
@@ -159,9 +155,7 @@ class TestInput(unittest.TestCase):
 
         x = Input(2)
         i = 1
-        with self.assertRaisesRegex(
-            IndexError, exact(f"Input index {i} out of range.")
-        ):
+        with self.assertRaisesRegex(IndexError, exact(f"Input index {i} out of range.")):
             x[i]
 
     def test_sequence_implementation(self):
@@ -351,6 +345,43 @@ class TestTrainingDatum(unittest.TestCase):
             TrainingDatum(Input(3.5, 9.87), 1.1),
         ]
         self.assertEqual(expected, TrainingDatum.list_from_arrays(inputs, outputs))
+
+
+class TestPrediction(unittest.TestCase):
+    def test_inputs_preserve_real_type(self):
+        """Test that the mean and variance are of the same types as provided
+        at initialisation."""
+
+        means = [1, 1.2, np.float16(1.3)]
+        variances = [1.2, np.float16(1.3), 1]
+
+        for mean, var in zip(means, variances):
+            prediction = Prediction(mean, var)
+            self.assertIsInstance(prediction.mean, type(mean))
+            self.assertIsInstance(prediction.variance, type(var))
+
+    def test_non_real_error(self):
+        """Test that a TypeError is raised if the supplied mean or variance is not a
+        real number."""
+
+        non_real = "1"
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'mean' to define a real number, but received {type(non_real)} "
+                "instead."
+            ),
+        ):
+            Prediction(mean=non_real, variance=1)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'variance' to define a real number, but received {type(non_real)} "
+                "instead."
+            ),
+        ):
+            Prediction(mean=1, variance=non_real)
 
 
 class TestSimulatorDomain(unittest.TestCase):

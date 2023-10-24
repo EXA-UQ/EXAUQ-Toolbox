@@ -324,8 +324,30 @@ class TrainingDatum(object):
 
 class Prediction:
     def __init__(self, mean: Real, variance: Real):
-        self.mean = mean
-        self.variance = variance
+        self.mean = self._validate_mean(mean)
+        self.variance = self._validate_variance(variance)
+
+    @staticmethod
+    def _validate_mean(mean: Any) -> Real:
+        validation.check_real(
+            mean,
+            TypeError(
+                f"Expected 'mean' to define a real number, but received {type(mean)} "
+                "instead."
+            ),
+        )
+        return mean
+
+    @staticmethod
+    def _validate_variance(variance: Any) -> Real:
+        validation.check_real(
+            variance,
+            TypeError(
+                "Expected 'variance' to define a real number, but received "
+                f"{type(variance)} instead."
+            ),
+        )
+        return variance
 
     def __eq__(self, other: Any) -> bool:
         return all(
