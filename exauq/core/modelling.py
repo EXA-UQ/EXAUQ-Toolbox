@@ -324,8 +324,8 @@ class TrainingDatum(object):
 
 class Prediction:
     def __init__(self, mean: Real, variance: Real):
-        self.mean = self._validate_mean(mean)
-        self.variance = self._validate_variance(variance)
+        self._mean = self._validate_mean(mean)
+        self._variance = self._validate_variance(variance)
 
     @staticmethod
     def _validate_mean(mean: Any) -> Real:
@@ -358,10 +358,18 @@ class Prediction:
         return all(
             (
                 type(self) is type(other),
-                math.isclose(self.mean, other.mean, abs_tol=1e-9),
+                math.isclose(self._mean, other.mean, abs_tol=1e-9),
                 math.isclose(self.variance, other.variance, abs_tol=1e-9),
             )
         )
+
+    @property
+    def mean(self) -> Real:
+        return self._mean
+
+    @property
+    def variance(self) -> Real:
+        return self._variance
 
 
 class AbstractEmulator(abc.ABC):

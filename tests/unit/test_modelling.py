@@ -394,6 +394,16 @@ class TestPrediction(unittest.TestCase):
         ):
             Prediction(mean=1, variance=var)
 
+    def test_immutable_fields(self):
+        """Test that the mean and variance values in a prediction are immutable."""
+
+        prediction = Prediction(1, 1)
+        with self.assertRaises(AttributeError):
+            prediction.mean = 0
+
+        with self.assertRaises(AttributeError):
+            prediction.variance = 0
+
 
 class TestSimulatorDomain(unittest.TestCase):
     def setUp(self) -> None:
