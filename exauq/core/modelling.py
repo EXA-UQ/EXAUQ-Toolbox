@@ -3,6 +3,7 @@
 import abc
 import dataclasses
 from collections.abc import Sequence
+from itertools import product
 from numbers import Real
 from typing import Any, Union
 
@@ -470,6 +471,11 @@ class SimulatorDomain(object):
                 self._bounds,
             )
         )
+
+    def get_corners(self) -> list:
+        """Generate all corner points of the domain."""
+        # return [Input(*corner) for corner in product(*self._bounds)]
+        return [corner for corner in product(*self._bounds)]
 
 
 class AbstractSimulator(abc.ABC):
