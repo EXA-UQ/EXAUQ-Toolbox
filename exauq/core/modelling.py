@@ -391,8 +391,25 @@ class SimulatorDomain(object):
     """
 
     def __init__(self, bounds: list[tuple[Real, Real]]):
+        self.validate_bounds(bounds)
         self._bounds = bounds
         self._dim = len(bounds)
+
+    @staticmethod
+    def validate_bounds(bounds: list[tuple[Real, Real]]) -> None:
+        if not bounds:
+            raise ValueError("Domain must be at least one-dimensional.")
+
+        for bound in bounds:
+            if not isinstance(bound, tuple) or len(bound) != 2:
+                raise TypeError("Each bound must be a tuple of two numbers.")
+
+            low, high = bound
+            if not (isinstance(low, Real) and isinstance(high, Real)):
+                raise TypeError("Bounds must be real numbers.")
+
+            if low > high:
+                raise ValueError("Lower bound cannot be greater than upper bound.")
 
     def __contains__(self, item: Any):
         """Returns ``True`` when `item` is an `Input` of the correct dimension and
