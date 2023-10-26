@@ -475,7 +475,6 @@ class SimulatorDomain(object):
     def get_corners(self) -> tuple[Input]:
         """Generate all corner points of the domain."""
         return tuple([Input(*corner) for corner in product(*self._bounds)])
-        # return [corner for corner in product(*self._bounds)]
 
     def closest_boundary_points(self, collection: Collection[Input]) -> tuple[Input]:
         """Generate closest pseudopoints on boundary faces for a collection C."""
