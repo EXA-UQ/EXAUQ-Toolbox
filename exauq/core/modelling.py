@@ -537,6 +537,19 @@ class SimulatorDomain(object):
         )
 
     def _within_bounds(self, point: Input) -> bool:
+        """
+        Check if a single point is within the bounds of the domain.
+
+        Parameters
+        ----------
+        point : Input
+            The point to check.
+
+        Returns
+        -------
+        bool
+            True if the point is within the bounds, False otherwise.
+        """
         return all(
             self._bounds[i][0] <= point[i] <= self._bounds[i][1]
             for i in range(self._dim)
