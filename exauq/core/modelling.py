@@ -706,7 +706,51 @@ class SimulatorDomain(object):
         return tuple(pseudopoints)
 
     def calculate_pseudopoints(self, collection: Collection[Input]) -> tuple[Input]:
-        """Calculates the pseudopoints given a collection of input points"""
+        """
+        Calculates and returns a tuple of pseudopoints for a given collection of input points.
+
+        A pseudopoint in this context is defined as a point on the boundary of the domain,
+        or a corner of the domain. This method computes two types of pseudopoints:
+
+        1. Boundary pseudopoints: For each input point in the collection and for each dimension
+           of the domain, a pseudopoint is calculated where the coordinate in the current dimension
+           is set to one of the domain's bounds, and the other coordinates are kept the same.
+           The pseudopoint that is closest to the original point (in Euclidean distance) is kept.
+
+        2. Corner pseudopoints: All the corner points of the domain.
+
+        Parameters
+        ----------
+        collection : Collection[Input]
+            A collection of input points for which to calculate the pseudopoints. Each input point
+            must have the same number of dimensions as the domain and must lie within the domain's bounds.
+
+        Returns
+        -------
+        tuple[Input]
+            A tuple containing all the calculated pseudopoints. This includes one pseudopoint per dimension
+            per input point (the closest boundary pseudopoint), as well as all corner pseudopoints of the domain.
+
+        Raises
+        ------
+        ValueError
+            If any of the input points have a different number of dimensions than the domain, or if any of the
+            input points lie outside the domain's bounds.
+
+        UserWarning
+            If the collection of input points is empty, a warning is issued and just the corner pseudopoints are returned.
+
+        Examples
+        --------
+        >>> bounds = [(0, 1), (0, 1)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> collection = [Input(0.25, 0.25), Input(0.75, 0.75)]
+        >>> pseudopoints = domain.calculate_pseudopoints(collection)
+        >>> pseudopoints  # pseudopoints include boundary and corner points
+        (Input(0.0, 0.25), Input(1.0, 0.25), Input(0.25, 0.0), Input(0.25, 1.0),
+         Input(0.0, 0.75), Input(1.0, 0.75), Input(0.75, 0.0), Input(0.75, 1.0),
+         Input(0.0, 0.0), Input(1.0, 0.0), Input(0.0, 1.0), Input(1.0, 1.0))
+        """
 
         # Calculate pseudopoints on boundary faces
         boundary_points = self.closest_boundary_points(collection)
