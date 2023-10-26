@@ -7,9 +7,8 @@ from itertools import product
 from numbers import Real
 from typing import Any, Collection, Union
 
-import numpy as np
-
 import exauq.utilities.validation as validation
+import numpy as np
 
 
 class Input(Sequence):
@@ -315,7 +314,8 @@ class TrainingDatum(object):
         """
 
         return [
-            cls(Input.from_array(input), output) for input, output in zip(inputs, outputs)
+            cls(Input.from_array(input), output)
+            for input, output in zip(inputs, outputs)
         ]
 
     def __str__(self) -> str:
@@ -482,12 +482,15 @@ class SimulatorDomain(object):
         pseudopoints = []
         for i in range(self._dim):
             for bound in [self._bounds[i][0], self._bounds[i][1]]:
-                min_distance = float('inf')
+                min_distance = float("inf")
                 closest_point = None
                 for point in collection:
                     modified_point = list(point)
                     modified_point[i] = bound
-                    distance = sum((c1 - c2)**2 for c1, c2 in zip(modified_point, point))**0.5
+                    distance = (
+                        sum((c1 - c2) ** 2 for c1, c2 in zip(modified_point, point))
+                        ** 0.5
+                    )
                     if distance < min_distance:
                         min_distance = distance
                         closest_point = modified_point
