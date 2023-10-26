@@ -5,7 +5,7 @@ import dataclasses
 from collections.abc import Sequence
 from itertools import product
 from numbers import Real
-from typing import Any, Union
+from typing import Any, Collection, Union
 
 import numpy as np
 
@@ -472,10 +472,29 @@ class SimulatorDomain(object):
             )
         )
 
-    def get_corners(self) -> list:
+    def get_corners(self) -> tuple[Input]:
         """Generate all corner points of the domain."""
-        # return [Input(*corner) for corner in product(*self._bounds)]
-        return [corner for corner in product(*self._bounds)]
+        return tuple([Input(*corner) for corner in product(*self._bounds)])
+        # return [corner for corner in product(*self._bounds)]
+
+    def closest_boundary_points(self, collection: Collection[Input]) -> tuple[Input]:
+        """Generate closest pseudopoints on boundary faces for a collection C."""
+        pseudopoints = []
+        for i in range(self._dim):
+            for bound in [self._bounds[i][0], self._bounds[i][1]]:
+                min_distance = float('inf')
+                closest_point = None
+                for point in collection:
+                    modified_point = list(point)
+                    modified_point[i] = bound
+                    distance = sum((c1 - c2)**2 for c1, c2 in zip(modified_point, point))**0.5
+                    if distance < min_distance:
+                        min_distance = distance
+                        closest_point = modified_point
+                pseudopoints.append(Input(*closest_point))
+        return tuple(pseudopoints)
+
+
 
 
 class AbstractSimulator(abc.ABC):
