@@ -476,6 +476,11 @@ class SimulatorDomain(object):
     def _within_bounds(self, point: Input) -> bool:
         return all(self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim))
 
+    def _validate_points_dim(self, collection: Collection[Input]) -> None:
+        if not all(len(point) == self._dim for point in collection):
+            raise ValueError(
+                "All points in the collection must have the same dimensionality as the domain.")
+
     def get_corners(self) -> tuple[Input]:
         """Generate all corner points of the domain."""
         return tuple([Input(*corner) for corner in product(*self._bounds)])
