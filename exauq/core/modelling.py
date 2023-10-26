@@ -512,6 +512,10 @@ class SimulatorDomain(object):
             )
             return tuple()
 
+        # Check all points have same dimensionality as domain
+        self._validate_points_dim(collection)
+
+        # Check all points are within domain bounds
         if not all(self._within_bounds(point) for point in collection):
             warnings.warn(
                 "Not all points in the collection are within the domain bounds", UserWarning
