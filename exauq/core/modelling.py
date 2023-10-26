@@ -490,6 +490,12 @@ class SimulatorDomain(object):
             )
             return tuple()
 
+        if not all(self._within_bounds(point) for point in collection):
+            warnings.warn(
+                "Not all points in the collection are within the domain bounds", UserWarning
+            )
+            raise ValueError("All points in the collection must be within the domain bounds.")
+
         pseudopoints = []
         for i in range(self._dim):
             for bound in [self._bounds[i][0], self._bounds[i][1]]:
