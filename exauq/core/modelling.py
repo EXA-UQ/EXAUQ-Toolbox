@@ -2,6 +2,7 @@
 
 import abc
 import dataclasses
+import warnings
 from collections.abc import Sequence
 from itertools import product
 from numbers import Real
@@ -478,6 +479,14 @@ class SimulatorDomain(object):
 
     def closest_boundary_points(self, collection: Collection[Input]) -> tuple[Input]:
         """Generate closest pseudopoints on boundary faces for a collection C."""
+
+        # Check if collection is empty
+        if not collection:
+            warnings.warn(
+                "The input collection is empty. Returning an empty tuple.", UserWarning
+            )
+            return tuple()
+
         pseudopoints = []
         for i in range(self._dim):
             for bound in [self._bounds[i][0], self._bounds[i][1]]:
