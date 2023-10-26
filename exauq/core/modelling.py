@@ -556,6 +556,35 @@ class SimulatorDomain(object):
         )
 
     def _validate_points_dim(self, collection: Collection[Input]) -> None:
+        """
+        Validates that all points in a collection have the same dimensionality as the domain.
+
+        This method checks each point in the provided collection to ensure that it has
+        the same number of dimensions (i.e., the same length) as the domain itself. If any
+        point in the collection does not have the same dimensionality as the domain, a
+        ValueError is raised.
+
+        Parameters
+        ----------
+        collection : Collection[Input]
+            A collection of points (each of type Input) that need to be validated for their
+            dimensionality.
+
+        Raises
+        ------
+        ValueError
+            If any point in the collection does not have the same dimensionality as the domain.
+
+        Examples
+        --------
+        >>> domain = SimulatorDomain([(0, 1), (0, 1)])
+        >>> points = [Input(0.5, 0.5), Input(0.2, 0.8)]
+        >>> domain._validate_points_dim(points)  # This should pass without any issue
+
+        >>> invalid_points = [Input(0.5, 0.5, 0.3), Input(0.2, 0.8)]
+        >>> domain._validate_points_dim(invalid_points)
+        ValueError: All points in the collection must have the same dimensionality as the domain.
+        """
         if not all(len(point) == self._dim for point in collection):
             raise ValueError(
                 "All points in the collection must have the same dimensionality as the domain."
