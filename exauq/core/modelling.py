@@ -494,7 +494,16 @@ class SimulatorDomain(object):
                 pseudopoints.append(Input(*closest_point))
         return tuple(pseudopoints)
 
+    def calculate_pseudopoints(self, collection: Collection[Input]) -> tuple[Input]:
+        """Calculates the pseudopoints given a collection of input points"""
 
+        # Calculate pseudopoints on boundary faces
+        boundary_points = self.closest_boundary_points(collection)
+
+        # Get corner points
+        corner_points = self.get_corners()
+
+        return boundary_points + corner_points
 
 
 class AbstractSimulator(abc.ABC):
