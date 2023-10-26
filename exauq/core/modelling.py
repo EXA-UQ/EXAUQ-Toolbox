@@ -591,7 +591,28 @@ class SimulatorDomain(object):
             )
 
     def get_corners(self) -> tuple[Input]:
-        """Generate all corner points of the domain."""
+        """
+        Generates and returns all the corner points of the domain.
+
+        A corner point of a domain is defined as a point where each coordinate
+        is equal to either the lower or upper bound of its respective dimension.
+        This method calculates all possible combinations of lower and upper bounds
+        for each dimension to find all the corner points of the domain.
+
+        Returns
+        -------
+        tuple[Input]
+            A tuple containing all the corner points of the domain. The number of corner
+            points is 2^dim, where dim is the number of dimensions of the domain.
+
+        Examples
+        --------
+        >>> bounds = [(0, 1), (0, 1)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> corners = domain.get_corners()
+        >>> corners
+        (Input(0.0, 0.0), Input(1.0, 0.0), Input(0.0, 1.0), Input(1.0, 1.0))
+        """
         return tuple([Input(*corner) for corner in product(*self._bounds)])
 
     def closest_boundary_points(self, collection: Collection[Input]) -> tuple[Input]:
