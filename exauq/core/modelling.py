@@ -491,19 +491,23 @@ class SimulatorDomain(object):
         )
 
     def _within_bounds(self, point: Input) -> bool:
-        return all(self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim))
+        return all(
+            self._bounds[i][0] <= point[i] <= self._bounds[i][1]
+            for i in range(self._dim)
+        )
 
     def _validate_points_dim(self, collection: Collection[Input]) -> None:
         if not all(len(point) == self._dim for point in collection):
             raise ValueError(
-                "All points in the collection must have the same dimensionality as the domain.")
+                "All points in the collection must have the same dimensionality as the domain."
+            )
 
     def get_corners(self) -> tuple[Input]:
         """Generate all corner points of the domain."""
         return tuple([Input(*corner) for corner in product(*self._bounds)])
 
     def closest_boundary_points(self, collection: Collection[Input]) -> tuple[Input]:
-        """Generate closest pseudopoints on boundary faces for a collection C."""
+        """Generate closest pseudopoints on boundary faces for a collection."""
 
         # Check if collection is empty
         if not collection:
@@ -518,9 +522,12 @@ class SimulatorDomain(object):
         # Check all points are within domain bounds
         if not all(self._within_bounds(point) for point in collection):
             warnings.warn(
-                "Not all points in the collection are within the domain bounds", UserWarning
+                "Not all points in the collection are within the domain bounds",
+                UserWarning,
             )
-            raise ValueError("All points in the collection must be within the domain bounds.")
+            raise ValueError(
+                "All points in the collection must be within the domain bounds."
+            )
 
         pseudopoints = []
         for i in range(self._dim):
