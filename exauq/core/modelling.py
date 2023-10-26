@@ -391,12 +391,58 @@ class SimulatorDomain(object):
     """
 
     def __init__(self, bounds: list[tuple[Real, Real]]):
-        self.validate_bounds(bounds)
+        self._validate_bounds(bounds)
         self._bounds = bounds
         self._dim = len(bounds)
 
     @staticmethod
-    def validate_bounds(bounds: list[tuple[Real, Real]]) -> None:
+    def _validate_bounds(bounds: list[tuple[Real, Real]]) -> None:
+        """
+        Validates the bounds for initialising the domain of the simulator.
+
+        This method checks that the provided bounds meet the necessary criteria for
+        defining a valid n-dimensional rectangular domain. The bounds are expected to be a
+        list of tuples, where each tuple represents the lower and upper bounds for a
+        coordinate in the domain. The method validates that:
+
+        1. There is at least one dimension provided (the list of bounds is not empty).
+        2. Each bound is a tuple of two real numbers.
+        3. The lower bound is not greater than the upper bound in any dimension.
+
+        Parameters
+        ----------
+        bounds : list[tuple[Real, Real]]
+            A list of tuples where each tuple represents the bounds for a dimension in the
+            domain. Each tuple should contain two real numbers (low, high) where `low` is
+            the lower bound and `high` is the upper bound for that dimension.
+
+        Raises
+        ------
+        ValueError
+            If the list of bounds is empty, indicating that the domain is not at least
+            one-dimensional, or if the lower bound is greater than the upper bound in any
+            dimension.
+        TypeError
+            If any of the bounds is not a tuple of two numbers, or if the bounds are not
+            real numbers.
+
+        Examples
+        --------
+        >>> SimulatorDomain.validate_bounds([(0, 1), (0, 1)])
+        This should pass without any issue as the bounds are valid.
+
+        >>> SimulatorDomain.validate_bounds([])
+        ValueError: Domain must be at least one-dimensional.
+
+        >>> SimulatorDomain.validate_bounds([(0, 1, 2), (0, 1)])
+        TypeError: Each bound must be a tuple of two numbers.
+
+        >>> SimulatorDomain.validate_bounds([(0, '1'), (0, 1)])
+        TypeError: Bounds must be real numbers.
+
+        >>> SimulatorDomain.validate_bounds([(1, 0), (0, 1)])
+        ValueError: Lower bound cannot be greater than upper bound.
+        """
         if not bounds:
             raise ValueError("Domain must be at least one-dimensional.")
 
