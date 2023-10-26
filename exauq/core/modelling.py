@@ -616,7 +616,56 @@ class SimulatorDomain(object):
         return tuple([Input(*corner) for corner in product(*self._bounds)])
 
     def closest_boundary_points(self, collection: Collection[Input]) -> tuple[Input]:
-        """Generate closest pseudopoints on boundary faces for a collection."""
+        """
+        Find the closest points on the boundary of the domain for each point in a collection.
+
+        This method iterates through each dimension of the domain, and for each dimension,
+        it finds the closest point on the boundary for each point in the input collection.
+        This is achieved by modifying the coordinate in the current dimension to match the
+        boundary value, while keeping the other coordinates the same. The distance is
+        calculated using the Euclidean distance.
+
+        Parameters
+        ----------
+        collection : Collection[Input]
+            A collection of points for which the closest boundary points are to be found.
+            Each point in the collection must be an instance of `Input` and have the same
+            dimensionality as the domain.
+
+        Returns
+        -------
+        tuple[Input]
+            A tuple of points representing the closest points on the boundary for each
+            point in the input collection. The order of the points in the output tuple
+            corresponds to the order of dimensions and boundaries processed.
+
+        Raises
+        ------
+        ValueError
+            If any point in the collection is not within the bounds of the domain.
+            If any point in the collection does not have the same dimensionality as the domain.
+
+        Warnings
+        --------
+        UserWarning
+            If the input collection is empty, a warning is raised and an empty tuple is returned.
+            If any point in the collection is not within the domain bounds, a warning is raised
+            before raising a ValueError.
+
+        Examples
+        --------
+        >>> bounds = [(0, 1), (0, 1)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> collection = [Input(0.5, 0.5)]
+        >>> domain.closest_boundary_points(collection)
+        (Input(0, 0.5), Input(1, 0.5), Input(0.5, 0), Input(0.5, 1))
+
+        Notes
+        -----
+        The method does not guarantee a unique solution if multiple points on the boundary
+        are equidistant from a point in the collection. In such cases, the point that is
+        found first in the iteration will be returned.
+        """
 
         # Check if collection is empty
         if not collection:
