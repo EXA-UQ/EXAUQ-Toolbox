@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 
 from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
-from exauq.core.numerics import FLOAT_TOLERANCE, equal_to_tolerance
+from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.utilities.utilities import exact, make_window
 
 
@@ -422,8 +422,8 @@ class TestPrediction(unittest.TestCase):
             p1 = Prediction(mean1, variance)
             for mean2 in make_window(mean1, tol=FLOAT_TOLERANCE):
                 p2 = Prediction(mean2, variance)
-                self.assertIs(p1 == p2, equal_to_tolerance(mean1, mean2))
-                self.assertIs(p2 == p1, equal_to_tolerance(mean1, mean2))
+                self.assertIs(p1 == p2, equal_within_tolerance(mean1, mean2))
+                self.assertIs(p2 == p1, equal_within_tolerance(mean1, mean2))
 
     def test_equality_of_variances(self):
         """Given two predictions with the same means, test that they are equal if
@@ -434,7 +434,7 @@ class TestPrediction(unittest.TestCase):
             p1 = Prediction(mean, var1)
             for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
                 p2 = Prediction(mean, var2)
-                self.assertIs(p1 == p2, equal_to_tolerance(var1, var2))
+                self.assertIs(p1 == p2, equal_within_tolerance(var1, var2))
                 self.assertIs(p2 == p1, p1 == p2)
 
     def test_equality_symmetric(self):

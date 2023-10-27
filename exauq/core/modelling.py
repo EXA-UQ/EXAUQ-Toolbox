@@ -9,7 +9,7 @@ from typing import Any, Union
 import numpy as np
 
 import exauq.utilities.validation as validation
-from exauq.core.numerics import equal_to_tolerance
+from exauq.core.numerics import equal_within_tolerance
 
 
 class Input(Sequence):
@@ -358,7 +358,7 @@ class Prediction:
         if type(other) is not type(self):
             return False
 
-        return equal_to_tolerance(self.mean, other.mean) and equal_to_tolerance(
+        return equal_within_tolerance(self.mean, other.mean) and equal_within_tolerance(
             self.variance, other.variance
         )
 

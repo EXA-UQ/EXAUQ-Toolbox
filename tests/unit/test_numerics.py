@@ -2,11 +2,11 @@ import itertools
 import math
 import unittest
 
-from exauq.core.numerics import FLOAT_TOLERANCE, equal_to_tolerance
+from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.utilities.utilities import make_window
 
 
-class TestEqualToTolerance(unittest.TestCase):
+class TestEqualWithinTolerance(unittest.TestCase):
     def assertAgreeOnRange(self, func1, func2, _range):
         for x in _range:
             self.assertIs(func1(x), func2(x))
@@ -19,7 +19,7 @@ class TestEqualToTolerance(unittest.TestCase):
             with self.subTest(x=x, rel_tol=rel_tol):
                 # Note: use of abs_tol=0 forces the use of the relative tolerance
                 self.assertAgreeOnRange(
-                    lambda y: equal_to_tolerance(x, y, rel_tol=rel_tol, abs_tol=0),
+                    lambda y: equal_within_tolerance(x, y, rel_tol=rel_tol, abs_tol=0),
                     lambda y: math.isclose(x, y, rel_tol=rel_tol, abs_tol=0),
                     _range=make_window(x, 2 * rel_tol, type="rel"),
                 )
@@ -32,7 +32,7 @@ class TestEqualToTolerance(unittest.TestCase):
             with self.subTest(x=x, abs_tol=abs_tol):
                 # Note: use of rel_tol=0 forces the use of the absolute tolerance
                 self.assertAgreeOnRange(
-                    lambda y: equal_to_tolerance(x, y, rel_tol=0, abs_tol=abs_tol),
+                    lambda y: equal_within_tolerance(x, y, rel_tol=0, abs_tol=abs_tol),
                     lambda y: math.isclose(x, y, rel_tol=0, abs_tol=abs_tol),
                     _range=make_window(x, 2 * abs_tol),
                 )
@@ -45,7 +45,7 @@ class TestEqualToTolerance(unittest.TestCase):
         for x in [-1, 1]:
             with self.subTest(x=x):
                 self.assertAgreeOnRange(
-                    lambda y: equal_to_tolerance(x, y),
+                    lambda y: equal_within_tolerance(x, y),
                     lambda y: math.isclose(
                         x, y, rel_tol=FLOAT_TOLERANCE, abs_tol=FLOAT_TOLERANCE
                     ),
@@ -54,7 +54,7 @@ class TestEqualToTolerance(unittest.TestCase):
 
         # Absolute tolerance case
         self.assertAgreeOnRange(
-            lambda y: equal_to_tolerance(x, y),
+            lambda y: equal_within_tolerance(x, y),
             lambda y: math.isclose(
                 x, y, rel_tol=FLOAT_TOLERANCE, abs_tol=FLOAT_TOLERANCE
             ),

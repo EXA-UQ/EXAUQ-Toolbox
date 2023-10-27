@@ -5,7 +5,7 @@ FLOAT_TOLERANCE = 1e-9
 """The default tolerance to use when testing for equality of real numbers."""
 
 
-def equal_to_tolerance(
+def equal_within_tolerance(
     x: Real, y: Real, rel_tol: Real = FLOAT_TOLERANCE, abs_tol: Real = FLOAT_TOLERANCE
 ) -> bool:
     """Test equality of two real numbers up to a tolerance.
