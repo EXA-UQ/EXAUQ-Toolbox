@@ -430,6 +430,23 @@ class AbstractEmulator(abc.ABC):
 
         pass
 
+    @abc.abstractmethod
+    def predict(self, x: Input) -> Prediction:
+        """Make a prediction of a simulator output for a given input.
+
+        Parameters
+        ----------
+        x : Input
+            A simulator input.
+
+        Returns
+        -------
+        Prediction
+            The emulator's prediction of the simulator output from the given the input.
+        """
+
+        pass
+
 
 class SimulatorDomain(object):
     """
