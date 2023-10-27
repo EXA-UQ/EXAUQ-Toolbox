@@ -642,6 +642,97 @@ class TestSimulatorDomain(unittest.TestCase):
         result = domain.closest_boundary_points(collection)
         self.assertEqual(result, expected)
 
+    def test_calculate_pseudopoints_basic(self):
+        """This test checks if the calculate_pseudopoints method is working correctly by
+        providing a basic 2D square domain and a collection of points inside it. It validates
+        that the method calculates and returns the correct boundary and corner pseudopoints."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        collection = [Input(0.25, 0.25), Input(0.75, 0.75)]
+        pseudopoints = domain.calculate_pseudopoints(collection)
+        expected = (
+            Input(0, 0.25),
+            Input(1, 0.75),
+            Input(0.25, 0),
+            Input(0.75, 1),
+            Input(0, 0),
+            Input(0, 1),
+            Input(1, 0),
+            Input(1, 1),
+        )
+        self.assertEqual(
+            pseudopoints, expected, "Pseudopoints calculation is incorrect."
+        )
+
+    def test_calculate_pseudopoints_empty_collection(self):
+        """This test ensures that if an empty collection is provided to the
+        calculate_pseudopoints method, it correctly warns the user and returns only the corner
+        pseudopoints."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        collection = []
+        with self.assertWarns(
+            UserWarning, msg="No warning raised for empty collection."
+        ):
+            pseudopoints = domain.calculate_pseudopoints(collection)
+        expected = (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
+        self.assertEqual(
+            pseudopoints,
+            expected,
+            "Pseudopoints should only include corner points for empty collection.",
+        )
+
+    def test_calculate_pseudopoints_point_outside_domain(self):
+        """This test verifies that the calculate_pseudopoints method properly handles points
+        outside the domain by raising a ValueError and issuing a warning."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        collection = [Input(0.5, 0.5), Input(1.5, 0.5)]
+        with self.assertWarns(
+            UserWarning, msg="No warning raised for point outside domain."
+        ):
+            with self.assertRaises(
+                ValueError, msg="No ValueError raised for point outside domain."
+            ):
+                domain.calculate_pseudopoints(collection)
+
+    def test_calculate_pseudopoints_incorrect_dimensionality(self):
+        """This test ensures that if a point with incorrect dimensionality is passed to the
+        calculate_pseudopoints method, a ValueError is raised."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        collection = [Input(0.5, 0.5, 0.5)]
+        with self.assertRaises(
+            ValueError,
+            msg="No ValueError raised for point with incorrect dimensionality.",
+        ):
+            domain.calculate_pseudopoints(collection)
+
+    def test_calculate_pseudopoints_high_dimensionality(self):
+        """This test checks the calculate_pseudopoints method's performance and accuracy in a
+        high-dimensional space, ensuring it correctly calculates boundary and corner
+        pseudopoints."""
+
+        bounds = [(0, 1)] * 10
+        domain = SimulatorDomain(bounds)
+        collection = [Input(*([0.5] * 10))]
+        pseudopoints = domain.calculate_pseudopoints(collection)
+        expected_boundary_points = []
+        for i in range(10):
+            low = [0.5] * 10
+            low[i] = 0
+            expected_boundary_points.append(Input(*low))
+            high = [0.5] * 10
+            high[i] = 1
+            expected_boundary_points.append(Input(*high))
+        expected_corners = domain.get_corners()
+        expected = tuple(expected_boundary_points + list(expected_corners))
+        self.assertEqual(
+            pseudopoints,
+            expected,
+            "Pseudopoints calculation is incorrect for high-dimensional space.",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
