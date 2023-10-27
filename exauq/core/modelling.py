@@ -611,7 +611,7 @@ class SimulatorDomain(object):
         >>> domain = SimulatorDomain(bounds)
         >>> corners = domain.get_corners()
         >>> corners
-        (Input(0.0, 0.0), Input(1.0, 0.0), Input(0.0, 1.0), Input(1.0, 1.0))
+        (Input(0.0, 0.0), Input(0.0, 1.0), Input(1.0, 0.0), Input(1.0, 1.0))
         """
 
         unique_corners = []
