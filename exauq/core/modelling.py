@@ -358,6 +358,8 @@ class Prediction:
 
     @staticmethod
     def _validate_estimate(estimate: Any) -> None:
+        """Check that the given estimate defines a real number."""
+
         validation.check_real(
             estimate,
             TypeError(
@@ -368,6 +370,8 @@ class Prediction:
 
     @staticmethod
     def _validate_variance(variance: Any) -> None:
+        """Check that the given estimate defines a non-negative real number."""
+
         validation.check_real(
             variance,
             TypeError(
@@ -382,6 +386,8 @@ class Prediction:
             )
 
     def __eq__(self, other: Any) -> bool:
+        """Checks equality with another object up to default tolerances."""
+
         if type(other) is not type(self):
             return False
 
