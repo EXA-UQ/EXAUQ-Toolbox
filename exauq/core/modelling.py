@@ -323,8 +323,31 @@ class TrainingDatum(object):
 
 
 class Prediction:
-    def __init__(self, mean: Real, variance: Real):
-        self._mean = self._validate_mean(mean)
+    """Represents a predicted value together with the variance of the prediction.
+
+    Two predictions are considered equal if their estimated values and variances agree,
+    to within the standard tolerance ``exauq.core.numerics.FLOAT_TOLERANCE`` as defined
+    by the default parameters for ``exauq.core.numerics.equal_within_tolerance``.
+
+    Parameters
+    ----------
+    estimate : numbers.Real
+        The estimated value of the prediction.
+    variance : numbers.Real
+        The variance of the prediction.
+
+    Attributes
+    ----------
+    estimate : numbers.Real
+        (Read-only) The estimated value of the prediction.
+    variance : numbers.Real
+        (Read-only) The variance of the prediction.
+
+    See Also
+    --------
+    ``exauq.core.numerics.equal_within_tolerance`` : Equality up to tolerances.
+    """
+
     def __init__(self, estimate: Real, variance: Real):
         self._estimate = self._validate_estimate(estimate)
         self._variance = self._validate_variance(variance)
