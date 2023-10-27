@@ -114,7 +114,7 @@ class MogpEmulator(AbstractEmulator):
 
         Parameters
         ----------
-        training_data: list[TrainingDatum]
+        training_data : list[TrainingDatum]
             The pairs of inputs and simulator outputs on which the emulator
             should be trained.
         hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
@@ -198,6 +198,24 @@ class MogpEmulator(AbstractEmulator):
         return math.log(cov)
 
     def predict(self, x: Input) -> Prediction:
+        """Make a prediction of a simulator output for a given input.
+
+        Parameters
+        ----------
+        x : Input
+            A simulator input.
+
+        Returns
+        -------
+        Prediction
+            The emulator's prediction of the simulator output given the input.
+
+        Raises
+        ------
+        AssertionError
+            If this emulator has not been trained on any data before making the
+            prediction.
+        """
         if not isinstance(x, Input):
             raise TypeError(f"Expected 'x' to be of type Input, but received {type(x)}.")
 
@@ -213,14 +231,20 @@ class MogpEmulator(AbstractEmulator):
 
         return self._to_prediction(self.gp.predict(np.array(x)))
 
-    def _get_input_dim(self) -> int:
+    def _get_input_dim(self) -> Optional[int]:
+        """Get the dimension of the inputs in the training data. Note: assumes that
+        each input in the training data has the same dimension."""
         try:
             return len(self.training_data[0].input)
         except IndexError:
             return None
 
     @staticmethod
-    def _to_prediction(mogp_prediction) -> Prediction:
+    def _to_prediction(mogp_predict_result) -> Prediction:
+        """Convert an MOGP ``PredictResult`` to a ``Prediction`` object.
+
+        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#the-predictresult-class
+        """
         return Prediction(
-            estimate=mogp_prediction.mean[0], variance=mogp_prediction.unc[0]
+            estimate=mogp_predict_result.mean[0], variance=mogp_predict_result.unc[0]
         )
