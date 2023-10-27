@@ -440,6 +440,209 @@ class TestSimulatorDomain(unittest.TestCase):
             with self.subTest(x=x, bnds=bnds, z=z):
                 self.assertAlmostEqual(z, bnds[0] + x * (bnds[1] - bnds[0]))
 
+    def test_get_corners_2d_domain(self):
+        """Verify that get_corners accurately identifies and returns all four corners of a 2D
+        unit square domain."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        corners = domain.get_corners()
+        expected_corners = (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
+        self.assertEqual(corners, expected_corners)
+
+    def test_get_corners_3d_domain(self):
+        """This test validates that the get_corners method correctly generates and returns all
+        the corner points of a three-dimensional domain, ensuring each corner is identified and
+        returned properly."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1), (0, 1)])
+        corners = domain.get_corners()
+        expected_corners = (
+            Input(0, 0, 0),
+            Input(0, 0, 1),
+            Input(0, 1, 0),
+            Input(0, 1, 1),
+            Input(1, 0, 0),
+            Input(1, 0, 1),
+            Input(1, 1, 0),
+            Input(1, 1, 1),
+        )
+        self.assertEqual(corners, expected_corners)
+
+    def test_get_corners_negative_bounds(self):
+        """This test ensures that the `get_corners` method accurately identifies and returns all
+        corner points for a two-dimensional domain with negative bounds, verifying its
+        correctness when dealing with negative numbers."""
+
+        domain = SimulatorDomain([(-1, 0), (-1, 0)])
+        corners = domain.get_corners()
+        expected_corners = (Input(-1, -1), Input(-1, 0), Input(0, -1), Input(0, 0))
+        self.assertEqual(corners, expected_corners)
+
+    def test_get_corners_2d_rectangle(self):
+        """This test verifies that the `get_corners` method correctly calculates and returns all
+        corner points for a two-dimensional rectangular domain, ensuring its functionality is not
+        limited to square domains."""
+
+        domain = SimulatorDomain([(0, 2), (0, 1)])
+        corners = domain.get_corners()
+        expected_corners = (Input(0, 0), Input(0, 1), Input(2, 0), Input(2, 1))
+        self.assertEqual(corners, expected_corners)
+
+    def test_get_corners_3d_rectangular_prism(self):
+        """This test ensures the `get_corners` method accurately identifies all corners of a
+        three-dimensional rectangular prism domain, showcasing its adaptability to handle domains
+        of various shapes and dimensions."""
+
+        domain = SimulatorDomain([(0, 2), (0, 1), (0, 3)])
+        corners = domain.get_corners()
+        expected_corners = (
+            Input(0, 0, 0),
+            Input(0, 0, 3),
+            Input(0, 1, 0),
+            Input(0, 1, 3),
+            Input(2, 0, 0),
+            Input(2, 0, 3),
+            Input(2, 1, 0),
+            Input(2, 1, 3),
+        )
+        self.assertEqual(corners, expected_corners)
+
+    def test_get_corners_single_dimension(self):
+        """This test verifies that the `get_corners` method correctly identifies the endpoints of
+        a one-dimensional domain, demonstrating the method's capability to handle domains with a
+        single dimension."""
+
+        domain = SimulatorDomain([(0, 1)])
+        corners = domain.get_corners()
+        expected_corners = (Input(0), Input(1))
+        self.assertEqual(corners, expected_corners)
+
+    def test_get_corners_zero_width_bound(self):
+        """This test ensures that the get_corners method accurately generates corner points for a
+        domain with a zero-width bound in one dimension, demonstrating the method's robustness in
+        handling edge cases."""
+
+        domain = SimulatorDomain([(0, 0), (0, 1)])
+        corners = domain.get_corners()
+        expected_corners = (Input(0, 0), Input(0, 1))
+        self.assertEqual(corners, expected_corners)
+
+    def test_closest_boundary_points_basic(self):
+        """This test checks the `closest_boundary_points` method for a straightforward scenario
+        in a two-dimensional domain, ensuring that the method accurately finds the closest
+        boundary points for an input point situated at the center of the domain."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        collection = [Input(0.5, 0.5)]
+        result = domain.closest_boundary_points(collection)
+        expected = (Input(0, 0.5), Input(1, 0.5), Input(0.5, 0), Input(0.5, 1))
+        self.assertTupleEqual(
+            result, expected, "Closest boundary points calculation is incorrect."
+        )
+
+    def test_closest_boundary_points_empty_collection(self):
+        """This test validates that the `closest_boundary_points` method correctly handles an
+        empty collection of points, issuing a user warning and returning an empty tuple as
+        expected."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        collection = []
+        with self.assertWarns(
+            UserWarning, msg="No warning raised for empty collection."
+        ):
+            result = domain.closest_boundary_points(collection)
+        self.assertEqual(
+            result, tuple(), "Result should be an empty tuple for empty collection."
+        )
+
+    def test_closest_boundary_points_point_outside_domain(self):
+        """This test ensures that the `closest_boundary_points` method appropriately handles
+        situations where a point in the provided collection lies outside the domain. It checks
+        that a user warning is issued to alert the user, and subsequently, a ValueError is raised
+        to indicate the invalid input."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        collection = [Input(0.5, 0.5), Input(1.5, 0.5)]
+        with self.assertWarns(
+            UserWarning, msg="No warning raised for point outside domain."
+        ):
+            with self.assertRaises(
+                ValueError, msg="No ValueError raised for point outside domain."
+            ):
+                domain.closest_boundary_points(collection)
+
+    def test_closest_boundary_points_incorrect_dimensionality(self):
+        """This test checks that the `closest_boundary_points` method correctly identifies and
+        raises an error when a point in the collection does not match the domain's
+        dimensionality. The domain is two-dimensional, but a three-dimensional point is provided
+        in the collection, which should result in a ValueError being raised, ensuring the
+        method's robustness to dimensionality mismatches."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        collection = [Input(0.5, 0.5, 0.5)]
+        with self.assertRaises(
+            ValueError,
+            msg="No ValueError raised for point with incorrect dimensionality.",
+        ):
+            domain.closest_boundary_points(collection)
+
+    def test_closest_boundary_points_on_boundary(self):
+        """This test verifies that points on the boundary of a 2D domain are correctly identified
+        as their own closest boundary points by the closest_boundary_points method."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        collection = [Input(0, 0.5), Input(1, 0.5), Input(0.5, 0), Input(0.5, 1)]
+        result = domain.closest_boundary_points(collection)
+        expected = tuple(collection)
+        self.assertTupleEqual(
+            result,
+            expected,
+            "Points on the boundary should be their own closest boundary points.",
+        )
+
+    def test_closest_boundary_points_high_dimensionality(self):
+        """This test checks the `closest_boundary_points` method's ability to handle a
+        high-dimensional space, ensuring it can accurately calculate the closest boundary points
+        in a 10-dimensional domain."""
+
+        bounds = [(0, 1)] * 10
+        domain = SimulatorDomain(bounds)
+
+        collection = [Input(*([0.5] * 10))]
+        expected = []
+
+        for i in range(10):
+            modified_point_low = [0.5] * 10
+            modified_point_low[i] = 0
+            expected.append(Input(*modified_point_low))
+
+            modified_point_high = [0.5] * 10
+            modified_point_high[i] = 1
+            expected.append(Input(*modified_point_high))
+
+        result = domain.closest_boundary_points(collection)
+        self.assertEqual(result, tuple(expected))
+
+    def test_closest_boundary_points_float_precision(self):
+        """This test verifies the `closest_boundary_points` method's precision and reliability
+        when dealing with input points that have floating-point coordinates very close to
+        boundary points, ensuring accurate calculations even in scenarios with potential
+        floating-point precision challenges."""
+
+        bounds = [(0, 1)] * 2
+        domain = SimulatorDomain(bounds)
+
+        collection = [Input(0.5000000001, 0.5000000001)]
+        expected = (
+            Input(0, 0.5000000001),
+            Input(1, 0.5000000001),
+            Input(0.5000000001, 0),
+            Input(0.5000000001, 1),
+        )
+
+        result = domain.closest_boundary_points(collection)
+        self.assertEqual(result, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
