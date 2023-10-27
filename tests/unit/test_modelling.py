@@ -1,7 +1,6 @@
 import unittest
 
 import numpy as np
-
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 from tests.utilities.utilities import exact
 
