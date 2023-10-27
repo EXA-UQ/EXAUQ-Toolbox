@@ -322,6 +322,7 @@ class TrainingDatum(object):
         return f"({str(self.input)}, {str(self.output)})"
 
 
+@dataclasses.dataclass(frozen=True)
 class Prediction:
     """Represents a predicted value together with the variance of the prediction.
 
@@ -348,12 +349,15 @@ class Prediction:
     ``exauq.core.numerics.equal_within_tolerance`` : Equality up to tolerances.
     """
 
-    def __init__(self, estimate: Real, variance: Real):
-        self._estimate = self._validate_estimate(estimate)
-        self._variance = self._validate_variance(variance)
+    estimate: Real
+    variance: Real
+
+    def __post_init__(self):
+        self._validate_estimate(self.estimate)
+        self._validate_variance(self.variance)
 
     @staticmethod
-    def _validate_estimate(estimate: Any) -> Real:
+    def _validate_estimate(estimate: Any) -> None:
         validation.check_real(
             estimate,
             TypeError(
@@ -361,10 +365,9 @@ class Prediction:
                 "instead."
             ),
         )
-        return estimate
 
     @staticmethod
-    def _validate_variance(variance: Any) -> Real:
+    def _validate_variance(variance: Any) -> None:
         validation.check_real(
             variance,
             TypeError(
@@ -377,7 +380,6 @@ class Prediction:
             raise ValueError(
                 f"'variance' must be a non-negative real number, but received {variance}."
             )
-        return variance
 
     def __eq__(self, other: Any) -> bool:
         if type(other) is not type(self):
@@ -386,14 +388,6 @@ class Prediction:
         return equal_within_tolerance(
             self.estimate, other.estimate
         ) and equal_within_tolerance(self.variance, other.variance)
-
-    @property
-    def estimate(self) -> Real:
-        return self._estimate
-
-    @property
-    def variance(self) -> Real:
-        return self._variance
 
 
 class AbstractEmulator(abc.ABC):
