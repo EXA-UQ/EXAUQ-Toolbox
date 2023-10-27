@@ -208,7 +208,7 @@ class MogpEmulator(AbstractEmulator):
         Returns
         -------
         Prediction
-            The emulator's prediction of the simulator output given the input.
+            The emulator's prediction of the simulator output from the given the input.
 
         Raises
         ------
@@ -216,6 +216,7 @@ class MogpEmulator(AbstractEmulator):
             If this emulator has not been trained on any data before making the
             prediction.
         """
+
         if not isinstance(x, Input):
             raise TypeError(f"Expected 'x' to be of type Input, but received {type(x)}.")
 
