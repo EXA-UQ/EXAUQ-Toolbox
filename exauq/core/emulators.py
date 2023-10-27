@@ -221,4 +221,6 @@ class MogpEmulator(AbstractEmulator):
 
     @staticmethod
     def _to_prediction(mogp_prediction) -> Prediction:
-        return Prediction(mean=mogp_prediction.mean[0], variance=mogp_prediction.unc[0])
+        return Prediction(
+            estimate=mogp_prediction.mean[0], variance=mogp_prediction.unc[0]
+        )

@@ -351,30 +351,30 @@ class TestTrainingDatum(unittest.TestCase):
 
 class TestPrediction(unittest.TestCase):
     def test_inputs_preserve_real_type(self):
-        """Test that the mean and variance are of the same types as provided
+        """Test that the estimate and variance are of the same types as provided
         at initialisation."""
 
-        means = [1, 1.2, np.float16(1.3)]
+        estimates = [1, 1.2, np.float16(1.3)]
         variances = [1.2, np.float16(1.3), 1]
 
-        for mean, var in zip(means, variances):
-            prediction = Prediction(mean, var)
-            self.assertIsInstance(prediction.mean, type(mean))
+        for estimate, var in zip(estimates, variances):
+            prediction = Prediction(estimate, var)
+            self.assertIsInstance(prediction.estimate, type(estimate))
             self.assertIsInstance(prediction.variance, type(var))
 
     def test_non_real_error(self):
-        """Test that a TypeError is raised if the supplied mean or variance is not a
+        """Test that a TypeError is raised if the supplied estimate or variance is not a
         real number."""
 
         non_real = "1"
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'mean' to define a real number, but received {type(non_real)} "
+                f"Expected 'estimate' to define a real number, but received {type(non_real)} "
                 "instead."
             ),
         ):
-            Prediction(mean=non_real, variance=1)
+            Prediction(estimate=non_real, variance=1)
 
         with self.assertRaisesRegex(
             TypeError,
@@ -383,7 +383,7 @@ class TestPrediction(unittest.TestCase):
                 "instead."
             ),
         ):
-            Prediction(mean=1, variance=non_real)
+            Prediction(estimate=1, variance=non_real)
 
     def test_negative_variance_error(self):
         """Test that a ValueError is raised if a negative variance is provided at
@@ -394,14 +394,14 @@ class TestPrediction(unittest.TestCase):
             ValueError,
             exact(f"'variance' must be a non-negative real number, but received {var}."),
         ):
-            Prediction(mean=1, variance=var)
+            Prediction(estimate=1, variance=var)
 
     def test_immutable_fields(self):
-        """Test that the mean and variance values in a prediction are immutable."""
+        """Test that the estimate and variance values in a prediction are immutable."""
 
         prediction = Prediction(1, 1)
         with self.assertRaises(AttributeError):
-            prediction.mean = 0
+            prediction.estimate = 0
 
         with self.assertRaises(AttributeError):
             prediction.variance = 0
@@ -409,31 +409,31 @@ class TestPrediction(unittest.TestCase):
     def test_equality_with_different_type(self):
         """Test that a Prediction object is not equal to an object of a different type."""
 
-        p = Prediction(mean=1, variance=1)
+        p = Prediction(estimate=1, variance=1)
         for other in [1, "1", (1, 1)]:
             self.assertNotEqual(p, other)
 
-    def test_equality_of_means(self):
+    def test_equality_of_estimates(self):
         """Given two predictions with the same variances, test that they are equal if
-        and only if the means are close according to the default tolerance."""
+        and only if the estimates are close according to the default tolerance."""
 
         variance = 0
-        for mean1 in [0.5 * n for n in range(-100, 101)]:
-            p1 = Prediction(mean1, variance)
-            for mean2 in make_window(mean1, tol=FLOAT_TOLERANCE):
-                p2 = Prediction(mean2, variance)
-                self.assertIs(p1 == p2, equal_within_tolerance(mean1, mean2))
-                self.assertIs(p2 == p1, equal_within_tolerance(mean1, mean2))
+        for estimate1 in [0.5 * n for n in range(-100, 101)]:
+            p1 = Prediction(estimate1, variance)
+            for estimate2 in make_window(estimate1, tol=FLOAT_TOLERANCE):
+                p2 = Prediction(estimate2, variance)
+                self.assertIs(p1 == p2, equal_within_tolerance(estimate1, estimate2))
+                self.assertIs(p2 == p1, equal_within_tolerance(estimate1, estimate2))
 
     def test_equality_of_variances(self):
-        """Given two predictions with the same means, test that they are equal if
+        """Given two predictions with the same estimates, test that they are equal if
         and only if the variances are close according to the default tolerance."""
 
-        mean = 0
+        estimate = 0
         for var1 in [0.1 * n for n in range(101)]:
-            p1 = Prediction(mean, var1)
+            p1 = Prediction(estimate, var1)
             for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
-                p2 = Prediction(mean, var2)
+                p2 = Prediction(estimate, var2)
                 self.assertIs(p1 == p2, equal_within_tolerance(var1, var2))
                 self.assertIs(p2 == p1, p1 == p2)
 
@@ -441,12 +441,12 @@ class TestPrediction(unittest.TestCase):
         """Test that equality of predictions doesn't depend on the order of the objects
         in the comparison."""
 
-        for mean1, var1 in itertools.product([-0.5, 0, 0.5], [0, 0.1, 0.2]):
-            p1 = Prediction(mean1, var1)
-            means = make_window(mean1, tol=FLOAT_TOLERANCE)
+        for estimate1, var1 in itertools.product([-0.5, 0, 0.5], [0, 0.1, 0.2]):
+            p1 = Prediction(estimate1, var1)
+            estimates = make_window(estimate1, tol=FLOAT_TOLERANCE)
             variances = filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE))
-            for mean2, var2 in itertools.product(means, variances):
-                p2 = Prediction(mean2, var2)
+            for estimate2, var2 in itertools.product(estimates, variances):
+                p2 = Prediction(estimate2, var2)
                 self.assertIs(p1 == p2, p2 == p1)
 
 

@@ -325,18 +325,20 @@ class TrainingDatum(object):
 class Prediction:
     def __init__(self, mean: Real, variance: Real):
         self._mean = self._validate_mean(mean)
+    def __init__(self, estimate: Real, variance: Real):
+        self._estimate = self._validate_estimate(estimate)
         self._variance = self._validate_variance(variance)
 
     @staticmethod
-    def _validate_mean(mean: Any) -> Real:
+    def _validate_estimate(estimate: Any) -> Real:
         validation.check_real(
-            mean,
+            estimate,
             TypeError(
-                f"Expected 'mean' to define a real number, but received {type(mean)} "
+                f"Expected 'estimate' to define a real number, but received {type(estimate)} "
                 "instead."
             ),
         )
-        return mean
+        return estimate
 
     @staticmethod
     def _validate_variance(variance: Any) -> Real:
@@ -358,13 +360,13 @@ class Prediction:
         if type(other) is not type(self):
             return False
 
-        return equal_within_tolerance(self.mean, other.mean) and equal_within_tolerance(
-            self.variance, other.variance
-        )
+        return equal_within_tolerance(
+            self.estimate, other.estimate
+        ) and equal_within_tolerance(self.variance, other.variance)
 
     @property
-    def mean(self) -> Real:
-        return self._mean
+    def estimate(self) -> Real:
+        return self._estimate
 
     @property
     def variance(self) -> Real:

@@ -369,7 +369,8 @@ class TestMogpEmulator(unittest.TestCase):
         emulator.fit(self.training_data)
         for datum in self.training_data:
             self.assertEqual(
-                Prediction(mean=datum.output, variance=0), emulator.predict(datum.input)
+                Prediction(estimate=datum.output, variance=0),
+                emulator.predict(datum.input),
             )
 
     def test_predict_away_training_data_points(self):
