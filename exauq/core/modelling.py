@@ -613,7 +613,13 @@ class SimulatorDomain(object):
         >>> corners
         (Input(0.0, 0.0), Input(1.0, 0.0), Input(0.0, 1.0), Input(1.0, 1.0))
         """
-        return tuple([Input(*corner) for corner in product(*self._bounds)])
+
+        unique_corners = []
+        for corner in product(*self._bounds):
+            input_corner = Input(*corner)
+            if input_corner not in unique_corners:
+                unique_corners.append(input_corner)
+        return tuple(unique_corners)
 
     def closest_boundary_points(self, collection: Collection[Input]) -> tuple[Input]:
         """
