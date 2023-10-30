@@ -391,6 +391,32 @@ class TestSimulatorDomain(unittest.TestCase):
         self.assertFalse(x1 in self.domain)
         self.assertFalse(x2 in self.domain)
 
+    def test_init_with_valid_bounds(self):
+        try:
+            domain = SimulatorDomain([(0, 1), (-1, 1), (0, 100)])
+        except Exception as e:
+            self.fail(f"Initialisation with valid bounds failed with exception: {e}")
+
+    def test_init_with_empty_bounds(self):
+        with self.assertRaises(ValueError, msg="No ValueError raised for empty bounds"):
+            SimulatorDomain([])
+
+    def test_init_with_invalid_bounds_type(self):
+        with self.assertRaises(TypeError, msg="No TypeError raised for invalid bounds type"):
+            SimulatorDomain([(0, 1), "Invalid bounds", (0, 100)])
+
+    def test_init_with_invalid_bound_length(self):
+        with self.assertRaises(TypeError, msg="No TypeError raised for bound with invalid length"):
+            SimulatorDomain([(0, 1, 2), (0, 1)])
+
+    def test_init_with_non_real_numbers(self):
+        with self.assertRaises(TypeError, msg="No TypeError raised for non-real numbers in bounds"):
+            SimulatorDomain([(0, 1), (0, "1")])
+
+    def test_init_with_low_greater_than_high(self):
+        with self.assertRaises(ValueError, msg="No ValueError raised for low > high"):
+            SimulatorDomain([(1, 0), (0, 1)])
+
     def test_dim_equal_number_of_supplied_bounds(self):
         """Test that the dimension of the domain is equal to the length of the bounds
         sequence that was supplied."""
