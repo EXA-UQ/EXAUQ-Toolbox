@@ -41,15 +41,24 @@ class TestEqualWithinTolerance(unittest.TestCase):
         """Test that the default tolerance used for both relative and absolute tolerances
         is equal to the package's float tolerance constant."""
 
-        # Relative tolerance case
         for x in [-1, 1]:
             with self.subTest(x=x):
+                # Relative tolerance case
                 self.assertAgreeOnRange(
                     lambda y: equal_within_tolerance(x, y),
                     lambda y: math.isclose(
                         x, y, rel_tol=FLOAT_TOLERANCE, abs_tol=FLOAT_TOLERANCE
                     ),
                     _range=make_window(x, 2 * FLOAT_TOLERANCE, type="rel"),
+                )
+
+                # Absolute tolerance case
+                self.assertAgreeOnRange(
+                    lambda y: equal_within_tolerance(x, y),
+                    lambda y: math.isclose(
+                        x, y, rel_tol=FLOAT_TOLERANCE, abs_tol=FLOAT_TOLERANCE
+                    ),
+                    _range=make_window(x, 2 * FLOAT_TOLERANCE),
                 )
 
     def test_non_finite_values(self):
