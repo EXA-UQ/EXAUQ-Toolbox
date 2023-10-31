@@ -366,24 +366,25 @@ class TestPrediction(unittest.TestCase):
         """Test that a TypeError is raised if the supplied estimate or variance is not a
         real number."""
 
-        non_real = "1"
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Expected 'estimate' to define a real number, but received {type(non_real)} "
-                "instead."
-            ),
-        ):
-            Prediction(estimate=non_real, variance=1)
+        for non_real in ["1", 1j]:
+            with self.subTest(non_real=non_real):
+                with self.assertRaisesRegex(
+                    TypeError,
+                    exact(
+                        f"Expected 'estimate' to define a real number, but received {type(non_real)} "
+                        "instead."
+                    ),
+                ):
+                    Prediction(estimate=non_real, variance=1)
 
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Expected 'variance' to define a real number, but received {type(non_real)} "
-                "instead."
-            ),
-        ):
-            Prediction(estimate=1, variance=non_real)
+                with self.assertRaisesRegex(
+                    TypeError,
+                    exact(
+                        f"Expected 'variance' to define a real number, but received {type(non_real)} "
+                        "instead."
+                    ),
+                ):
+                    Prediction(estimate=1, variance=non_real)
 
     def test_negative_variance_error(self):
         """Test that a ValueError is raised if a negative variance is provided at
