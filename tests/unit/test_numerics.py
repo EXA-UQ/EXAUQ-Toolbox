@@ -7,6 +7,9 @@ from tests.utilities.utilities import make_window
 
 
 class TestEqualWithinTolerance(unittest.TestCase):
+    def setUp(self) -> None:
+        self.non_finite_values = [-math.inf, math.nan, math.inf]
+
     def assertAgreeOnRange(self, func1, func2, _range):
         for x in _range:
             self.assertIs(func1(x), func2(x))
@@ -65,10 +68,9 @@ class TestEqualWithinTolerance(unittest.TestCase):
         """Test that infinite and NaN values are considered not equal to any finite
         number, no matter the tolerances used."""
 
-        non_finite_values = [-math.inf, math.nan, math.inf]
         tolerances = [0, 1, 1e-9]
         for x, rel_tol, abs_tol in itertools.product(
-            non_finite_values, tolerances, tolerances
+            self.non_finite_values, tolerances, tolerances
         ):
             with self.subTest(x=x):
                 self.assertFalse(
@@ -82,6 +84,23 @@ class TestEqualWithinTolerance(unittest.TestCase):
                     self.assertTrue(
                         equal_within_tolerance(x, x, rel_tol=rel_tol, abs_tol=abs_tol)
                     )
+
+    def test_symmetric(self):
+        """Test that the check for equality is symmetric in the args."""
+
+        tolerances = [0, 1, 1e-9]
+        values = self.non_finite_values + [-1, -0.001, 0, 0.99999, 1, 1.1]
+        for x, rel_tol, abs_tol in itertools.product(values, tolerances, tolerances):
+            with self.subTest(x=x):
+                self.assertAgreeOnRange(
+                    lambda y: equal_within_tolerance(
+                        x, y, rel_tol=rel_tol, abs_tol=abs_tol
+                    ),
+                    lambda y: equal_within_tolerance(
+                        y, x, rel_tol=rel_tol, abs_tol=abs_tol
+                    ),
+                    _range=values,
+                )
 
 
 if __name__ == "__main__":
