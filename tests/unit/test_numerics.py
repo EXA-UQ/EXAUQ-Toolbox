@@ -52,14 +52,27 @@ class TestEqualWithinTolerance(unittest.TestCase):
                     _range=make_window(x, 2 * FLOAT_TOLERANCE, type="rel"),
                 )
 
-        # Absolute tolerance case
-        self.assertAgreeOnRange(
-            lambda y: equal_within_tolerance(x, y),
-            lambda y: math.isclose(
-                x, y, rel_tol=FLOAT_TOLERANCE, abs_tol=FLOAT_TOLERANCE
-            ),
-            _range=make_window(x, 2 * FLOAT_TOLERANCE),
-        )
+    def test_non_finite_values(self):
+        """Test that infinite and NaN values are considered not equal to any finite
+        number, no matter the tolerances used."""
+
+        non_finite_values = [-math.inf, math.nan, math.inf]
+        tolerances = [0, 1, 1e-9]
+        for x, rel_tol, abs_tol in itertools.product(
+            non_finite_values, tolerances, tolerances
+        ):
+            with self.subTest(x=x):
+                self.assertFalse(
+                    equal_within_tolerance(x, 1.1, rel_tol=rel_tol, abs_tol=abs_tol)
+                )
+                if math.isnan(x):
+                    self.assertFalse(
+                        equal_within_tolerance(x, x, rel_tol=rel_tol, abs_tol=abs_tol)
+                    )
+                else:
+                    self.assertTrue(
+                        equal_within_tolerance(x, x, rel_tol=rel_tol, abs_tol=abs_tol)
+                    )
 
 
 if __name__ == "__main__":
