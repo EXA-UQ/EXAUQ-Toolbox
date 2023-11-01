@@ -102,6 +102,16 @@ class TestEqualWithinTolerance(unittest.TestCase):
                     _range=values,
                 )
 
+    def test_negative_tolerances_error(self):
+        """Test that a ValueError is raised if one of the tolerances supplied is
+        negative."""
+
+        with self.assertRaises(ValueError):
+            equal_within_tolerance(1, 1, rel_tol=-0.01)
+
+        with self.assertRaises(ValueError):
+            equal_within_tolerance(1, 1, abs_tol=-0.01)
+
 
 if __name__ == "__main__":
     unittest.main()
