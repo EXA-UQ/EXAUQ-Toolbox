@@ -9,6 +9,7 @@ from typing import Any, Union
 import numpy as np
 
 import exauq.utilities.validation as validation
+from exauq.core.numerics import equal_within_tolerance
 
 
 class Input(Sequence):
@@ -185,7 +186,7 @@ class Input(Sequence):
         """Returns ``True`` precisely when `other` is an `Input` with the same
         coordinates as this `Input`"""
 
-        return type(other) == type(self) and self.value == other.value
+        return type(other) is type(self) and self.value == other.value
 
     def __len__(self) -> int:
         """Returns the number of coordinates in this input."""
@@ -321,6 +322,80 @@ class TrainingDatum(object):
         return f"({str(self.input)}, {str(self.output)})"
 
 
+@dataclasses.dataclass(frozen=True)
+class Prediction:
+    """Represents a predicted value together with the variance of the prediction.
+
+    Two predictions are considered equal if their estimated values and variances agree,
+    to within the standard tolerance ``exauq.core.numerics.FLOAT_TOLERANCE`` as defined
+    by the default parameters for ``exauq.core.numerics.equal_within_tolerance``.
+
+    Parameters
+    ----------
+    estimate : numbers.Real
+        The estimated value of the prediction.
+    variance : numbers.Real
+        The variance of the prediction.
+
+    Attributes
+    ----------
+    estimate : numbers.Real
+        (Read-only) The estimated value of the prediction.
+    variance : numbers.Real
+        (Read-only) The variance of the prediction.
+
+    See Also
+    --------
+    ``exauq.core.numerics.equal_within_tolerance`` : Equality up to tolerances.
+    """
+
+    estimate: Real
+    variance: Real
+
+    def __post_init__(self):
+        self._validate_estimate(self.estimate)
+        self._validate_variance(self.variance)
+
+    @staticmethod
+    def _validate_estimate(estimate: Any) -> None:
+        """Check that the given estimate defines a real number."""
+
+        validation.check_real(
+            estimate,
+            TypeError(
+                f"Expected 'estimate' to define a real number, but received {type(estimate)} "
+                "instead."
+            ),
+        )
+
+    @staticmethod
+    def _validate_variance(variance: Any) -> None:
+        """Check that the given estimate defines a non-negative real number."""
+
+        validation.check_real(
+            variance,
+            TypeError(
+                "Expected 'variance' to define a real number, but received "
+                f"{type(variance)} instead."
+            ),
+        )
+
+        if variance < 0:
+            raise ValueError(
+                f"'variance' must be a non-negative real number, but received {variance}."
+            )
+
+    def __eq__(self, other: Any) -> bool:
+        """Checks equality with another object up to default tolerances."""
+
+        if type(other) is not type(self):
+            return False
+
+        return equal_within_tolerance(
+            self.estimate, other.estimate
+        ) and equal_within_tolerance(self.variance, other.variance)
+
+
 class AbstractEmulator(abc.ABC):
     """Represents an abstract emulator for simulators.
 
@@ -351,6 +426,23 @@ class AbstractEmulator(abc.ABC):
             length parameters, in the same order as the ordering of the
             corresponding input coordinates, while the last tuple should
             represent bounds for the covariance.
+        """
+
+        pass
+
+    @abc.abstractmethod
+    def predict(self, x: Input) -> Prediction:
+        """Make a prediction of a simulator output for a given input.
+
+        Parameters
+        ----------
+        x : Input
+            A simulator input.
+
+        Returns
+        -------
+        Prediction
+            The emulator's prediction of the simulator output from the given the input.
         """
 
         pass

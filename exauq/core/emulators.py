@@ -1,11 +1,13 @@
 """Provides emulators for simulators."""
 
-from collections.abc import Sequence
 import math
+from collections.abc import Sequence
 from typing import Optional
-from mogp_emulator import GaussianProcess
+
 import numpy as np
-from exauq.core.modelling import TrainingDatum, AbstractEmulator
+from mogp_emulator import GaussianProcess
+
+from exauq.core.modelling import AbstractEmulator, Input, Prediction, TrainingDatum
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
@@ -112,7 +114,7 @@ class MogpEmulator(AbstractEmulator):
 
         Parameters
         ----------
-        training_data: list[TrainingDatum]
+        training_data : list[TrainingDatum]
             The pairs of inputs and simulator outputs on which the emulator
             should be trained.
         hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
@@ -194,3 +196,57 @@ class MogpEmulator(AbstractEmulator):
             return None
 
         return math.log(cov)
+
+    def predict(self, x: Input) -> Prediction:
+        """Make a prediction of a simulator output for a given input.
+
+        Parameters
+        ----------
+        x : Input
+            A simulator input.
+
+        Returns
+        -------
+        Prediction
+            The emulator's prediction of the simulator output from the given the input.
+
+        Raises
+        ------
+        RuntimeError
+            If this emulator has not been trained on any data before making the
+            prediction.
+        """
+
+        if not isinstance(x, Input):
+            raise TypeError(f"Expected 'x' to be of type Input, but received {type(x)}.")
+
+        if len(self.training_data) == 0:
+            raise RuntimeError(
+                "Cannot make prediction because emulator has not been trained on any data."
+            )
+
+        if not len(x) == (expected_dim := self._get_input_dim()):
+            raise ValueError(
+                f"Expected 'x' to be an Input with {expected_dim} coordinates, but "
+                f"it has {len(x)} instead."
+            )
+
+        return self._to_prediction(self.gp.predict(np.array(x)))
+
+    def _get_input_dim(self) -> Optional[int]:
+        """Get the dimension of the inputs in the training data. Note: assumes that
+        each input in the training data has the same dimension."""
+        try:
+            return len(self.training_data[0].input)
+        except IndexError:
+            return None
+
+    @staticmethod
+    def _to_prediction(mogp_predict_result) -> Prediction:
+        """Convert an MOGP ``PredictResult`` to a ``Prediction`` object.
+
+        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#the-predictresult-class
+        """
+        return Prediction(
+            estimate=mogp_predict_result.mean[0], variance=mogp_predict_result.unc[0]
+        )
