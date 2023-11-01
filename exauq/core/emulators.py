@@ -212,7 +212,7 @@ class MogpEmulator(AbstractEmulator):
 
         Raises
         ------
-        AssertionError
+        RuntimeError
             If this emulator has not been trained on any data before making the
             prediction.
         """
@@ -220,9 +220,10 @@ class MogpEmulator(AbstractEmulator):
         if not isinstance(x, Input):
             raise TypeError(f"Expected 'x' to be of type Input, but received {type(x)}.")
 
-        assert (
-            len(self.training_data) > 0
-        ), "Cannot make prediction because emulator has not been trained on any data."
+        if len(self.training_data) == 0:
+            raise RuntimeError(
+                "Cannot make prediction because emulator has not been trained on any data."
+            )
 
         if not len(x) == (expected_dim := self._get_input_dim()):
             raise ValueError(

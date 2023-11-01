@@ -336,7 +336,7 @@ class TestMogpEmulator(unittest.TestCase):
         emulator = MogpEmulator()
 
         with self.assertRaisesRegex(
-            AssertionError,
+            RuntimeError,
             exact(
                 "Cannot make prediction because emulator has not been trained on any data."
             ),
