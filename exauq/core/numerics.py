@@ -1,12 +1,18 @@
 import math
+from collections.abc import Sequence
 from numbers import Real
+from typing import Union
 
 FLOAT_TOLERANCE = 1e-9
 """The default tolerance to use when testing for equality of real numbers."""
 
 
+# TODO: replace with more careful version when this becomes available
 def equal_within_tolerance(
-    x: Real, y: Real, rel_tol: Real = FLOAT_TOLERANCE, abs_tol: Real = FLOAT_TOLERANCE
+    x: Union[Real, Sequence[Real]],
+    y: Union[Real, Sequence[Real]],
+    rel_tol: Real = FLOAT_TOLERANCE,
+    abs_tol: Real = FLOAT_TOLERANCE,
 ) -> bool:
     """Test equality of two real numbers up to a tolerance.
 
@@ -38,5 +44,10 @@ def equal_within_tolerance(
     [math.isclose](https://docs.python.org/3/library/math.html#math.isclose) : Standard library function
 
     """
+    if isinstance(x, Real) and isinstance(y, Real):
+        return math.isclose(x, y, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    return math.isclose(x, y, rel_tol=rel_tol, abs_tol=abs_tol)
+    return all(
+        equal_within_tolerance(_x, _y, rel_tol=rel_tol, abs_tol=abs_tol)
+        for _x, _y in zip(x, y)
+    )
