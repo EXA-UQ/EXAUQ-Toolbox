@@ -5,7 +5,7 @@ import unittest.mock
 import mogp_emulator as mogp
 import numpy as np
 
-from exauq.core.emulators import MogpEmulator
+from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import Input, Prediction, TrainingDatum
 from tests.utilities.utilities import exact
 
@@ -307,6 +307,24 @@ class TestMogpEmulator(unittest.TestCase):
         self.assertTrue(np.allclose(expected_inputs, emulator.gp.inputs))
         self.assertTrue(np.allclose(expected_targets, emulator.gp.targets))
         self.assertEqual(expected_training_data, emulator.training_data)
+
+    def test_fit_with_hyperparams(self):
+        """Given an emulator and a set of hyperparameters, when the emulator is
+        fit with the hyperparameters then these can be retrieved as the
+        hyperparameters used in the last fitting."""
+
+        emulator = MogpEmulator()
+        hyperparameters = MogpHyperparameters(
+            mean=[5.0, 6.0], corr=[0.5, 0.4, 0.6], cov=2, nugget_type="fixed", nugget=1.0
+        )
+
+        training_data = TrainingDatum.list_from_arrays(
+            np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]]),
+            np.array([1, 2, 3.1, 9, 2]),
+        )
+        emulator.fit(training_data, hyperparameters=hyperparameters)
+
+        self.assertEqual(hyperparameters, emulator.fit_hyperparameters)
 
     def test_predict_returns_prediction_object(self):
         """Given a trained emulator, check that predict() returns a Prediction object."""

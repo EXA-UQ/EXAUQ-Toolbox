@@ -1,4 +1,5 @@
 """Provides emulators for simulators."""
+from __future__ import annotations
 
 import math
 from collections.abc import Sequence
@@ -6,6 +7,7 @@ from typing import Optional
 
 import numpy as np
 from mogp_emulator import GaussianProcess
+from mogp_emulator.GPParams import GPParams
 
 from exauq.core.modelling import AbstractEmulator, Input, Prediction, TrainingDatum
 from exauq.utilities.mogp_fitting import fit_GP_MAP
@@ -60,6 +62,7 @@ class MogpEmulator(AbstractEmulator):
         self._training_data = TrainingDatum.list_from_arrays(
             self._gp.inputs, self._gp.targets
         )
+        self.fit_hyperparameters = None
 
     @staticmethod
     def _remove_entries(_dict: dict, *args) -> dict:
@@ -99,6 +102,7 @@ class MogpEmulator(AbstractEmulator):
         self,
         training_data: list[TrainingDatum],
         hyperparameter_bounds: Sequence[tuple[Optional[float], Optional[float]]] = None,
+        hyperparameters=None,
     ) -> None:
         """Train the emulator, including estimation of hyperparameters.
 
@@ -138,6 +142,7 @@ class MogpEmulator(AbstractEmulator):
         self._gp = fit_GP_MAP(
             GaussianProcess(inputs, targets, **self._gp_kwargs), bounds=bounds
         )
+        self.fit_hyperparameters = hyperparameters
         self._training_data = training_data
 
         return None
@@ -197,6 +202,15 @@ class MogpEmulator(AbstractEmulator):
 
         return math.log(cov)
 
+        params = GPParams(
+            n_mean=len(hyperparameters.mean),
+            n_corr=len(hyperparameters.corr),
+            nugget=nugget,
+        )
+        params.set_data(np.array(raw_params, dtype=float))
+        params.mean = np.array(hyperparameters.mean, dtype=float)
+        return params
+
     def predict(self, x: Input) -> Prediction:
         """Make a prediction of a simulator output for a given input.
 
@@ -250,3 +264,14 @@ class MogpEmulator(AbstractEmulator):
         return Prediction(
             estimate=mogp_predict_result.mean[0], variance=mogp_predict_result.unc[0]
         )
+
+
+class MogpHyperparameters:
+    def __init__(
+        self, mean=None, corr=None, cov=None, nugget_type="adaptive", nugget=None
+    ):
+        self.mean = mean
+        self.corr = corr
+        self.cov = cov
+        self.nugget_type = nugget_type
+        self.nugget = nugget
