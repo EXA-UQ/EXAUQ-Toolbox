@@ -1,10 +1,13 @@
+import math
 import unittest
 import unittest.mock
-import math
+
 import mogp_emulator as mogp
 import numpy as np
+
 from exauq.core.emulators import MogpEmulator
-from exauq.core.modelling import TrainingDatum, Input
+from exauq.core.modelling import Input, Prediction, TrainingDatum
+from tests.utilities.utilities import exact
 
 
 class TestMogpEmulator(unittest.TestCase):
@@ -20,7 +23,7 @@ class TestMogpEmulator(unittest.TestCase):
             "priors": None,
             "nugget": "pivot",  # non-default
             "inputdict": {},
-            "use_patsy": False  # non-default
+            "use_patsy": False,  # non-default
         }
 
         # Default training data for fitting an emulator
@@ -31,6 +34,9 @@ class TestMogpEmulator(unittest.TestCase):
             TrainingDatum(Input(0.7, 0.4), 4),
             TrainingDatum(Input(0.9, 0.8), 5),
         ]
+
+        # Input not contained in training data, for making predictions
+        self.x = Input(0.1, 0.1)
 
     def assertAlmostBetween(self, x, lower, upper, **kwargs) -> None:
         """Checks whether a number lies between bounds up to a tolerance.
@@ -46,9 +52,7 @@ class TestMogpEmulator(unittest.TestCase):
             or math.isclose(x, lower, **kwargs)
             or math.isclose(x, upper, **kwargs)
         )
-        assert (
-            almost_between
-        ), "'x' not between lower and upper bounds to given tolerance"
+        assert almost_between, "'x' not between lower and upper bounds to given tolerance"
 
     def test_initialiser(self):
         """Test that an instance of MogpEmulator can be initialised from args
@@ -73,8 +77,7 @@ class TestMogpEmulator(unittest.TestCase):
 
     @unittest.mock.patch("exauq.core.emulators.GaussianProcess")
     def test_initialiser_base_exception_bubbled(self, mock):
-        """Test that an exception that isn't derived from Exception gets raised as-is.
-        """
+        """Test that an exception that isn't derived from Exception gets raised as-is."""
 
         mock.side_effect = BaseException("msg")
         with self.assertRaises(BaseException) as cm:
@@ -88,12 +91,11 @@ class TestMogpEmulator(unittest.TestCase):
 
         # Non-default choices for some kwargs
         emulator = MogpEmulator(
-            kernel=self.gp_kwargs['kernel'],
-            nugget=self.gp_kwargs['nugget']
+            kernel=self.gp_kwargs["kernel"], nugget=self.gp_kwargs["nugget"]
         )
 
         self.assertEqual("Matern 5/2 Kernel", str(emulator.gp.kernel))
-        self.assertEqual(self.gp_kwargs['nugget'], emulator.gp.nugget_type)
+        self.assertEqual(self.gp_kwargs["nugget"], emulator.gp.nugget_type)
 
     def test_initialiser_inputs_targets_ignored(self):
         """Test that inputs and targets kwargs are ignored when initialising
@@ -305,6 +307,85 @@ class TestMogpEmulator(unittest.TestCase):
         self.assertTrue(np.allclose(expected_inputs, emulator.gp.inputs))
         self.assertTrue(np.allclose(expected_targets, emulator.gp.targets))
         self.assertEqual(expected_training_data, emulator.training_data)
+
+    def test_predict_returns_prediction_object(self):
+        """Given a trained emulator, check that predict() returns a Prediction object."""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+
+        self.assertIsInstance(emulator.predict(self.x), Prediction)
+
+    def test_predict_non_input_error(self):
+        """Given an emulator, test that a TypeError is raised when trying to predict on
+        an object not of type Input."""
+
+        emulator = MogpEmulator()
+
+        for x in [0.5, None, "0.5"]:
+            with self.subTest(x=x), self.assertRaisesRegex(
+                TypeError,
+                exact(f"Expected 'x' to be of type Input, but received {type(x)}."),
+            ):
+                emulator.predict(x)
+
+    def test_predict_not_trained_error(self):
+        """Given an emulator that hasn't been trained on data, test that an
+        AssertionError is raised when using the emulator to make a prediction."""
+
+        emulator = MogpEmulator()
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            exact(
+                "Cannot make prediction because emulator has not been trained on any data."
+            ),
+        ):
+            emulator.predict(self.x)
+
+    def test_predict_input_wrong_dim_error(self):
+        """Given a trained emulator, test that a ValueError is raised if the dimension
+        of the input is not the same as for the training data."""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+        expected_dim = len(self.training_data[0].input)
+
+        for x in [Input(), Input(0.5), Input(0.5, 0.5, 0.5)]:
+            with self.subTest(x=x), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected 'x' to be an Input with {expected_dim} coordinates, but "
+                    f"it has {len(x)} instead."
+                ),
+            ):
+                emulator.predict(x)
+
+    def test_predict_training_data_points(self):
+        """Given an emulator trained on data, test that the training data inputs are
+        predicted exactly with no uncertainty."""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+        for datum in self.training_data:
+            self.assertEqual(
+                Prediction(estimate=datum.output, variance=0),
+                emulator.predict(datum.input),
+            )
+
+    def test_predict_away_training_data_points(self):
+        """Given an emulator trained on data, test that predictions away from the data
+        inputs have uncertainty."""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+
+        # Note: use list in the following because Inputs aren't hashable
+        training_inputs = [datum.input for datum in self.training_data]
+
+        for x in (Input(0.1 * n, 0.1 * n) for n in range(1, 10)):
+            assert x not in training_inputs
+            self.assertTrue(emulator.predict(x).variance > 0)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,13 @@
+import itertools
 import unittest
 
 import numpy as np
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 from tests.utilities.utilities import exact
+
+from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
+from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
+from tests.utilities.utilities import exact, make_window
 
 
 class TestInput(unittest.TestCase):
@@ -18,16 +23,12 @@ class TestInput(unittest.TestCase):
         with self.assertRaises(TypeError) as cm:
             Input(1, "a")
 
-        self.assertEqual(
-            "Arguments must be instances of real numbers", str(cm.exception)
-        )
+        self.assertEqual("Arguments must be instances of real numbers", str(cm.exception))
 
         with self.assertRaises(TypeError) as cm:
             Input(1, complex(1, 1))
 
-        self.assertEqual(
-            "Arguments must be instances of real numbers", str(cm.exception)
-        )
+        self.assertEqual("Arguments must be instances of real numbers", str(cm.exception))
 
     def test_input_none_error(self):
         """Test that a TypeError is raised if the input array contains None."""
@@ -158,9 +159,7 @@ class TestInput(unittest.TestCase):
 
         x = Input(2)
         i = 1
-        with self.assertRaisesRegex(
-            IndexError, exact(f"Input index {i} out of range.")
-        ):
+        with self.assertRaisesRegex(IndexError, exact(f"Input index {i} out of range.")):
             x[i]
 
     def test_sequence_implementation(self):
@@ -350,6 +349,108 @@ class TestTrainingDatum(unittest.TestCase):
             TrainingDatum(Input(3.5, 9.87), 1.1),
         ]
         self.assertEqual(expected, TrainingDatum.list_from_arrays(inputs, outputs))
+
+
+class TestPrediction(unittest.TestCase):
+    def test_inputs_preserve_real_type(self):
+        """Test that the estimate and variance are of the same types as provided
+        at initialisation."""
+
+        estimates = [1, 1.2, np.float16(1.3)]
+        variances = [1.2, np.float16(1.3), 1]
+
+        for estimate, var in zip(estimates, variances):
+            prediction = Prediction(estimate, var)
+            self.assertIsInstance(prediction.estimate, type(estimate))
+            self.assertIsInstance(prediction.variance, type(var))
+
+    def test_non_real_error(self):
+        """Test that a TypeError is raised if the supplied estimate or variance is not a
+        real number."""
+
+        for non_real in ["1", 1j]:
+            with self.subTest(non_real=non_real):
+                with self.assertRaisesRegex(
+                    TypeError,
+                    exact(
+                        f"Expected 'estimate' to define a real number, but received {type(non_real)} "
+                        "instead."
+                    ),
+                ):
+                    Prediction(estimate=non_real, variance=1)
+
+                with self.assertRaisesRegex(
+                    TypeError,
+                    exact(
+                        f"Expected 'variance' to define a real number, but received {type(non_real)} "
+                        "instead."
+                    ),
+                ):
+                    Prediction(estimate=1, variance=non_real)
+
+    def test_negative_variance_error(self):
+        """Test that a ValueError is raised if a negative variance is provided at
+        initialisation."""
+
+        var = -0.1
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(f"'variance' must be a non-negative real number, but received {var}."),
+        ):
+            Prediction(estimate=1, variance=var)
+
+    def test_immutable_fields(self):
+        """Test that the estimate and variance values in a prediction are immutable."""
+
+        prediction = Prediction(1, 1)
+        with self.assertRaises(AttributeError):
+            prediction.estimate = 0
+
+        with self.assertRaises(AttributeError):
+            prediction.variance = 0
+
+    def test_equality_with_different_type(self):
+        """Test that a Prediction object is not equal to an object of a different type."""
+
+        p = Prediction(estimate=1, variance=1)
+        for other in [1, "1", (1, 1)]:
+            self.assertNotEqual(p, other)
+
+    def test_equality_of_estimates(self):
+        """Given two predictions with the same variances, test that they are equal if
+        and only if the estimates are close according to the default tolerance."""
+
+        variance = 0
+        for estimate1 in [0.5 * n for n in range(-100, 101)]:
+            p1 = Prediction(estimate1, variance)
+            for estimate2 in make_window(estimate1, tol=FLOAT_TOLERANCE):
+                p2 = Prediction(estimate2, variance)
+                self.assertIs(p1 == p2, equal_within_tolerance(estimate1, estimate2))
+                self.assertIs(p2 == p1, equal_within_tolerance(estimate1, estimate2))
+
+    def test_equality_of_variances(self):
+        """Given two predictions with the same estimates, test that they are equal if
+        and only if the variances are close according to the default tolerance."""
+
+        estimate = 0
+        for var1 in [0.1 * n for n in range(101)]:
+            p1 = Prediction(estimate, var1)
+            for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
+                p2 = Prediction(estimate, var2)
+                self.assertIs(p1 == p2, equal_within_tolerance(var1, var2))
+                self.assertIs(p2 == p1, p1 == p2)
+
+    def test_equality_symmetric(self):
+        """Test that equality of predictions doesn't depend on the order of the objects
+        in the comparison."""
+
+        for estimate1, var1 in itertools.product([-0.5, 0, 0.5], [0, 0.1, 0.2]):
+            p1 = Prediction(estimate1, var1)
+            estimates = make_window(estimate1, tol=FLOAT_TOLERANCE)
+            variances = filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE))
+            for estimate2, var2 in itertools.product(estimates, variances):
+                p2 = Prediction(estimate2, var2)
+                self.assertIs(p1 == p2, p2 == p1)
 
 
 class TestSimulatorDomain(unittest.TestCase):
