@@ -308,23 +308,29 @@ class TestMogpEmulator(unittest.TestCase):
         self.assertTrue(np.allclose(expected_targets, emulator.gp.targets))
         self.assertEqual(expected_training_data, emulator.training_data)
 
-    def test_fit_with_hyperparams(self):
-        """Given an emulator and a set of hyperparameters, when the emulator is
-        fit with the hyperparameters then these can be retrieved as the
-        hyperparameters used in the last fitting."""
+    def test_fitted_hyperparameters_can_be_retrieved(self):
+        """Given an emulator, when it is fit to training data then the fitted
+        hyperparameters can be retrieved and agree with those in the underlying
+        MOGP GaussianProcess object."""
 
         emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+        self.assertEqual(
+            MogpHyperparameters.from_mogp_gp(emulator.gp), emulator.fit_hyperparameters
+        )
+
+    def test_fit_with_hyperparams(self):
+        """Given an emulator and a set of hyperparameters, when the emulator is
+        fit with the hyperparameters then these agree with the hyperparameters used
+        to train the underlying MOGP GaussianProcess object."""
+
         hyperparameters = MogpHyperparameters(
-            mean=[5.0, 6.0], corr=[0.5, 0.4, 0.6], cov=2, nugget_type="fixed", nugget=1.0
+            corr=[0.5, 0.4], cov=2, nugget_type="fixed", nugget=1.0
         )
-
-        training_data = TrainingDatum.list_from_arrays(
-            np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]]),
-            np.array([1, 2, 3.1, 9, 2]),
-        )
-        emulator.fit(training_data, hyperparameters=hyperparameters)
-
+        emulator = MogpEmulator(nugget=hyperparameters.nugget)
+        emulator.fit(self.training_data, hyperparameters=hyperparameters)
         self.assertEqual(hyperparameters, emulator.fit_hyperparameters)
+        self.assertEqual(hyperparameters, MogpHyperparameters.from_mogp_gp(emulator.gp))
 
     def test_predict_returns_prediction_object(self):
         """Given a trained emulator, check that predict() returns a Prediction object."""

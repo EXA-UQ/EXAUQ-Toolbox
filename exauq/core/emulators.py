@@ -1,6 +1,7 @@
 """Provides emulators for simulators."""
 from __future__ import annotations
 
+import dataclasses
 import math
 from collections.abc import Sequence
 from typing import Optional
@@ -10,6 +11,7 @@ from mogp_emulator import GaussianProcess
 from mogp_emulator.GPParams import GPParams
 
 from exauq.core.modelling import AbstractEmulator, Input, Prediction, TrainingDatum
+from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
@@ -134,15 +136,24 @@ class MogpEmulator(AbstractEmulator):
 
         inputs = np.array([datum.input.value for datum in training_data])
         targets = np.array([datum.output for datum in training_data])
-        bounds = (
-            self._compute_raw_param_bounds(hyperparameter_bounds)
-            if hyperparameter_bounds is not None
-            else None
+        if hyperparameters is None:
+            bounds = (
+                self._compute_raw_param_bounds(hyperparameter_bounds)
+                if hyperparameter_bounds is not None
+                else None
+            )
+            self._gp = fit_GP_MAP(
+                GaussianProcess(inputs, targets, **self._gp_kwargs), bounds=bounds
+            )
+        else:
+            self._gp = GaussianProcess(inputs, targets, **self._gp_kwargs)
+            self._gp.fit(hyperparameters.to_mogp_gp_params())
+
+        self.fit_hyperparameters = (
+            hyperparameters
+            if hyperparameters is not None
+            else MogpHyperparameters.from_mogp_gp(self._gp)
         )
-        self._gp = fit_GP_MAP(
-            GaussianProcess(inputs, targets, **self._gp_kwargs), bounds=bounds
-        )
-        self.fit_hyperparameters = hyperparameters
         self._training_data = training_data
 
         return None
@@ -202,15 +213,6 @@ class MogpEmulator(AbstractEmulator):
 
         return math.log(cov)
 
-        params = GPParams(
-            n_mean=len(hyperparameters.mean),
-            n_corr=len(hyperparameters.corr),
-            nugget=nugget,
-        )
-        params.set_data(np.array(raw_params, dtype=float))
-        params.mean = np.array(hyperparameters.mean, dtype=float)
-        return params
-
     def predict(self, x: Input) -> Prediction:
         """Make a prediction of a simulator output for a given input.
 
@@ -266,12 +268,73 @@ class MogpEmulator(AbstractEmulator):
         )
 
 
+@dataclasses.dataclass()
 class MogpHyperparameters:
-    def __init__(
-        self, mean=None, corr=None, cov=None, nugget_type="adaptive", nugget=None
-    ):
-        self.mean = mean
-        self.corr = corr
-        self.cov = cov
-        self.nugget_type = nugget_type
-        self.nugget = nugget
+    corr: Optional[np.array] = None
+    cov: Optional[float] = None
+    nugget_type: Optional[str] = "adaptive"
+    nugget: Optional[float] = None
+
+    @classmethod
+    def from_mogp_gp(cls, gp: GaussianProcess) -> MogpHyperparameters:
+        return cls(
+            corr=gp.theta.corr,
+            cov=gp.theta.cov,
+            nugget_type=gp.nugget_type,
+            nugget=gp.theta.nugget,
+        )
+
+    def __eq__(self, other: MogpHyperparameters) -> bool:
+        return all(
+            [
+                equal_within_tolerance(self.corr, other.corr),
+                equal_within_tolerance(self.cov, other.cov),
+                self.nugget_type == other.nugget_type,
+                equal_within_tolerance(self.nugget, other.nugget),
+            ]
+        )
+
+    def to_mogp_gp_params(self) -> GPParams:
+        raw_params = [self._raw_from_corr(x) for x in self.corr] + [
+            self._raw_from_cov(self.cov)
+        ]
+        nugget = self.nugget if self.nugget_type == "fixed" else self.nugget_type
+        if self.nugget_type == "fit":
+            raw_params.append(self._raw_from_nugget(self.nugget))
+
+        params = GPParams(
+            n_corr=len(self.corr),
+            nugget=nugget,
+        )
+        params.set_data(np.array(raw_params, dtype=float))
+        return params
+
+    @staticmethod
+    def _raw_from_corr(corr: Optional[float]) -> Optional[float]:
+        """Compute a raw parameter from a correlation length parameter.
+
+        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        """
+
+        if corr is None or corr <= 0:
+            return None
+
+        return -2 * math.log(corr)
+
+    @staticmethod
+    def _raw_from_cov(cov: Optional[float]) -> Optional[float]:
+        """Compute a raw parameter from a covariance parameter.
+
+        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        """
+        if cov is None or cov <= 0:
+            return None
+
+        return math.log(cov)
+
+    @staticmethod
+    def _raw_from_nugget(nugget: Optional[float]) -> Optional[float]:
+        if nugget is None:
+            return None
+
+        return math.log(nugget)
