@@ -4,7 +4,7 @@ from __future__ import annotations
 import dataclasses
 import math
 from collections.abc import Sequence
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from mogp_emulator import GaussianProcess
@@ -137,27 +137,53 @@ class MogpEmulator(AbstractEmulator):
         inputs = np.array([datum.input.value for datum in training_data])
         targets = np.array([datum.output for datum in training_data])
         if hyperparameters is None:
-            bounds = (
-                self._compute_raw_param_bounds(hyperparameter_bounds)
-                if hyperparameter_bounds is not None
-                else None
+            self._fit_gp_with_estimation(
+                inputs, targets, hyperparameter_bounds=hyperparameter_bounds
             )
-            self._gp = fit_GP_MAP(
-                GaussianProcess(inputs, targets, **self._gp_kwargs), bounds=bounds
+        elif self._gp_kwargs["nugget"] == "fit" and hyperparameters.nugget is None:
+            raise ValueError(
+                "The underlying MOGP GaussianProcess was created with 'nugget'='fit', "
+                "but the nugget supplied during fitting is "
+                f"{hyperparameters.nugget}, when it should instead be a float."
             )
         else:
-            self._gp = GaussianProcess(inputs, targets, **self._gp_kwargs)
-            self._gp.fit(hyperparameters.to_mogp_gp_params())
+            self._fit_gp_with_hyperparameters(inputs, targets, hyperparameters)
 
-        self.fit_hyperparameters = (
-            hyperparameters
-            if hyperparameters is not None
-            else MogpHyperparameters.from_mogp_gp(self._gp)
-        )
+        self.fit_hyperparameters = MogpHyperparameters.from_mogp_gp(self._gp)
         self._training_data = training_data
 
         return None
 
+    def _fit_gp_with_estimation(
+        self,
+        inputs,
+        targets,
+        hyperparameter_bounds: Optional[
+            Sequence[tuple[Optional[float], Optional[float]]]
+        ] = None,
+    ) -> None:
+        bounds = (
+            self._compute_raw_param_bounds(hyperparameter_bounds)
+            if hyperparameter_bounds is not None
+            else None
+        )
+        self._gp = fit_GP_MAP(
+            GaussianProcess(inputs, targets, **self._gp_kwargs), bounds=bounds
+        )
+        return None
+
+    def _fit_gp_with_hyperparameters(
+        self, inputs, targets, hyperparameters: MogpHyperparameters
+    ) -> None:
+        kwargs = self._gp_kwargs
+        if hyperparameters.nugget is not None:
+            kwargs["nugget"] = hyperparameters.nugget
+
+        self._gp = GaussianProcess(inputs, targets, **kwargs)
+        self._gp.fit(hyperparameters.to_mogp_gp_params(use_nugget=kwargs["nugget"]))
+        return None
+
+    # TODO: use static methods from MogpHyperparameters instead?
     @staticmethod
     def _compute_raw_param_bounds(
         bounds: Sequence[tuple[Optional[float], Optional[float]]]
@@ -272,7 +298,6 @@ class MogpEmulator(AbstractEmulator):
 class MogpHyperparameters:
     corr: Optional[np.array] = None
     cov: Optional[float] = None
-    nugget_type: Optional[str] = "adaptive"
     nugget: Optional[float] = None
 
     @classmethod
@@ -280,32 +305,35 @@ class MogpHyperparameters:
         return cls(
             corr=gp.theta.corr,
             cov=gp.theta.cov,
-            nugget_type=gp.nugget_type,
             nugget=gp.theta.nugget,
         )
 
     def __eq__(self, other: MogpHyperparameters) -> bool:
+        try:
+            nuggets_equal = (
+                self.nugget is None and other.nugget is None
+            ) or equal_within_tolerance(self.nugget, other.nugget)
+        except TypeError:
+            return False
+
         return all(
             [
+                nuggets_equal,
                 equal_within_tolerance(self.corr, other.corr),
                 equal_within_tolerance(self.cov, other.cov),
-                self.nugget_type == other.nugget_type,
-                equal_within_tolerance(self.nugget, other.nugget),
             ]
         )
 
-    def to_mogp_gp_params(self) -> GPParams:
+    def to_mogp_gp_params(self, use_nugget: Union[float, str] = "fit") -> GPParams:
         raw_params = [self._raw_from_corr(x) for x in self.corr] + [
             self._raw_from_cov(self.cov)
         ]
-        nugget = self.nugget if self.nugget_type == "fixed" else self.nugget_type
-        if self.nugget_type == "fit":
-            raw_params.append(self._raw_from_nugget(self.nugget))
 
-        params = GPParams(
-            n_corr=len(self.corr),
-            nugget=nugget,
-        )
+        if self.nugget is not None:
+            params = GPParams(n_corr=len(self.corr), nugget=self.nugget)
+        else:
+            params = GPParams(n_corr=len(self.corr), nugget=use_nugget)
+
         params.set_data(np.array(raw_params, dtype=float))
         return params
 

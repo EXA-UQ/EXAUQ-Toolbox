@@ -7,6 +7,7 @@ import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import Input, Prediction, TrainingDatum
+from exauq.core.numerics import equal_within_tolerance
 from tests.utilities.utilities import exact
 
 
@@ -319,18 +320,76 @@ class TestMogpEmulator(unittest.TestCase):
             MogpHyperparameters.from_mogp_gp(emulator.gp), emulator.fit_hyperparameters
         )
 
-    def test_fit_with_hyperparams(self):
-        """Given an emulator and a set of hyperparameters, when the emulator is
-        fit with the hyperparameters then these agree with the hyperparameters used
-        to train the underlying MOGP GaussianProcess object."""
+    def test_fit_with_given_hyperparameters_with_fixed_nugget(self):
+        """Given an emulator and a set of hyperparameters that includes a value for the
+        nugget, when the emulator is fit with the hyperparameters then these are used to
+        train the underlying MOGP GaussianProcess object."""
 
-        hyperparameters = MogpHyperparameters(
-            corr=[0.5, 0.4], cov=2, nugget_type="fixed", nugget=1.0
-        )
-        emulator = MogpEmulator(nugget=hyperparameters.nugget)
-        emulator.fit(self.training_data, hyperparameters=hyperparameters)
-        self.assertEqual(hyperparameters, emulator.fit_hyperparameters)
-        self.assertEqual(hyperparameters, MogpHyperparameters.from_mogp_gp(emulator.gp))
+        hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2, nugget=1.0)
+        for nugget in [2.0, "adaptive", "fit", "pivot"]:
+            with self.subTest(nugget=nugget):
+                emulator = MogpEmulator(nugget=nugget)
+                emulator.fit(self.training_data, hyperparameters=hyperparameters)
+                self.assertEqual(hyperparameters, emulator.fit_hyperparameters)
+                self.assertEqual(
+                    MogpHyperparameters.from_mogp_gp(emulator.gp), hyperparameters
+                )
+
+    def test_fit_with_given_hyperparameters_without_fixed_nugget(self):
+        """Given an emulator and a set of hyperparameters that doesn't include a value for
+        the nugget, when the emulator is fit with the hyperparameters then these are used
+        to train the underlying MOGP GaussianProcess object and the nugget is determined
+        as per the settings supplied when creating the emulator."""
+
+        hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2)
+        float_val = 1.0
+        for nugget in [float_val, "adaptive", "pivot"]:
+            with self.subTest(nugget=nugget):
+                emulator = MogpEmulator(nugget=nugget)
+                emulator.fit(self.training_data, hyperparameters=hyperparameters)
+
+                # Check the fitted hyperparameters are as calculated from MOGP
+                hyperparameters_gp = MogpHyperparameters.from_mogp_gp(emulator.gp)
+
+                # Check the correlation length parameters and covariance agree with those
+                # supplied for fitting.
+                self.assertEqual(hyperparameters_gp, emulator.fit_hyperparameters)
+                self.assertTrue(
+                    equal_within_tolerance(
+                        hyperparameters.corr, emulator.fit_hyperparameters.corr
+                    )
+                )
+                self.assertTrue(
+                    equal_within_tolerance(
+                        hyperparameters.cov, emulator.fit_hyperparameters.cov
+                    )
+                )
+
+                # Check nugget used in fitting agrees with the specific value supplied at
+                # emulator creation, if relevant.
+                if nugget == float_val:
+                    self.assertTrue(
+                        equal_within_tolerance(
+                            nugget, emulator.fit_hyperparameters.nugget
+                        )
+                    )
+
+    def test_fit_with_given_hyperparameters_missing_nugget_error(self):
+        """Given an emulator where the nugget is to be estimated (via the 'fit' value in
+        MOGP), raise a ValueError if one attempts to fit the emulator with specific
+        hyperparameters that don't include a nugget."""
+
+        emulator = MogpEmulator(nugget="fit")
+        hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2)
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "The underlying MOGP GaussianProcess was created with 'nugget'='fit', but "
+                "the nugget supplied during fitting is "
+                f"{hyperparameters.nugget}, when it should instead be a float."
+            ),
+        ):
+            emulator.fit(self.training_data, hyperparameters=hyperparameters)
 
     def test_predict_returns_prediction_object(self):
         """Given a trained emulator, check that predict() returns a Prediction object."""
