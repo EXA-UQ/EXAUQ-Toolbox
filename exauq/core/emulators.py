@@ -4,13 +4,15 @@ from __future__ import annotations
 import dataclasses
 import math
 from collections.abc import Sequence
+from numbers import Real
 from typing import Optional, Union
 
 import numpy as np
 from mogp_emulator import GaussianProcess
 from mogp_emulator.GPParams import GPParams
 
-from exauq.core.modelling import AbstractEmulator, Input, Prediction, TrainingDatum
+from exauq.core.modelling import (AbstractEmulator, Input, Prediction,
+                                  TrainingDatum)
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 
@@ -325,7 +327,7 @@ class MogpHyperparameters:
         )
 
     def to_mogp_gp_params(self, use_nugget: Union[float, str] = "fit") -> GPParams:
-        raw_params = [self._raw_from_corr(x) for x in self.corr] + [
+        raw_params = [self.transform_corr(x) for x in self.corr] + [
             self._raw_from_cov(self.cov)
         ]
 
@@ -338,16 +340,24 @@ class MogpHyperparameters:
         return params
 
     @staticmethod
-    def _raw_from_corr(corr: Optional[float]) -> Optional[float]:
+    def transform_corr(corr: Real) -> float:
         """Compute a raw parameter from a correlation length parameter.
 
         See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
 
-        if corr is None or corr <= 0:
-            return None
-
-        return -2 * math.log(corr)
+        # N.B. This catches single-element Numpy arrays as well, for which coercion to
+        # scalars is deprecated.
+        if not isinstance(corr, Real):
+            raise TypeError(
+                f"Expected 'corr' to be a real number, but received {type(corr)}."
+            )
+        try:
+            return -2 * math.log(corr)
+        except ValueError:
+            raise ValueError(
+                f"'corr' must be a positive real number, but received {corr}."
+            ) from None
 
     @staticmethod
     def _raw_from_cov(cov: Optional[float]) -> Optional[float]:

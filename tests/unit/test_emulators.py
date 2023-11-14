@@ -4,6 +4,7 @@ import unittest.mock
 
 import mogp_emulator as mogp
 import numpy as np
+from mogp_emulator.GPParams import GPParams
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import Input, Prediction, TrainingDatum
@@ -469,6 +470,42 @@ class TestMogpEmulator(unittest.TestCase):
         for x in (Input(0.1 * n, 0.1 * n) for n in range(1, 10)):
             assert x not in training_inputs
             self.assertTrue(emulator.predict(x).variance > 0)
+
+
+class TestMogpHyperparameters(unittest.TestCase):
+    def test_transform_corr_is_minus_2log_corr(self):
+        """The transformed correlation is equal to `-2 * log(corr)`."""
+
+        positive_reals = [0.1, 1, 10, np.float16(1.1)]
+        for corr in positive_reals:
+            self.assertEqual(
+                -2 * math.log(corr), MogpHyperparameters.transform_corr(corr)
+            )
+
+    def test_transform_corr_non_real_arg_raises_type_error(self):
+        "A TypeError is raised if the argument supplied is not a real number."
+
+        # N.B. although single-element Numpy arrays can be converted to scalars this is
+        # deprecated functionality and will throw an error in the future.
+
+        nonreal_objects = [2j, "1", np.array([2])]
+        for corr in nonreal_objects:
+            with self.subTest(corr=corr), self.assertRaisesRegex(
+                TypeError,
+                exact(f"Expected 'corr' to be a real number, but received {type(corr)}."),
+            ):
+                _ = MogpHyperparameters.transform_corr(corr)
+
+    def test_transform_corr_with_nonpositive_value_raises_value_error(self):
+        "A ValueError is raised if the argument supplied is not > 0."
+
+        nonpositive_reals = [-0.5, 0]
+        for corr in nonpositive_reals:
+            with self.assertRaisesRegex(
+                ValueError,
+                exact(f"'corr' must be a positive real number, but received {corr}."),
+            ):
+                _ = MogpHyperparameters.transform_corr(corr)
 
 
 if __name__ == "__main__":
