@@ -380,8 +380,17 @@ class MogpHyperparameters:
             ) from None
 
     @staticmethod
-    def _raw_from_nugget(nugget: Optional[float]) -> Optional[float]:
-        if nugget is None:
-            return None
+    def transform_nugget(nugget: Real) -> float:
+        # N.B. This catches single-element Numpy arrays as well, for which coercion to
+        # scalars is deprecated.
+        if not isinstance(nugget, Real):
+            raise TypeError(
+                f"Expected 'nugget' to be a real number, but received {type(nugget)}."
+            )
 
-        return math.log(nugget)
+        try:
+            return math.log(nugget)
+        except ValueError:
+            raise ValueError(
+                f"'nugget' must be a positive real number, but received {nugget}."
+            ) from None

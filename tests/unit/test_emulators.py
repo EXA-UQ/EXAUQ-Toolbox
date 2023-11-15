@@ -489,11 +489,16 @@ class TestMogpHyperparameters(unittest.TestCase):
                 "func": MogpHyperparameters.transform_cov,
                 "arg": "cov",
             },
+            "nugget": {
+                "func": MogpHyperparameters.transform_nugget,
+                "arg": "nugget",
+            },
         }
 
     def test_transformation_formulae(self):
         """The transformed correlation is equal to `-2 * log(corr)`.
-        The transformed covariance is equal to `log(cov)`."""
+        The transformed covariance is equal to `log(cov)`.
+        The transformed nugget is equal to `log(nugget)`."""
 
         for x in self.positive_reals:
             with self.subTest(hyperparameter="correlation", x=x):
@@ -502,6 +507,10 @@ class TestMogpHyperparameters(unittest.TestCase):
 
             with self.subTest(hyperparameter="covariance", x=x):
                 transformation_func = self.hyperparameters["covariance"]["func"]
+                self.assertEqual(math.log(x), transformation_func(x))
+
+            with self.subTest(hyperparameter="nugget", x=x):
+                transformation_func = self.hyperparameters["nugget"]["func"]
                 self.assertEqual(math.log(x), transformation_func(x))
 
     def test_transformation_of_infinity(self):
@@ -514,6 +523,10 @@ class TestMogpHyperparameters(unittest.TestCase):
 
         with self.subTest(hyperparameter="covariance"):
             transformation_func = self.hyperparameters["covariance"]["func"]
+            self.assertEqual(math.inf, transformation_func(math.inf))
+
+        with self.subTest(hyperparameter="nugget"):
+            transformation_func = self.hyperparameters["nugget"]["func"]
             self.assertEqual(math.inf, transformation_func(math.inf))
 
     def test_transforms_non_real_arg_raises_type_error(self):
