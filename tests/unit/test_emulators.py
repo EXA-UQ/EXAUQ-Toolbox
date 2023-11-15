@@ -1,10 +1,10 @@
+import itertools
 import math
 import unittest
 import unittest.mock
 
 import mogp_emulator as mogp
 import numpy as np
-from mogp_emulator.GPParams import GPParams
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import Input, Prediction, TrainingDatum
@@ -473,39 +473,64 @@ class TestMogpEmulator(unittest.TestCase):
 
 
 class TestMogpHyperparameters(unittest.TestCase):
-    def test_transform_corr_is_minus_2log_corr(self):
-        """The transformed correlation is equal to `-2 * log(corr)`."""
-
-        positive_reals = [0.1, 1, 10, np.float16(1.1)]
-        for corr in positive_reals:
-            self.assertEqual(
-                -2 * math.log(corr), MogpHyperparameters.transform_corr(corr)
-            )
-
-    def test_transform_corr_non_real_arg_raises_type_error(self):
-        "A TypeError is raised if the argument supplied is not a real number."
+    def setUp(self) -> None:
+        self.positive_reals = [0.1, 1, 10, np.float16(1.1)]
 
         # N.B. although single-element Numpy arrays can be converted to scalars this is
         # deprecated functionality and will throw an error in the future.
+        self.nonreal_objects = [2j, "1", np.array([2])]
+        self.nonpositive_reals = [-0.5, 0]
+        self.hyperparameters = {
+            "correlation": {
+                "func": MogpHyperparameters.transform_corr,
+                "arg": "corr",
+            },
+            "covariance": {
+                "func": MogpHyperparameters.transform_cov,
+                "arg": "cov",
+            },
+        }
 
-        nonreal_objects = [2j, "1", np.array([2])]
-        for corr in nonreal_objects:
-            with self.subTest(corr=corr), self.assertRaisesRegex(
+    def test_transformation_formulae(self):
+        """The transformed correlation is equal to `-2 * log(corr)`.
+        The transformed covariance is equal to `log(cov)`."""
+
+        for x in self.positive_reals:
+            with self.subTest(hyperparameter="correlation", x=x):
+                transformation_func = self.hyperparameters["correlation"]["func"]
+                self.assertEqual(-2 * math.log(x), transformation_func(x))
+
+            with self.subTest(hyperparameter="covariance", x=x):
+                transformation_func = self.hyperparameters["covariance"]["func"]
+                self.assertEqual(math.log(x), transformation_func(x))
+
+    def test_transforms_non_real_arg_raises_type_error(self):
+        "A TypeError is raised if the argument supplied is not a real number."
+
+        for hyperparameter, x in itertools.product(
+            self.hyperparameters, self.nonreal_objects
+        ):
+            arg = self.hyperparameters[hyperparameter]["arg"]
+            transformation_func = self.hyperparameters[hyperparameter]["func"]
+            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
                 TypeError,
-                exact(f"Expected 'corr' to be a real number, but received {type(corr)}."),
+                exact(f"Expected '{arg}' to be a real number, but received {type(x)}."),
             ):
-                _ = MogpHyperparameters.transform_corr(corr)
+                _ = transformation_func(x)
 
-    def test_transform_corr_with_nonpositive_value_raises_value_error(self):
+    def test_transforms_with_nonpositive_value_raises_value_error(self):
         "A ValueError is raised if the argument supplied is not > 0."
 
-        nonpositive_reals = [-0.5, 0]
-        for corr in nonpositive_reals:
-            with self.assertRaisesRegex(
+        for hyperparameter, x in itertools.product(
+            self.hyperparameters, self.nonpositive_reals
+        ):
+            arg = self.hyperparameters[hyperparameter]["arg"]
+            transformation_func = self.hyperparameters[hyperparameter]["func"]
+            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
                 ValueError,
-                exact(f"'corr' must be a positive real number, but received {corr}."),
+                exact(f"'{arg}' must be a positive real number, but received {x}."),
             ):
-                _ = MogpHyperparameters.transform_corr(corr)
+                _ = transformation_func(x)
 
 
 if __name__ == "__main__":

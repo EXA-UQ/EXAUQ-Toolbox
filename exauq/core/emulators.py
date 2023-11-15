@@ -11,8 +11,7 @@ import numpy as np
 from mogp_emulator import GaussianProcess
 from mogp_emulator.GPParams import GPParams
 
-from exauq.core.modelling import (AbstractEmulator, Input, Prediction,
-                                  TrainingDatum)
+from exauq.core.modelling import AbstractEmulator, Input, Prediction, TrainingDatum
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 
@@ -328,7 +327,7 @@ class MogpHyperparameters:
 
     def to_mogp_gp_params(self, use_nugget: Union[float, str] = "fit") -> GPParams:
         raw_params = [self.transform_corr(x) for x in self.corr] + [
-            self._raw_from_cov(self.cov)
+            self.transform_cov(self.cov)
         ]
 
         if self.nugget is not None:
@@ -360,15 +359,25 @@ class MogpHyperparameters:
             ) from None
 
     @staticmethod
-    def _raw_from_cov(cov: Optional[float]) -> Optional[float]:
+    def transform_cov(cov: Real) -> float:
         """Compute a raw parameter from a covariance parameter.
 
         See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
-        if cov is None or cov <= 0:
-            return None
 
-        return math.log(cov)
+        # N.B. This catches single-element Numpy arrays as well, for which coercion to
+        # scalars is deprecated.
+        if not isinstance(cov, Real):
+            raise TypeError(
+                f"Expected 'cov' to be a real number, but received {type(cov)}."
+            )
+
+        try:
+            return math.log(cov)
+        except ValueError:
+            raise ValueError(
+                f"'cov' must be a positive real number, but received {cov}."
+            ) from None
 
     @staticmethod
     def _raw_from_nugget(nugget: Optional[float]) -> Optional[float]:
