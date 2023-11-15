@@ -479,7 +479,7 @@ class TestMogpHyperparameters(unittest.TestCase):
         # N.B. although single-element Numpy arrays can be converted to scalars this is
         # deprecated functionality and will throw an error in the future.
         self.nonreal_objects = [2j, "1", np.array([2])]
-        self.nonpositive_reals = [-0.5, 0]
+        self.nonpositive_reals = [-0.5, 0, -math.inf]
         self.hyperparameters = {
             "correlation": {
                 "func": MogpHyperparameters.transform_corr,
@@ -503,6 +503,18 @@ class TestMogpHyperparameters(unittest.TestCase):
             with self.subTest(hyperparameter="covariance", x=x):
                 transformation_func = self.hyperparameters["covariance"]["func"]
                 self.assertEqual(math.log(x), transformation_func(x))
+
+    def test_transformation_of_infinity(self):
+        """The transformed correlation of `inf` is equal to `-inf`.
+        The transformed covariance of `inf` is equal to `inf`."""
+
+        with self.subTest(hyperparameter="correlation"):
+            transformation_func = self.hyperparameters["correlation"]["func"]
+            self.assertEqual(-math.inf, transformation_func(math.inf))
+
+        with self.subTest(hyperparameter="covariance"):
+            transformation_func = self.hyperparameters["covariance"]["func"]
+            self.assertEqual(math.inf, transformation_func(math.inf))
 
     def test_transforms_non_real_arg_raises_type_error(self):
         "A TypeError is raised if the argument supplied is not a real number."
