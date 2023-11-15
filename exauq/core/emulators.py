@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import math
 from collections.abc import Sequence
 from numbers import Real
@@ -295,6 +296,29 @@ class MogpEmulator(AbstractEmulator):
         )
 
 
+def _validate_positive_real_domain(arg_name: str):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapped(arg: Real):
+            # N.B. Not using try-except here because that would allow single-element Numpy
+            # arrays to pass through with deprecation warning.
+            if not isinstance(arg, Real):
+                raise TypeError(
+                    f"Expected '{arg_name}' to be a real number, but received {type(arg)}."
+                )
+
+            try:
+                return func(arg)
+            except ValueError:
+                raise ValueError(
+                    f"'{arg_name}' must be a positive real number, but received {arg}."
+                ) from None
+
+        return wrapped
+
+    return decorator
+
+
 @dataclasses.dataclass()
 class MogpHyperparameters:
     corr: Optional[np.array] = None
@@ -339,58 +363,24 @@ class MogpHyperparameters:
         return params
 
     @staticmethod
+    @_validate_positive_real_domain("corr")
     def transform_corr(corr: Real) -> float:
         """Compute a raw parameter from a correlation length parameter.
 
         See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
-
-        # N.B. This catches single-element Numpy arrays as well, for which coercion to
-        # scalars is deprecated.
-        if not isinstance(corr, Real):
-            raise TypeError(
-                f"Expected 'corr' to be a real number, but received {type(corr)}."
-            )
-        try:
-            return -2 * math.log(corr)
-        except ValueError:
-            raise ValueError(
-                f"'corr' must be a positive real number, but received {corr}."
-            ) from None
+        return -2 * math.log(corr)
 
     @staticmethod
+    @_validate_positive_real_domain("cov")
     def transform_cov(cov: Real) -> float:
         """Compute a raw parameter from a covariance parameter.
 
         See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
-
-        # N.B. This catches single-element Numpy arrays as well, for which coercion to
-        # scalars is deprecated.
-        if not isinstance(cov, Real):
-            raise TypeError(
-                f"Expected 'cov' to be a real number, but received {type(cov)}."
-            )
-
-        try:
-            return math.log(cov)
-        except ValueError:
-            raise ValueError(
-                f"'cov' must be a positive real number, but received {cov}."
-            ) from None
+        return math.log(cov)
 
     @staticmethod
+    @_validate_positive_real_domain("nugget")
     def transform_nugget(nugget: Real) -> float:
-        # N.B. This catches single-element Numpy arrays as well, for which coercion to
-        # scalars is deprecated.
-        if not isinstance(nugget, Real):
-            raise TypeError(
-                f"Expected 'nugget' to be a real number, but received {type(nugget)}."
-            )
-
-        try:
-            return math.log(nugget)
-        except ValueError:
-            raise ValueError(
-                f"'nugget' must be a positive real number, but received {nugget}."
-            ) from None
+        return math.log(nugget)
