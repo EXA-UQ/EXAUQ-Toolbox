@@ -739,8 +739,7 @@ class TestSimulatorDomain(unittest.TestCase):
 
     def test_closest_boundary_points_empty_collection(self):
         """This test validates that the `closest_boundary_points` method correctly handles an
-        empty collection of points, issuing a user warning and returning an empty tuple as
-        expected."""
+        empty collection of points and returns an empty tuple as expected."""
 
         domain = SimulatorDomain([(0, 1), (0, 1)])
         collection = []
@@ -859,8 +858,7 @@ class TestSimulatorDomain(unittest.TestCase):
 
     def test_calculate_pseudopoints_empty_collection(self):
         """This test ensures that if an empty collection is provided to the
-        calculate_pseudopoints method, it correctly warns the user and returns only the corner
-        pseudopoints."""
+        calculate_pseudopoints method, it returns only the corner pseudopoints."""
 
         domain = SimulatorDomain([(0, 1), (0, 1)])
         collection = []
@@ -873,7 +871,7 @@ class TestSimulatorDomain(unittest.TestCase):
 
     def test_calculate_pseudopoints_point_outside_domain(self):
         """This test verifies that the calculate_pseudopoints method properly handles points
-        outside the domain by raising a ValueError and issuing a warning."""
+        outside the domain by raising a ValueError"""
 
         domain = SimulatorDomain([(0, 1), (0, 1)])
         collection = [Input(0.5, 0.5), Input(1.5, 0.5)]
