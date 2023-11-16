@@ -2,7 +2,6 @@
 
 import abc
 import dataclasses
-import warnings
 from collections.abc import Sequence
 from itertools import product
 from numbers import Real
@@ -743,13 +742,6 @@ class SimulatorDomain(object):
             If any point in the collection is not within the bounds of the domain.
             If any point in the collection does not have the same dimensionality as the domain.
 
-        Warnings
-        --------
-        UserWarning
-            If the input collection is empty, a warning is raised and an empty tuple is returned.
-            If any point in the collection is not within the domain bounds, a warning is raised
-            before raising a ValueError.
-
         Examples
         --------
         >>> bounds = [(0, 1), (0, 1)]
@@ -766,21 +758,14 @@ class SimulatorDomain(object):
         """
 
         # Check if collection is empty
-        if not collection:
-            warnings.warn(
-                "The input collection is empty. Returning an empty tuple.", UserWarning
-            )
+        if not inputs:
             return tuple()
 
         # Check all points have same dimensionality as domain
         self._validate_points_dim(collection)
 
         # Check all points are within domain bounds
-        if not all(self._within_bounds(point) for point in collection):
-            warnings.warn(
-                "Not all points in the collection are within the domain bounds",
-                UserWarning,
-            )
+        if not all(self._within_bounds(point) for point in inputs):
             raise ValueError(
                 "All points in the collection must be within the domain bounds."
             )
@@ -834,9 +819,6 @@ class SimulatorDomain(object):
         ValueError
             If any of the input points have a different number of dimensions than the domain, or if any of the
             input points lie outside the domain's bounds.
-
-        UserWarning
-            If the collection of input points is empty, a warning is issued and just the corner pseudopoints are returned.
 
         Examples
         --------
