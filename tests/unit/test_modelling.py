@@ -910,30 +910,19 @@ class TestSimulatorDomain(unittest.TestCase):
         ):
             domain.calculate_pseudopoints(collection)
 
-    def test_calculate_pseudopoints_high_dimensionality(self):
-        """This test checks the calculate_pseudopoints method's performance and accuracy in a
-        high-dimensional space, ensuring it correctly calculates boundary and corner
-        pseudopoints."""
+    def test_calculate_pseudopoints_duplicate_points(self):
+        """This test ensures that the calculate_pseudopoints method only returns unique points"""
 
-        bounds = [(0, 1)] * 10
-        domain = SimulatorDomain(bounds)
-        collection = [Input(*([0.5] * 10))]
-        pseudopoints = domain.calculate_pseudopoints(collection)
-        expected_boundary_points = []
-        for i in range(10):
-            low = [0.5] * 10
-            low[i] = 0
-            expected_boundary_points.append(Input(*low))
-            high = [0.5] * 10
-            high[i] = 1
-            expected_boundary_points.append(Input(*high))
-        expected_corners = domain.get_corners()
-        expected = tuple(expected_boundary_points + list(expected_corners))
-        self.assertEqual(
-            pseudopoints,
-            expected,
-            "Pseudopoints calculation is incorrect for high-dimensional space.",
+        domain = SimulatorDomain([(0, 1), (0, 0)])
+        collection = [Input(0.25, 0)]
+        result = domain.calculate_pseudopoints(collection)
+        expected = (
+            Input(0, 0),
+            Input(1, 0),
+            Input(0.25, 0),
         )
+
+        self.assertTrue(compare_input_tuples(result, expected))
 
 
 if __name__ == "__main__":
