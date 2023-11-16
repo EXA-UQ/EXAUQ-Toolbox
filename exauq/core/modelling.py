@@ -481,6 +481,11 @@ class SimulatorDomain(object):
         (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
         from this domain have.
 
+    Parameters
+    ----------
+    bounds : Sequence[tuple[Real, Real]]
+        A sequence of tuples representing the lower and upper bounds for each coordinate dimension in the domain.
+
     Examples
     --------
     Create a 3-dimensional domain for a simulator with inputs ``(x1, x2, x3)`` where
