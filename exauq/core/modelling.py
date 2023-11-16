@@ -502,13 +502,13 @@ class SimulatorDomain(object):
     False
     """
 
-    def __init__(self, bounds: list[tuple[Real, Real]]):
+    def __init__(self, bounds: Sequence[tuple[Real, Real]]):
         self._validate_bounds(bounds)
         self._bounds = bounds
         self._dim = len(bounds)
 
     @staticmethod
-    def _validate_bounds(bounds: list[tuple[Real, Real]]) -> None:
+    def _validate_bounds(bounds: Sequence[tuple[Real, Real]]) -> None:
         """
         Validates the bounds for initialising the domain of the simulator.
 
@@ -555,19 +555,26 @@ class SimulatorDomain(object):
         >>> SimulatorDomain.validate_bounds([(1, 0), (0, 1)])
         ValueError: Lower bound cannot be greater than upper bound.
         """
+        if bounds is None:
+            raise TypeError("Bounds cannot be None. 'bounds' should be a sequence.")
+
         if not bounds:
-            raise ValueError("Domain must be at least one-dimensional.")
+            raise ValueError("At least one pair of bounds must be provided.")
+
+        if not isinstance(bounds, Sequence):
+            raise TypeError("Bounds should be a sequence.")
 
         for bound in bounds:
             if not isinstance(bound, tuple) or len(bound) != 2:
-                raise TypeError("Each bound must be a tuple of two numbers.")
+                raise ValueError("Each bound must be a tuple of two numbers.")
 
             low, high = bound
             if not (isinstance(low, Real) and isinstance(high, Real)):
                 raise TypeError("Bounds must be real numbers.")
 
             if low > high:
-                raise ValueError("Lower bound cannot be greater than upper bound.")
+                if not equal_within_tolerance(low, high):
+                    raise ValueError("Lower bound cannot be greater than upper bound.")
 
     def __contains__(self, item: Any):
         """Returns ``True`` when `item` is an `Input` of the correct dimension and
