@@ -186,7 +186,23 @@ class Input(Sequence):
         """Returns ``True`` precisely when `other` is an `Input` with the same
         coordinates as this `Input`"""
 
-        return type(other) is type(self) and self.value == other.value
+        if not isinstance(other, type(self)):
+            return False
+
+        # Check if both are Real or both are Sequences, otherwise return False
+        if isinstance(self.value, Real) != isinstance(other.value, Real):
+            return False
+        if isinstance(self.value, Sequence) != isinstance(other.value, Sequence):
+            return False
+
+        # Check for None values
+        if self.value is None and other.value is None:
+            return True
+        if self.value is None or other.value is None:
+            return False
+
+        # Compare values
+        return equal_within_tolerance(self.value, other.value)
 
     def __len__(self) -> int:
         """Returns the number of coordinates in this input."""
