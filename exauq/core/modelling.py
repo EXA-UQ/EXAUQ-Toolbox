@@ -730,19 +730,14 @@ class SimulatorDomain(object):
                 unique_corners.append(input_corner)
         return tuple(unique_corners)
 
-    def closest_boundary_points(self, collection: Collection[Input]) -> tuple[Input]:
+    def closest_boundary_points(self, inputs: Collection[Input]) -> tuple[Input]:
         """
-        Find the closest points on the boundary of the domain for each point in a collection.
-
-        This method iterates through each dimension of the domain, and for each dimension,
-        it finds the closest point on the boundary for each point in the input collection.
-        This is achieved by modifying the coordinate in the current dimension to match the
-        boundary value, while keeping the other coordinates the same. The distance is
-        calculated using the Euclidean distance.
+        Finds the closest point on the boundary for each point in the input collection.
+        Distance is calculated using the Euclidean distance.
 
         Parameters
         ----------
-        collection : Collection[Input]
+        inputs : Collection[Input]
             A collection of points for which the closest boundary points are to be found.
             Each point in the collection must be an instance of `Input` and have the same
             dimensionality as the domain.
@@ -750,9 +745,7 @@ class SimulatorDomain(object):
         Returns
         -------
         tuple[Input]
-            A tuple of points representing the closest points on the boundary for each
-            point in the input collection. The order of the points in the output tuple
-            corresponds to the order of dimensions and boundaries processed.
+            The boundary points closest to a point in the given `collection`.
 
         Raises
         ------
@@ -780,7 +773,7 @@ class SimulatorDomain(object):
             return tuple()
 
         # Check all points have same dimensionality as domain
-        self._validate_points_dim(collection)
+        self._validate_points_dim(inputs)
 
         # Check all points are within domain bounds
         if not all(self._within_bounds(point) for point in inputs):
@@ -789,22 +782,17 @@ class SimulatorDomain(object):
             )
 
         pseudopoints = []
-        for i in range(self._dim):
-            for bound in [self._bounds[i][0], self._bounds[i][1]]:
-                min_distance = float("inf")
-                closest_point = None
-                for point in collection:
+        for point in inputs:
+            for i in range(self._dim):
+                for bound in self._bounds[i]:
+                    distance = abs(bound - point[i])
                     modified_point = list(point)
                     modified_point[i] = bound
-                    distance = (
-                        sum((c1 - c2) ** 2 for c1, c2 in zip(modified_point, point))
-                        ** 0.5
-                    )
-                    if distance < min_distance:
-                        min_distance = distance
-                        closest_point = modified_point
-                pseudopoints.append(Input(*closest_point))
-        return tuple(pseudopoints)
+                    pseudopoints.append((distance, Input(*modified_point)))
+
+        # Sort by distance and return the closest points
+        pseudopoints.sort(key=lambda x: x[0])
+        return tuple(point for _, point in pseudopoints[: self._dim * 2])
 
     def calculate_pseudopoints(self, collection: Collection[Input]) -> tuple[Input]:
         """
