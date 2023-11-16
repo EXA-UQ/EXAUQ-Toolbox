@@ -712,7 +712,7 @@ class SimulatorDomain(object):
         -------
         tuple[Input]
             A tuple containing all the corner points of the domain. The number of corner
-            points is 2^dim, where dim is the number of dimensions of the domain.
+            points is ``2 ** dim``, where dim is the number of dimensions of the domain.
 
         Examples
         --------
@@ -720,7 +720,7 @@ class SimulatorDomain(object):
         >>> domain = SimulatorDomain(bounds)
         >>> corners = domain.get_corners()
         >>> corners
-        (Input(0.0, 0.0), Input(0.0, 1.0), Input(1.0, 0.0), Input(1.0, 1.0))
+        (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
         """
 
         unique_corners = []
