@@ -744,10 +744,7 @@ class TestSimulatorDomain(unittest.TestCase):
 
         domain = SimulatorDomain([(0, 1), (0, 1)])
         collection = []
-        with self.assertWarns(
-            UserWarning, msg="No warning raised for empty collection."
-        ):
-            result = domain.closest_boundary_points(collection)
+        result = domain.closest_boundary_points(collection)
         self.assertEqual(
             result, tuple(), "Result should be an empty tuple for empty collection."
         )
@@ -760,13 +757,10 @@ class TestSimulatorDomain(unittest.TestCase):
 
         domain = SimulatorDomain([(0, 1), (0, 1)])
         collection = [Input(0.5, 0.5), Input(1.5, 0.5)]
-        with self.assertWarns(
-            UserWarning, msg="No warning raised for point outside domain."
+        with self.assertRaises(
+            ValueError, msg="No ValueError raised for point outside domain."
         ):
-            with self.assertRaises(
-                ValueError, msg="No ValueError raised for point outside domain."
-            ):
-                domain.closest_boundary_points(collection)
+            domain.closest_boundary_points(collection)
 
     def test_closest_boundary_points_incorrect_dimensionality(self):
         """This test checks that the `closest_boundary_points` method correctly identifies and
@@ -870,10 +864,7 @@ class TestSimulatorDomain(unittest.TestCase):
 
         domain = SimulatorDomain([(0, 1), (0, 1)])
         collection = []
-        with self.assertWarns(
-            UserWarning, msg="No warning raised for empty collection."
-        ):
-            pseudopoints = domain.calculate_pseudopoints(collection)
+        pseudopoints = domain.calculate_pseudopoints(collection)
         expected = (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
         self.assertTrue(
             compare_input_tuples(pseudopoints, expected),
@@ -886,13 +877,10 @@ class TestSimulatorDomain(unittest.TestCase):
 
         domain = SimulatorDomain([(0, 1), (0, 1)])
         collection = [Input(0.5, 0.5), Input(1.5, 0.5)]
-        with self.assertWarns(
-            UserWarning, msg="No warning raised for point outside domain."
+        with self.assertRaises(
+            ValueError, msg="No ValueError raised for point outside domain."
         ):
-            with self.assertRaises(
-                ValueError, msg="No ValueError raised for point outside domain."
-            ):
-                domain.calculate_pseudopoints(collection)
+            domain.calculate_pseudopoints(collection)
 
     def test_calculate_pseudopoints_incorrect_dimensionality(self):
         """This test ensures that if a point with incorrect dimensionality is passed to the
