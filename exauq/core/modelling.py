@@ -832,13 +832,17 @@ class SimulatorDomain(object):
          Input(0, 0), Input(1, 0), Input(0, 1), Input(1, 1))
         """
 
-        # Calculate pseudopoints on boundary faces
         boundary_points = self.closest_boundary_points(collection)
-
-        # Get corner points
         corner_points = self.get_corners()
+        pseudopoints = boundary_points + corner_points
 
-        return boundary_points + corner_points
+        unique_pseudopoints_dict = {}
+        for point in pseudopoints:
+            key = str(point)
+            if key not in unique_pseudopoints_dict:
+                unique_pseudopoints_dict[key] = point
+
+        return tuple(unique_pseudopoints_dict.values())
 
 
 class AbstractSimulator(abc.ABC):
