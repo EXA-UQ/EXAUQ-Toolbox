@@ -831,7 +831,25 @@ class TestSimulatorDomain(unittest.TestCase):
         )
 
         result = domain.closest_boundary_points(collection)
-        self.assertEqual(result, expected)
+        self.assertTrue(compare_input_tuples(result, expected))
+
+    def test_closest_boundary_points_interior_points(self):
+        """This test checks if the `closest_boundary_points` method handles 'interior' points
+        correctly."""
+
+        bounds = [(0, 1)] * 2
+        domain = SimulatorDomain(bounds)
+
+        collection = [Input(0.4, 0.8), Input(0.5, 0.5), Input(0.7, 0.2)]
+        expected = (
+            Input(0, 0.8),
+            Input(1, 0.2),
+            Input(0.7, 0),
+            Input(0.4, 1),
+        )
+
+        result = domain.closest_boundary_points(collection)
+        self.assertTrue(compare_input_tuples(result, expected))
 
     def test_calculate_pseudopoints_basic(self):
         """This test checks if the calculate_pseudopoints method is working correctly by
