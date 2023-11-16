@@ -570,8 +570,23 @@ class TestSimulatorDomain(unittest.TestCase):
         self.assertEqual(str(context.exception), "Bounds must be real numbers.")
 
     def test_init_with_low_greater_than_high(self):
-        with self.assertRaises(ValueError, msg="No ValueError raised for low > high"):
-            SimulatorDomain([(1, 0), (0, 1)])
+        test_cases = [
+            ([(1, 0), (0, 1)], "Case with positive (<high>, <low>), (<low>, <high>)"),
+            ([(0, 1), (1, 0)], "Case with positive (<low>, <high>), (<high>, <low>)"),
+        ]
+
+        for bounds, msg in test_cases:
+            with self.subTest(msg=msg):
+                with self.assertRaises(
+                    ValueError,
+                    msg=f"No ValueError raised for low > high bounds: {bounds}",
+                ) as context:
+                    SimulatorDomain(bounds)
+
+                self.assertEqual(
+                    str(context.exception),
+                    "Lower bound cannot be greater than upper bound.",
+                )
 
     def test_dim_equal_number_of_supplied_bounds(self):
         """Test that the dimension of the domain is equal to the length of the bounds
