@@ -545,8 +545,21 @@ class TestSimulatorDomain(unittest.TestCase):
         )
 
     def test_init_with_invalid_bound_length(self):
-        with self.assertRaises(TypeError, msg="No TypeError raised for bound with invalid length"):
-            SimulatorDomain([(0, 1, 2), (0, 1)])
+        test_cases = [
+            ([(0, 1, 2), (0, 1)], "Case with a 3-tuple and a 2-tuple"),
+            ([(0, 1), (0, 1, 2)], "Case with a 2-tuple and a 3-tuple"),
+        ]
+
+        for bounds, msg in test_cases:
+            with self.subTest(msg=msg):
+                with self.assertRaises(
+                    ValueError, msg=f"No ValueError raised for bounds: {bounds}"
+                ) as context:
+                    SimulatorDomain(bounds)
+
+                self.assertEqual(
+                    str(context.exception), "Each bound must be a tuple of two numbers."
+                )
 
     def test_init_with_non_real_numbers(self):
         with self.assertRaises(
