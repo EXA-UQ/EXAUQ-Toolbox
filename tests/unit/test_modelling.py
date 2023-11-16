@@ -2,12 +2,9 @@ import itertools
 import unittest
 
 import numpy as np
-from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
-from tests.utilities.utilities import exact
-
 from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
-from tests.utilities.utilities import exact, make_window
+from tests.utilities.utilities import compare_input_tuples, exact, make_window
 
 
 class TestInput(unittest.TestCase):
