@@ -506,20 +506,55 @@ class TestSimulatorDomain(unittest.TestCase):
             self.fail(f"Initialisation with valid bounds failed with exception: {e}")
 
     def test_init_with_empty_bounds(self):
-        with self.assertRaises(ValueError, msg="No ValueError raised for empty bounds"):
+        with self.assertRaises(
+            ValueError, msg="No ValueError raised for empty bounds"
+        ) as context:
             SimulatorDomain([])
 
+        self.assertEqual(
+            str(context.exception), "At least one pair of bounds must be provided."
+        )
+
+    def test_init_with_none_bounds(self):
+        with self.assertRaises(
+            TypeError, msg="No TypeError raised for None instead of valid bounds"
+        ) as context:
+            SimulatorDomain(None)
+
+        self.assertEqual(
+            str(context.exception),
+            "Bounds cannot be None. 'bounds' should be a sequence.",
+        )
+
+    def test_init_with_non_ordered_bounds(self):
+        with self.assertRaises(
+            TypeError, msg="No TypeError raised for non-ordered collection."
+        ) as context:
+            SimulatorDomain({(0, 1), (0, 1)})
+
+        self.assertEqual(str(context.exception), "Bounds should be a sequence.")
+
     def test_init_with_invalid_bounds_type(self):
-        with self.assertRaises(TypeError, msg="No TypeError raised for invalid bounds type"):
+        with self.assertRaises(
+            ValueError, msg="No ValueError raised for invalid bounds type"
+        ) as context:
             SimulatorDomain([(0, 1), "Invalid bounds", (0, 100)])
+
+        self.assertEqual(
+            str(context.exception), "Each bound must be a tuple of two numbers."
+        )
 
     def test_init_with_invalid_bound_length(self):
         with self.assertRaises(TypeError, msg="No TypeError raised for bound with invalid length"):
             SimulatorDomain([(0, 1, 2), (0, 1)])
 
     def test_init_with_non_real_numbers(self):
-        with self.assertRaises(TypeError, msg="No TypeError raised for non-real numbers in bounds"):
+        with self.assertRaises(
+            TypeError, msg="No TypeError raised for non-real numbers in bounds"
+        ) as context:
             SimulatorDomain([(0, 1), (0, "1")])
+
+        self.assertEqual(str(context.exception), "Bounds must be real numbers.")
 
     def test_init_with_low_greater_than_high(self):
         with self.assertRaises(ValueError, msg="No ValueError raised for low > high"):
