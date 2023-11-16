@@ -528,32 +528,22 @@ class SimulatorDomain(object):
             domain. Each tuple should contain two real numbers (low, high) where `low` is
             the lower bound and `high` is the upper bound for that dimension.
 
-        Raises
-        ------
-        ValueError
-            If the list of bounds is empty, indicating that the domain is not at least
-            one-dimensional, or if the lower bound is greater than the upper bound in any
-            dimension.
-        TypeError
-            If any of the bounds is not a tuple of two numbers, or if the bounds are not
-            real numbers.
-
         Examples
         --------
-        >>> SimulatorDomain.validate_bounds([(0, 1), (0, 1)])
         This should pass without any issue as the bounds are valid.
+        >>> SimulatorDomain.validate_bounds([(0, 1), (0, 1)])
 
-        >>> SimulatorDomain.validate_bounds([])
         ValueError: Domain must be at least one-dimensional.
+        >>> SimulatorDomain.validate_bounds([])
 
+        ValueErro: Each bound must be a tuple of two numbers.
         >>> SimulatorDomain.validate_bounds([(0, 1, 2), (0, 1)])
-        TypeError: Each bound must be a tuple of two numbers.
 
-        >>> SimulatorDomain.validate_bounds([(0, '1'), (0, 1)])
         TypeError: Bounds must be real numbers.
+        >>> SimulatorDomain.validate_bounds([(0, '1'), (0, 1)])
 
-        >>> SimulatorDomain.validate_bounds([(1, 0), (0, 1)])
         ValueError: Lower bound cannot be greater than upper bound.
+        >>> SimulatorDomain.validate_bounds([(1, 0), (0, 1)])
         """
         if bounds is None:
             raise TypeError("Bounds cannot be None. 'bounds' should be a sequence.")
