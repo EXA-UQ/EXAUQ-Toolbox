@@ -45,3 +45,20 @@ def make_window(
         return np.linspace(x * (1 - tol), x / (1 - tol), num=num)
     else:
         raise ValueError("'type' must equal one of 'abs' or 'rel'")
+
+
+def compare_input_tuples(tuple1, tuple2):
+    """
+    Compares two tuples of Input objects by converting them to tuples of their values.
+
+    Args:
+    tuple1: The first tuple of Input objects.
+    tuple2: The second tuple of Input objects.
+
+    Returns:
+    True if the tuples contain the same Input values (regardless of order), False otherwise.
+    """
+    set1 = set(input_obj.value for input_obj in tuple1)
+    set2 = set(input_obj.value for input_obj in tuple2)
+
+    return set1 == set2
