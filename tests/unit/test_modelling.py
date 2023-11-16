@@ -643,7 +643,7 @@ class TestSimulatorDomain(unittest.TestCase):
         domain = SimulatorDomain([(0, 1), (0, 1)])
         corners = domain.get_corners()
         expected_corners = (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
-        self.assertEqual(corners, expected_corners)
+        self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_3d_domain(self):
         """This test validates that the get_corners method correctly generates and returns all
@@ -662,7 +662,7 @@ class TestSimulatorDomain(unittest.TestCase):
             Input(1, 1, 0),
             Input(1, 1, 1),
         )
-        self.assertEqual(corners, expected_corners)
+        self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_negative_bounds(self):
         """This test ensures that the `get_corners` method accurately identifies and returns all
@@ -672,7 +672,7 @@ class TestSimulatorDomain(unittest.TestCase):
         domain = SimulatorDomain([(-1, 0), (-1, 0)])
         corners = domain.get_corners()
         expected_corners = (Input(-1, -1), Input(-1, 0), Input(0, -1), Input(0, 0))
-        self.assertEqual(corners, expected_corners)
+        self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_2d_rectangle(self):
         """This test verifies that the `get_corners` method correctly calculates and returns all
@@ -682,7 +682,7 @@ class TestSimulatorDomain(unittest.TestCase):
         domain = SimulatorDomain([(0, 2), (0, 1)])
         corners = domain.get_corners()
         expected_corners = (Input(0, 0), Input(0, 1), Input(2, 0), Input(2, 1))
-        self.assertEqual(corners, expected_corners)
+        self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_3d_rectangular_prism(self):
         """This test ensures the `get_corners` method accurately identifies all corners of a
@@ -701,7 +701,7 @@ class TestSimulatorDomain(unittest.TestCase):
             Input(2, 1, 0),
             Input(2, 1, 3),
         )
-        self.assertEqual(corners, expected_corners)
+        self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_single_dimension(self):
         """This test verifies that the `get_corners` method correctly identifies the endpoints of
@@ -711,7 +711,7 @@ class TestSimulatorDomain(unittest.TestCase):
         domain = SimulatorDomain([(0, 1)])
         corners = domain.get_corners()
         expected_corners = (Input(0), Input(1))
-        self.assertEqual(corners, expected_corners)
+        self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_zero_width_bound(self):
         """This test ensures that the get_corners method accurately generates corner points for a
@@ -721,7 +721,7 @@ class TestSimulatorDomain(unittest.TestCase):
         domain = SimulatorDomain([(0, 0), (0, 1)])
         corners = domain.get_corners()
         expected_corners = (Input(0, 0), Input(0, 1))
-        self.assertEqual(corners, expected_corners)
+        self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_closest_boundary_points_basic(self):
         """This test checks the `closest_boundary_points` method for a straightforward scenario
@@ -732,8 +732,9 @@ class TestSimulatorDomain(unittest.TestCase):
         collection = [Input(0.5, 0.5)]
         result = domain.closest_boundary_points(collection)
         expected = (Input(0, 0.5), Input(1, 0.5), Input(0.5, 0), Input(0.5, 1))
-        self.assertTupleEqual(
-            result, expected, "Closest boundary points calculation is incorrect."
+        self.assertTrue(
+            compare_input_tuples(result, expected),
+            "Closest boundary points calculation is incorrect.",
         )
 
     def test_closest_boundary_points_empty_collection(self):
@@ -790,9 +791,9 @@ class TestSimulatorDomain(unittest.TestCase):
         collection = [Input(0, 0.5), Input(1, 0.5), Input(0.5, 0), Input(0.5, 1)]
         result = domain.closest_boundary_points(collection)
         expected = tuple(collection)
-        self.assertTupleEqual(
-            result,
-            expected,
+
+        self.assertTrue(
+            compare_input_tuples(result, expected),
             "Points on the boundary should be their own closest boundary points.",
         )
 
@@ -817,7 +818,7 @@ class TestSimulatorDomain(unittest.TestCase):
             expected.append(Input(*modified_point_high))
 
         result = domain.closest_boundary_points(collection)
-        self.assertEqual(result, tuple(expected))
+        self.assertTrue(compare_input_tuples(result, tuple(expected)))
 
     def test_closest_boundary_points_float_precision(self):
         """This test verifies the `closest_boundary_points` method's precision and reliability
@@ -857,8 +858,9 @@ class TestSimulatorDomain(unittest.TestCase):
             Input(1, 0),
             Input(1, 1),
         )
-        self.assertEqual(
-            pseudopoints, expected, "Pseudopoints calculation is incorrect."
+        self.assertTrue(
+            compare_input_tuples(pseudopoints, expected),
+            "Pseudopoints calculation is incorrect.",
         )
 
     def test_calculate_pseudopoints_empty_collection(self):
@@ -873,9 +875,8 @@ class TestSimulatorDomain(unittest.TestCase):
         ):
             pseudopoints = domain.calculate_pseudopoints(collection)
         expected = (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
-        self.assertEqual(
-            pseudopoints,
-            expected,
+        self.assertTrue(
+            compare_input_tuples(pseudopoints, expected),
             "Pseudopoints should only include corner points for empty collection.",
         )
 
