@@ -827,9 +827,8 @@ class SimulatorDomain(object):
         >>> collection = [Input(0.25, 0.25), Input(0.75, 0.75)]
         >>> pseudopoints = domain.calculate_pseudopoints(collection)
         >>> pseudopoints  # pseudopoints include boundary and corner points
-        (Input(0, 0.25), Input(1, 0.25), Input(0.25, 0), Input(0.25, 1),
-         Input(0, 0.75), Input(1, 0.75), Input(0.75, 0), Input(0.75, 1),
-         Input(0, 0), Input(1, 0), Input(0, 1), Input(1, 1))
+        (Input(0, 0.25), Input(0.25, 0), Input(1, 0.75), Input(0.75, 1),
+        Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
         """
 
         boundary_points = self.closest_boundary_points(collection)
