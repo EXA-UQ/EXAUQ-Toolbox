@@ -7,8 +7,9 @@ from itertools import product
 from numbers import Real
 from typing import Any, Collection, Union
 
-import exauq.utilities.validation as validation
 import numpy as np
+
+import exauq.utilities.validation as validation
 from exauq.core.numerics import equal_within_tolerance
 
 
@@ -331,8 +332,7 @@ class TrainingDatum(object):
         """
 
         return [
-            cls(Input.from_array(input), output)
-            for input, output in zip(inputs, outputs)
+            cls(Input.from_array(input), output) for input, output in zip(inputs, outputs)
         ]
 
     def __str__(self) -> str:
@@ -536,7 +536,7 @@ class SimulatorDomain(object):
         ValueError: Domain must be at least one-dimensional.
         >>> SimulatorDomain.validate_bounds([])
 
-        ValueErro: Each bound must be a tuple of two numbers.
+        ValueError: Each bound must be a tuple of two numbers.
         >>> SimulatorDomain.validate_bounds([(0, 1, 2), (0, 1)])
 
         TypeError: Bounds must be real numbers.
@@ -660,8 +660,7 @@ class SimulatorDomain(object):
             True if the point is within the bounds, False otherwise.
         """
         return all(
-            self._bounds[i][0] <= point[i] <= self._bounds[i][1]
-            for i in range(self._dim)
+            self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim)
         )
 
     def _validate_points_dim(self, collection: Collection[Input]) -> None:
@@ -801,7 +800,7 @@ class SimulatorDomain(object):
         A pseudopoint in this context is defined as a point on the boundary of the domain,
         or a corner of the domain. This method computes two types of pseudopoints: Boundary
         pseudopoints and Corner pseudopoints, using the `closest_boundary_points` and `get_corners`
-        methods respectivly.
+        methods respectively.
 
         Parameters
         ----------
