@@ -536,7 +536,7 @@ class SimulatorDomain(object):
         ValueError: Domain must be at least one-dimensional.
         >>> SimulatorDomain.validate_bounds([])
 
-        ValueErro: Each bound must be a tuple of two numbers.
+        ValueError: Each bound must be a tuple of two numbers.
         >>> SimulatorDomain.validate_bounds([(0, 1, 2), (0, 1)])
 
         TypeError: Bounds must be real numbers.
