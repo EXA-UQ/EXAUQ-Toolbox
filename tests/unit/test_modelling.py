@@ -454,6 +454,7 @@ class TestPrediction(unittest.TestCase):
 
 class TestSimulatorDomain(unittest.TestCase):
     def setUp(self) -> None:
+        self.epsilon = FLOAT_TOLERANCE / 2  # Useful for testing equality up to tolerance
         self.bounds = [(0, 2), (0, 1)]
         self.domain = SimulatorDomain(self.bounds)
 
@@ -579,6 +580,16 @@ class TestSimulatorDomain(unittest.TestCase):
                     str(context.exception),
                     "Lower bound cannot be greater than upper bound.",
                 )
+
+    def test_init_with_low_greater_than_high_but_within_tolerance(self):
+        """Test that a SimulatorDomain can be initialised with bounds even if one set of
+        bounds has the lower bound greater than the upper bound but within the tolerance
+        for equality."""
+
+        try:
+            _ = SimulatorDomain([(0 + self.epsilon, 0)])
+        except Exception:
+            raise self.fail("Should not have raised an exception")
 
     def test_dim_equal_number_of_supplied_bounds(self):
         """Test that the dimension of the domain is equal to the length of the bounds
@@ -719,8 +730,7 @@ class TestSimulatorDomain(unittest.TestCase):
         """Test that if the bounds on a dimension are within the standard tolerance of
         each other, then there is only one corner coordinate for that dimension."""
 
-        epsilon = FLOAT_TOLERANCE / 2
-        domain = SimulatorDomain([(0, 1), (0, epsilon)])
+        domain = SimulatorDomain([(0, 1), (0, self.epsilon)])
         corners = domain.get_corners()
         self.assertEqual(2, len(corners))
         for corner in corners:
@@ -860,12 +870,13 @@ class TestSimulatorDomain(unittest.TestCase):
         """Test that, if two boundary points are equal within the standard tolerance,
         then they get identified in the output."""
 
-        epsilon = FLOAT_TOLERANCE / 2
-        domain = SimulatorDomain([(0, 1), (0, epsilon)])
-        inputs = [Input(0.5, 0), Input(0.5, epsilon)]
+        domain = SimulatorDomain([(0, 1), (0, self.epsilon)])
+        inputs = [Input(0.5, 0), Input(0.5, self.epsilon)]
         boundary_points = domain.closest_boundary_points(inputs)
         self.assertEqual(1, len(boundary_points))
-        self.assertTrue(equal_within_tolerance(Input(0.5, epsilon), boundary_points[0]))
+        self.assertTrue(
+            equal_within_tolerance(Input(0.5, self.epsilon), boundary_points[0])
+        )
 
     def test_closest_boundary_points_returns_one_point_per_boundary(self):
         """Test that there is one exactly one point returned per boundary in the case
@@ -900,13 +911,12 @@ class TestSimulatorDomain(unittest.TestCase):
         considered when finding the points on each boundary closest to the collection of
         points."""
 
-        epsilon = FLOAT_TOLERANCE / 2
         bounds = [(0, 1), (0, 1)]
         domain = SimulatorDomain(bounds)
-        inputs = [Input(epsilon, 1)]
+        inputs = [Input(self.epsilon, 1)]
         self.assertEqual(tuple(), domain.closest_boundary_points(inputs))
 
-        inputs = [Input(epsilon, epsilon), Input(0.9, 0.8)]
+        inputs = [Input(self.epsilon, self.epsilon), Input(0.9, 0.8)]
         boundary_points = domain.closest_boundary_points(inputs)
         expected = (
             Input(0, 0.8),
@@ -991,9 +1001,8 @@ class TestSimulatorDomain(unittest.TestCase):
         self.assertTrue(compare_input_tuples(result, expected))
 
         # Suggested alternative:
-        epsilon = FLOAT_TOLERANCE / 2
         domain = SimulatorDomain([(0, 1), (0, 1)])
-        inputs = [Input(0.5, 0.4), Input(epsilon, epsilon)]
+        inputs = [Input(0.5, 0.4), Input(self.epsilon, self.epsilon)]
         pseudopoints = domain.calculate_pseudopoints(inputs)
         expected = (
             Input(0, 0),
