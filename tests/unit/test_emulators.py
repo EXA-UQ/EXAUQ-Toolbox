@@ -495,6 +495,21 @@ class TestMogpHyperparameters(unittest.TestCase):
             },
         }
 
+        self.real_nuggets = [2.1, np.float16(2)]
+        self.nugget_types_strs = ["adaptive", "fit", "pivot"]
+        self.nugget_types = [1.0, np.float16(1.0)] + self.nugget_types_strs
+
+    def assertEqualWithinTolerance(self, x1, x2):
+        """Test for equality using the `numerics.equal_within_tolerance` function."""
+
+        return self.assertTrue(
+            equal_within_tolerance(x1, x2),
+            msg=f"Values {x1} and {x2} not equal within tolerance.",
+        )
+
+    def make_hyperparameters(self, corr=[0.1], cov=1.1, nugget=1.0):
+        return MogpHyperparameters(corr, cov, nugget)
+
     def test_transformation_formulae(self):
         """The transformed correlation is equal to `-2 * log(corr)`.
         The transformed covariance is equal to `log(cov)`.
@@ -556,6 +571,98 @@ class TestMogpHyperparameters(unittest.TestCase):
                 exact(f"'{arg}' must be a positive real number, but received {x}."),
             ):
                 _ = transformation_func(x)
+
+    def test_type_error_raised_if_nugget_type_not_real_number_or_str(self):
+        """A TypeError is raised if the nugget type is not a real number or a string."""
+
+        nugget_type = [2j, np.array([2])]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'nugget_type' to be of type str of float, but got "
+                f"{type(nugget_type)}."
+            ),
+        ):
+            _ = self.make_hyperparameters().to_mogp_gp_params(nugget_type=nugget_type)
+
+    def test_value_error_raised_if_nugget_type_not_positive_real_or_one_of_fit_methods(
+        self,
+    ):
+        """A ValueError is raised if the nugget type is not a positive real number of one of
+        'fit', 'adaptive', 'pivot'."""
+
+        nugget_types = [-1, 0, "foo"]
+        for nugget_type in nugget_types:
+            with self.subTest(nugget_type=nugget_type), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "'nugget_type' must be a positive real number or one of "
+                    "{'adaptive', 'fit', 'pivot'}, but got " + f"{nugget_type}."
+                ),
+            ):
+                _ = self.make_hyperparameters().to_mogp_gp_params(nugget_type=nugget_type)
+
+    def test_to_mogp_gp_params_always_copies_over_corr_and_cov(self):
+        """The correlation length parameters and covariance are copied over to the
+        returned GPParams object."""
+
+        correlations = [[0.1], [0.1, 0.1]]
+        covariances = [1.1, 1.2]
+        for corr, cov, nugget, nugget_type in itertools.product(
+            correlations, covariances, self.real_nuggets, self.nugget_types
+        ):
+            with self.subTest(corr=corr, cov=cov, nugget=nugget, nugget_type=nugget_type):
+                hyperparameters = self.make_hyperparameters(
+                    corr=corr, cov=cov, nugget=nugget
+                )
+                params = hyperparameters.to_mogp_gp_params(nugget_type=nugget_type)
+                self.assertEqualWithinTolerance(params.corr, hyperparameters.corr)
+                self.assertEqualWithinTolerance(params.cov, hyperparameters.cov)
+
+    def test_to_mogp_gp_params_sets_nugget_when_a_float(self):
+        """When the nugget is set as a floating point value, then it is copied over to
+        the returned GPParams object, regardless of the value of the `nugget_type`
+        argument."""
+
+        for nugget, nugget_type in itertools.product(
+            self.real_nuggets, self.nugget_types
+        ):
+            with self.subTest(nugget=nugget, nugget_type=nugget_type):
+                hyperparameters = self.make_hyperparameters(nugget=nugget)
+                params = hyperparameters.to_mogp_gp_params(nugget_type=nugget_type)
+                self.assertEqualWithinTolerance(params.nugget, hyperparameters.nugget)
+
+    def test_to_mogp_gp_params_nugget_set_as_specified_if_stored_nugget_is_none(self):
+        """The value of `nugget_type` is used to set the nugget in the returned GPParams
+        object if no nugget is stored in the hyperparameters and `nugget_type` is not equal
+        to 'fit'."""
+
+        hyperparameters = self.make_hyperparameters(nugget=None)
+        for nugget_type in ["adaptive", "pivot"]:
+            with self.subTest(nugget_type=nugget_type):
+                params = hyperparameters.to_mogp_gp_params(nugget_type=nugget_type)
+                self.assertEqual(nugget_type, params.nugget_type)
+                self.assertIsNone(params.nugget)
+
+        nugget_type = 1.0
+        with self.subTest(nugget_type=nugget_type):
+            params = hyperparameters.to_mogp_gp_params(nugget_type=nugget_type)
+            self.assertEqual("fixed", params.nugget_type)
+            self.assertEqual(nugget_type, params.nugget)
+
+    def test_to_mogp_gp_params_cannot_set_to_fit_if_stored_nugget_none(self):
+        """Using a value of 'fit' for `nugget_type` when no nugget is stored in the
+        hyperparameters raises a ValueError."""
+
+        hyperparameters = self.make_hyperparameters(nugget=None)
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "Cannot specify 'nugget_type' to be 'fit' with this object's "
+                "nugget hyperparameter set to None."
+            ),
+        ):
+            _ = hyperparameters.to_mogp_gp_params(nugget_type="fit")
 
 
 if __name__ == "__main__":

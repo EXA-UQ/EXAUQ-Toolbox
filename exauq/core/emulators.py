@@ -6,7 +6,7 @@ import functools
 import math
 from collections.abc import Sequence
 from numbers import Real
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 import numpy as np
 from mogp_emulator import GaussianProcess
@@ -182,7 +182,7 @@ class MogpEmulator(AbstractEmulator):
             kwargs["nugget"] = hyperparameters.nugget
 
         self._gp = GaussianProcess(inputs, targets, **kwargs)
-        self._gp.fit(hyperparameters.to_mogp_gp_params(use_nugget=kwargs["nugget"]))
+        self._gp.fit(hyperparameters.to_mogp_gp_params(nugget_type=kwargs["nugget"]))
         return None
 
     # TODO: use static methods from MogpHyperparameters instead?
@@ -349,18 +349,49 @@ class MogpHyperparameters:
             ]
         )
 
-    def to_mogp_gp_params(self, use_nugget: Union[float, str] = "fit") -> GPParams:
+    def to_mogp_gp_params(
+        self, nugget_type: Union[float, Literal["fit", "adaptive", "pivot"]] = "fit"
+    ) -> GPParams:
+        if not isinstance(nugget_type, (Real, str)):
+            raise TypeError(
+                "Expected 'nugget_type' to be of type str of float, but got "
+                f"{type(nugget_type)}."
+            )
+
+        if not self._is_permitted_nugget_type_value(nugget_type):
+            raise ValueError(
+                "'nugget_type' must be a positive real number or one of "
+                "{'adaptive', 'fit', 'pivot'}, but got " + f"{nugget_type}."
+            )
+
         raw_params = [self.transform_corr(x) for x in self.corr] + [
             self.transform_cov(self.cov)
         ]
 
         if self.nugget is not None:
             params = GPParams(n_corr=len(self.corr), nugget=self.nugget)
+        elif nugget_type == "fit":
+            raise ValueError(
+                "Cannot specify 'nugget_type' to be 'fit' with this object's "
+                "nugget hyperparameter set to None."
+            )
         else:
-            params = GPParams(n_corr=len(self.corr), nugget=use_nugget)
+            params = GPParams(n_corr=len(self.corr), nugget=nugget_type)
 
         params.set_data(np.array(raw_params, dtype=float))
         return params
+
+    @staticmethod
+    def _is_permitted_nugget_type_value(x):
+        return (
+            isinstance(x, str)
+            and x
+            in {
+                "fit",
+                "adaptive",
+                "pivot",
+            }
+        ) or (isinstance(x, Real) and x > 0)
 
     @staticmethod
     @_validate_positive_real_domain("corr")
