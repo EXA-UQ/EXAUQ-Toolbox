@@ -572,7 +572,7 @@ class TestMogpHyperparameters(unittest.TestCase):
             ):
                 _ = transformation_func(x)
 
-    def test_type_error_raised_if_nugget_type_not_real_number_or_str(self):
+    def test_to_mogp_gp_params_type_error_if_nugget_type_not_real_number_or_str(self):
         """A TypeError is raised if the nugget type is not a real number or a string."""
 
         nugget_type = [2j, np.array([2])]
@@ -585,7 +585,7 @@ class TestMogpHyperparameters(unittest.TestCase):
         ):
             _ = self.make_hyperparameters().to_mogp_gp_params(nugget_type=nugget_type)
 
-    def test_value_error_raised_if_nugget_type_not_positive_real_or_one_of_fit_methods(
+    def test_to_mogp_gp_params_value_error_if_nugget_type_not_positive_real_or_one_of_fit_methods(
         self,
     ):
         """A ValueError is raised if the nugget type is not a positive real number of one of
