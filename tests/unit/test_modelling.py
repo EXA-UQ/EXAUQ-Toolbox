@@ -1,7 +1,9 @@
 import itertools
 import unittest
+from typing import Literal
 
 import numpy as np
+
 from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.utilities.utilities import compare_input_tuples, exact, make_window
@@ -20,16 +22,12 @@ class TestInput(unittest.TestCase):
         with self.assertRaises(TypeError) as cm:
             Input(1, "a")
 
-        self.assertEqual(
-            "Arguments must be instances of real numbers", str(cm.exception)
-        )
+        self.assertEqual("Arguments must be instances of real numbers", str(cm.exception))
 
         with self.assertRaises(TypeError) as cm:
             Input(1, complex(1, 1))
 
-        self.assertEqual(
-            "Arguments must be instances of real numbers", str(cm.exception)
-        )
+        self.assertEqual("Arguments must be instances of real numbers", str(cm.exception))
 
     def test_input_none_error(self):
         """Test that a TypeError is raised if the input array contains None."""
@@ -160,9 +158,7 @@ class TestInput(unittest.TestCase):
 
         x = Input(2)
         i = 1
-        with self.assertRaisesRegex(
-            IndexError, exact(f"Input index {i} out of range.")
-        ):
+        with self.assertRaisesRegex(IndexError, exact(f"Input index {i} out of range.")):
             x[i]
 
     def test_sequence_implementation(self):
@@ -398,9 +394,7 @@ class TestPrediction(unittest.TestCase):
         var = -0.1
         with self.assertRaisesRegex(
             ValueError,
-            exact(
-                f"'variance' must be a non-negative real number, but received {var}."
-            ),
+            exact(f"'variance' must be a non-negative real number, but received {var}."),
         ):
             Prediction(estimate=1, variance=var)
 
@@ -440,9 +434,7 @@ class TestPrediction(unittest.TestCase):
         estimate = 0
         for var1 in [0.1 * n for n in range(101)]:
             p1 = Prediction(estimate, var1)
-            for var2 in filter(
-                lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)
-            ):
+            for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
                 p2 = Prediction(estimate, var2)
                 self.assertIs(p1 == p2, equal_within_tolerance(var1, var2))
                 self.assertIs(p2 == p1, p1 == p2)
@@ -501,7 +493,7 @@ class TestSimulatorDomain(unittest.TestCase):
 
     def test_init_with_valid_bounds(self):
         try:
-            domain = SimulatorDomain([(0, 1), (-1, 1), (0, 100)])
+            _ = SimulatorDomain([(0, 1), (-1, 1), (0, 100)])
         except Exception as e:
             self.fail(f"Initialisation with valid bounds failed with exception: {e}")
 
@@ -723,6 +715,17 @@ class TestSimulatorDomain(unittest.TestCase):
         expected_corners = (Input(0, 0), Input(0, 1))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
+    def test_get_corners_identifies_corners_that_are_equal_within_tolerance(self):
+        """Test that if the bounds on a dimension are within the standard tolerance of
+        each other, then there is only one corner coordinate for that dimension."""
+
+        epsilon = FLOAT_TOLERANCE / 2
+        domain = SimulatorDomain([(0, 1), (0, epsilon)])
+        corners = domain.get_corners()
+        self.assertEqual(2, len(corners))
+        for corner in corners:
+            self.assertTrue(equal_within_tolerance(0, corner[1]))
+
     def test_closest_boundary_points_basic(self):
         """This test checks the `closest_boundary_points` method for a straightforward scenario
         in a two-dimensional domain, ensuring that the method accurately finds the closest
@@ -851,10 +854,73 @@ class TestSimulatorDomain(unittest.TestCase):
         result = domain.closest_boundary_points(collection)
         self.assertTrue(compare_input_tuples(result, expected))
 
+    def test_closest_boundary_points_identifies_points_that_are_equal_within_tolerance(
+        self,
+    ):
+        """Test that, if two boundary points are equal within the standard tolerance,
+        then they get identified in the output."""
+
+        epsilon = FLOAT_TOLERANCE / 2
+        domain = SimulatorDomain([(0, 1), (0, epsilon)])
+        inputs = [Input(0.5, 0), Input(0.5, epsilon)]
+        boundary_points = domain.closest_boundary_points(inputs)
+        self.assertEqual(1, len(boundary_points))
+        self.assertTrue(equal_within_tolerance(Input(0.5, epsilon), boundary_points[0]))
+
+    def test_closest_boundary_points_returns_one_point_per_boundary(self):
+        """Test that there is one exactly one point returned per boundary in the case
+        where all points are closer to one particular coordinate slice than the other."""
+
+        bounds = [(0, 1), (-1, 1)]
+        domain = SimulatorDomain(bounds)
+        inputs = [Input(0.9, 0.2), Input(0.9, 0.8)]
+        boundary_points = domain.closest_boundary_points(inputs)
+
+        self.assertEqual(4, len(boundary_points))
+
+        def is_on_boundary(
+            x: Input, coordinate: int, limit: Literal["lower", "upper"]
+        ) -> bool:
+            if limit == "lower":
+                return x[coordinate] == bounds[0]
+            elif limit == "upper":
+                return x[coordinate] == bounds[1]
+            else:
+                raise ValueError("'bound' should be one of 'lower' and 'upper'")
+
+        for coord, limit in itertools.product([0, 1], ["upper", "lower"]):
+            with self.subTest(coord=coord, limit=limit):
+                self.assertEqual(
+                    1,
+                    len([x for x in boundary_points if is_on_boundary(x, coord, limit)]),
+                )
+
+    def test_closest_boundary_points_does_not_return_boundary_corners(self):
+        """Test that any points equal to boundary corners (up to tolerance) are not
+        considered when finding the points on each boundary closest to the collection of
+        points."""
+
+        epsilon = FLOAT_TOLERANCE / 2
+        bounds = [(0, 1), (0, 1)]
+        domain = SimulatorDomain(bounds)
+        inputs = [Input(epsilon, 1)]
+        self.assertEqual(tuple(), domain.closest_boundary_points(inputs))
+
+        inputs = [Input(epsilon, epsilon), Input(0.9, 0.8)]
+        boundary_points = domain.closest_boundary_points(inputs)
+        expected = (
+            Input(0, 0.8),
+            Input(1, 0.8),
+            Input(0.9, 0),
+            Input(0.9, 1),
+        )
+        self.assertTrue(compare_input_tuples(boundary_points, expected))
+
     def test_calculate_pseudopoints_basic(self):
         """This test checks if the calculate_pseudopoints method is working correctly by
         providing a basic 2D square domain and a collection of points inside it. It validates
-        that the method calculates and returns the correct boundary and corner pseudopoints."""
+        that the method calculates and returns the correct boundary and corner pseudopoints.
+        """
 
         domain = SimulatorDomain([(0, 1), (0, 1)])
         collection = [Input(0.25, 0.25), Input(0.75, 0.75)]
@@ -923,6 +989,23 @@ class TestSimulatorDomain(unittest.TestCase):
         )
 
         self.assertTrue(compare_input_tuples(result, expected))
+
+        # Suggested alternative:
+        epsilon = FLOAT_TOLERANCE / 2
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        inputs = [Input(0.5, 0.4), Input(epsilon, epsilon)]
+        pseudopoints = domain.calculate_pseudopoints(inputs)
+        expected = (
+            Input(0, 0),
+            Input(0, 1),
+            Input(1, 0),
+            Input(1, 1),
+            Input(0, 0.4),
+            Input(1, 0.4),
+            Input(0.5, 0),
+            Input(0.5, 1),
+        )
+        self.assertTrue(compare_input_tuples(pseudopoints, expected))
 
 
 if __name__ == "__main__":
