@@ -7,8 +7,9 @@ from itertools import product
 from numbers import Real
 from typing import Any, Collection, Union
 
-import exauq.utilities.validation as validation
 import numpy as np
+
+import exauq.utilities.validation as validation
 from exauq.core.numerics import equal_within_tolerance
 
 
@@ -331,8 +332,7 @@ class TrainingDatum(object):
         """
 
         return [
-            cls(Input.from_array(input), output)
-            for input, output in zip(inputs, outputs)
+            cls(Input.from_array(input), output) for input, output in zip(inputs, outputs)
         ]
 
     def __str__(self) -> str:
@@ -660,8 +660,7 @@ class SimulatorDomain(object):
             True if the point is within the bounds, False otherwise.
         """
         return all(
-            self._bounds[i][0] <= point[i] <= self._bounds[i][1]
-            for i in range(self._dim)
+            self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim)
         )
 
     def _validate_points_dim(self, collection: Collection[Input]) -> None:
@@ -794,18 +793,18 @@ class SimulatorDomain(object):
         pseudopoints.sort(key=lambda x: x[0])
         return tuple(point for _, point in pseudopoints[: self._dim * 2])
 
-    def calculate_pseudopoints(self, collection: Collection[Input]) -> tuple[Input]:
+    def calculate_pseudopoints(self, inputs: Collection[Input]) -> tuple[Input]:
         """
         Calculates and returns a tuple of pseudopoints for a given collection of input points.
 
         A pseudopoint in this context is defined as a point on the boundary of the domain,
         or a corner of the domain. This method computes two types of pseudopoints: Boundary
         pseudopoints and Corner pseudopoints, using the `closest_boundary_points` and `get_corners`
-        methods respectivly.
+        methods respectively.
 
         Parameters
         ----------
-        collection : Collection[Input]
+        inputs : Collection[Input]
             A collection of input points for which to calculate the pseudopoints. Each input point
             must have the same number of dimensions as the domain and must lie within the domain's bounds.
 
@@ -824,14 +823,13 @@ class SimulatorDomain(object):
         --------
         >>> bounds = [(0, 1), (0, 1)]
         >>> domain = SimulatorDomain(bounds)
-        >>> collection = [Input(0.25, 0.25), Input(0.75, 0.75)]
-        >>> pseudopoints = domain.calculate_pseudopoints(collection)
+        >>> inputs = [Input(0.25, 0.25), Input(0.75, 0.75)]
+        >>> pseudopoints = domain.calculate_pseudopoints(inputs)
         >>> pseudopoints  # pseudopoints include boundary and corner points
-        (Input(0, 0.25), Input(0.25, 0), Input(1, 0.75), Input(0.75, 1),
-        Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
+        (Input(0, 0.25), Input(0.25, 0), Input(1, 0.75), Input(0.75, 1), Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
         """
 
-        boundary_points = self.closest_boundary_points(collection)
+        boundary_points = self.closest_boundary_points(inputs)
         corner_points = self.get_corners()
         pseudopoints = boundary_points + corner_points
 
