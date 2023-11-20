@@ -832,15 +832,16 @@ class TestSimulatorDomain(unittest.TestCase):
         boundary points, ensuring accurate calculations even in scenarios with potential
         floating-point precision challenges."""
 
+        x = (1 + 10 * FLOAT_TOLERANCE) * 0.5
         bounds = [(0, 1)] * 2
         domain = SimulatorDomain(bounds)
 
-        collection = [Input(0.5000000001, 0.5000000001)]
+        collection = [Input(x, x)]
         expected = (
-            Input(0, 0.5000000001),
-            Input(1, 0.5000000001),
-            Input(0.5000000001, 0),
-            Input(0.5000000001, 1),
+            Input(0, x),
+            Input(1, x),
+            Input(x, 0),
+            Input(x, 1),
         )
 
         result = domain.closest_boundary_points(collection)
