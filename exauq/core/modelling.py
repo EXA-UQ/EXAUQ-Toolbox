@@ -793,7 +793,7 @@ class SimulatorDomain(object):
         pseudopoints.sort(key=lambda x: x[0])
         return tuple(point for _, point in pseudopoints[: self._dim * 2])
 
-    def calculate_pseudopoints(self, collection: Collection[Input]) -> tuple[Input]:
+    def calculate_pseudopoints(self, inputs: Collection[Input]) -> tuple[Input]:
         """
         Calculates and returns a tuple of pseudopoints for a given collection of input points.
 
@@ -804,7 +804,7 @@ class SimulatorDomain(object):
 
         Parameters
         ----------
-        collection : Collection[Input]
+        inputs : Collection[Input]
             A collection of input points for which to calculate the pseudopoints. Each input point
             must have the same number of dimensions as the domain and must lie within the domain's bounds.
 
@@ -823,13 +823,13 @@ class SimulatorDomain(object):
         --------
         >>> bounds = [(0, 1), (0, 1)]
         >>> domain = SimulatorDomain(bounds)
-        >>> collection = [Input(0.25, 0.25), Input(0.75, 0.75)]
-        >>> pseudopoints = domain.calculate_pseudopoints(collection)
+        >>> inputs = [Input(0.25, 0.25), Input(0.75, 0.75)]
+        >>> pseudopoints = domain.calculate_pseudopoints(inputs)
         >>> pseudopoints  # pseudopoints include boundary and corner points
         (Input(0, 0.25), Input(0.25, 0), Input(1, 0.75), Input(0.75, 1), Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
         """
 
-        boundary_points = self.closest_boundary_points(collection)
+        boundary_points = self.closest_boundary_points(inputs)
         corner_points = self.get_corners()
         pseudopoints = boundary_points + corner_points
 
