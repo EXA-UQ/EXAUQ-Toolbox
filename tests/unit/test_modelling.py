@@ -644,7 +644,7 @@ class TestSimulatorDomain(unittest.TestCase):
         unit square domain."""
 
         domain = SimulatorDomain([(0, 1), (0, 1)])
-        corners = domain.get_corners()
+        corners = domain.get_corners
         expected_corners = (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
@@ -654,7 +654,7 @@ class TestSimulatorDomain(unittest.TestCase):
         returned properly."""
 
         domain = SimulatorDomain([(0, 1), (0, 1), (0, 1)])
-        corners = domain.get_corners()
+        corners = domain.get_corners
         expected_corners = (
             Input(0, 0, 0),
             Input(0, 0, 1),
@@ -673,7 +673,7 @@ class TestSimulatorDomain(unittest.TestCase):
         correctness when dealing with negative numbers."""
 
         domain = SimulatorDomain([(-1, 0), (-1, 0)])
-        corners = domain.get_corners()
+        corners = domain.get_corners
         expected_corners = (Input(-1, -1), Input(-1, 0), Input(0, -1), Input(0, 0))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
@@ -683,7 +683,7 @@ class TestSimulatorDomain(unittest.TestCase):
         limited to square domains."""
 
         domain = SimulatorDomain([(0, 2), (0, 1)])
-        corners = domain.get_corners()
+        corners = domain.get_corners
         expected_corners = (Input(0, 0), Input(0, 1), Input(2, 0), Input(2, 1))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
@@ -693,7 +693,7 @@ class TestSimulatorDomain(unittest.TestCase):
         of various shapes and dimensions."""
 
         domain = SimulatorDomain([(0, 2), (0, 1), (0, 3)])
-        corners = domain.get_corners()
+        corners = domain.get_corners
         expected_corners = (
             Input(0, 0, 0),
             Input(0, 0, 3),
@@ -712,7 +712,7 @@ class TestSimulatorDomain(unittest.TestCase):
         single dimension."""
 
         domain = SimulatorDomain([(0, 1)])
-        corners = domain.get_corners()
+        corners = domain.get_corners
         expected_corners = (Input(0), Input(1))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
@@ -722,7 +722,7 @@ class TestSimulatorDomain(unittest.TestCase):
         handling edge cases."""
 
         domain = SimulatorDomain([(0, 0), (0, 1)])
-        corners = domain.get_corners()
+        corners = domain.get_corners
         expected_corners = (Input(0, 0), Input(0, 1))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
@@ -731,7 +731,7 @@ class TestSimulatorDomain(unittest.TestCase):
         each other, then there is only one corner coordinate for that dimension."""
 
         domain = SimulatorDomain([(0, 1), (0, self.epsilon)])
-        corners = domain.get_corners()
+        corners = domain.get_corners
         self.assertEqual(2, len(corners))
         for corner in corners:
             self.assertTrue(equal_within_tolerance(0, corner[1]))
