@@ -794,17 +794,25 @@ class SimulatorDomain(object):
             )
 
         pseudopoints = []
-        for point in inputs:
-            for i in range(self._dim):
-                for bound in self._bounds[i]:
-                    distance = abs(bound - point[i])
-                    modified_point = list(point)
-                    modified_point[i] = bound
-                    pseudopoints.append((distance, Input(*modified_point)))
+        for i in range(self._dim):
+            for bound in [self._bounds[i][0], self._bounds[i][1]]:
+                min_distance = float("inf")
+                closest_point = None
+                for point in inputs:
+                    if point not in self._corners:
+                        modified_point = list(point)
+                        modified_point[i] = bound
+                        distance = self._calculate_distance(modified_point, point)
+                        if distance < min_distance:
+                            min_distance = distance
+                            closest_point = modified_point
 
-        # Sort by distance and return the closest points
-        pseudopoints.sort(key=lambda x: x[0])
-        return tuple(point for _, point in pseudopoints[: self._dim * 2])
+                if closest_point:
+                    closest_input = Input(*closest_point)
+                    if closest_input not in pseudopoints and closest_input not in self._corners:
+                        pseudopoints.append(closest_input)
+
+        return tuple(pseudopoints)
 
     def calculate_pseudopoints(self, inputs: Collection[Input]) -> tuple[Input]:
         """
