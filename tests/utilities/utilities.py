@@ -11,7 +11,7 @@ def exact(string: str):
     string.
     """
     escaped = string
-    for char in ["\\", "(", ")"]:
+    for char in ["\\", "(", ")", "[", "]"]:
         escaped = escaped.replace(char, _escape(char))
 
     return "^" + escaped + "$"
