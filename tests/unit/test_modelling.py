@@ -894,9 +894,9 @@ class TestSimulatorDomain(unittest.TestCase):
             x: Input, coordinate: int, limit: Literal["lower", "upper"]
         ) -> bool:
             if limit == "lower":
-                return x[coordinate] == bounds[0]
+                return x[coordinate] == bounds[coordinate][0]
             elif limit == "upper":
-                return x[coordinate] == bounds[1]
+                return x[coordinate] == bounds[coordinate][1]
             else:
                 raise ValueError("'bound' should be one of 'lower' and 'upper'")
 
