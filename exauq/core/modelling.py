@@ -7,9 +7,8 @@ from itertools import product
 from numbers import Real
 from typing import Any, Collection, Union
 
-import numpy as np
-
 import exauq.utilities.validation as validation
+import numpy as np
 from exauq.core.numerics import equal_within_tolerance
 
 
@@ -663,7 +662,8 @@ class SimulatorDomain(object):
             True if the point is within the bounds, False otherwise.
         """
         return all(
-            self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim)
+            self._bounds[i][0] <= point[i] <= self._bounds[i][1]
+            for i in range(self._dim)
         )
 
     def _validate_points_dim(self, collection: Collection[Input]) -> None:
@@ -809,7 +809,10 @@ class SimulatorDomain(object):
 
                 if closest_point:
                     closest_input = Input(*closest_point)
-                    if closest_input not in pseudopoints and closest_input not in self._corners:
+                    if (
+                        closest_input not in pseudopoints
+                        and closest_input not in self._corners
+                    ):
                         pseudopoints.append(closest_input)
 
         return tuple(pseudopoints)
