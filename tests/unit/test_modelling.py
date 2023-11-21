@@ -3,7 +3,6 @@ import unittest
 from typing import Literal
 
 import numpy as np
-
 from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.utilities.utilities import compare_input_tuples, exact, make_window
@@ -22,12 +21,16 @@ class TestInput(unittest.TestCase):
         with self.assertRaises(TypeError) as cm:
             Input(1, "a")
 
-        self.assertEqual("Arguments must be instances of real numbers", str(cm.exception))
+        self.assertEqual(
+            "Arguments must be instances of real numbers", str(cm.exception)
+        )
 
         with self.assertRaises(TypeError) as cm:
             Input(1, complex(1, 1))
 
-        self.assertEqual("Arguments must be instances of real numbers", str(cm.exception))
+        self.assertEqual(
+            "Arguments must be instances of real numbers", str(cm.exception)
+        )
 
     def test_input_none_error(self):
         """Test that a TypeError is raised if the input array contains None."""
@@ -158,7 +161,9 @@ class TestInput(unittest.TestCase):
 
         x = Input(2)
         i = 1
-        with self.assertRaisesRegex(IndexError, exact(f"Input index {i} out of range.")):
+        with self.assertRaisesRegex(
+            IndexError, exact(f"Input index {i} out of range.")
+        ):
             x[i]
 
     def test_sequence_implementation(self):
@@ -394,7 +399,9 @@ class TestPrediction(unittest.TestCase):
         var = -0.1
         with self.assertRaisesRegex(
             ValueError,
-            exact(f"'variance' must be a non-negative real number, but received {var}."),
+            exact(
+                f"'variance' must be a non-negative real number, but received {var}."
+            ),
         ):
             Prediction(estimate=1, variance=var)
 
@@ -434,7 +441,9 @@ class TestPrediction(unittest.TestCase):
         estimate = 0
         for var1 in [0.1 * n for n in range(101)]:
             p1 = Prediction(estimate, var1)
-            for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
+            for var2 in filter(
+                lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)
+            ):
                 p2 = Prediction(estimate, var2)
                 self.assertIs(p1 == p2, equal_within_tolerance(var1, var2))
                 self.assertIs(p2 == p1, p1 == p2)
@@ -454,7 +463,9 @@ class TestPrediction(unittest.TestCase):
 
 class TestSimulatorDomain(unittest.TestCase):
     def setUp(self) -> None:
-        self.epsilon = FLOAT_TOLERANCE / 2  # Useful for testing equality up to tolerance
+        self.epsilon = (
+            FLOAT_TOLERANCE / 2
+        )  # Useful for testing equality up to tolerance
         self.bounds = [(0, 2), (0, 1)]
         self.domain = SimulatorDomain(self.bounds)
 
@@ -904,7 +915,9 @@ class TestSimulatorDomain(unittest.TestCase):
             with self.subTest(coord=coord, limit=limit):
                 self.assertEqual(
                     1,
-                    len([x for x in boundary_points if is_on_boundary(x, coord, limit)]),
+                    len(
+                        [x for x in boundary_points if is_on_boundary(x, coord, limit)]
+                    ),
                 )
 
     def test_closest_boundary_points_does_not_return_boundary_corners(self):
