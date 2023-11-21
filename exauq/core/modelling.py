@@ -506,6 +506,9 @@ class SimulatorDomain(object):
         self._validate_bounds(bounds)
         self._bounds = bounds
         self._dim = len(bounds)
+        self._corners = None
+
+        self._define_corners()
 
     @staticmethod
     def _validate_bounds(bounds: Sequence[tuple[Real, Real]]) -> None:
@@ -698,9 +701,25 @@ class SimulatorDomain(object):
                 "All points in the collection must have the same dimensionality as the domain."
             )
 
+    def _define_corners(self):
+        """Generates and returns all the corner points of the domain."""
+
+        unique_corners = []
+        for corner in product(*self._bounds):
+            input_corner = Input(*corner)
+            if input_corner not in unique_corners:
+                unique_corners.append(input_corner)
+
+        self._corners = tuple(unique_corners)
+
+    @staticmethod
+    def _calculate_distance(point_01: Sequence, point_02: Sequence):
+        return sum((c1 - c2) ** 2 for c1, c2 in zip(point_01, point_02)) ** 0.5
+
+    @property
     def get_corners(self) -> tuple[Input]:
         """
-        Generates and returns all the corner points of the domain.
+        Returns all the corner points of the domain.
 
         A corner point of a domain is defined as a point where each coordinate
         is equal to either the lower or upper bound of its respective dimension.
@@ -717,17 +736,11 @@ class SimulatorDomain(object):
         --------
         >>> bounds = [(0, 1), (0, 1)]
         >>> domain = SimulatorDomain(bounds)
-        >>> corners = domain.get_corners()
-        >>> corners
+        >>> domain.get_corners
         (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
         """
 
-        unique_corners = []
-        for corner in product(*self._bounds):
-            input_corner = Input(*corner)
-            if input_corner not in unique_corners:
-                unique_corners.append(input_corner)
-        return tuple(unique_corners)
+        return self._corners
 
     def closest_boundary_points(self, inputs: Collection[Input]) -> tuple[Input]:
         """
