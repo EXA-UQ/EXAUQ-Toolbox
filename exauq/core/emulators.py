@@ -327,10 +327,26 @@ class MogpHyperparameters:
 
     @classmethod
     def from_mogp_gp(cls, gp: GaussianProcess) -> MogpHyperparameters:
+        return cls.from_mogp_gp_params(gp.theta)
+
+    @classmethod
+    def from_mogp_gp_params(cls, params: GPParams) -> MogpHyperparameters:
+        if not isinstance(params, GPParams):
+            raise TypeError(
+                "Expected 'params' to be of type mogp_emulator.GPParams.GPParams, but "
+                f"received {type(params)}."
+            )
+
+        if params.corr is None and params.cov is None:
+            raise ValueError(
+                "Cannot create hyperparameters with correlations and covariance equal to "
+                "None in 'params'."
+            )
+
         return cls(
-            corr=gp.theta.corr,
-            cov=gp.theta.cov,
-            nugget=gp.theta.nugget,
+            corr=params.corr,
+            cov=params.cov,
+            nugget=params.nugget,
         )
 
     def __eq__(self, other: MogpHyperparameters) -> bool:

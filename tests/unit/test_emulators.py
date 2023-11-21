@@ -495,6 +495,8 @@ class TestMogpHyperparameters(unittest.TestCase):
             },
         }
 
+        self.correlations = [[0.1], [0.1, 0.2]]
+        self.covariances = [1.1, 1.2]
         self.real_nuggets = [2.1, np.float16(2)]
         self.nugget_types_strs = ["adaptive", "fit", "pivot"]
         self.nugget_types = [1.0, np.float16(1.0)] + self.nugget_types_strs
@@ -509,6 +511,21 @@ class TestMogpHyperparameters(unittest.TestCase):
 
     def make_hyperparameters(self, corr=[0.1], cov=1.1, nugget=1.0):
         return MogpHyperparameters(corr, cov, nugget)
+
+    def make_mogp_gp_params(self, corr=[0.1], cov=1.1, nugget=1.0):
+        if all(arg is None for arg in [corr, cov, nugget]):
+            return mogp.GPParams.GPParams()
+
+        elif corr is not None and cov is not None:
+            nugget_type = "adaptive" if nugget is None else "fit"
+            return self.make_hyperparameters(corr, cov, nugget).to_mogp_gp_params(
+                nugget_type
+            )
+
+        else:
+            raise ValueError(
+                "Either all args should be None or 'corr' and 'cov' should both not be None."
+            )
 
     def test_transformation_formulae(self):
         """The transformed correlation is equal to `-2 * log(corr)`.
@@ -606,10 +623,8 @@ class TestMogpHyperparameters(unittest.TestCase):
         """The correlation length parameters and covariance are copied over to the
         returned GPParams object."""
 
-        correlations = [[0.1], [0.1, 0.1]]
-        covariances = [1.1, 1.2]
         for corr, cov, nugget, nugget_type in itertools.product(
-            correlations, covariances, self.real_nuggets, self.nugget_types
+            self.correlations, self.covariances, self.real_nuggets, self.nugget_types
         ):
             with self.subTest(corr=corr, cov=cov, nugget=nugget, nugget_type=nugget_type):
                 hyperparameters = self.make_hyperparameters(
@@ -663,6 +678,48 @@ class TestMogpHyperparameters(unittest.TestCase):
             ),
         ):
             _ = hyperparameters.to_mogp_gp_params(nugget_type="fit")
+
+    def test_from_mogp_gp_params_inverse_of_to_mogp_gp_params(self):
+        """Given some hyperparameters, creating a GPParams from them and then creating
+        hyperparameters from the result gives the same hyperparameters as we started
+        with."""
+
+        nuggets = self.real_nuggets + [None]
+        for corr, cov, nugget in itertools.product(
+            self.correlations, self.covariances, nuggets
+        ):
+            with self.subTest(corr=corr, cov=cov, nugget=nugget):
+                params = self.make_mogp_gp_params(corr, cov, nugget)
+                hyperparameters = MogpHyperparameters.from_mogp_gp_params(params)
+                expected = self.make_hyperparameters(corr, cov, nugget)
+                self.assertEqual(expected, hyperparameters)
+
+    def test_from_mogp_gp_params_arg_type_check(self):
+        """A TypeError is raised if the argument passed is not a GPParams object."""
+
+        params = "foo"
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'params' to be of type mogp_emulator.GPParams.GPParams, but "
+                f"received {type(params)}."
+            ),
+        ):
+            _ = MogpHyperparameters.from_mogp_gp_params("foo")
+
+    def test_from_mogp_gp_params_arg_corr_and_cov_must_not_be_none(self):
+        """A ValueError is raised if the argument is a GPParams object with the
+        correlations and the covariance being None."""
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "Cannot create hyperparameters with correlations and covariance equal to "
+                "None in 'params'."
+            ),
+        ):
+            params = self.make_mogp_gp_params(corr=None, cov=None, nugget=None)
+            _ = MogpHyperparameters.from_mogp_gp_params(params)
 
 
 if __name__ == "__main__":
