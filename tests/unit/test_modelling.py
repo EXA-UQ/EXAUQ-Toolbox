@@ -990,18 +990,6 @@ class TestSimulatorDomain(unittest.TestCase):
     def test_calculate_pseudopoints_duplicate_points(self):
         """This test ensures that the calculate_pseudopoints method only returns unique points"""
 
-        domain = SimulatorDomain([(0, 1), (0, 0)])
-        collection = [Input(0.25, 0)]
-        result = domain.calculate_pseudopoints(collection)
-        expected = (
-            Input(0, 0),
-            Input(1, 0),
-            Input(0.25, 0),
-        )
-
-        self.assertTrue(compare_input_tuples(result, expected))
-
-        # Suggested alternative:
         domain = SimulatorDomain([(0, 1), (0, 1)])
         inputs = [Input(0.5, 0.4), Input(self.epsilon, self.epsilon)]
         pseudopoints = domain.calculate_pseudopoints(inputs)
@@ -1015,6 +1003,7 @@ class TestSimulatorDomain(unittest.TestCase):
             Input(0.5, 0),
             Input(0.5, 1),
         )
+
         self.assertTrue(compare_input_tuples(pseudopoints, expected))
 
 
