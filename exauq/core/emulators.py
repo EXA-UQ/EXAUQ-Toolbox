@@ -15,6 +15,7 @@ from mogp_emulator.GPParams import GPParams
 from exauq.core.modelling import AbstractEmulator, Input, Prediction, TrainingDatum
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
+from exauq.utilities.validation import check_real
 
 
 class MogpEmulator(AbstractEmulator):
@@ -321,9 +322,45 @@ def _validate_positive_real_domain(arg_name: str):
 
 @dataclasses.dataclass()
 class MogpHyperparameters:
-    corr: Optional[np.array] = None
-    cov: Optional[float] = None
-    nugget: Optional[float] = None
+    corr: Union[Sequence[Real], np.ndarray[Real]]
+    cov: Real
+    nugget: Optional[Real] = None
+
+    def __post_init__(self):
+        if not isinstance(self.corr, (Sequence, np.ndarray)):
+            raise TypeError(
+                f"Expected 'corr' to be a sequence or array, but received {type(self.corr)}."
+            )
+
+        nonpositive_corrs = [x for x in self.corr if not isinstance(x, Real) or x <= 0]
+        if nonpositive_corrs:
+            nonpositive_element = nonpositive_corrs[0]
+            raise ValueError(
+                "Expected 'corr' to be a sequence or array of positive real numbers, "
+                f"but found element {nonpositive_element} of type {type(nonpositive_element)}."
+            )
+
+        check_real(
+            self.cov,
+            TypeError(
+                f"Expected 'cov' to be a real number, but received {type(self.cov)}."
+            ),
+        )
+        if self.cov <= 0:
+            raise ValueError(
+                f"Expected 'cov' to be a positive real number, but received {self.cov}."
+            )
+
+        if self.nugget is not None:
+            if not isinstance(self.nugget, Real):
+                raise TypeError(
+                    f"Expected 'nugget' to be a real number, but received {type(self.nugget)}."
+                )
+
+            if self.nugget < 0:
+                raise ValueError(
+                    f"Expected 'nugget' to be a positive real number, but received {self.nugget}."
+                )
 
     @classmethod
     def from_mogp_gp(cls, gp: GaussianProcess) -> MogpHyperparameters:
@@ -376,7 +413,7 @@ class MogpHyperparameters:
 
         if not self._is_permitted_nugget_type_value(nugget_type):
             raise ValueError(
-                "'nugget_type' must be a positive real number or one of "
+                "'nugget_type' must be a real number >= 0 or one of "
                 "{'adaptive', 'fit', 'pivot'}, but got " + f"{nugget_type}."
             )
 
@@ -407,7 +444,7 @@ class MogpHyperparameters:
                 "adaptive",
                 "pivot",
             }
-        ) or (isinstance(x, Real) and x > 0)
+        ) or (isinstance(x, Real) and x >= 0)
 
     @staticmethod
     @_validate_positive_real_domain("corr")

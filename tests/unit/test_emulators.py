@@ -479,7 +479,8 @@ class TestMogpHyperparameters(unittest.TestCase):
         # N.B. although single-element Numpy arrays can be converted to scalars this is
         # deprecated functionality and will throw an error in the future.
         self.nonreal_objects = [2j, "1", np.array([2])]
-        self.nonpositive_reals = [-0.5, 0, -math.inf]
+        self.negative_reals = [-0.5, -math.inf]
+        self.nonpositive_reals = self.negative_reals + [0]
         self.hyperparameters = {
             "correlation": {
                 "func": MogpHyperparameters.transform_corr,
@@ -497,9 +498,9 @@ class TestMogpHyperparameters(unittest.TestCase):
 
         self.correlations = [[0.1], [0.1, 0.2]]
         self.covariances = [1.1, 1.2]
-        self.real_nuggets = [2.1, np.float16(2)]
+        self.real_nuggets = [0, 2.1, np.float16(2)]
         self.nugget_types_strs = ["adaptive", "fit", "pivot"]
-        self.nugget_types = [1.0, np.float16(1.0)] + self.nugget_types_strs
+        self.nugget_types = [0, 1.0, np.float16(1.0)] + self.nugget_types_strs
 
     def assertEqualWithinTolerance(self, x1, x2):
         """Test for equality using the `numerics.equal_within_tolerance` function."""
@@ -509,10 +510,20 @@ class TestMogpHyperparameters(unittest.TestCase):
             msg=f"Values {x1} and {x2} not equal within tolerance.",
         )
 
-    def make_hyperparameters(self, corr=[0.1], cov=1.1, nugget=1.0):
+    def make_hyperparameters(self, corr=[0.1], cov=1.1, nugget=0):
+        """Make hyperparameters, possibly with default values for the correlations,
+        covariance and nugget."""
         return MogpHyperparameters(corr, cov, nugget)
 
     def make_mogp_gp_params(self, corr=[0.1], cov=1.1, nugget=1.0):
+        """Make a ``GPParams`` object, possibly with default values for the correlations,
+        covariance and nugget. Note: permitted values of arguments are either:
+
+        * both `corr` and `cov` are not ``None``; or
+        * all three of `corr`, `cov`, `nugget` are ``None`` (in which case an empty
+          ``GPParams`` object is returned).
+        """
+
         if all(arg is None for arg in [corr, cov, nugget]):
             return mogp.GPParams.GPParams()
 
@@ -526,6 +537,84 @@ class TestMogpHyperparameters(unittest.TestCase):
             raise ValueError(
                 "Either all args should be None or 'corr' and 'cov' should both not be None."
             )
+
+    def test_init_checks_arg_types(self):
+        """A TypeError is raised upon initialisation if:
+
+        * the correlations is not a sequence; or
+        * the covariance is not a real number; or
+        * the nugget is not ``None`` or a real number.
+        """
+
+        # correlations
+        nonseq_objects = [1.0, {1.0}]
+        for corr in nonseq_objects:
+            with self.subTest(corr=corr), self.assertRaisesRegex(
+                TypeError,
+                exact(
+                    f"Expected 'corr' to be a sequence or array, but received {type(corr)}."
+                ),
+            ):
+                _ = MogpHyperparameters(corr=corr, cov=1.0, nugget=1.0)
+
+        # covariance
+        nonreal_objects = self.nonreal_objects + [None]
+        for cov in nonreal_objects:
+            with self.subTest(cov=cov), self.assertRaisesRegex(
+                TypeError,
+                exact(f"Expected 'cov' to be a real number, but received {type(cov)}."),
+            ):
+                _ = MogpHyperparameters(corr=[1.0], cov=cov, nugget=1.0)
+
+        # nugget
+        for nugget in self.nonreal_objects:
+            with self.subTest(nugget=nugget), self.assertRaisesRegex(
+                TypeError,
+                exact(
+                    f"Expected 'nugget' to be a real number, but received {type(nugget)}."
+                ),
+            ):
+                _ = MogpHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
+
+    def test_init_checks_arg_values(self):
+        """A ValueError is raised upon initialisation if:
+
+        * the correlation is not a sequence / array of positive real numbers; or
+        * the covariance is not a positive real number; or
+        * the nugget is < 0 (if not None).
+        """
+
+        # correlations
+        bad_values = [[x] for x in self.nonreal_objects + self.nonpositive_reals]
+        for corr in bad_values:
+            with self.subTest(corr=corr), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "Expected 'corr' to be a sequence or array of positive real numbers, "
+                    f"but found element {corr[0]} of type {type(corr[0])}."
+                ),
+            ):
+                _ = MogpHyperparameters(corr=corr, cov=1.0, nugget=1.0)
+
+        # covariance
+        for cov in self.nonpositive_reals:
+            with self.subTest(cov=cov), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected 'cov' to be a positive real number, but received {cov}."
+                ),
+            ):
+                _ = MogpHyperparameters(corr=[1.0], cov=cov, nugget=1.0)
+
+        # nugget
+        for nugget in self.negative_reals:
+            with self.subTest(nugget=nugget), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected 'nugget' to be a positive real number, but received {nugget}."
+                ),
+            ):
+                _ = MogpHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
 
     def test_transformation_formulae(self):
         """The transformed correlation is equal to `-2 * log(corr)`.
@@ -605,15 +694,15 @@ class TestMogpHyperparameters(unittest.TestCase):
     def test_to_mogp_gp_params_value_error_if_nugget_type_not_positive_real_or_one_of_fit_methods(
         self,
     ):
-        """A ValueError is raised if the nugget type is not a positive real number of one of
+        """A ValueError is raised if the nugget type is a negative real number or one of
         'fit', 'adaptive', 'pivot'."""
 
-        nugget_types = [-1, 0, "foo"]
+        nugget_types = [-1, "foo"]
         for nugget_type in nugget_types:
             with self.subTest(nugget_type=nugget_type), self.assertRaisesRegex(
                 ValueError,
                 exact(
-                    "'nugget_type' must be a positive real number or one of "
+                    "'nugget_type' must be a real number >= 0 or one of "
                     "{'adaptive', 'fit', 'pivot'}, but got " + f"{nugget_type}."
                 ),
             ):
