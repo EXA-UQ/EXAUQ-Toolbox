@@ -1,9 +1,11 @@
 """Functions etc. to support testing"""
 
 from numbers import Real
-from typing import Literal, Optional
+from typing import Literal, Optional, Tuple
 
 import numpy as np
+from exauq.core.modelling import Input
+from exauq.core.numerics import equal_within_tolerance
 
 
 def exact(string: str):
@@ -47,18 +49,37 @@ def make_window(
         raise ValueError("'type' must equal one of 'abs' or 'rel'")
 
 
-def compare_input_tuples(tuple1, tuple2):
+def compare_input_tuples(tuple1: Tuple[Input, ...], tuple2: Tuple[Input, ...]) -> bool:
     """
-    Compares two tuples of Input objects by converting them to tuples of their values.
+    Compares two tuples of Input objects, considering each object's value and accounting for duplicates.
+
+    This function checks if each Input object in `tuple1` has a corresponding Input object in `tuple2` with a similar
+    value, within a specified tolerance. The comparison is order-independent and ensures that duplicates are matched
+    correctly. If any Input object in `tuple1` does not have a corresponding match in `tuple2`, or if the tuples are
+    of different lengths, the function returns False.
 
     Args:
-    tuple1: The first tuple of Input objects.
-    tuple2: The second tuple of Input objects.
+        tuple1 (Tuple[Input, ...]): The first tuple of Input objects.
+        tuple2 (Tuple[Input, ...]): The second tuple of Input objects.
 
-    Returns:
-    True if the tuples contain the same Input values (regardless of order), False otherwise.
+    Returns: bool: True if the tuples are equivalent (each element in `tuple1` has a matching element in `tuple2`
+    within tolerance), False otherwise.
     """
-    set1 = set(input_obj.value for input_obj in tuple1)
-    set2 = set(input_obj.value for input_obj in tuple2)
 
-    return set1 == set2
+    if len(tuple1) != len(tuple2):
+        return False
+
+    used_indices = set()
+
+    for item1 in tuple1:
+        match_found = False
+        for i, item2 in enumerate(tuple2):
+            if i not in used_indices and equal_within_tolerance(item1.value, item2.value):
+                used_indices.add(i)
+                match_found = True
+                break
+
+        if not match_found:
+            return False
+
+    return True
