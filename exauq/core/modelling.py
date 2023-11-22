@@ -793,7 +793,7 @@ class SimulatorDomain(object):
                 "All points in the collection must be within the domain bounds."
             )
 
-        pseudopoints = []
+        closest_boundary_points = []
         for i in range(self._dim):
             for bound in [self._bounds[i][0], self._bounds[i][1]]:
                 min_distance = float("inf")
@@ -810,12 +810,12 @@ class SimulatorDomain(object):
                 if closest_point:
                     closest_input = Input(*closest_point)
                     if (
-                        closest_input not in pseudopoints
+                        closest_input not in closest_boundary_points
                         and closest_input not in self._corners
                     ):
-                        pseudopoints.append(closest_input)
+                        closest_boundary_points.append(closest_input)
 
-        return tuple(pseudopoints)
+        return tuple(closest_boundary_points)
 
     def calculate_pseudopoints(self, inputs: Collection[Input]) -> tuple[Input]:
         """
