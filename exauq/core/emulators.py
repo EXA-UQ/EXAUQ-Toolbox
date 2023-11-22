@@ -67,7 +67,7 @@ class MogpEmulator(AbstractEmulator):
         self._training_data = TrainingDatum.list_from_arrays(
             self._gp.inputs, self._gp.targets
         )
-        self.fit_hyperparameters = None
+        self._fit_hyperparameters = None
 
     @staticmethod
     def _remove_entries(_dict: dict, *args) -> dict:
@@ -102,6 +102,10 @@ class MogpEmulator(AbstractEmulator):
         """(Read-only) Get the data on which the emulator has been trained."""
 
         return self._training_data
+
+    @property
+    def fit_hyperparameters(self):
+        return self._fit_hyperparameters
 
     def fit(
         self,
@@ -152,7 +156,9 @@ class MogpEmulator(AbstractEmulator):
         else:
             self._fit_gp_with_hyperparameters(inputs, targets, hyperparameters)
 
-        self.fit_hyperparameters = MogpHyperparameters.from_mogp_gp_params(self._gp.theta)
+        self._fit_hyperparameters = MogpHyperparameters.from_mogp_gp_params(
+            self._gp.theta
+        )
         self._training_data = training_data
 
         return None
