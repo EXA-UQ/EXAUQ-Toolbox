@@ -152,7 +152,7 @@ class MogpEmulator(AbstractEmulator):
         else:
             self._fit_gp_with_hyperparameters(inputs, targets, hyperparameters)
 
-        self.fit_hyperparameters = MogpHyperparameters.from_mogp_gp(self._gp)
+        self.fit_hyperparameters = MogpHyperparameters.from_mogp_gp_params(self._gp.theta)
         self._training_data = training_data
 
         return None
@@ -361,10 +361,6 @@ class MogpHyperparameters:
                 raise ValueError(
                     f"Expected 'nugget' to be a positive real number, but received {self.nugget}."
                 )
-
-    @classmethod
-    def from_mogp_gp(cls, gp: GaussianProcess) -> MogpHyperparameters:
-        return cls.from_mogp_gp_params(gp.theta)
 
     @classmethod
     def from_mogp_gp_params(cls, params: GPParams) -> MogpHyperparameters:

@@ -262,7 +262,8 @@ class TestMogpEmulator(unittest.TestCase):
         emulator = MogpEmulator()
         emulator.fit(self.training_data)
         self.assertEqual(
-            MogpHyperparameters.from_mogp_gp(emulator.gp), emulator.fit_hyperparameters
+            MogpHyperparameters.from_mogp_gp_params(emulator.gp.theta),
+            emulator.fit_hyperparameters,
         )
 
     def test_fit_with_given_hyperparameters_with_fixed_nugget(self):
@@ -277,7 +278,8 @@ class TestMogpEmulator(unittest.TestCase):
                 emulator.fit(self.training_data, hyperparameters=hyperparameters)
                 self.assertEqual(hyperparameters, emulator.fit_hyperparameters)
                 self.assertEqual(
-                    MogpHyperparameters.from_mogp_gp(emulator.gp), hyperparameters
+                    MogpHyperparameters.from_mogp_gp_params(emulator.gp.theta),
+                    hyperparameters,
                 )
 
     def test_fit_with_given_hyperparameters_without_fixed_nugget(self):
@@ -294,11 +296,13 @@ class TestMogpEmulator(unittest.TestCase):
                 emulator.fit(self.training_data, hyperparameters=hyperparameters)
 
                 # Check the fitted hyperparameters are as calculated from MOGP
-                hyperparameters_gp = MogpHyperparameters.from_mogp_gp(emulator.gp)
+                hyperparameters_gp = MogpHyperparameters.from_mogp_gp_params(
+                    emulator.gp.theta
+                )
+                self.assertEqual(hyperparameters_gp, emulator.fit_hyperparameters)
 
                 # Check the correlation length parameters and covariance agree with those
                 # supplied for fitting.
-                self.assertEqual(hyperparameters_gp, emulator.fit_hyperparameters)
                 self.assertTrue(
                     equal_within_tolerance(
                         hyperparameters.corr, emulator.fit_hyperparameters.corr
