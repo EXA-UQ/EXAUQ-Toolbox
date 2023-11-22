@@ -186,7 +186,6 @@ class MogpEmulator(AbstractEmulator):
         self._gp.fit(hyperparameters.to_mogp_gp_params(nugget_type=kwargs["nugget"]))
         return None
 
-    # TODO: use static methods from MogpHyperparameters instead?
     @staticmethod
     def _compute_raw_param_bounds(
         bounds: Sequence[tuple[Optional[float], Optional[float]]]
@@ -209,38 +208,18 @@ class MogpEmulator(AbstractEmulator):
         # _raw_from_corr is a decreasing function (i.e. min of raw corresponds
         # to max of correlation and vice-versa).
         raw_bounds = [
-            (MogpEmulator._raw_from_corr(bnd[1]), MogpEmulator._raw_from_corr(bnd[0]))
+            (
+                MogpHyperparameters.transform_corr(bnd[1]),
+                MogpHyperparameters.transform_corr(bnd[0]),
+            )
             for bnd in bounds[:-1]
         ] + [
             (
-                MogpEmulator._raw_from_cov(bounds[-1][0]),
-                MogpEmulator._raw_from_cov(bounds[-1][1]),
+                MogpHyperparameters.transform_cov(bounds[-1][0]),
+                MogpHyperparameters.transform_cov(bounds[-1][1]),
             )
         ]
         return tuple(raw_bounds)
-
-    @staticmethod
-    def _raw_from_corr(corr: Optional[float]) -> Optional[float]:
-        """Compute a raw parameter from a correlation length parameter.
-
-        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
-
-        if corr is None or corr <= 0:
-            return None
-
-        return -2 * math.log(corr)
-
-    @staticmethod
-    def _raw_from_cov(cov: Optional[float]) -> Optional[float]:
-        """Compute a raw parameter from a covariance parameter.
-
-        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
-        if cov is None or cov <= 0:
-            return None
-
-        return math.log(cov)
 
     def predict(self, x: Input) -> Prediction:
         """Make a prediction of a simulator output for a given input.
