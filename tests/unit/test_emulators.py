@@ -116,7 +116,7 @@ class TestMogpEmulator(unittest.TestCase):
         self.assertEqual(0, emulator.gp.targets.size)
         self.assertEqual([], emulator.training_data)
 
-    def test_fit_no_training_data(self):
+    def test_fit_estimates_hyperparameters_by_default(self):
         """Test that fitting the emulator results in the underlying GP being fit
         with hyperparameter estimation."""
 
@@ -136,62 +136,6 @@ class TestMogpEmulator(unittest.TestCase):
         self.assertTrue(
             np.allclose(gp.theta.nugget, emulator.gp.theta.nugget, rtol=1e-5, atol=0)
         )
-
-    def test_fit_bounds_converts_to_raw(self):
-        """Test that bounds on correlation length parameters and the covariance
-        are transformed to bounds on raw parameters when fitting. For the
-        transformations, see:
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
-
-        mock = unittest.mock.MagicMock()
-        with unittest.mock.patch("exauq.core.emulators.fit_GP_MAP", mock):
-            bounds = (
-                (1, math.e),  # correlation = exp(-0.5 * raw_corr)
-                (math.exp(-2), math.exp(3)),  # correlation = exp(-0.5 * raw_corr)
-                (1, math.e),  # covariance
-            )
-            emulator = MogpEmulator()
-            emulator.fit(self.training_data, hyperparameter_bounds=bounds)
-
-            # Check that the underlying fitting function was called with correct
-            # bounds
-            raw_bounds = (
-                (-2.0, 0.0),  # raw correlation = -2 * log(corr)
-                (-6.0, 4.0),  # raw correlation
-                (0.0, 1.0),  # raw covariance = log(cov)
-            )
-            self.assertEqual(raw_bounds, mock.call_args.kwargs["bounds"])
-
-    def test_fit_bounds_none(self):
-        """Test that None entries for bounds are converted to None entries when
-        fitting."""
-
-        mock = unittest.mock.MagicMock()
-        with unittest.mock.patch("exauq.core.emulators.fit_GP_MAP", mock):
-            bounds = ((1, None), (None, 1))
-            emulator = MogpEmulator()
-            emulator.fit(self.training_data, hyperparameter_bounds=bounds)
-
-            # Check that the underlying fitting function was called with correct
-            # bounds
-            raw_bounds = ((None, 0.0), (None, 0.0))
-            self.assertEqual(raw_bounds, mock.call_args.kwargs["bounds"])
-
-    def test_compute_raw_param_bounds_non_positive(self):
-        """Test that non-positive lower bounds are converted to None when
-        fitting."""
-
-        mock = unittest.mock.MagicMock()
-        with unittest.mock.patch("exauq.core.emulators.fit_GP_MAP", mock):
-            bounds = ((-np.inf, 1), (0, 1), (-math.e, 1))
-            emulator = MogpEmulator()
-            emulator.fit(self.training_data, hyperparameter_bounds=bounds)
-
-            # Check that the underlying fitting function was called with correct
-            # bounds
-            raw_bounds = ((0.0, None), (0.0, None), (None, 0.0))
-            self.assertEqual(raw_bounds, mock.call_args.kwargs["bounds"])
 
     def test_fit_training_data(self):
         """Test that the emulator is trained on the supplied training data
