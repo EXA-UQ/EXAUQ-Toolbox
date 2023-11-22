@@ -1,42 +1,45 @@
 import math
 from numbers import Real
+from typing import Sequence, Union
 
 FLOAT_TOLERANCE = 1e-9
 """The default tolerance to use when testing for equality of real numbers."""
 
 
 def equal_within_tolerance(
-    x: Real, y: Real, rel_tol: Real = FLOAT_TOLERANCE, abs_tol: Real = FLOAT_TOLERANCE
+    x: Union[Real, Sequence[Real]],
+    y: Union[Real, Sequence[Real]],
+    rel_tol: Real = FLOAT_TOLERANCE,
+    abs_tol: Real = FLOAT_TOLERANCE,
 ) -> bool:
-    """Test equality of two real numbers up to a tolerance.
+    """Test equality of two real numbers or sequences of real numbers up to a tolerance.
 
-    This is a thin wrapper around the ``isclose`` function from the standard library
-    ``math`` module, behaving in exactly the same way. The meanings of the parameters are
-    the same as given in that function; the only difference from ``isclose`` is that the
-    `rel_tol` and `abs_tol` parameters are set to the value of ``FLOAT_TOLERANCE`` by
-    default. See the documentation for ``isclose`` for more detail.
+    This function compares either two real numbers or two sequences of real numbers
+    element-wise, determining if they are close within specified tolerances.
 
     Parameters
     ----------
-    x, y : numbers.Real
-        Real numbers to test equality of.
+    x, y : Union[numbers.Real, Sequence[numbers.Real]]
+        Real numbers or sequences of real numbers to test equality of.
     rel_tol : numbers.Real, optional
-        (Default: ``FLOAT_TOLERANCE``) The maximum allowed difference permitted relative
-        to the larger of the absolute values of `x` and `y`.
+        The maximum allowed relative difference.
     abs_tol : numbers.Real, optional
-        (Default: ``FLOAT_TOLERANCE``) The minimum permitted absolute difference between
-        `x` and `y`.
+        The minimum permitted absolute difference.
 
     Returns
     -------
     bool
-        Whether the two numbers are equal up to the relative and absolute tolerances.
-
-    See Also
-    --------
-
-    [math.isclose](https://docs.python.org/3/library/math.html#math.isclose) : Standard library function
-
+        Whether the two numbers or sequences of numbers are equal up to the relative and absolute tolerances.
     """
-
-    return math.isclose(x, y, rel_tol=rel_tol, abs_tol=abs_tol)
+    if isinstance(x, Sequence) and isinstance(y, Sequence):
+        if len(x) != len(y):
+            return False
+        return all(
+            math.isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol) for a, b in zip(x, y)
+        )
+    elif isinstance(x, Real) and isinstance(y, Real):
+        return math.isclose(x, y, rel_tol=rel_tol, abs_tol=abs_tol)
+    else:
+        raise TypeError(
+            "Both arguments must be either numbers or sequences of numbers."
+        )
