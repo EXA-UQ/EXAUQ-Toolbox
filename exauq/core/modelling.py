@@ -4,12 +4,14 @@ import abc
 import dataclasses
 from collections.abc import Sequence
 from numbers import Real
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
 import exauq.utilities.validation as validation
 from exauq.core.numerics import equal_within_tolerance
+
+OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 
 
 class Input(Sequence):
@@ -408,7 +410,7 @@ class AbstractEmulator(abc.ABC):
     def fit(
         self,
         training_data: list[TrainingDatum],
-        hyperparameter_bounds: Sequence[tuple[float, float]] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
         """Train the emulator on pairs of inputs and simulator outputs.
 

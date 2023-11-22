@@ -6,13 +6,19 @@ import functools
 import math
 from collections.abc import Sequence
 from numbers import Real
-from typing import Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import numpy as np
 from mogp_emulator import GaussianProcess
 from mogp_emulator.GPParams import GPParams
 
-from exauq.core.modelling import AbstractEmulator, Input, Prediction, TrainingDatum
+from exauq.core.modelling import (
+    AbstractEmulator,
+    Input,
+    OptionalFloatPairs,
+    Prediction,
+    TrainingDatum,
+)
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 from exauq.utilities.validation import check_real
@@ -49,9 +55,12 @@ class MogpEmulator(AbstractEmulator):
     gp : mogp_emulator.GaussianProcess
         (Read-only) The underlying mogp-emulator ``GaussianProcess`` object
         constructed by this class.
-    training_data: list[TrainingDatum] or None
+    training_data: list[TrainingDatum]
         (Read-only) Defines the pairs of inputs and simulator outputs on which
         the emulator has been trained.
+    fit_hyperparameters : MogpHyperparameters or None
+        (Read-only) The hyperparameters of the underlying fitted Gaussian
+        process model, or ``None`` if the model has not been fit to data.
 
     Raises
     ------
@@ -93,53 +102,71 @@ class MogpEmulator(AbstractEmulator):
 
     @property
     def gp(self) -> GaussianProcess:
-        """(Read-only) Get the underlying mogp GaussianProcess for this
+        """(Read-only) The underlying mogp GaussianProcess for this
         emulator."""
+
         return self._gp
 
     @property
     def training_data(self) -> list[TrainingDatum]:
-        """(Read-only) Get the data on which the emulator has been trained."""
+        """(Read-only) The data on which the emulator has been trained."""
 
         return self._training_data
 
     @property
-    def fit_hyperparameters(self):
+    def fit_hyperparameters(self) -> Optional[MogpHyperparameters]:
+        """(Read-only) The hyperparameters of the underlying fitted Gaussian
+        process model, or ``None`` if the model has not been fitted to data."""
+
         return self._fit_hyperparameters
 
     def fit(
         self,
         training_data: list[TrainingDatum],
-        hyperparameter_bounds: Sequence[tuple[Optional[float], Optional[float]]] = None,
-        hyperparameters=None,
+        hyperparameters: Optional[MogpHyperparameters] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
-        """Train the emulator, including estimation of hyperparameters.
+        """Fit the emulator to data.
 
-        This method will train the underlying ``GaussianProcess``, as stored in
-        the `gp` property, using the supplied training data. Hyperparameters are
-        estimated as part of this training, by maximising the log-posterior.
+        This method trains the underlying ``GaussianProcess``, as stored in
+        the `gp` property, using the supplied training data. By default,
+        hyperparameters are estimated as part of this training, by maximising the
+        log-posterior. Alternatively, a collection of hyperparamters can be supplied to
+        use directly as the fitted values.
 
-        If bounds are supplied for the hyperparameters, then the estimated
-        hyperparameters will respect these bounds (the underlying maximisation
-        is constrained by the bounds). A bound that is set to ``None`` is
-        treated as unconstrained. Upper bounds must be ``None`` or a positive
-        number.
+        If bounds are supplied for the hyperparameters, then fitting with hyperparameter
+        estimation will respect these bounds (i.e. the underlying log-posterior
+        maximisation will be constrained by the bounds). A bound that is set to ``None``
+        is treated as unconstrained; additionally, upper bounds must be ``None`` or a
+        positive number. Note that the bounds are ignored if fitting with specific
+        hyperparameters.
 
         Parameters
         ----------
         training_data : list[TrainingDatum]
             The pairs of inputs and simulator outputs on which the emulator
             should be trained.
+        hyperparameters : MogpHyperparameters, optional
+            (Default: None) Hyperparameters to use directly in fitting the Gaussian
+            process. If ``None`` then the hyperparameters will be estimated as part of
+            fitting to data.
         hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
             (Default: None) A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
             length parameters, while the last tuple should represent bounds for
             the covariance.
+
+        Raises
+        ------
+
+        ValueError
+            If `hyperparameters` is provided with nugget being ``None`` but `self.gp`
+            was created with nugget fitting method 'fit'.
         """
 
         if training_data is None or training_data == []:
-            return
+            return None
 
         inputs = np.array([datum.input.value for datum in training_data])
         targets = np.array([datum.output for datum in training_data])
@@ -165,12 +192,15 @@ class MogpEmulator(AbstractEmulator):
 
     def _fit_gp_with_estimation(
         self,
-        inputs,
-        targets,
+        inputs: np.ndarray,
+        targets: np.ndarray,
         hyperparameter_bounds: Optional[
             Sequence[tuple[Optional[float], Optional[float]]]
         ] = None,
     ) -> None:
+        """Fit the underlying GaussianProcess object to data with hyperparameter
+        estimation, optionally with bounds applied to the hyperparameter estimation."""
+
         bounds = (
             self._compute_raw_param_bounds(hyperparameter_bounds)
             if hyperparameter_bounds is not None
@@ -182,8 +212,14 @@ class MogpEmulator(AbstractEmulator):
         return None
 
     def _fit_gp_with_hyperparameters(
-        self, inputs, targets, hyperparameters: MogpHyperparameters
+        self,
+        inputs: np.ndarray,
+        targets: np.ndarray,
+        hyperparameters: MogpHyperparameters,
     ) -> None:
+        """Fit the underlying GaussianProcess object to data using specific
+        hyperparameters."""
+
         kwargs = self._gp_kwargs
         if hyperparameters.nugget is not None:
             kwargs["nugget"] = hyperparameters.nugget
@@ -194,8 +230,8 @@ class MogpEmulator(AbstractEmulator):
 
     @staticmethod
     def _compute_raw_param_bounds(
-        bounds: Sequence[tuple[Optional[float], Optional[float]]]
-    ) -> tuple[tuple[Optional[float], Optional[float]], ...]:
+        bounds: Sequence[OptionalFloatPairs],
+    ) -> tuple[OptionalFloatPairs, ...]:
         """Compute raw parameter bounds from bounds on correlation length
         parameters and covariance.
 
@@ -283,6 +319,10 @@ class MogpEmulator(AbstractEmulator):
 
 
 def _validate_positive_real_domain(arg_name: str):
+    """A decorator to be applied to functions with a single real-valued argument called
+    `arg_name`. The decorator adds validation that the argument is a positive real
+    number."""
+
     def decorator(func):
         @functools.wraps(func)
         def wrapped(arg: Real):
@@ -307,6 +347,40 @@ def _validate_positive_real_domain(arg_name: str):
 
 @dataclasses.dataclass()
 class MogpHyperparameters:
+    """Hyperparameters for use in fitting Gaussian processes via `MogpEmulator`.
+
+    This provides a simplified interface to parameters used in
+    ``mogp_emulator.GaussianProcess`` objects and is comparable to the
+    ``mogp_emulator.GPParams.GPParams`` class. The correlation length scale parameters,
+    covariance and nugget described below are on the 'transformed' (linear) scale rather
+    than the log scale; cf.
+    https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+
+    Equality of `MogpHyperparameters` objects is tested hyperparameter-wise up to the
+    default numerical precision defined in ``exauq.core.numerics.FLOAT_TOLERANCE``
+    (see ``exauq.core.numerics.equal_within_tolerance``).
+
+    Parameters
+    ----------
+    corr : sequence or Numpy array of numbers.Real
+        The correlation length scale parameters. The length of the sequence or array
+        should equal the number of input coordinates for an emulator and each scale
+        parameter should be a positive.
+    cov : numbers.Real
+        The covariance, which should be positive.
+    nugget : numbers.Real, optional
+        (Default: None) A nugget, which should be non-negative if provided.
+
+    Attributes
+    ----------
+    corr : sequence or Numpy array of numbers.Real
+        The correlation length scale parameters.
+    cov : numbers.Real
+        The covariance.
+    nugget : numbers.Real, optional
+        (Default: None) The nugget, or ``None`` if not supplied.
+    """
+
     corr: Union[Sequence[Real], np.ndarray[Real]]
     cov: Real
     nugget: Optional[Real] = None
@@ -349,6 +423,20 @@ class MogpHyperparameters:
 
     @classmethod
     def from_mogp_gp_params(cls, params: GPParams) -> MogpHyperparameters:
+        """Create an instance of MogpHyperparameters from an
+        ``mogp_emulator.GPParams.GPParams`` object.
+
+        Parameters
+        ----------
+        params : mogp_emulator.GPParams.GPParams
+            A parameters object from mogp-emulator.
+
+        Returns
+        -------
+        MogpHyperparameters
+            The hyperparameters extracted from the given `params`.
+        """
+
         if not isinstance(params, GPParams):
             raise TypeError(
                 "Expected 'params' to be of type mogp_emulator.GPParams.GPParams, but "
@@ -386,6 +474,26 @@ class MogpHyperparameters:
     def to_mogp_gp_params(
         self, nugget_type: Union[float, Literal["fit", "adaptive", "pivot"]] = "fit"
     ) -> GPParams:
+        """Convert this object to an instance of ``mogp_emulator.GPParams.GPParams``.
+
+        The correlation length scales and covariance hyperparameters are copied to the
+        returned mogp-emulator parameters object. If this object defines a nugget then
+        this is also copied over, however if no nugget is defined then the returned
+        parameters object will be created with nugget fitting method given by
+        `nugget_type` (see https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.nugget_type).
+
+        Parameters
+        ----------
+        nugget_type : float or Literal["fit", "adaptive", "pivot"]
+            (Default: 'fit') The type of nugget to be specified in construction of the
+            returned ``mogp_emulator.GPParams.GPParams`` object if ``self.nugget = None``.
+
+        Returns
+        -------
+        mogp_emulator.GPParams.GPParams
+            An mogp-emulator parameters object with the hyperparameters given in this
+            object.
+        """
         if not isinstance(nugget_type, (Real, str)):
             raise TypeError(
                 "Expected 'nugget_type' to be of type str of float, but got "
@@ -416,7 +524,9 @@ class MogpHyperparameters:
         return params
 
     @staticmethod
-    def _is_permitted_nugget_type_value(x):
+    def _is_permitted_nugget_type_value(x: Any) -> bool:
+        """Whether an object `x` defines a valid nugget type."""
+
         return (
             isinstance(x, str)
             and x
@@ -430,22 +540,29 @@ class MogpHyperparameters:
     @staticmethod
     @_validate_positive_real_domain("corr")
     def transform_corr(corr: Real) -> float:
-        """Compute a raw parameter from a correlation length parameter.
+        """Transform a correlation length scale parameter to a negative log scale.
 
-        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        This maps the parameter to `-2 * log(corr)`; cf.
+        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
         return -2 * math.log(corr)
 
     @staticmethod
     @_validate_positive_real_domain("cov")
     def transform_cov(cov: Real) -> float:
-        """Compute a raw parameter from a covariance parameter.
+        """Transform a covariance parameter to the log scale.
 
-        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        This maps the parameter to `log(cov)`; cf.
+        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
         return math.log(cov)
 
     @staticmethod
     @_validate_positive_real_domain("nugget")
     def transform_nugget(nugget: Real) -> float:
+        """Transform a nugget parameter to the log scale.
+
+        This maps the parameter to `log(nugget)`; cf.
+        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        """
         return math.log(nugget)
