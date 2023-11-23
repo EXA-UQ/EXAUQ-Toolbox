@@ -359,7 +359,7 @@ def _validate_nonnegative_real_domain(arg_name: str):
     return decorator
 
 
-@dataclasses.dataclass()
+@dataclasses.dataclass(frozen=True)
 class MogpHyperparameters:
     """Hyperparameters for use in fitting Gaussian processes via `MogpEmulator`.
 
@@ -388,11 +388,11 @@ class MogpHyperparameters:
     Attributes
     ----------
     corr : sequence or Numpy array of numbers.Real
-        The correlation length scale parameters.
+        (Read-only) The correlation length scale parameters.
     cov : numbers.Real
-        The covariance.
+        (Read-only) The covariance.
     nugget : numbers.Real, optional
-        (Default: None) The nugget, or ``None`` if not supplied.
+        (Read only, default: None) The nugget, or ``None`` if not supplied.
     """
 
     corr: Union[Sequence[Real], np.ndarray[Real]]
