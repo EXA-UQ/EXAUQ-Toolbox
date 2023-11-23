@@ -2,7 +2,8 @@
 
 import abc
 import dataclasses
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
+from itertools import product
 from numbers import Real
 from typing import Any, Optional, Union
 
@@ -188,7 +189,23 @@ class Input(Sequence):
         """Returns ``True`` precisely when `other` is an `Input` with the same
         coordinates as this `Input`"""
 
-        return type(other) is type(self) and self.value == other.value
+        if not isinstance(other, type(self)):
+            return False
+
+        # Check if both are Real or both are Sequences, otherwise return False
+        if isinstance(self.value, Real) != isinstance(other.value, Real):
+            return False
+        if isinstance(self.value, Sequence) != isinstance(other.value, Sequence):
+            return False
+
+        # Check for None values
+        if self.value is None and other.value is None:
+            return True
+        if self.value is None or other.value is None:
+            return False
+
+        # Compare values
+        return equal_within_tolerance(self.value, other.value)
 
     def __len__(self) -> int:
         """Returns the number of coordinates in this input."""
@@ -466,6 +483,11 @@ class SimulatorDomain(object):
         (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
         from this domain have.
 
+    Parameters
+    ----------
+    bounds : Sequence[tuple[Real, Real]]
+        A sequence of tuples representing the lower and upper bounds for each coordinate dimension in the domain.
+
     Examples
     --------
     Create a 3-dimensional domain for a simulator with inputs ``(x1, x2, x3)`` where
@@ -482,9 +504,72 @@ class SimulatorDomain(object):
     False
     """
 
-    def __init__(self, bounds: list[tuple[Real, Real]]):
+    def __init__(self, bounds: Sequence[tuple[Real, Real]]):
+        self._validate_bounds(bounds)
         self._bounds = bounds
         self._dim = len(bounds)
+        self._corners = None
+
+        self._define_corners()
+
+    @staticmethod
+    def _validate_bounds(bounds: Sequence[tuple[Real, Real]]) -> None:
+        """
+        Validates the bounds for initialising the domain of the simulator.
+
+        This method checks that the provided bounds meet the necessary criteria for
+        defining a valid n-dimensional rectangular domain. The bounds are expected to be a
+        list of tuples, where each tuple represents the lower and upper bounds for a
+        coordinate in the domain. The method validates that:
+
+        1. There is at least one dimension provided (the list of bounds is not empty).
+        2. Each bound is a tuple of two real numbers.
+        3. The lower bound is not greater than the upper bound in any dimension.
+
+        Parameters
+        ----------
+        bounds : list[tuple[Real, Real]]
+            A list of tuples where each tuple represents the bounds for a dimension in the
+            domain. Each tuple should contain two real numbers (low, high) where `low` is
+            the lower bound and `high` is the upper bound for that dimension.
+
+        Examples
+        --------
+        This should pass without any issue as the bounds are valid.
+        >>> SimulatorDomain.validate_bounds([(0, 1), (0, 1)])
+
+        ValueError: Domain must be at least one-dimensional.
+        >>> SimulatorDomain.validate_bounds([])
+
+        ValueError: Each bound must be a tuple of two numbers.
+        >>> SimulatorDomain.validate_bounds([(0, 1, 2), (0, 1)])
+
+        TypeError: Bounds must be real numbers.
+        >>> SimulatorDomain.validate_bounds([(0, '1'), (0, 1)])
+
+        ValueError: Lower bound cannot be greater than upper bound.
+        >>> SimulatorDomain.validate_bounds([(1, 0), (0, 1)])
+        """
+        if bounds is None:
+            raise TypeError("Bounds cannot be None. 'bounds' should be a sequence.")
+
+        if not bounds:
+            raise ValueError("At least one pair of bounds must be provided.")
+
+        if not isinstance(bounds, Sequence):
+            raise TypeError("Bounds should be a sequence.")
+
+        for bound in bounds:
+            if not isinstance(bound, tuple) or len(bound) != 2:
+                raise ValueError("Each bound must be a tuple of two numbers.")
+
+            low, high = bound
+            if not (isinstance(low, Real) and isinstance(high, Real)):
+                raise TypeError("Bounds must be real numbers.")
+
+            if low > high:
+                if not equal_within_tolerance(low, high):
+                    raise ValueError("Lower bound cannot be greater than upper bound.")
 
     def __contains__(self, item: Any):
         """Returns ``True`` when `item` is an `Input` of the correct dimension and
@@ -564,6 +649,220 @@ class SimulatorDomain(object):
                 self._bounds,
             )
         )
+
+    def _within_bounds(self, point: Input) -> bool:
+        """
+        Check if a single point is within the bounds of the domain.
+
+        Parameters
+        ----------
+        point : Input
+            The point to check.
+
+        Returns
+        -------
+        bool
+            True if the point is within the bounds, False otherwise.
+        """
+        return all(
+            self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim)
+        )
+
+    def _validate_points_dim(self, collection: Collection[Input]) -> None:
+        """
+        Validates that all points in a collection have the same dimensionality as the domain.
+
+        This method checks each point in the provided collection to ensure that it has
+        the same number of dimensions (i.e., the same length) as the domain itself. If any
+        point in the collection does not have the same dimensionality as the domain, a
+        ValueError is raised.
+
+        Parameters
+        ----------
+        collection : Collection[Input]
+            A collection of points (each of type Input) that need to be validated for their
+            dimensionality.
+
+        Raises
+        ------
+        ValueError
+            If any point in the collection does not have the same dimensionality as the domain.
+
+        Examples
+        --------
+        >>> domain = SimulatorDomain([(0, 1), (0, 1)])
+        >>> points = [Input(0.5, 0.5), Input(0.2, 0.8)]
+        >>> domain._validate_points_dim(points)  # This should pass without any issue
+
+        >>> invalid_points = [Input(0.5, 0.5, 0.3), Input(0.2, 0.8)]
+        >>> domain._validate_points_dim(invalid_points)
+        ValueError: All points in the collection must have the same dimensionality as the domain.
+        """
+        if not all(len(point) == self._dim for point in collection):
+            raise ValueError(
+                "All points in the collection must have the same dimensionality as the domain."
+            )
+
+    def _define_corners(self):
+        """Generates and returns all the corner points of the domain."""
+
+        unique_corners = []
+        for corner in product(*self._bounds):
+            input_corner = Input(*corner)
+            if input_corner not in unique_corners:
+                unique_corners.append(input_corner)
+
+        self._corners = tuple(unique_corners)
+
+    @staticmethod
+    def _calculate_distance(point_01: Sequence, point_02: Sequence):
+        return sum((c1 - c2) ** 2 for c1, c2 in zip(point_01, point_02)) ** 0.5
+
+    @property
+    def get_corners(self) -> tuple[Input]:
+        """
+        Returns all the corner points of the domain.
+
+        A corner point of a domain is defined as a point where each coordinate
+        is equal to either the lower or upper bound of its respective dimension.
+        This method calculates all possible combinations of lower and upper bounds
+        for each dimension to find all the corner points of the domain.
+
+        Returns
+        -------
+        tuple[Input]
+            A tuple containing all the corner points of the domain. The number of corner
+            points is ``2 ** dim``, where dim is the number of dimensions of the domain.
+
+        Examples
+        --------
+        >>> bounds = [(0, 1), (0, 1)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> domain.get_corners
+        (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
+        """
+
+        return self._corners
+
+    def closest_boundary_points(self, inputs: Collection[Input]) -> tuple[Input]:
+        """
+        Finds the closest point on the boundary for each point in the input collection.
+        Distance is calculated using the Euclidean distance.
+
+        Parameters
+        ----------
+        inputs : Collection[Input]
+            A collection of points for which the closest boundary points are to be found.
+            Each point in the collection must be an instance of `Input` and have the same
+            dimensionality as the domain.
+
+        Returns
+        -------
+        tuple[Input]
+            The boundary points closest to a point in the given `inputs`.
+
+        Raises
+        ------
+        ValueError
+            If any point in the collection is not within the bounds of the domain.
+            If any point in the collection does not have the same dimensionality as the domain.
+
+        Examples
+        --------
+        >>> bounds = [(0, 1), (0, 1)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> collection = [Input(0.5, 0.5)]
+        >>> domain.closest_boundary_points(collection)
+        (Input(0, 0.5), Input(1, 0.5), Input(0.5, 0), Input(0.5, 1))
+
+        Notes
+        -----
+        The method does not guarantee a unique solution if multiple points on the boundary
+        are equidistant from a point in the collection. In such cases, the point that is
+        found first in the iteration will be returned.
+        """
+
+        # Check if collection is empty
+        if not inputs:
+            return tuple()
+
+        # Check all points have same dimensionality as domain
+        self._validate_points_dim(inputs)
+
+        # Check all points are within domain bounds
+        if not all(self._within_bounds(point) for point in inputs):
+            raise ValueError(
+                "All points in the collection must be within the domain bounds."
+            )
+
+        closest_boundary_points = []
+        for i in range(self._dim):
+            for bound in [self._bounds[i][0], self._bounds[i][1]]:
+                min_distance = float("inf")
+                closest_point = None
+                for point in inputs:
+                    if point not in self._corners:
+                        modified_point = list(point)
+                        modified_point[i] = bound
+                        distance = self._calculate_distance(modified_point, point)
+                        if distance < min_distance:
+                            min_distance = distance
+                            closest_point = modified_point
+
+                if closest_point:
+                    closest_input = Input(*closest_point)
+                    if (
+                        closest_input not in closest_boundary_points
+                        and closest_input not in self._corners
+                    ):
+                        closest_boundary_points.append(closest_input)
+
+        return tuple(closest_boundary_points)
+
+    def calculate_pseudopoints(self, inputs: Collection[Input]) -> tuple[Input]:
+        """
+        Calculates and returns a tuple of pseudopoints for a given collection of input points.
+
+        A pseudopoint in this context is defined as a point on the boundary of the domain,
+        or a corner of the domain. This method computes two types of pseudopoints: Boundary
+        pseudopoints and Corner pseudopoints, using the `closest_boundary_points` and `get_corners`
+        methods respectively.
+
+        Parameters
+        ----------
+        inputs : Collection[Input]
+            A collection of input points for which to calculate the pseudopoints. Each input point
+            must have the same number of dimensions as the domain and must lie within the domain's bounds.
+
+        Returns
+        -------
+        tuple[Input]
+            A tuple containing all the calculated pseudopoints.
+
+        Raises
+        ------
+        ValueError
+            If any of the input points have a different number of dimensions than the domain, or if any of the
+            input points lie outside the domain's bounds.
+
+        Examples
+        --------
+        >>> bounds = [(0, 1), (0, 1)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> inputs = [Input(0.25, 0.25), Input(0.75, 0.75)]
+        >>> pseudopoints = domain.calculate_pseudopoints(inputs)
+        >>> pseudopoints  # pseudopoints include boundary and corner points
+        (Input(0, 0.25), Input(0.25, 0), Input(1, 0.75), Input(0.75, 1), Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
+        """
+
+        boundary_points = self.closest_boundary_points(inputs)
+        pseudopoints = boundary_points + self._corners
+
+        unique_pseudopoints = []
+        for point in pseudopoints:
+            if point not in unique_pseudopoints:
+                unique_pseudopoints.append(point)
+        return tuple(unique_pseudopoints)
 
 
 class AbstractSimulator(abc.ABC):
