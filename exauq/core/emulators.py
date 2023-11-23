@@ -6,7 +6,7 @@ import functools
 import math
 from collections.abc import Sequence
 from numbers import Real
-from typing import Any, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 import numpy as np
 from mogp_emulator import GaussianProcess
@@ -132,7 +132,9 @@ class MogpEmulator(AbstractEmulator):
         the `gp` property, using the supplied training data. By default,
         hyperparameters are estimated as part of this training, by maximising the
         log-posterior. Alternatively, a collection of hyperparamters can be supplied to
-        use directly as the fitted values.
+        use directly as the fitted values. (If the nugget is not supplied as part of these
+        values, then it will be calculated according to the 'nugget' argument used in the
+        construction of the underlying ``GaussianProcess``.)
 
         If bounds are supplied for the hyperparameters, then fitting with hyperparameter
         estimation will respect these bounds (i.e. the underlying log-posterior
@@ -221,11 +223,26 @@ class MogpEmulator(AbstractEmulator):
         hyperparameters."""
 
         kwargs = self._gp_kwargs
+        nugget_type = "fixed"
+        _hyperparameters = hyperparameters
+
+        # Fit using supplied nugget hyperparameter if available...
         if hyperparameters.nugget is not None:
             kwargs["nugget"] = hyperparameters.nugget
 
+        # ... Otherwise use the nugget given at GP construction, if a real number...
+        elif isinstance(kwargs["nugget"], Real):
+            _hyperparameters = MogpHyperparameters(
+                hyperparameters.corr, hyperparameters.cov, kwargs["nugget"]
+            )
+
+        # ... Otherwise use the nugget calculation method given at GP construction.
+        else:
+            nugget_type = kwargs["nugget"]
+
         self._gp = GaussianProcess(inputs, targets, **kwargs)
-        self._gp.fit(hyperparameters.to_mogp_gp_params(nugget_type=kwargs["nugget"]))
+        self._gp.fit(_hyperparameters.to_mogp_gp_params(nugget_type=nugget_type))
+
         return None
 
     @staticmethod
@@ -318,10 +335,9 @@ class MogpEmulator(AbstractEmulator):
         )
 
 
-def _validate_positive_real_domain(arg_name: str):
+def _validate_nonnegative_real_domain(arg_name: str):
     """A decorator to be applied to functions with a single real-valued argument called
-    `arg_name`. The decorator adds validation that the argument is a positive real
-    number."""
+    `arg_name`. The decorator adds validation that the argument is a real number >= 0."""
 
     def decorator(func):
         @functools.wraps(func)
@@ -333,12 +349,10 @@ def _validate_positive_real_domain(arg_name: str):
                     f"Expected '{arg_name}' to be a real number, but received {type(arg)}."
                 )
 
-            try:
-                return func(arg)
-            except ValueError:
-                raise ValueError(
-                    f"'{arg_name}' must be a positive real number, but received {arg}."
-                ) from None
+            if arg < 0:
+                raise ValueError(f"'{arg_name}' cannot be < 0, but received {arg}.")
+
+            return func(arg)
 
         return wrapped
 
@@ -472,97 +486,126 @@ class MogpHyperparameters:
         )
 
     def to_mogp_gp_params(
-        self, nugget_type: Union[float, Literal["fit", "adaptive", "pivot"]] = "fit"
+        self, nugget_type: Literal["fixed", "fit", "adaptive", "pivot"] = "fixed"
     ) -> GPParams:
         """Convert this object to an instance of ``mogp_emulator.GPParams.GPParams``.
 
         The correlation length scales and covariance hyperparameters are copied to the
-        returned mogp-emulator parameters object. If this object defines a nugget then
-        this is also copied over, however if no nugget is defined then the returned
-        parameters object will be created with nugget fitting method given by
-        `nugget_type` (see https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.nugget_type).
+        returned mogp-emulator parameters object. How the nugget is set in the output
+        depends on the value of the `nugget_type`, which describes the nugget fitting
+        method recorded in the output object:
+
+        * If `nugget_type` is one of {'fixed', 'fit'} then `self.nugget` must be defined
+          as a real number. The nugget will be copied over to the output and the fitting
+          method will be as specified in `nugget_type`. (In this case, 'fixed' represents
+          the case where the nugget has been assigned a specific value, whereas 'fit'
+          represents the case where the value has been estimated when fitting the
+          emulator.)
+
+        * If `nugget_type` is one of {'adaptive', 'pivot'} then `self.nugget` is ignored
+          and will not be copied over to the output. The fitting method recorded in the
+          output object will be as specified in `nugget_type`, representing the case
+          where the nugget is computed in some way different to hyperparameter estimation.
+
+        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.nugget_type).
+        for details of the `nugget_type` attribute in ``mogp_emulator.GPParams.GPParams``
+        objects and
+        https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#mogp_emulator.GaussianProcess.GaussianProcess
+        for a discussion about what the different nugget fitting methods mean.
 
         Parameters
         ----------
-        nugget_type : float or Literal["fit", "adaptive", "pivot"]
-            (Default: 'fit') The type of nugget to be specified in construction of the
-            returned ``mogp_emulator.GPParams.GPParams`` object if ``self.nugget = None``.
+        nugget_type : one of {"fixed", "fit", "adaptive", "pivot"}
+            (Default: 'fixed') The type of nugget to be specified in construction of the
+            returned ``mogp_emulator.GPParams.GPParams`` object. See above for discussion
+            on valid values.
 
         Returns
         -------
         mogp_emulator.GPParams.GPParams
             An mogp-emulator parameters object with the hyperparameters given in this
             object.
+
+        See Also
+        --------
+        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.nugget_type).
+        for details of the `nugget_type` attribute in ``mogp_emulator.GPParams.GPParams``
+        objects and
+        https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#mogp_emulator.GaussianProcess.GaussianProcess
+        for a discussion about what the different nugget fitting methods mean.
         """
-        if not isinstance(nugget_type, (Real, str)):
+
+        if not isinstance(nugget_type, str):
             raise TypeError(
-                "Expected 'nugget_type' to be of type str of float, but got "
+                "Expected 'nugget_type' to be of type str, but got "
                 f"{type(nugget_type)}."
             )
 
-        if not self._is_permitted_nugget_type_value(nugget_type):
+        nugget_types = ["fixed", "fit", "adaptive", "pivot"]
+        if nugget_type not in nugget_types:
+            nugget_types_str = ", ".join(f"'{nt}'" for nt in nugget_types)
             raise ValueError(
-                "'nugget_type' must be a real number >= 0 or one of "
-                "{'adaptive', 'fit', 'pivot'}, but got " + f"{nugget_type}."
+                f"'nugget_type' must be one of {{{nugget_types_str}}}, "
+                f"but got '{nugget_type}'."
             )
 
-        raw_params = [self.transform_corr(x) for x in self.corr] + [
+        if nugget_type in ["fixed", "fit"] and self.nugget is None:
+            raise ValueError(
+                f"Cannot set nugget fitting method to 'nugget_type = {nugget_type}' "
+                "when this object's nugget is None."
+            )
+
+        transformed_params = [self.transform_corr(x) for x in self.corr] + [
             self.transform_cov(self.cov)
         ]
 
-        if self.nugget is not None:
+        if nugget_type == "fixed":
             params = GPParams(n_corr=len(self.corr), nugget=self.nugget)
         elif nugget_type == "fit":
-            raise ValueError(
-                "Cannot specify 'nugget_type' to be 'fit' with this object's "
-                "nugget hyperparameter set to None."
-            )
+            transformed_params.append(self.transform_nugget(self.nugget))
+            params = GPParams(n_corr=len(self.corr), nugget="fit")
         else:
             params = GPParams(n_corr=len(self.corr), nugget=nugget_type)
 
-        params.set_data(np.array(raw_params, dtype=float))
+        params.set_data(np.array(transformed_params, dtype=float))
+
         return params
 
     @staticmethod
-    def _is_permitted_nugget_type_value(x: Any) -> bool:
-        """Whether an object `x` defines a valid nugget type."""
-
-        return (
-            isinstance(x, str)
-            and x
-            in {
-                "fit",
-                "adaptive",
-                "pivot",
-            }
-        ) or (isinstance(x, Real) and x >= 0)
-
-    @staticmethod
-    @_validate_positive_real_domain("corr")
+    @_validate_nonnegative_real_domain("corr")
     def transform_corr(corr: Real) -> float:
         """Transform a correlation length scale parameter to a negative log scale.
 
         This maps the parameter to `-2 * log(corr)`; cf.
         https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
+        if corr == 0:
+            return math.inf
+
         return -2 * math.log(corr)
 
     @staticmethod
-    @_validate_positive_real_domain("cov")
+    @_validate_nonnegative_real_domain("cov")
     def transform_cov(cov: Real) -> float:
         """Transform a covariance parameter to the log scale.
 
         This maps the parameter to `log(cov)`; cf.
         https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
+        if cov == 0:
+            return -math.inf
+
         return math.log(cov)
 
     @staticmethod
-    @_validate_positive_real_domain("nugget")
+    @_validate_nonnegative_real_domain("nugget")
     def transform_nugget(nugget: Real) -> float:
         """Transform a nugget parameter to the log scale.
 
         This maps the parameter to `log(nugget)`; cf.
         https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
         """
+        if nugget == 0:
+            return -math.inf
+
         return math.log(nugget)
