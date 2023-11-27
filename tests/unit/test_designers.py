@@ -154,29 +154,29 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         self.assertNotEqual(self.emulator, trained_emulator)
         self.assertIsNone(self.emulator.training_data)
 
-    def test_new_design_batch_default(self):
+    def test_make_design_batch_default(self):
         """Test that a list with a single Input is returned for a default batch."""
 
-        batch = self.designer.new_design_batch(self.emulator)
+        batch = self.designer.make_design_batch(self.emulator)
 
         self.assertIsInstance(batch, list)
         self.assertEqual(1, len(batch))
         self.assertIsInstance(batch[0], Input)
 
-    def test_new_design_batch_number(self):
+    def test_make_design_batch_number(self):
         """Test that a list of the correct number of inputs is returned when batch
         number is specified."""
 
         size = 2
 
-        batch = self.designer.new_design_batch(self.emulator, size=size)
+        batch = self.designer.make_design_batch(self.emulator, size=size)
 
         self.assertIsInstance(batch, list)
         self.assertEqual(size, len(batch))
         for _input in batch:
             self.assertIsInstance(_input, Input)
 
-    def test_new_design_batch_calculates_esloo_errors(self):
+    def test_make_design_batch_calculates_esloo_errors(self):
         """Test that one ES-LOO error is computed for each initial design point from the
         supplied emulator, and that ES-LOO errors are real numbers."""
 
@@ -184,7 +184,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
 
         self.assertIsNone(self.designer.esloo_errors)
 
-        self.designer.new_design_batch(self.emulator)
+        self.designer.make_design_batch(self.emulator)
 
         self.assertEqual(
             len(self.emulator.training_data), len(self.designer.esloo_errors)

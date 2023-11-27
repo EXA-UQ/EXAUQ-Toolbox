@@ -3,12 +3,7 @@ from collections.abc import Collection
 
 import numpy as np
 
-from exauq.core.modelling import (
-    AbstractEmulator,
-    Input,
-    SimulatorDomain,
-    TrainingDatum,
-)
+from exauq.core.modelling import AbstractEmulator, Input, SimulatorDomain, TrainingDatum
 from exauq.utilities.validation import check_int
 
 
@@ -43,7 +38,8 @@ class SimpleDesigner(object):
             A batch of new simulator inputs.
         """
         check_int(
-            size, TypeError(f"Expected 'size' to be an integer but received {type(size)}.")
+            size,
+            TypeError(f"Expected 'size' to be an integer but received {type(size)}."),
         )
         if size < 0:
             raise ValueError(
@@ -122,8 +118,7 @@ class SingleLevelAdaptiveSampler:
         return_emulator.fit(self._initial_data)
         return return_emulator
 
-    def new_design_batch(self, emulator: AbstractEmulator, size: int = 1):
-
+    def make_design_batch(self, emulator: AbstractEmulator, size: int = 1):
         if emulator.training_data:
             self._esloo_errors = [0] * len(emulator.training_data)
 
