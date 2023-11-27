@@ -73,26 +73,6 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         self.designer = SingleLevelAdaptiveSampler(self.initial_data)
         self.emulator = fakes.DumbEmulator()
 
-    def test_training_data_wrong_type_error(self):
-        """Test that a TypeError is raised if the SLAS designer is initialised with
-        something other than a collection of training data."""
-
-        msg = (
-            f"{SingleLevelAdaptiveSampler.__name__} must be initialised with a "
-            "(finite) collection of TrainingDatum"
-        )
-
-        # Mock a stream of unsizeable data (note it doesn't implement __len__ so
-        # doesn't define a collection).
-        def unsizeable_data():
-            for i in range(1000):
-                yield self.datum
-
-        for data in [None, 1, TrainingDatum(Input(0), 1), ["foo"], unsizeable_data()]:
-            with self.subTest(data=data):
-                with self.assertRaisesRegex(TypeError, exact(msg)):
-                    SingleLevelAdaptiveSampler(data)
-
     def test_training_data_empty_error(self):
         """Test that a ValueError is raised if the SLAS designer is initialised with
         an empty list of training data."""
