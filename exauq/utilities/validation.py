@@ -3,6 +3,7 @@
 
 from collections.abc import Iterable
 from numbers import Real
+from os import PathLike
 from typing import Any, Callable
 
 import numpy as np
@@ -59,4 +60,10 @@ def check_finite(x: Any, exception: Exception) -> None:
 def check_int(x: Any, exception: Exception) -> None:
     """Raise the given exception if an object is not an int."""
     if type(x) is not int:
+        raise exception
+
+
+def check_file_path(file: Any, exception: Exception):
+    """Raise the given exception if an object doesn't define a path to a file."""
+    if not any(isinstance(file, tp) for tp in [str, bytes, PathLike]):
         raise exception

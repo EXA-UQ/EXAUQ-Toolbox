@@ -1,4 +1,5 @@
 import unittest
+
 from tests.utilities.utilities import exact
 
 
@@ -13,6 +14,17 @@ class TestExact(unittest.TestCase):
         """Test that parentheses are escaped in the output regex."""
 
         self.assertEqual("^\\(foo\\)$", exact("(foo)"))
+
+    def test_backslashes(self):
+        """Test that backslashes are escaped in the output regex."""
+
+        self.assertEqual("^windows\\\\path$", exact("windows\\path"))
+        self.assertEqual("^\noo$", exact("\noo"))
+
+    def test_square_brackes(self):
+        """Test that square brackets are escaped in the output regex."""
+
+        self.assertEqual("^\\[foo\\]$", exact("[foo]"))
 
 
 if __name__ == "__main__":
