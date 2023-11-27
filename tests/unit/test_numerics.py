@@ -2,6 +2,8 @@ import itertools
 import math
 import unittest
 
+import numpy as np
+
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.utilities.utilities import make_window
 
@@ -111,6 +113,63 @@ class TestEqualWithinTolerance(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             equal_within_tolerance(1, 1, abs_tol=-0.01)
+
+    def test_sequences(self):
+        """Sequences are considered equal if they have the same length and each
+        corresponding element is equal within the specified tolerance."""
+
+        x = [0, 10]
+        for tol in [1e-1, 1e-2, 1e-3]:
+            # Compare with abs tolerance - should be determined by entry as index = 0
+            with self.subTest(abs_tol=tol):
+                for x0 in make_window(x[0], 2 * tol, type="abs"):
+                    y = [x0, x[1]]
+                    self.assertTrue(
+                        equal_within_tolerance(x, y, rel_tol=0, abs_tol=tol)
+                        is equal_within_tolerance(x[0], y[0], rel_tol=0, abs_tol=tol)
+                    )
+
+            # Compare with relative tolerance - should be determined by entry at index = 1
+            with self.subTest(rel_tol=tol):
+                for x1 in make_window(x[1], 2 * tol, type="rel"):
+                    y = [x[0], x1]
+                    self.assertTrue(
+                        equal_within_tolerance(x, y, rel_tol=tol, abs_tol=0)
+                        is equal_within_tolerance(x[1], y[1], rel_tol=tol, abs_tol=0)
+                    )
+
+    def test_numpy_arrays(self):
+        """Numpy arrays can be compared like sequences."""
+
+        x = np.array([0, 10])
+        for tol in [1e-1, 1e-2, 1e-3]:
+            # Compare with abs tolerance - should be determined by entry as index = 0
+            with self.subTest(abs_tol=tol):
+                for x0 in make_window(x[0], 2 * tol, type="abs"):
+                    y = [x0, x[1]]
+                    self.assertTrue(
+                        equal_within_tolerance(x, y, rel_tol=0, abs_tol=tol)
+                        is equal_within_tolerance(x[0], y[0], rel_tol=0, abs_tol=tol)
+                    )
+
+            # Compare with relative tolerance - should be determined by entry at index = 1
+            with self.subTest(rel_tol=tol):
+                for x1 in make_window(x[1], 2 * tol, type="rel"):
+                    y = [x[0], x1]
+                    self.assertTrue(
+                        equal_within_tolerance(x, y, rel_tol=tol, abs_tol=0)
+                        is equal_within_tolerance(x[1], y[1], rel_tol=tol, abs_tol=0)
+                    )
+
+    def test_nested_sequences_can_be_compared(self):
+        """Sequences of sequences (or arrays of arrays etc) can be compared."""
+
+        x = [[1, 2], [3, 4]]
+        y = np.array([[1, 2], [3, 4]])
+        self.assertTrue(equal_within_tolerance(x, y))
+
+        y = (1, 2, 3, 4)
+        self.assertFalse(equal_within_tolerance(x, y))
 
 
 if __name__ == "__main__":

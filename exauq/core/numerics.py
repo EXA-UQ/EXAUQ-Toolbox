@@ -1,6 +1,9 @@
 import math
+from collections.abc import Sequence
 from numbers import Real
-from typing import Sequence, Union
+from typing import Union
+
+import numpy as np
 
 FLOAT_TOLERANCE = 1e-9
 """The default tolerance to use when testing for equality of real numbers."""
@@ -31,15 +34,20 @@ def equal_within_tolerance(
     bool
         Whether the two numbers or sequences of numbers are equal up to the relative and absolute tolerances.
     """
-    if isinstance(x, Sequence) and isinstance(y, Sequence):
-        if len(x) != len(y):
-            return False
-        return all(
-            math.isclose(a, b, rel_tol=rel_tol, abs_tol=abs_tol) for a, b in zip(x, y)
+
+    if _is_seq(x) and _is_seq(y):
+        return len(x) == len(y) and all(
+            equal_within_tolerance(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
+            for a, b in zip(x, y)
         )
     elif isinstance(x, Real) and isinstance(y, Real):
         return math.isclose(x, y, rel_tol=rel_tol, abs_tol=abs_tol)
     else:
         raise TypeError(
-            "Both arguments must be either numbers or sequences of numbers."
+            "Both arguments must be composed of real numbers, or sequences / Numpy arrays "
+            "thereof."
         )
+
+
+def _is_seq(x) -> bool:
+    return isinstance(x, (Sequence, np.ndarray))
