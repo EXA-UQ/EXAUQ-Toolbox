@@ -36,9 +36,7 @@ def equal_within_tolerance(
     """
 
     if _is_seq(x) and _is_seq(y):
-        if len(x) != len(y):
-            return False
-        return all(
+        return len(x) == len(y) and all(
             equal_within_tolerance(a, b, rel_tol=rel_tol, abs_tol=abs_tol)
             for a, b in zip(x, y)
         )
@@ -46,7 +44,7 @@ def equal_within_tolerance(
         return math.isclose(x, y, rel_tol=rel_tol, abs_tol=abs_tol)
     else:
         raise TypeError(
-            "Both arguments must be composed of real numbers, or sequences/ Numpy arrays "
+            "Both arguments must be composed of real numbers, or sequences / Numpy arrays "
             "thereof."
         )
 
