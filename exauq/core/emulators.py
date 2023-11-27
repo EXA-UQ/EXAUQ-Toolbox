@@ -14,6 +14,7 @@ from mogp_emulator.GPParams import GPParams
 
 from exauq.core.modelling import (
     AbstractEmulator,
+    AbstractHyperparameters,
     Input,
     OptionalFloatPairs,
     Prediction,
@@ -378,7 +379,7 @@ def _validate_nonnegative_real_domain(arg_name: str):
 
 
 @dataclasses.dataclass(frozen=True)
-class MogpHyperparameters:
+class MogpHyperparameters(AbstractHyperparameters):
     """Hyperparameters for use in fitting Gaussian processes via `MogpEmulator`.
 
     This provides a simplified interface to parameters used in

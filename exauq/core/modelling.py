@@ -467,6 +467,18 @@ class AbstractEmulator(abc.ABC):
         pass
 
 
+class AbstractHyperparameters(abc.ABC):
+    """A base class for hyperparameters used to train an emulator.
+
+    This class doesn't implement any functionality, but instead is used to indicate to
+    type checkers where a class containing hyperparameters for fitting a concrete emulator
+    is required. Users should derive from this class when creating concrete classes of
+    hyperparameters.
+    """
+
+    pass
+
+
 class SimulatorDomain(object):
     """
     Class representing the domain of a simulator.
