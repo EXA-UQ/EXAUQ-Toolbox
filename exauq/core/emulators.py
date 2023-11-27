@@ -4,7 +4,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import math
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Literal, Optional, Union
 
@@ -122,7 +122,7 @@ class MogpEmulator(AbstractEmulator):
 
     def fit(
         self,
-        training_data: list[TrainingDatum],
+        training_data: Collection[TrainingDatum],
         hyperparameters: Optional[MogpHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
@@ -145,9 +145,9 @@ class MogpEmulator(AbstractEmulator):
 
         Parameters
         ----------
-        training_data : list[TrainingDatum]
+        training_data : collection of TrainingDatum
             The pairs of inputs and simulator outputs on which the emulator
-            should be trained.
+            should be trained. Should be a finite collection of such pairs.
         hyperparameters : MogpHyperparameters, optional
             (Default: None) Hyperparameters to use directly in fitting the Gaussian
             process. If ``None`` then the hyperparameters will be estimated as part of
@@ -167,7 +167,8 @@ class MogpEmulator(AbstractEmulator):
             was created with nugget fitting method 'fit'.
         """
 
-        if training_data is None or training_data == []:
+        training_data = self._parse_training_data(training_data)
+        if not training_data:
             return None
 
         inputs = np.array([datum.input.value for datum in training_data])
@@ -191,6 +192,23 @@ class MogpEmulator(AbstractEmulator):
         self._training_data = training_data
 
         return None
+
+    @staticmethod
+    def _parse_training_data(training_data) -> list[TrainingDatum]:
+        if training_data is None:
+            return list()
+
+        try:
+            _ = len(training_data)  # to catch infinite iterators
+            if not all([isinstance(x, TrainingDatum) for x in training_data]):
+                raise TypeError
+
+            return list(training_data)
+
+        except TypeError:
+            raise TypeError(
+                f"Expected a finite collection of TrainingDatum, but received {type(training_data)}."
+            )
 
     def _fit_gp_with_estimation(
         self,
