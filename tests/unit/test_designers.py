@@ -4,7 +4,9 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     SimpleDesigner,
     SingleLevelAdaptiveSampler,
-    compute_esloo_error,
+    compute_expected_sloo_error,
+    compute_norm_esloo_error,
+    compute_std_sloo_error,
 )
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
@@ -183,11 +185,32 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         self.assertTrue(
             all(
                 equal_within_tolerance(
-                    compute_esloo_error(self.emulator, leave_out_idx=i), err
+                    compute_norm_esloo_error(self.emulator, leave_out_idx=i), err
                 )
                 for i, err in enumerate(self.designer.esloo_errors)
             )
         )
+
+
+class TestComputeNormalisedEslooError(unittest.TestCase):
+    def test_compute_norm_esloo_error_expected_value_divided_by_variance(self):
+        """The normalised ES-LOO error is equal to expected square LOO error divided by
+        standard deviation of square LOO error."""
+
+        training_data = [
+            TrainingDatum(Input(0, 0.2), 1),
+            TrainingDatum(Input(0.3, 0.1), 2),
+            TrainingDatum(Input(0.6, 0.7), 3),
+            TrainingDatum(Input(0.8, 0.5), 2),
+            TrainingDatum(Input(0.9, 0.9), 1),
+        ]
+        emulator = MogpEmulator()
+        emulator.fit(training_data)
+        for i, _ in enumerate(training_data):
+            norm_err = compute_norm_esloo_error(emulator, i)
+            exp_err = compute_expected_sloo_error(emulator, i)
+            std_err = compute_std_sloo_error(emulator, i)
+            self.assertTrue(equal_within_tolerance(norm_err, exp_err / std_err))
 
 
 if __name__ == "__main__":

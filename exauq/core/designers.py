@@ -120,9 +120,9 @@ class SingleLevelAdaptiveSampler:
 
     def make_design_batch(self, emulator: AbstractEmulator, size: int = 1):
         if emulator.training_data:
-            self._esloo_errors = [compute_esloo_error(emulator, leave_out_idx=1)] * len(
-                emulator.training_data
-            )
+            self._esloo_errors = [
+                compute_norm_esloo_error(emulator, leave_out_idx=1)
+            ] * len(emulator.training_data)
 
         return [Input(1)] * size
 
@@ -131,5 +131,13 @@ class SingleLevelAdaptiveSampler:
         return self._esloo_errors
 
 
-def compute_esloo_error(emulator: AbstractEmulator, leave_out_idx: int):
+def compute_norm_esloo_error(emulator: AbstractEmulator, leave_out_idx: int) -> float:
     return 0
+
+
+def compute_expected_sloo_error(emulator: AbstractEmulator, leave_out_idx: int) -> float:
+    return 0
+
+
+def compute_std_sloo_error(emulator: AbstractEmulator, leave_out_idx: int) -> float:
+    return 1
