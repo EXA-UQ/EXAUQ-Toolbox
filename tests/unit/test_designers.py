@@ -1,9 +1,14 @@
 import unittest
-from numbers import Real
 
 import tests.unit.fakes as fakes
-from exauq.core.designers import SimpleDesigner, SingleLevelAdaptiveSampler
+from exauq.core.designers import (
+    SimpleDesigner,
+    SingleLevelAdaptiveSampler,
+    compute_esloo_error,
+)
+from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
+from exauq.core.numerics import equal_within_tolerance
 from tests.utilities.utilities import exact
 
 
@@ -177,20 +182,32 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
             self.assertIsInstance(_input, Input)
 
     def test_make_design_batch_calculates_esloo_errors(self):
-        """Test that one ES-LOO error is computed for each initial design point from the
-        supplied emulator, and that ES-LOO errors are real numbers."""
+        """One ES-LOO error is computed for each initial design point from the
+        supplied emulator."""
 
-        self.emulator.fit([TrainingDatum(Input(0), 1), TrainingDatum(Input(1), 1)])
+        emulator = MogpEmulator()
+        training_data = [
+            TrainingDatum(Input(0, 0.2), 1),
+            TrainingDatum(Input(0.3, 0.1), 2),
+            TrainingDatum(Input(0.6, 0.7), 3),
+            TrainingDatum(Input(0.8, 0.5), 2),
+            TrainingDatum(Input(0.9, 0.9), 1),
+        ]
+        emulator.fit(training_data)
 
         self.assertIsNone(self.designer.esloo_errors)
 
-        self.designer.make_design_batch(self.emulator)
+        _ = self.designer.make_design_batch(emulator)
 
-        self.assertEqual(
-            len(self.emulator.training_data), len(self.designer.esloo_errors)
+        self.assertEqual(len(emulator.training_data), len(self.designer.esloo_errors))
+        self.assertTrue(
+            all(
+                equal_within_tolerance(
+                    compute_esloo_error(self.emulator, leave_out_idx=i), err
+                )
+                for i, err in enumerate(self.designer.esloo_errors)
+            )
         )
-        for error in self.designer.esloo_errors:
-            self.assertIsInstance(error, Real)
 
 
 if __name__ == "__main__":
