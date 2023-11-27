@@ -1,7 +1,7 @@
 import unittest
+from numbers import Real
 
 import tests.unit.fakes as fakes
-from numbers import Real
 from exauq.core.designers import SimpleDesigner, SingleLevelAdaptiveSampler
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 from tests.utilities.utilities import exact
@@ -83,7 +83,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
             for i in range(1000):
                 yield self.datum
 
-        for data in [None, 1, TrainingDatum(Input(0), 1), ['foo'], unsizeable_data()]:
+        for data in [None, 1, TrainingDatum(Input(0), 1), ["foo"], unsizeable_data()]:
             with self.subTest(data=data):
                 with self.assertRaisesRegex(TypeError, exact(msg)):
                     SingleLevelAdaptiveSampler(data)
@@ -187,8 +187,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         self.designer.new_design_batch(self.emulator)
 
         self.assertEqual(
-            len(self.emulator.training_data),
-            len(self.designer.esloo_errors)
+            len(self.emulator.training_data), len(self.designer.esloo_errors)
         )
         for error in self.designer.esloo_errors:
             self.assertIsInstance(error, Real)
