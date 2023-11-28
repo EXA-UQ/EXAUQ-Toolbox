@@ -132,12 +132,17 @@ class SingleLevelAdaptiveSampler:
 
 
 def compute_norm_esloo_error(emulator: AbstractEmulator, leave_out_idx: int) -> float:
-    return 0
-
-
-def compute_expected_sloo_error(emulator: AbstractEmulator, leave_out_idx: int) -> float:
-    return 0
-
-
-def compute_std_sloo_error(emulator: AbstractEmulator, leave_out_idx: int) -> float:
-    return 1
+    left_out_datum = emulator.training_data[leave_out_idx]
+    remaining_data = (
+        emulator.training_data[:leave_out_idx]
+        + emulator.training_data[leave_out_idx + 1 :]
+    )
+    loo_emulator = emulator.__class__()
+    loo_emulator.fit(remaining_data)
+    y = loo_emulator.predict(left_out_datum.input)
+    m = y.estimate
+    var = y.variance
+    f = left_out_datum.output
+    exp_err = var + (m - f) ** 2
+    std_err = 2 * (var**2) + 4 * var * (m - f) ** 2
+    return exp_err / std_err

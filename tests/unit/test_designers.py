@@ -4,14 +4,12 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     SimpleDesigner,
     SingleLevelAdaptiveSampler,
-    compute_expected_sloo_error,
     compute_norm_esloo_error,
-    compute_std_sloo_error,
 )
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import equal_within_tolerance
-from tests.utilities.utilities import exact
+from tests.utilities.utilities import ExauqTestCase, exact
 
 
 class TestSimpleDesigner(unittest.TestCase):
@@ -192,7 +190,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         )
 
 
-class TestComputeNormalisedEslooError(unittest.TestCase):
+class TestComputeNormalisedEslooError(ExauqTestCase):
     def test_compute_norm_esloo_error_expected_value_divided_by_variance(self):
         """The normalised ES-LOO error is equal to expected square LOO error divided by
         standard deviation of square LOO error."""
@@ -206,11 +204,21 @@ class TestComputeNormalisedEslooError(unittest.TestCase):
         ]
         emulator = MogpEmulator()
         emulator.fit(training_data)
-        for i, _ in enumerate(training_data):
+        tolerance = 1e-5
+        for i, left_out_data in enumerate(training_data):
+            remaining_data = training_data[:i] + training_data[i + 1 :]
+            loo_emulator = MogpEmulator()
+            loo_emulator.fit(remaining_data)
+            y = loo_emulator.predict(left_out_data.input)
+            m = y.estimate
+            var = y.variance
+            f = left_out_data.output
+            exp_err = var + (m - f) ** 2
+            std_err = 2 * (var**2) + 4 * var * (m - f) ** 2
             norm_err = compute_norm_esloo_error(emulator, i)
-            exp_err = compute_expected_sloo_error(emulator, i)
-            std_err = compute_std_sloo_error(emulator, i)
-            self.assertTrue(equal_within_tolerance(norm_err, exp_err / std_err))
+            self.assertEqualWithinTolerance(
+                norm_err, exp_err / std_err, rel_tol=tolerance, abs_tol=tolerance
+            )
 
 
 if __name__ == "__main__":
