@@ -114,7 +114,7 @@ class TestMogpEmulator(unittest.TestCase):
         emulator = MogpEmulator()
         self.assertEqual(0, emulator.gp.inputs.size)
         self.assertEqual(0, emulator.gp.targets.size)
-        self.assertEqual([], emulator.training_data)
+        self.assertEqual(tuple(), emulator.training_data)
 
     def test_fit_raises_value_error_if_infinite_training_data_supplied(self):
         """A ValueError is raised if one attempts to fit the emulator to an infinite
@@ -177,7 +177,7 @@ class TestMogpEmulator(unittest.TestCase):
         inputs = np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]])
         targets = np.array([1, 2, 3.1, 9, 2])
         emulator = MogpEmulator()
-        training_data = TrainingDatum.list_from_arrays(inputs, targets)
+        training_data = tuple(TrainingDatum.list_from_arrays(inputs, targets))
         emulator.fit(training_data)
 
         self.assertTrue(np.allclose(inputs, emulator.gp.inputs))
@@ -258,7 +258,7 @@ class TestMogpEmulator(unittest.TestCase):
 
         self.assertEqual(0, emulator.gp.inputs.size)
         self.assertEqual(0, emulator.gp.targets.size)
-        self.assertEqual([], emulator.training_data)
+        self.assertEqual(tuple(), emulator.training_data)
 
     def test_fit_empty_training_data(self):
         """Test that the training data and underlying mogp GaussianProcess
@@ -271,7 +271,7 @@ class TestMogpEmulator(unittest.TestCase):
 
         self.assertEqual(0, emulator.gp.inputs.size)
         self.assertEqual(0, emulator.gp.targets.size)
-        self.assertEqual([], emulator.training_data)
+        self.assertEqual(tuple(), emulator.training_data)
 
         # Case where data has previously been fit
         inputs = np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]])
