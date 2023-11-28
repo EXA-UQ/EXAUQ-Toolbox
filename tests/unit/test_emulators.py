@@ -8,11 +8,10 @@ import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import Input, Prediction, TrainingDatum
-from exauq.core.numerics import equal_within_tolerance
-from tests.utilities.utilities import exact
+from tests.utilities.utilities import ExauqTestCase, exact
 
 
-class TestMogpEmulator(unittest.TestCase):
+class TestMogpEmulator(ExauqTestCase):
     def setUp(self) -> None:
         # Some default args to use for constructing mogp GaussianProcess objects
         self.inputs = np.array([[0, 0], [0.2, 0.1]])
@@ -161,29 +160,23 @@ class TestMogpEmulator(unittest.TestCase):
 
         # Note: need to use allclose because fitting is not deterministic.
         tolerance = 1e-5
-        self.assertTrue(
-            equal_within_tolerance(
-                gp.theta.corr,
-                emulator.fit_hyperparameters.corr,
-                rel_tol=tolerance,
-                abs_tol=tolerance,
-            )
+        self.assertEqualWithinTolerance(
+            gp.theta.corr,
+            emulator.fit_hyperparameters.corr,
+            rel_tol=tolerance,
+            abs_tol=tolerance,
         )
-        self.assertTrue(
-            equal_within_tolerance(
-                gp.theta.cov,
-                emulator.fit_hyperparameters.cov,
-                rel_tol=tolerance,
-                abs_tol=tolerance,
-            )
+        self.assertEqualWithinTolerance(
+            gp.theta.cov,
+            emulator.fit_hyperparameters.cov,
+            rel_tol=tolerance,
+            abs_tol=tolerance,
         )
-        self.assertTrue(
-            equal_within_tolerance(
-                gp.theta.nugget,
-                emulator.fit_hyperparameters.nugget,
-                rel_tol=tolerance,
-                abs_tol=tolerance,
-            )
+        self.assertEqualWithinTolerance(
+            gp.theta.nugget,
+            emulator.fit_hyperparameters.nugget,
+            rel_tol=tolerance,
+            abs_tol=tolerance,
         )
 
     def test_fit_training_data(self):
@@ -194,8 +187,8 @@ class TestMogpEmulator(unittest.TestCase):
         training_data = tuple(TrainingDatum.list_from_arrays(self.inputs2, self.targets2))
         emulator.fit(training_data)
 
-        self.assertTrue(equal_within_tolerance(self.inputs2, emulator.gp.inputs))
-        self.assertTrue(equal_within_tolerance(self.targets2, emulator.gp.targets))
+        self.assertEqualWithinTolerance(self.inputs2, emulator.gp.inputs)
+        self.assertEqualWithinTolerance(self.targets2, emulator.gp.targets)
         self.assertEqual(training_data, emulator.training_data)
 
     def test_fit_with_bounds_error(self):
@@ -293,8 +286,8 @@ class TestMogpEmulator(unittest.TestCase):
 
         emulator.fit([])
 
-        self.assertTrue(equal_within_tolerance(expected_inputs, emulator.gp.inputs))
-        self.assertTrue(equal_within_tolerance(expected_targets, emulator.gp.targets))
+        self.assertEqualWithinTolerance(expected_inputs, emulator.gp.inputs)
+        self.assertEqualWithinTolerance(expected_targets, emulator.gp.targets)
         self.assertEqual(expected_training_data, emulator.training_data)
 
     def test_fitted_hyperparameters_can_be_retrieved(self):
@@ -347,24 +340,18 @@ class TestMogpEmulator(unittest.TestCase):
 
                 # Check the correlation length parameters and covariance agree with those
                 # supplied for fitting.
-                self.assertTrue(
-                    equal_within_tolerance(
-                        hyperparameters.corr, emulator.fit_hyperparameters.corr
-                    )
+                self.assertEqualWithinTolerance(
+                    hyperparameters.corr, emulator.fit_hyperparameters.corr
                 )
-                self.assertTrue(
-                    equal_within_tolerance(
-                        hyperparameters.cov, emulator.fit_hyperparameters.cov
-                    )
+                self.assertEqualWithinTolerance(
+                    hyperparameters.cov, emulator.fit_hyperparameters.cov
                 )
 
                 # Check nugget used in fitting agrees with the specific value supplied at
                 # emulator creation, if relevant.
                 if nugget == float_val:
-                    self.assertTrue(
-                        equal_within_tolerance(
-                            nugget, emulator.fit_hyperparameters.nugget
-                        )
+                    self.assertEqualWithinTolerance(
+                        nugget, emulator.fit_hyperparameters.nugget
                     )
 
     def test_fit_with_given_hyperparameters_missing_nugget_error(self):
@@ -464,7 +451,7 @@ class TestMogpEmulator(unittest.TestCase):
             self.assertTrue(emulator.predict(x).variance > 0)
 
 
-class TestMogpHyperparameters(unittest.TestCase):
+class TestMogpHyperparameters(ExauqTestCase):
     def setUp(self) -> None:
         # N.B. although single-element Numpy arrays can be converted to scalars this is
         # deprecated functionality and will throw an error in the future.
@@ -490,14 +477,6 @@ class TestMogpHyperparameters(unittest.TestCase):
         self.covariances = [1.1, 1.2]
         self.real_nuggets = [0, 2.1, np.float16(2)]
         self.nugget_types = ["fixed", "fit", "adaptive", "pivot"]
-
-    def assertEqualWithinTolerance(self, x1, x2):
-        """Test for equality using the `numerics.equal_within_tolerance` function."""
-
-        return self.assertTrue(
-            equal_within_tolerance(x1, x2),
-            msg=f"Values {x1} and {x2} not equal within tolerance.",
-        )
 
     def make_hyperparameters(self, corr=[0.1], cov=1.1, nugget=0):
         """Make hyperparameters, possibly with default values for the correlations,
