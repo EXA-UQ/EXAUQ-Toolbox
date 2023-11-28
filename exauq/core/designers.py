@@ -3,7 +3,13 @@ from collections.abc import Collection
 
 import numpy as np
 
-from exauq.core.modelling import AbstractEmulator, Input, SimulatorDomain, TrainingDatum
+from exauq.core.modelling import (
+    AbstractEmulator,
+    AbstractGaussianProcess,
+    Input,
+    SimulatorDomain,
+    TrainingDatum,
+)
 from exauq.utilities.validation import check_int
 
 
@@ -131,7 +137,9 @@ class SingleLevelAdaptiveSampler:
         return self._esloo_errors
 
 
-def compute_norm_esloo_error(emulator: AbstractEmulator, leave_out_idx: int) -> float:
+def compute_norm_esloo_error(
+    emulator: AbstractGaussianProcess, leave_out_idx: int
+) -> float:
     left_out_datum = emulator.training_data[leave_out_idx]
     remaining_data = (
         emulator.training_data[:leave_out_idx]
@@ -139,10 +147,4 @@ def compute_norm_esloo_error(emulator: AbstractEmulator, leave_out_idx: int) -> 
     )
     loo_emulator = emulator.__class__()
     loo_emulator.fit(remaining_data)
-    y = loo_emulator.predict(left_out_datum.input)
-    m = y.estimate
-    var = y.variance
-    f = left_out_datum.output
-    exp_err = var + (m - f) ** 2
-    std_err = 2 * (var**2) + 4 * var * (m - f) ** 2
-    return exp_err / std_err
+    return loo_emulator.norm_es_error(left_out_datum)

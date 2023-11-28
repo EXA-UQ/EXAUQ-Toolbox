@@ -163,8 +163,8 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
 
 class TestComputeNormalisedEslooError(ExauqTestCase):
     def test_compute_norm_esloo_error_expected_value_divided_by_variance(self):
-        """The normalised ES-LOO error is equal to expected square LOO error divided by
-        standard deviation of square LOO error."""
+        """The normalised ES-LOO error is equal to the expected square error at the
+        left out training datum."""
 
         training_data = [
             TrainingDatum(Input(0, 0.2), 1),
@@ -180,15 +180,12 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
             remaining_data = training_data[:i] + training_data[i + 1 :]
             loo_emulator = MogpEmulator()
             loo_emulator.fit(remaining_data)
-            y = loo_emulator.predict(left_out_data.input)
-            m = y.estimate
-            var = y.variance
-            f = left_out_data.output
-            exp_err = var + (m - f) ** 2
-            std_err = 2 * (var**2) + 4 * var * (m - f) ** 2
             norm_err = compute_norm_esloo_error(emulator, i)
             self.assertEqualWithinTolerance(
-                norm_err, exp_err / std_err, rel_tol=tolerance, abs_tol=tolerance
+                norm_err,
+                loo_emulator.norm_es_error(left_out_data),
+                rel_tol=tolerance,
+                abs_tol=tolerance,
             )
 
 
