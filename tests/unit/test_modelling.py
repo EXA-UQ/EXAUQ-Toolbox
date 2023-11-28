@@ -1,4 +1,5 @@
 import itertools
+import math
 import unittest
 from typing import Literal
 
@@ -6,6 +7,7 @@ import numpy as np
 
 from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
+from tests.unit.fakes import DumbEmulator
 from tests.utilities.utilities import compare_input_tuples, exact, make_window
 
 
@@ -433,6 +435,24 @@ class TestPrediction(unittest.TestCase):
             for estimate2, var2 in itertools.product(estimates, variances):
                 p2 = Prediction(estimate2, var2)
                 self.assertIs(p1 == p2, p2 == p1)
+
+
+class TestAbstractGaussianProcess(unittest.TestCase):
+    def test_norm_es_error_formula(self):
+        """The normalised expected square error is given by the expected square error
+        divided by the standard deviation of the square error, as described in
+        Mohammadi et al (2022).
+        """
+        emulator = DumbEmulator()
+        emulator.fit([TrainingDatum(Input(0.5), 1)])
+        datum = TrainingDatum(Input(0.75), 1)
+        y = emulator.predict(datum.input)
+        m = y.estimate
+        var = y.variance
+        f = datum.output
+        exp_err = var + (m - f) ** 2
+        std_err = math.sqrt(2 * (var**2) + 4 * var * (m - f) ** 2)
+        return exp_err / std_err
 
 
 class TestSimulatorDomain(unittest.TestCase):
