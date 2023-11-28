@@ -3,6 +3,7 @@ import unittest
 from typing import Literal
 
 import numpy as np
+
 from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.utilities.utilities import compare_input_tuples, exact, make_window
@@ -19,7 +20,7 @@ class TestInput(unittest.TestCase):
         """Test that TypeError is raised during construction if there is an
         arg that doesn't define a real number."""
 
-        msg = 'Arguments must be instances of real numbers'
+        msg = "Arguments must be instances of real numbers"
         for coord in ["a", complex(1, 1)]:
             with self.subTest(coord=coord):
                 with self.assertRaisesRegex(TypeError, exact(msg)):
@@ -154,9 +155,7 @@ class TestInput(unittest.TestCase):
 
         x = Input(2)
         i = 1
-        with self.assertRaisesRegex(
-            IndexError, exact(f"Input index {i} out of range.")
-        ):
+        with self.assertRaisesRegex(IndexError, exact(f"Input index {i} out of range.")):
             x[i]
 
     def test_sequence_implementation(self):
@@ -262,7 +261,7 @@ class TestTrainingDatum(unittest.TestCase):
         is not a real number."""
 
         msg = "Argument 'output' must define a real number"
-        for output in ['a', complex(1, 1)]:
+        for output in ["a", complex(1, 1)]:
             with self.subTest(output=output):
                 with self.assertRaisesRegex(TypeError, exact(msg)):
                     TrainingDatum(Input(1), output)
@@ -314,16 +313,10 @@ class TestTrainingDatum(unittest.TestCase):
         """Test that the input and output attributes are immutable."""
 
         datum = TrainingDatum(Input(1), 2)
-        with self.assertRaisesRegex(
-            AttributeError,
-            "cannot assign to field 'input'$"
-        ):
+        with self.assertRaisesRegex(AttributeError, "cannot assign to field 'input'$"):
             datum.input = Input(2)
-        
-        with self.assertRaisesRegex(
-            AttributeError,
-                "cannot assign to field 'output'$"
-        ):
+
+        with self.assertRaisesRegex(AttributeError, "cannot assign to field 'output'$"):
             datum.output = 1
 
     def test_list_from_arrays(self):
@@ -384,9 +377,7 @@ class TestPrediction(unittest.TestCase):
         var = -0.1
         with self.assertRaisesRegex(
             ValueError,
-            exact(
-                f"'variance' must be a non-negative real number, but received {var}."
-            ),
+            exact(f"'variance' must be a non-negative real number, but received {var}."),
         ):
             Prediction(estimate=1, variance=var)
 
@@ -426,9 +417,7 @@ class TestPrediction(unittest.TestCase):
         estimate = 0
         for var1 in [0.1 * n for n in range(101)]:
             p1 = Prediction(estimate, var1)
-            for var2 in filter(
-                lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)
-            ):
+            for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
                 p2 = Prediction(estimate, var2)
                 self.assertIs(p1 == p2, equal_within_tolerance(var1, var2))
                 self.assertIs(p2 == p1, p1 == p2)
@@ -448,9 +437,7 @@ class TestPrediction(unittest.TestCase):
 
 class TestSimulatorDomain(unittest.TestCase):
     def setUp(self) -> None:
-        self.epsilon = (
-            FLOAT_TOLERANCE / 2
-        )  # Useful for testing equality up to tolerance
+        self.epsilon = FLOAT_TOLERANCE / 2  # Useful for testing equality up to tolerance
         self.bounds = [(0, 2), (0, 1)]
         self.domain = SimulatorDomain(self.bounds)
 
@@ -900,9 +887,7 @@ class TestSimulatorDomain(unittest.TestCase):
             with self.subTest(coord=coord, limit=limit):
                 self.assertEqual(
                     1,
-                    len(
-                        [x for x in boundary_points if is_on_boundary(x, coord, limit)]
-                    ),
+                    len([x for x in boundary_points if is_on_boundary(x, coord, limit)]),
                 )
 
     def test_closest_boundary_points_does_not_return_boundary_corners(self):
