@@ -456,7 +456,7 @@ class AbstractEmulator(abc.ABC):
             represent bounds for the covariance.
         """
 
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def predict(self, x: Input) -> Prediction:
@@ -473,7 +473,7 @@ class AbstractEmulator(abc.ABC):
             The emulator's prediction of the simulator output from the given the input.
         """
 
-        pass
+        raise NotImplementedError
 
 
 class AbstractHyperparameters(abc.ABC):
@@ -909,4 +909,4 @@ class AbstractSimulator(abc.ABC):
             The output of the simulator at the input `x`.
         """
 
-        pass
+        raise NotImplementedError
