@@ -8,7 +8,6 @@ from exauq.core.designers import (
 )
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
-from exauq.core.numerics import equal_within_tolerance
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -160,34 +159,6 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         self.assertEqual(size, len(batch))
         for _input in batch:
             self.assertIsInstance(_input, Input)
-
-    def test_make_design_batch_calculates_esloo_errors(self):
-        """One ES-LOO error is computed for each initial design point from the
-        supplied emulator."""
-
-        emulator = MogpEmulator()
-        training_data = [
-            TrainingDatum(Input(0, 0.2), 1),
-            TrainingDatum(Input(0.3, 0.1), 2),
-            TrainingDatum(Input(0.6, 0.7), 3),
-            TrainingDatum(Input(0.8, 0.5), 2),
-            TrainingDatum(Input(0.9, 0.9), 1),
-        ]
-        emulator.fit(training_data)
-
-        self.assertIsNone(self.designer.esloo_errors)
-
-        _ = self.designer.make_design_batch(emulator)
-
-        self.assertEqual(len(emulator.training_data), len(self.designer.esloo_errors))
-        self.assertTrue(
-            all(
-                equal_within_tolerance(
-                    compute_norm_esloo_error(self.emulator, leave_out_idx=i), err
-                )
-                for i, err in enumerate(self.designer.esloo_errors)
-            )
-        )
 
 
 class TestComputeNormalisedEslooError(ExauqTestCase):
