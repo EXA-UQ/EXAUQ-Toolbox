@@ -1,4 +1,5 @@
 """Basic objects for expressing emulation of simulators."""
+from __future__ import annotations
 
 import abc
 import dataclasses
@@ -426,18 +427,26 @@ class AbstractEmulator(abc.ABC):
     @abc.abstractmethod
     def fit(
         self,
-        training_data: list[TrainingDatum],
+        training_data: Collection[TrainingDatum],
+        hyperparameters: Optional[AbstractHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
-        """Train the emulator on pairs of inputs and simulator outputs.
+        """Fit the emulator to data.
 
-        If bounds are supplied for the hyperparameters, then estimation of the
-        hyperparameters should respect these bounds.
+        By default, hyperparameters should be estimated when fitting the emulator to
+        data. Alternatively, a collection of hyperparamters may be supplied to
+        use directly as the fitted values. If bounds are supplied for the hyperparameters,
+        then estimation of the hyperparameters should respect these bounds.
 
         Parameters
         ----------
-        training_data : list[TrainingDatum]
-            A collection of inputs with simulator outputs.
+        training_data : collection of TrainingDatum
+            The pairs of inputs and simulator outputs on which the emulator
+            should be trained.
+        hyperparameters : AbstractHyperparameters, optional
+            (Default: None) Hyperparameters to use directly in fitting the emulator.
+            If ``None`` then the hyperparameters should be estimated as part of
+            fitting to data.
         hyperparameter_bounds : sequence of tuple[float, float], optional
             (Default: None) A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
