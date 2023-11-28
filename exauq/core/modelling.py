@@ -284,7 +284,7 @@ class TrainingDatum(object):
 
         if not isinstance(input, Input):
             raise TypeError("Argument 'input' must be of type Input")
-    
+
     @staticmethod
     def _validate_output(observation: Any) -> None:
         """Check that an object defines a finite real number, raising exceptions
@@ -474,6 +474,17 @@ class AbstractEmulator(abc.ABC):
         """
 
         raise NotImplementedError
+
+
+class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
+    def norm_es_error(self, datum: TrainingDatum) -> float:
+        y = self.predict(datum.input)
+        m = y.estimate
+        var = y.variance
+        f = datum.output
+        exp_err = var + (m - f) ** 2
+        std_err = 2 * (var**2) + 4 * var * (m - f) ** 2
+        return exp_err / std_err
 
 
 class AbstractHyperparameters(abc.ABC):

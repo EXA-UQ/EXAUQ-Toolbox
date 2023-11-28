@@ -13,7 +13,7 @@ from mogp_emulator import GaussianProcess
 from mogp_emulator.GPParams import GPParams
 
 from exauq.core.modelling import (
-    AbstractEmulator,
+    AbstractGaussianProcess,
     AbstractHyperparameters,
     Input,
     OptionalFloatPairs,
@@ -25,7 +25,7 @@ from exauq.utilities.mogp_fitting import fit_GP_MAP
 from exauq.utilities.validation import check_real
 
 
-class MogpEmulator(AbstractEmulator):
+class MogpEmulator(AbstractGaussianProcess):
     """
     An emulator wrapping a ``GaussianProcess`` object from the mogp-emulator
     package.
