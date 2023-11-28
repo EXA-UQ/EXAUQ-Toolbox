@@ -14,6 +14,7 @@ from mogp_emulator.GPParams import GPParams
 
 from exauq.core.modelling import (
     AbstractEmulator,
+    AbstractHyperparameters,
     Input,
     OptionalFloatPairs,
     Prediction,
@@ -55,7 +56,7 @@ class MogpEmulator(AbstractEmulator):
     gp : mogp_emulator.GaussianProcess
         (Read-only) The underlying mogp-emulator ``GaussianProcess`` object
         constructed by this class.
-    training_data: list[TrainingDatum]
+    training_data: tuple[TrainingDatum]
         (Read-only) Defines the pairs of inputs and simulator outputs on which
         the emulator has been trained.
     fit_hyperparameters : MogpHyperparameters or None
@@ -73,8 +74,8 @@ class MogpEmulator(AbstractEmulator):
     def __init__(self, **kwargs):
         self._gp_kwargs = self._remove_entries(kwargs, "inputs", "targets")
         self._gp = self._make_gp(**self._gp_kwargs)
-        self._training_data = TrainingDatum.list_from_arrays(
-            self._gp.inputs, self._gp.targets
+        self._training_data = tuple(
+            TrainingDatum.list_from_arrays(self._gp.inputs, self._gp.targets)
         )
         self._fit_hyperparameters = None
 
@@ -108,7 +109,7 @@ class MogpEmulator(AbstractEmulator):
         return self._gp
 
     @property
-    def training_data(self) -> list[TrainingDatum]:
+    def training_data(self) -> tuple[TrainingDatum]:
         """(Read-only) The data on which the emulator has been trained."""
 
         return self._training_data
@@ -194,16 +195,16 @@ class MogpEmulator(AbstractEmulator):
         return None
 
     @staticmethod
-    def _parse_training_data(training_data) -> list[TrainingDatum]:
+    def _parse_training_data(training_data) -> tuple[TrainingDatum]:
         if training_data is None:
-            return list()
+            return tuple()
 
         try:
             _ = len(training_data)  # to catch infinite iterators
             if not all([isinstance(x, TrainingDatum) for x in training_data]):
                 raise TypeError
 
-            return list(training_data)
+            return tuple(training_data)
 
         except TypeError:
             raise TypeError(
@@ -378,7 +379,7 @@ def _validate_nonnegative_real_domain(arg_name: str):
 
 
 @dataclasses.dataclass(frozen=True)
-class MogpHyperparameters:
+class MogpHyperparameters(AbstractHyperparameters):
     """Hyperparameters for use in fitting Gaussian processes via `MogpEmulator`.
 
     This provides a simplified interface to parameters used in
