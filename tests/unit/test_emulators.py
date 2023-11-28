@@ -160,14 +160,30 @@ class TestMogpEmulator(unittest.TestCase):
         emulator.fit(TrainingDatum.list_from_arrays(inputs, targets))
 
         # Note: need to use allclose because fitting is not deterministic.
+        tolerance = 1e-5
         self.assertTrue(
-            np.allclose(gp.theta.corr, emulator.gp.theta.corr, rtol=1e-5, atol=0)
+            equal_within_tolerance(
+                gp.theta.corr,
+                emulator.fit_hyperparameters.corr,
+                rel_tol=tolerance,
+                abs_tol=tolerance,
+            )
         )
         self.assertTrue(
-            np.allclose(gp.theta.cov, emulator.gp.theta.cov, rtol=1e-5, atol=0)
+            equal_within_tolerance(
+                gp.theta.cov,
+                emulator.fit_hyperparameters.cov,
+                rel_tol=tolerance,
+                abs_tol=tolerance,
+            )
         )
         self.assertTrue(
-            np.allclose(gp.theta.nugget, emulator.gp.theta.nugget, rtol=1e-5, atol=0)
+            equal_within_tolerance(
+                gp.theta.nugget,
+                emulator.fit_hyperparameters.nugget,
+                rel_tol=tolerance,
+                abs_tol=tolerance,
+            )
         )
 
     def test_fit_training_data(self):
@@ -180,8 +196,8 @@ class TestMogpEmulator(unittest.TestCase):
         training_data = tuple(TrainingDatum.list_from_arrays(inputs, targets))
         emulator.fit(training_data)
 
-        self.assertTrue(np.allclose(inputs, emulator.gp.inputs))
-        self.assertTrue(np.allclose(targets, emulator.gp.targets))
+        self.assertTrue(equal_within_tolerance(inputs, emulator.gp.inputs))
+        self.assertTrue(equal_within_tolerance(targets, emulator.gp.targets))
         self.assertEqual(training_data, emulator.training_data)
 
     def test_fit_with_bounds_error(self):
@@ -283,8 +299,8 @@ class TestMogpEmulator(unittest.TestCase):
 
         emulator.fit([])
 
-        self.assertTrue(np.allclose(expected_inputs, emulator.gp.inputs))
-        self.assertTrue(np.allclose(expected_targets, emulator.gp.targets))
+        self.assertTrue(equal_within_tolerance(expected_inputs, emulator.gp.inputs))
+        self.assertTrue(equal_within_tolerance(expected_targets, emulator.gp.targets))
         self.assertEqual(expected_training_data, emulator.training_data)
 
     def test_fitted_hyperparameters_can_be_retrieved(self):
