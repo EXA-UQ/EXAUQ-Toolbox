@@ -1,11 +1,33 @@
 """Functions etc. to support testing"""
 
+import unittest
 from numbers import Real
 from typing import Literal, Optional, Tuple
 
 import numpy as np
+
 from exauq.core.modelling import Input
-from exauq.core.numerics import equal_within_tolerance
+from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
+
+
+class ExauqTestCase(unittest.TestCase):
+    """A subclass of ``unittest.TestCase`` with some extra assertions useful for testing
+    the `exauq` package."""
+
+    def assertEqualWithinTolerance(
+        self, x1, x2, rel_tol=FLOAT_TOLERANCE, abs_tol=FLOAT_TOLERANCE
+    ) -> None:
+        """Test for equality using the `numerics.equal_within_tolerance` function.
+
+        Note that this does *not* check that the two arguments `x1` and `x2` have the same
+        type. So, for example, a list and a Numpy array containing the same real number
+        values will be considered equal."""
+
+        self.assertTrue(
+            equal_within_tolerance(x1, x2, rel_tol=rel_tol, abs_tol=abs_tol),
+            msg=f"assertEqualWithinTolerance: Values {x1} and {x2} not equal within tolerance.",
+        )
+        return None
 
 
 def exact(string: str):
