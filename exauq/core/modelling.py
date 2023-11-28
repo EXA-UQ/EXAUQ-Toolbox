@@ -424,6 +424,11 @@ class AbstractEmulator(abc.ABC):
     methodology.
     """
 
+    @property
+    @abc.abstractmethod
+    def training_data(self) -> tuple[TrainingDatum]:
+        """(Read-only) The data on which the emulator has been trained."""
+
     @abc.abstractmethod
     def fit(
         self,
