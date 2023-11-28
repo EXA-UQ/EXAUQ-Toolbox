@@ -17,6 +17,8 @@ class TestMogpEmulator(unittest.TestCase):
         # Some default args to use for constructing mogp GaussianProcess objects
         self.inputs = np.array([[0, 0], [0.2, 0.1]])
         self.targets = np.array([1, 2])
+        self.inputs2 = np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]])
+        self.targets2 = np.array([1, 2, 3.1, 9, 2])
 
         # kwargs for constructing an mogp GuassianProcess object
         self.gp_kwargs = {
@@ -153,11 +155,9 @@ class TestMogpEmulator(unittest.TestCase):
         """Test that fitting the emulator results in the underlying GP being fit
         with hyperparameter estimation."""
 
-        inputs = np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]])
-        targets = np.array([1, 2, 3.1, 9, 2])
-        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(inputs, targets))
+        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(self.inputs2, self.targets2))
         emulator = MogpEmulator()
-        emulator.fit(TrainingDatum.list_from_arrays(inputs, targets))
+        emulator.fit(TrainingDatum.list_from_arrays(self.inputs2, self.targets2))
 
         # Note: need to use allclose because fitting is not deterministic.
         tolerance = 1e-5
@@ -190,14 +190,12 @@ class TestMogpEmulator(unittest.TestCase):
         """Test that the emulator is trained on the supplied training data
         and its training_data property is updated."""
 
-        inputs = np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]])
-        targets = np.array([1, 2, 3.1, 9, 2])
         emulator = MogpEmulator()
-        training_data = tuple(TrainingDatum.list_from_arrays(inputs, targets))
+        training_data = tuple(TrainingDatum.list_from_arrays(self.inputs2, self.targets2))
         emulator.fit(training_data)
 
-        self.assertTrue(equal_within_tolerance(inputs, emulator.gp.inputs))
-        self.assertTrue(equal_within_tolerance(targets, emulator.gp.targets))
+        self.assertTrue(equal_within_tolerance(self.inputs2, emulator.gp.inputs))
+        self.assertTrue(equal_within_tolerance(self.targets2, emulator.gp.targets))
         self.assertEqual(training_data, emulator.training_data)
 
     def test_fit_with_bounds_error(self):
@@ -223,9 +221,7 @@ class TestMogpEmulator(unittest.TestCase):
         """Test that fitting the emulator respects bounds on hyperparameters
         when these are supplied."""
 
-        inputs = np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]])
-        targets = np.array([1, 2, 3.1, 9, 2])
-        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(inputs, targets))
+        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(self.inputs2, self.targets2))
 
         # Compute bounds to apply, by creating small windows away from known
         # optimal values of the hyperparameters.
@@ -239,7 +235,7 @@ class TestMogpEmulator(unittest.TestCase):
 
         emulator = MogpEmulator()
         emulator.fit(
-            TrainingDatum.list_from_arrays(inputs, targets),
+            TrainingDatum.list_from_arrays(self.inputs2, self.targets2),
             hyperparameter_bounds=bounds,
         )
         actual_corr = emulator.gp.theta.corr
@@ -290,9 +286,7 @@ class TestMogpEmulator(unittest.TestCase):
         self.assertEqual(tuple(), emulator.training_data)
 
         # Case where data has previously been fit
-        inputs = np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]])
-        targets = np.array([1, 2, 3.1, 9, 2])
-        emulator.fit(TrainingDatum.list_from_arrays(inputs, targets))
+        emulator.fit(TrainingDatum.list_from_arrays(self.inputs2, self.targets2))
         expected_inputs = emulator.gp.inputs
         expected_targets = emulator.gp.targets
         expected_training_data = emulator.training_data
