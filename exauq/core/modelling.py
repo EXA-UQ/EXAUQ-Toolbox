@@ -452,7 +452,7 @@ class AbstractEmulator(abc.ABC):
             (Default: None) Hyperparameters to use directly in fitting the emulator.
             If ``None`` then the hyperparameters should be estimated as part of
             fitting to data.
-        hyperparameter_bounds : sequence of tuple[float, float], optional
+        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
             (Default: None) A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
