@@ -1,26 +1,35 @@
 """Contains fakes used to support unit tests
 """
-import typing
+from __future__ import annotations
+
+import dataclasses
+from collections.abc import Collection, Sequence
+from typing import Optional
 
 from exauq.core.hardware import HardwareInterface
-from exauq.core.modelling import AbstractEmulator, AbstractSimulator, Input, TrainingDatum
+from exauq.core.modelling import (
+    AbstractGaussianProcess,
+    AbstractHyperparameters,
+    AbstractSimulator,
+    Input,
+    OptionalFloatPairs,
+    Prediction,
+    TrainingDatum,
+)
 from exauq.core.simulators import SimulationsLog
 
-# The tolerance used for determining if two floating point numbers are equal.
-TOLERANCE_PLACES: float = 7
-TOLERANCE: float = 10**TOLERANCE_PLACES
 
+class FakeGP(AbstractGaussianProcess):
+    """A concrete, fake Gaussian process emulator for emulating 1-dimensional simulators.
 
-class DumbEmulator(AbstractEmulator):
-    """A concrete emulator for emulating 1-dimensional simulators.
-
-    This emulator predicts zero at inputs on which it hasn't been fitted, while
-    predicting simulator outputs on which it has been fitted correctly.
+    Simulator outputs on which the emulator has been fitted are predicted correctly with
+    zero predictive variance. Inputs that have not been fitted to the emulator are
+    predicted as zero with a variance defined by a hyperparameter.
 
 
     Attributes
     ----------
-    training_data: list[TrainingDatum] or None
+    training_data: tuple[TrainingDatum]
         Defines the pairs of inputs and simulator outputs on which the emulator
         has been trained. Each `TrainingDatum` should have a 1-dim
         `Input`.
@@ -28,32 +37,50 @@ class DumbEmulator(AbstractEmulator):
 
     def __init__(self):
         super()
-        self._training_data: typing.Optional[list[TrainingDatum]] = None
+        self._training_data = tuple()
 
     @property
-    def training_data(self) -> typing.Optional[list[TrainingDatum]]:
+    def training_data(self) -> tuple[TrainingDatum]:
         """Get the data on which the emulator has been trained."""
+
         return self._training_data
 
-    def fit(self, data: list[TrainingDatum]) -> None:
+    def fit(
+        self,
+        training_data: Collection[TrainingDatum],
+        hyperparameters: Optional[FakeGPHyperparameters] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+    ) -> None:
         """Fits the emulator on the given data.
 
-        Any prior training data are discarded, so that each
-        call to `fit` effectively fits the emulator again from scratch.
+        Any prior training data are discarded, so that each call to `fit` effectively fits
+        the emulator again from scratch. If hyperparameters are provided then the variance
+        for predictions of unseen inputs will be set to the variance hyperparameter,
+        otherwise a default variance of 1 will be set.
 
         Parameters
         ----------
-        data : list[TrainingDatum]
+        training_data : Collection[TrainingDatum]
             Defines the pairs of inputs and simulator outputs on which to train
             the emulator. Each `TrainingDatum` should have a 1-dim `Input`.
+        hyperparameters : DumbEmulatorHyperparameters, optional
+            (Default: ``None``) If not ``None`` then this should define the variance for
+            predictions away from inputs defined in `training_data`.
+        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
+            (Default: ``None``) Not used.
         """
-        self._training_data = data
 
-    def predict(self, x: Input) -> float:
+        self._training_data = tuple(training_data)
+        self._predictive_variance = (
+            hyperparameters.var if hyperparameters is not None else 1
+        )
+
+    def predict(self, x: Input) -> Prediction:
         """Estimate the simulator output for a given input.
 
         The emulator will predict the correct simulator output for `x` which
-        feature in the training data. For new `x`, zero will be returned.
+        feature in the training data. For new `x`, zero will be returned along with
+        a variance that was specified when training.
 
         Parameters
         ----------
@@ -62,15 +89,19 @@ class DumbEmulator(AbstractEmulator):
 
         Returns
         -------
-        float
-            The value predicted by the emulator, which is an estimate of the
-            simulator's output at `x`.
+        Prediction
+            The emulator's prediction of the simulator output from the given the input.
         """
         for datum in self._training_data:
-            if abs(datum.input.value - x.value) < 1e-10:
-                return datum.output
+            if datum.input == x:
+                return Prediction(estimate=datum.output, variance=0)
 
-        return 0
+        return Prediction(estimate=0, variance=self._predictive_variance)
+
+
+@dataclasses.dataclass(frozen=True)
+class FakeGPHyperparameters(AbstractHyperparameters):
+    var: float
 
 
 class OneDimSimulator(AbstractSimulator):

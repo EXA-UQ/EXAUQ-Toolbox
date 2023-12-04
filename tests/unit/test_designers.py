@@ -70,7 +70,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         self.datum = TrainingDatum(Input(0), 1)
         self.initial_data = [self.datum]
         self.designer = SingleLevelAdaptiveSampler(self.initial_data)
-        self.emulator = fakes.DumbEmulator()
+        self.emulator = fakes.FakeGP()
 
     def test_training_data_empty_error(self):
         """Test that a ValueError is raised if the SLAS designer is initialised with
@@ -119,10 +119,10 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         """Test that the emulator returned by the SLAS designer has been trained
         on initial data."""
 
-        initial_design = [
+        initial_design = (
             TrainingDatum(Input(0.2), 0.2),
             TrainingDatum(Input(0.55), 0.55),
-        ]
+        )
         designer = SingleLevelAdaptiveSampler(initial_design)
 
         trained_emulator = designer.train(self.emulator)
@@ -136,7 +136,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
         trained_emulator = self.designer.train(self.emulator)
 
         self.assertNotEqual(self.emulator, trained_emulator)
-        self.assertIsNone(self.emulator.training_data)
+        self.assertEqual(tuple(), self.emulator.training_data)
 
     def test_make_design_batch_default(self):
         """Test that a list with a single Input is returned for a default batch."""
