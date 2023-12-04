@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+import math
 from collections.abc import Collection, Sequence
 from itertools import product
 from numbers import Real
@@ -484,11 +485,9 @@ class AbstractEmulator(abc.ABC):
 class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     def norm_es_error(self, datum: TrainingDatum) -> float:
         y = self.predict(datum.input)
-        m = y.estimate
-        var = y.variance
-        f = datum.output
-        exp_err = var + (m - f) ** 2
-        std_err = 2 * (var**2) + 4 * var * (m - f) ** 2
+        sq_err = (y.estimate - datum.output) ** 2
+        exp_err = y.variance + sq_err
+        std_err = math.sqrt(2 * (y.variance**2) + 4 * y.variance * sq_err)
         return exp_err / std_err
 
 

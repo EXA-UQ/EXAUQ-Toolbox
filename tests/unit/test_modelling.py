@@ -7,8 +7,13 @@ import numpy as np
 
 from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
-from tests.unit.fakes import DumbEmulator
-from tests.utilities.utilities import compare_input_tuples, exact, make_window
+from tests.unit.fakes import FakeGP, FakeGPHyperparameters
+from tests.utilities.utilities import (
+    ExauqTestCase,
+    compare_input_tuples,
+    exact,
+    make_window,
+)
 
 
 class TestInput(unittest.TestCase):
@@ -437,22 +442,33 @@ class TestPrediction(unittest.TestCase):
                 self.assertIs(p1 == p2, p2 == p1)
 
 
-class TestAbstractGaussianProcess(unittest.TestCase):
+class TestAbstractGaussianProcess(ExauqTestCase):
     def test_norm_es_error_formula(self):
         """The normalised expected square error is given by the expected square error
         divided by the standard deviation of the square error, as described in
         Mohammadi et al (2022).
         """
-        emulator = DumbEmulator()
-        emulator.fit([TrainingDatum(Input(0.5), 1)])
-        datum = TrainingDatum(Input(0.75), 1)
-        y = emulator.predict(datum.input)
-        m = y.estimate
-        var = y.variance
-        f = datum.output
-        exp_err = var + (m - f) ** 2
-        std_err = math.sqrt(2 * (var**2) + 4 * var * (m - f) ** 2)
-        return exp_err / std_err
+
+        emulator = FakeGP()
+        training_data = [TrainingDatum(Input(0.5), 1)]
+        test_data = [
+            TrainingDatum(Input(0), -1),
+            TrainingDatum(Input(0.25), 1),
+            TrainingDatum(Input(0.75), 2),
+            TrainingDatum(Input(1), -5),
+        ]
+        variances = [0.1, 0.2, 0.3]
+        for var, datum in itertools.product(variances, test_data):
+            with self.subTest(var=var, datum=datum):
+                hyperparameters = FakeGPHyperparameters(var=var)
+                emulator.fit(training_data, hyperparameters=hyperparameters)
+                y = emulator.predict(datum.input)
+                sq_err = (y.estimate - datum.output) ** 2
+                exp_err = y.variance + sq_err
+                std_err = math.sqrt(2 * (y.variance**2) + 4 * y.variance * sq_err)
+                self.assertEqualWithinTolerance(
+                    exp_err / std_err, emulator.norm_es_error(datum)
+                )
 
 
 class TestSimulatorDomain(unittest.TestCase):
