@@ -456,7 +456,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         * The observed output is not a Real number.
         """
 
-        self.emulator.fit([TrainingDatum(Input(0.5), 1)])
+        self.emulator.fit([])
         x = 1
         with self.assertRaisesRegex(
             TypeError,
@@ -474,6 +474,19 @@ class TestAbstractGaussianProcess(ExauqTestCase):
             ),
         ):
             self.emulator.norm_es_error(Input(1), observed_output)
+
+    def test_value_error_raised_if_observed_output_is_infinite(self):
+        """A ValueError is raised if the observed output is an infinite value or NaN."""
+
+        self.emulator.fit([])
+        for observed_output in [np.nan, np.inf, np.NINF]:
+            with self.subTest(observed_output=observed_output), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"'observed_output' must be a finite real number, but received {observed_output}."
+                ),
+            ):
+                self.emulator.norm_es_error(Input(1), observed_output)
 
     def test_norm_es_error_formula(self):
         """The normalised expected square error is given by the expected square error

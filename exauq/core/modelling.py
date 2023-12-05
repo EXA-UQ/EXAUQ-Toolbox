@@ -492,6 +492,13 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             ),
         )
 
+        validation.check_finite(
+            observed_output,
+            ValueError(
+                f"'observed_output' must be a finite real number, but received {observed_output}."
+            ),
+        )
+
         try:
             prediction = self.predict(x)
         except TypeError:
