@@ -1,6 +1,7 @@
 import itertools
 import math
 import unittest
+from numbers import Real
 from typing import Literal
 
 import numpy as np
@@ -448,6 +449,32 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         self.inputs = [Input(0), Input(0.25), Input(1)]
         self.outputs = [-1, np.int32(1), 2.1, np.float128(3)]
 
+    def test_arg_type_errors(self):
+        """A TypeError is raised if:
+
+        * Making a prediction from the input 'x' raises a TypeError.
+        * The observed output is not a Real number.
+        """
+
+        self.emulator.fit([TrainingDatum(Input(0.5), 1)])
+        x = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'x' to be of type {Input.__name__} but received type {type(x)}."
+            ),
+        ):
+            self.emulator.norm_es_error(x, 0)
+
+        observed_output = "1"
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'observed_output' to be of type {Real} but received type {type(observed_output)}."
+            ),
+        ):
+            self.emulator.norm_es_error(Input(1), observed_output)
+
     def test_norm_es_error_formula(self):
         """The normalised expected square error is given by the expected square error
         divided by the standard deviation of the square error, as described in
@@ -484,7 +511,9 @@ class TestAbstractGaussianProcess(ExauqTestCase):
                 x=x, observed_output=observed_output
             ), self.assertRaisesRegex(
                 ZeroDivisionError,
-                "Normalised expected squared error undefined when variance is zero.",
+                exact(
+                    "Normalised expected squared error undefined when variance is zero."
+                ),
             ):
                 _ = self.emulator.norm_es_error(x, observed_output)
 

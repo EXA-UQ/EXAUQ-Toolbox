@@ -92,6 +92,9 @@ class FakeGP(AbstractGaussianProcess):
         Prediction
             The emulator's prediction of the simulator output from the given the input.
         """
+        if not isinstance(x, Input):
+            raise TypeError
+
         for datum in self._training_data:
             if datum.input == x:
                 return Prediction(estimate=datum.output, variance=0)

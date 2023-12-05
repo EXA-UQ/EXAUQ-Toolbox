@@ -484,15 +484,30 @@ class AbstractEmulator(abc.ABC):
 
 class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     def norm_es_error(self, x: Input, observed_output: Real) -> float:
-        observed_output = float(observed_output)
-        prediction = self.predict(x)
+        validation.check_real(
+            observed_output,
+            TypeError(
+                f"Expected 'observed_output' to be of type {Real} but received type "
+                f"{type(observed_output)}."
+            ),
+        )
+
+        try:
+            prediction = self.predict(x)
+        except TypeError:
+            raise TypeError(
+                f"Expected 'x' to be of type {Input.__name__} but received type {type(x)}."
+            ) from None
+
         square_err = (prediction.estimate - observed_output) ** 2
         expected_sq_err = prediction.variance + square_err
         standard_deviation_sq_err = math.sqrt(
             2 * (prediction.variance**2) + 4 * prediction.variance * square_err
         )
         try:
-            return expected_sq_err / standard_deviation_sq_err
+            norm_es_err = expected_sq_err / standard_deviation_sq_err
+            validation.check_finite(norm_es_err, ZeroDivisionError)
+            return norm_es_err
         except ZeroDivisionError:
             raise ZeroDivisionError(
                 "Normalised expected squared error undefined when variance is zero."
