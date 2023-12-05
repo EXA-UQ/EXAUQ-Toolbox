@@ -484,6 +484,7 @@ class AbstractEmulator(abc.ABC):
 
 class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     def norm_es_error(self, x: Input, observed_output: Real) -> float:
+        observed_output = float(observed_output)
         prediction = self.predict(x)
         square_err = (prediction.estimate - observed_output) ** 2
         expected_sq_err = prediction.variance + square_err

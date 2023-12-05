@@ -447,7 +447,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         self.emulator = FakeGP()
         self.training_data = [TrainingDatum(Input(0.5), 1)]
         self.inputs = [Input(0), Input(0.25), Input(1)]
-        self.outputs = [-1, 1, 2.1]
+        self.outputs = [-1, np.int32(1), 2.1, np.float128(3)]
 
     def test_norm_es_error_formula(self):
         """The normalised expected square error is given by the expected square error
