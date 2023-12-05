@@ -443,32 +443,49 @@ class TestPrediction(unittest.TestCase):
 
 
 class TestAbstractGaussianProcess(ExauqTestCase):
+    def setUp(self) -> None:
+        self.emulator = FakeGP()
+        self.training_data = [TrainingDatum(Input(0.5), 1)]
+        self.test_data = [
+            TrainingDatum(Input(0), -1),
+            TrainingDatum(Input(0.25), 1),
+            TrainingDatum(Input(0.75), 2),
+            TrainingDatum(Input(1), -5),
+        ]
+
     def test_norm_es_error_formula(self):
         """The normalised expected square error is given by the expected square error
         divided by the standard deviation of the square error, as described in
         Mohammadi et al (2022).
         """
 
-        emulator = FakeGP()
-        training_data = [TrainingDatum(Input(0.5), 1)]
-        test_data = [
-            TrainingDatum(Input(0), -1),
-            TrainingDatum(Input(0.25), 1),
-            TrainingDatum(Input(0.75), 2),
-            TrainingDatum(Input(1), -5),
-        ]
         variances = [0.1, 0.2, 0.3]
-        for var, datum in itertools.product(variances, test_data):
+        for var, datum in itertools.product(variances, self.test_data):
             with self.subTest(var=var, datum=datum):
                 hyperparameters = FakeGPHyperparameters(var=var)
-                emulator.fit(training_data, hyperparameters=hyperparameters)
-                y = emulator.predict(datum.input)
-                sq_err = (y.estimate - datum.output) ** 2
-                exp_err = y.variance + sq_err
-                std_err = math.sqrt(2 * (y.variance**2) + 4 * y.variance * sq_err)
-                self.assertEqualWithinTolerance(
-                    exp_err / std_err, emulator.norm_es_error(datum)
+                self.emulator.fit(self.training_data, hyperparameters=hyperparameters)
+                y = self.emulator.predict(datum.input)
+                square_err = (y.estimate - datum.output) ** 2
+                expected_sq_err = y.variance + square_err
+                standard_deviation_sq_err = math.sqrt(
+                    2 * (y.variance**2) + 4 * y.variance * square_err
                 )
+                self.assertEqualWithinTolerance(
+                    expected_sq_err / standard_deviation_sq_err,
+                    self.emulator.norm_es_error(datum),
+                )
+
+    def test_norm_es_error_raises_zero_division_error_if_variance_zero(self):
+        """A ZeroDivisionError is raised if the predictive variance is zero."""
+
+        hyperparameters = FakeGPHyperparameters(var=0)
+        self.emulator.fit(self.training_data, hyperparameters=hyperparameters)
+        for datum in self.test_data:
+            with self.subTest(datum=datum), self.assertRaisesRegex(
+                ZeroDivisionError,
+                "Normalised expected squared error undefined when variance is zero.",
+            ):
+                _ = self.emulator.norm_es_error(datum)
 
 
 class TestSimulatorDomain(unittest.TestCase):

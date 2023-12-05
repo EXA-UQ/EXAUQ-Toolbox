@@ -485,10 +485,17 @@ class AbstractEmulator(abc.ABC):
 class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     def norm_es_error(self, datum: TrainingDatum) -> float:
         y = self.predict(datum.input)
-        sq_err = (y.estimate - datum.output) ** 2
-        exp_err = y.variance + sq_err
-        std_err = math.sqrt(2 * (y.variance**2) + 4 * y.variance * sq_err)
-        return exp_err / std_err
+        square_err = (y.estimate - datum.output) ** 2
+        expected_sq_err = y.variance + square_err
+        standard_deviation_sq_err = math.sqrt(
+            2 * (y.variance**2) + 4 * y.variance * square_err
+        )
+        try:
+            return expected_sq_err / standard_deviation_sq_err
+        except ZeroDivisionError:
+            raise ZeroDivisionError(
+                "Normalised expected squared error undefined when variance is zero."
+            ) from None
 
 
 class AbstractHyperparameters(abc.ABC):
