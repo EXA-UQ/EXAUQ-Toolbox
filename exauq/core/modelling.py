@@ -483,12 +483,12 @@ class AbstractEmulator(abc.ABC):
 
 
 class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
-    def norm_es_error(self, datum: TrainingDatum) -> float:
-        y = self.predict(datum.input)
-        square_err = (y.estimate - datum.output) ** 2
-        expected_sq_err = y.variance + square_err
+    def norm_es_error(self, x: Input, observed_output: Real) -> float:
+        prediction = self.predict(x)
+        square_err = (prediction.estimate - observed_output) ** 2
+        expected_sq_err = prediction.variance + square_err
         standard_deviation_sq_err = math.sqrt(
-            2 * (y.variance**2) + 4 * y.variance * square_err
+            2 * (prediction.variance**2) + 4 * prediction.variance * square_err
         )
         try:
             return expected_sq_err / standard_deviation_sq_err
