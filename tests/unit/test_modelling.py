@@ -445,7 +445,6 @@ class TestPrediction(unittest.TestCase):
 class TestAbstractGaussianProcess(ExauqTestCase):
     def setUp(self) -> None:
         self.emulator = FakeGP()
-        self.training_data = [TrainingDatum(Input(0.5), 1)]
         self.inputs = [Input(0), Input(0.25), Input(1)]
         self.outputs = [-1, np.int32(1), 2.1, np.float128(3)]
 
@@ -456,32 +455,47 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         """
 
         variances = [0.1, 0.2, 0.3]
-        for var, x, y in itertools.product(variances, self.inputs, self.outputs):
-            with self.subTest(var=var, x=x, y=y):
+        for var, x, observed_output in itertools.product(
+            variances, self.inputs, self.outputs
+        ):
+            with self.subTest(var=var, x=x, observed_output=observed_output):
                 hyperparameters = FakeGPHyperparameters(var=var)
-                self.emulator.fit(self.training_data, hyperparameters=hyperparameters)
+                self.emulator.fit([], hyperparameters=hyperparameters)
+
                 prediction = self.emulator.predict(x)
-                square_err = (prediction.estimate - y) ** 2
+                square_err = (prediction.estimate - observed_output) ** 2
                 expected_sq_err = prediction.variance + square_err
                 standard_deviation_sq_err = math.sqrt(
                     2 * (prediction.variance**2) + 4 * prediction.variance * square_err
                 )
+
                 self.assertEqualWithinTolerance(
                     expected_sq_err / standard_deviation_sq_err,
-                    self.emulator.norm_es_error(x, y),
+                    self.emulator.norm_es_error(x, observed_output),
                 )
 
     def test_norm_es_error_raises_zero_division_error_if_variance_zero(self):
         """A ZeroDivisionError is raised if the predictive variance is zero."""
 
         hyperparameters = FakeGPHyperparameters(var=0)
-        self.emulator.fit(self.training_data, hyperparameters=hyperparameters)
-        for x, y in itertools.product(self.inputs, self.outputs):
-            with self.subTest(x=x, y=y), self.assertRaisesRegex(
+        self.emulator.fit([], hyperparameters=hyperparameters)
+        for x, observed_output in itertools.product(self.inputs, self.outputs):
+            with self.subTest(
+                x=x, observed_output=observed_output
+            ), self.assertRaisesRegex(
                 ZeroDivisionError,
                 "Normalised expected squared error undefined when variance is zero.",
             ):
-                _ = self.emulator.norm_es_error(x, y)
+                _ = self.emulator.norm_es_error(x, observed_output)
+
+        # Consider case where we calculate at a training input
+        datum = TrainingDatum(Input(0.5), 1)
+        self.emulator.fit([datum])
+        with self.subTest("Training data input"), self.assertRaisesRegex(
+            ZeroDivisionError,
+            "Normalised expected squared error undefined when variance is zero.",
+        ):
+            _ = self.emulator.norm_es_error(datum.input, datum.output)
 
 
 class TestSimulatorDomain(unittest.TestCase):
