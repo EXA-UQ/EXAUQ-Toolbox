@@ -446,6 +446,10 @@ class TestPrediction(unittest.TestCase):
 class TestAbstractGaussianProcess(ExauqTestCase):
     def setUp(self) -> None:
         self.emulator = FakeGP()
+
+        # Fit GP to empty dataset to initialise predictive variance
+        self.emulator.fit([])
+
         self.inputs = [Input(0), Input(0.25), Input(1)]
         self.outputs = [-1, np.int32(1), 2.1, np.float128(3)]
 
@@ -456,7 +460,6 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         * The observed output is not a Real number.
         """
 
-        self.emulator.fit([])
         x = 1
         with self.assertRaisesRegex(
             TypeError,
@@ -478,7 +481,6 @@ class TestAbstractGaussianProcess(ExauqTestCase):
     def test_value_error_raised_if_observed_output_is_infinite(self):
         """A ValueError is raised if the observed output is an infinite value or NaN."""
 
-        self.emulator.fit([])
         for observed_output in [np.nan, np.inf, np.NINF]:
             with self.subTest(observed_output=observed_output), self.assertRaisesRegex(
                 ValueError,
