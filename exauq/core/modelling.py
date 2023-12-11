@@ -484,6 +484,45 @@ class AbstractEmulator(abc.ABC):
 
 class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     def norm_es_error(self, x: Input, observed_output: Real) -> float:
+        """Calculate the normalised expected squared (NES) error.
+
+        This is defined as the expectation of the squared error divided by the standard
+        deviation of the variance of the squared error, at the input and output.
+        For Gaussian process emulators, this can be computed with a formula involving
+        the predictive variance and squared error of the emulator's prediction at the
+        simulator input:
+
+        ```
+        sq_error = (m - observed_output) ** 2
+        expected_sq_error = var + sq_error
+        std_sq_error = sqrt((2 * (var**2) + 4 * var * sq_error)
+        nes_error = expected_sq_error / std_sq_error
+        ```
+
+        where `m` is the point estimate of the Gaussian process prediction at `x` and
+        `var` is the predictive variance of this estimate.
+
+        If the predictive variance is zero then the denominator of the fraction is zero
+        and the NES error is undefined.
+
+        Parameters
+        ----------
+        x : Input
+            A simulator input.
+        observed_output : Real
+            A the output of a simulator at `x`.
+
+        Returns
+        -------
+        float
+            The normalised expected squared error for the given simulator input and
+            output.
+
+        Raises
+        ------
+        AssertionError
+            If this Gaussian process emulator has not been fit to training data.
+        """
         validation.check_real(
             observed_output,
             TypeError(
