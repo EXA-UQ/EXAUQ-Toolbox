@@ -499,6 +499,10 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             ),
         )
 
+        assert (
+            self.training_data
+        ), "Could not compute normalised expected squared error: emulator hasn't been fit to data."
+
         try:
             prediction = self.predict(x)
         except TypeError:

@@ -446,9 +446,8 @@ class TestPrediction(unittest.TestCase):
 class TestAbstractGaussianProcess(ExauqTestCase):
     def setUp(self) -> None:
         self.emulator = FakeGP()
-
-        # Fit GP to empty dataset to initialise predictive variance
-        self.emulator.fit([])
+        self.training_data = [TrainingDatum(Input(0.5), 1)]
+        self.emulator.fit(self.training_data)
 
         self.inputs = [Input(0), Input(0.25), Input(1)]
         self.outputs = [-1, np.int32(1), 2.1, np.float128(3)]
@@ -478,6 +477,19 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         ):
             self.emulator.norm_es_error(Input(1), observed_output)
 
+    def test_assertion_error_raised_if_emulator_not_trained_on_data(self):
+        """An AssertionError is raised if an attempt is made to compute the normalised
+        expected square error with an emulator that hasn't been trained on data."""
+
+        emulator = FakeGP()
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(
+                "Could not compute normalised expected squared error: emulator hasn't been fit to data."
+            ),
+        ):
+            emulator.norm_es_error(Input(0), 1)
+
     def test_value_error_raised_if_observed_output_is_infinite(self):
         """A ValueError is raised if the observed output is an infinite value or NaN."""
 
@@ -502,7 +514,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         ):
             with self.subTest(var=var, x=x, observed_output=observed_output):
                 hyperparameters = FakeGPHyperparameters(var=var)
-                self.emulator.fit([], hyperparameters=hyperparameters)
+                self.emulator.fit(self.training_data, hyperparameters=hyperparameters)
 
                 prediction = self.emulator.predict(x)
                 square_err = (prediction.estimate - observed_output) ** 2
@@ -519,22 +531,8 @@ class TestAbstractGaussianProcess(ExauqTestCase):
     def test_norm_es_error_raises_zero_division_error_if_variance_zero(self):
         """A ZeroDivisionError is raised if the predictive variance is zero."""
 
-        hyperparameters = FakeGPHyperparameters(var=0)
-        self.emulator.fit([], hyperparameters=hyperparameters)
-        for x, observed_output in itertools.product(self.inputs, self.outputs):
-            with self.subTest(
-                x=x, observed_output=observed_output
-            ), self.assertRaisesRegex(
-                ZeroDivisionError,
-                exact(
-                    "Normalised expected squared error undefined when variance is zero."
-                ),
-            ):
-                _ = self.emulator.norm_es_error(x, observed_output)
-
         # Consider case where we calculate at a training input
-        datum = TrainingDatum(Input(0.5), 1)
-        self.emulator.fit([datum])
+        datum = self.emulator.training_data[0]
         with self.subTest("Training data input"), self.assertRaisesRegex(
             ZeroDivisionError,
             "Normalised expected squared error undefined when variance is zero.",
