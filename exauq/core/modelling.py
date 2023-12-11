@@ -483,6 +483,13 @@ class AbstractEmulator(abc.ABC):
 
 
 class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
+    """Represents an abstract Gaussian process emulator for simulators.
+
+    Classes that inherit from this abstract base class define emulators which
+    are implemented as Gaussian processs. The mathematical assumption of being a Gaussian
+    process gives computational benefits, such as an explicit formula for calculating
+    the normalised expected squared error at a simulator input/output pair."""
+
     def nes_error(self, x: Input, observed_output: Real) -> float:
         """Calculate the normalised expected squared (NES) error.
 
