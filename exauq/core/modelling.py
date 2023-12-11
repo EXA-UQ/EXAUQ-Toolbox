@@ -571,7 +571,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         try:
             norm_es_err = expected_sq_err / standard_deviation_sq_err
             validation.check_finite(norm_es_err, ZeroDivisionError)
-            return norm_es_err
+            return float(norm_es_err)
         except ZeroDivisionError:
             raise ZeroDivisionError(
                 "Normalised expected squared error undefined when variance is zero."
