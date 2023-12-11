@@ -452,11 +452,11 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         self.inputs = [Input(0), Input(0.25), Input(1)]
         self.outputs = [-1, np.int32(1), 2.1, np.float128(3)]
 
-    def test_arg_type_errors(self):
-        """A TypeError is raised if:
+    def test_nes_error_arg_type_errors(self):
+        """A TypeError is raised when computing the normalised expected square error if:
 
-        * Making a prediction from the input 'x' raises a TypeError.
-        * The observed output is not a Real number.
+        * making a prediction from the input 'x' raises a TypeError; or
+        * the observed output is not a Real number.
         """
 
         x = 1
@@ -466,7 +466,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
                 f"Expected 'x' to be of type {Input.__name__} but received type {type(x)}."
             ),
         ):
-            self.emulator.norm_es_error(x, 0)
+            self.emulator.nes_error(x, 0)
 
         observed_output = "1"
         with self.assertRaisesRegex(
@@ -475,9 +475,9 @@ class TestAbstractGaussianProcess(ExauqTestCase):
                 f"Expected 'observed_output' to be of type {Real} but received type {type(observed_output)}."
             ),
         ):
-            self.emulator.norm_es_error(Input(1), observed_output)
+            self.emulator.nes_error(Input(1), observed_output)
 
-    def test_assertion_error_raised_if_emulator_not_trained_on_data(self):
+    def test_nes_error_assertion_error_raised_if_emulator_not_trained_on_data(self):
         """An AssertionError is raised if an attempt is made to compute the normalised
         expected square error with an emulator that hasn't been trained on data."""
 
@@ -488,9 +488,9 @@ class TestAbstractGaussianProcess(ExauqTestCase):
                 "Could not compute normalised expected squared error: emulator hasn't been fit to data."
             ),
         ):
-            emulator.norm_es_error(Input(0), 1)
+            emulator.nes_error(Input(0), 1)
 
-    def test_value_error_raised_if_observed_output_is_infinite(self):
+    def test_nes_error_value_error_raised_if_observed_output_is_infinite(self):
         """A ValueError is raised if the observed output is an infinite value or NaN."""
 
         for observed_output in [np.nan, np.inf, np.NINF]:
@@ -500,9 +500,9 @@ class TestAbstractGaussianProcess(ExauqTestCase):
                     f"'observed_output' must be a finite real number, but received {observed_output}."
                 ),
             ):
-                self.emulator.norm_es_error(Input(1), observed_output)
+                self.emulator.nes_error(Input(1), observed_output)
 
-    def test_norm_es_error_formula(self):
+    def test_nes_error_formula(self):
         """The normalised expected square error is given by the expected square error
         divided by the standard deviation of the square error, as described in
         Mohammadi et al (2022).
@@ -525,10 +525,10 @@ class TestAbstractGaussianProcess(ExauqTestCase):
 
                 self.assertEqualWithinTolerance(
                     expected_sq_err / standard_deviation_sq_err,
-                    self.emulator.norm_es_error(x, observed_output),
+                    self.emulator.nes_error(x, observed_output),
                 )
 
-    def test_norm_es_error_raises_zero_division_error_if_variance_zero(self):
+    def test_nes_error_raises_zero_division_error_if_variance_zero(self):
         """A ZeroDivisionError is raised if the predictive variance is zero."""
 
         # Consider case where we calculate at a training input
@@ -537,7 +537,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
             ZeroDivisionError,
             "Normalised expected squared error undefined when variance is zero.",
         ):
-            _ = self.emulator.norm_es_error(datum.input, datum.output)
+            _ = self.emulator.nes_error(datum.input, datum.output)
 
 
 class TestSimulatorDomain(unittest.TestCase):

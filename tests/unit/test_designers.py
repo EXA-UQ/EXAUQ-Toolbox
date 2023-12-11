@@ -183,7 +183,7 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
             norm_err = compute_norm_esloo_error(emulator, i)
             self.assertEqualWithinTolerance(
                 norm_err,
-                loo_emulator.norm_es_error(left_out_data.input, left_out_data.output),
+                loo_emulator.nes_error(left_out_data.input, left_out_data.output),
                 rel_tol=tolerance,
                 abs_tol=tolerance,
             )

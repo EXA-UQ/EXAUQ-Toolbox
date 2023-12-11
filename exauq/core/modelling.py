@@ -483,7 +483,7 @@ class AbstractEmulator(abc.ABC):
 
 
 class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
-    def norm_es_error(self, x: Input, observed_output: Real) -> float:
+    def nes_error(self, x: Input, observed_output: Real) -> float:
         """Calculate the normalised expected squared (NES) error.
 
         This is defined as the expectation of the squared error divided by the standard

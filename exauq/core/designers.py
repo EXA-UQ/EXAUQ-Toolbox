@@ -147,4 +147,4 @@ def compute_norm_esloo_error(
     )
     loo_emulator = emulator.__class__()
     loo_emulator.fit(remaining_data)
-    return loo_emulator.norm_es_error(left_out_datum.input, left_out_datum.output)
+    return loo_emulator.nes_error(left_out_datum.input, left_out_datum.output)
