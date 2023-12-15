@@ -201,7 +201,7 @@ class MogpEmulator(AbstractGaussianProcess):
 
         try:
             _ = len(training_data)  # to catch infinite iterators
-            if not all([isinstance(x, TrainingDatum) for x in training_data]):
+            if not all(isinstance(x, TrainingDatum) for x in training_data):
                 raise TypeError
 
             return tuple(training_data)
