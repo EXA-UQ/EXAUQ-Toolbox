@@ -38,6 +38,7 @@ class FakeGP(AbstractGaussianProcess):
     def __init__(self):
         super()
         self._training_data = tuple()
+        self._predictive_variance = 1
 
     @property
     def training_data(self) -> tuple[TrainingDatum]:
