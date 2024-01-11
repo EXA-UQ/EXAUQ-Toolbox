@@ -173,14 +173,14 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
             TrainingDatum(Input(0.8, 0.5), 2),
             TrainingDatum(Input(0.9, 0.9), 1),
         ]
-        emulator = MogpEmulator()
-        emulator.fit(training_data)
+        gp = MogpEmulator()
+        gp.fit(training_data)
         tolerance = 1e-5
         for i, left_out_data in enumerate(training_data):
             remaining_data = training_data[:i] + training_data[i + 1 :]
             loo_emulator = MogpEmulator()
             loo_emulator.fit(remaining_data)
-            norm_err = compute_norm_esloo_error(emulator, i)
+            norm_err = compute_norm_esloo_error(gp, i)
             self.assertEqualWithinTolerance(
                 norm_err,
                 loo_emulator.nes_error(left_out_data.input, left_out_data.output),
@@ -199,16 +199,16 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
             TrainingDatum(Input(0.8, 0.5), 2),
             TrainingDatum(Input(0.9, 0.9), 1),
         ]
-        emulator = MogpEmulator()
-        emulator.fit(training_data)
+        gp = MogpEmulator()
+        gp.fit(training_data)
 
         leave_out_idx = 5
         with self.assertRaisesRegex(
             ValueError,
             f"Leave out index {leave_out_idx} is not within the bounds of the training "
-            "data for 'emulator'.",
+            "data for 'gp'.",
         ):
-            _ = compute_norm_esloo_error(emulator, leave_out_idx)
+            _ = compute_norm_esloo_error(gp, leave_out_idx)
 
 
 if __name__ == "__main__":

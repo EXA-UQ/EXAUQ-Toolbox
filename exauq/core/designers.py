@@ -138,22 +138,19 @@ class SingleLevelAdaptiveSampler:
         return self._esloo_errors
 
 
-def compute_norm_esloo_error(
-    emulator: AbstractGaussianProcess, leave_out_idx: int
-) -> float:
+def compute_norm_esloo_error(gp: AbstractGaussianProcess, leave_out_idx: int) -> float:
     try:
-        left_out_datum = emulator.training_data[leave_out_idx]
+        left_out_datum = gp.training_data[leave_out_idx]
     except IndexError:
         raise ValueError(
             f"Leave out index {leave_out_idx} is not within the bounds of the training "
-            "data for 'emulator'."
+            "data for 'gp'."
         ) from None
 
     remaining_data = (
-        emulator.training_data[:leave_out_idx]
-        + emulator.training_data[leave_out_idx + 1 :]
+        gp.training_data[:leave_out_idx] + gp.training_data[leave_out_idx + 1 :]
     )
-    loo_emulator = emulator.__class__()
+    loo_emulator = gp.__class__()
     loo_emulator.fit(remaining_data)
     return loo_emulator.nes_error(left_out_datum.input, left_out_datum.output)
 
