@@ -188,6 +188,28 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
                 abs_tol=tolerance,
             )
 
+    def test_compute_norm_esloo_error_out_of_bounds_index_error(self):
+        """A ValueError is raised if the left out index is out of the bounds of the
+        emulator's training data."""
+
+        training_data = [
+            TrainingDatum(Input(0, 0.2), 1),
+            TrainingDatum(Input(0.3, 0.1), 2),
+            TrainingDatum(Input(0.6, 0.7), 3),
+            TrainingDatum(Input(0.8, 0.5), 2),
+            TrainingDatum(Input(0.9, 0.9), 1),
+        ]
+        emulator = MogpEmulator()
+        emulator.fit(training_data)
+
+        leave_out_idx = 5
+        with self.assertRaisesRegex(
+            ValueError,
+            f"Leave out index {leave_out_idx} is not within the bounds of the training "
+            "data for 'emulator'.",
+        ):
+            _ = compute_norm_esloo_error(emulator, leave_out_idx)
+
 
 if __name__ == "__main__":
     unittest.main()
