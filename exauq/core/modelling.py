@@ -494,9 +494,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         """Calculate the normalised expected squared (NES) error.
 
         This is defined as the expectation of the squared error divided by the standard
-        deviation of the variance of the squared error, at the input and output. If the
-        predictive variance is zero then the denominator of this fraction is zero
-        and the NES error is undefined.
+        deviation of the squared error, at the input and output. If the predictive
+        variance is zero then the denominator of this fraction is zero and the NES error
+        is undefined.
 
         Parameters
         ----------
