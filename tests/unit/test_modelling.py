@@ -6,12 +6,15 @@ from typing import Literal
 
 import numpy as np
 
-from exauq.core.modelling import (Input, Prediction, SimulatorDomain,
-                                  TrainingDatum)
+from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
-from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
-                                       exact, make_window)
+from tests.utilities.utilities import (
+    ExauqTestCase,
+    compare_input_tuples,
+    exact,
+    make_window,
+)
 
 
 class TestInput(unittest.TestCase):
@@ -266,7 +269,7 @@ class TestTrainingDatum(unittest.TestCase):
         is not a real number."""
 
         msg = "Argument 'output' must define a real number"
-        for output in ["a", complex(1, 1)]:
+        for output in ["a", complex(1, 1), [1.1]]:
             with self.subTest(output=output):
                 with self.assertRaisesRegex(TypeError, exact(msg)):
                     TrainingDatum(Input(1), output)
