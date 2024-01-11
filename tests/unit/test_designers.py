@@ -162,25 +162,27 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
 
 
 class TestComputeNormalisedEslooError(ExauqTestCase):
-    def test_compute_norm_esloo_error_expected_value_divided_by_variance(self):
-        """The normalised ES-LOO error is equal to the expected square error at the
-        left out training datum."""
-
-        training_data = [
+    def setUp(self) -> None:
+        self.training_data = [
             TrainingDatum(Input(0, 0.2), 1),
             TrainingDatum(Input(0.3, 0.1), 2),
             TrainingDatum(Input(0.6, 0.7), 3),
             TrainingDatum(Input(0.8, 0.5), 2),
             TrainingDatum(Input(0.9, 0.9), 1),
         ]
-        gp = MogpEmulator()
-        gp.fit(training_data)
+        self.gp = MogpEmulator()
+        self.gp.fit(self.training_data)
+
+    def test_compute_norm_esloo_error_expected_value_divided_by_variance(self):
+        """The normalised ES-LOO error is equal to the expected square error at the
+        left out training datum."""
+
         tolerance = 1e-5
-        for i, left_out_data in enumerate(training_data):
-            remaining_data = training_data[:i] + training_data[i + 1 :]
+        for i, left_out_data in enumerate(self.training_data):
+            remaining_data = self.training_data[:i] + self.training_data[i + 1 :]
             loo_emulator = MogpEmulator()
             loo_emulator.fit(remaining_data)
-            norm_err = compute_norm_esloo_error(gp, i)
+            norm_err = compute_norm_esloo_error(self.gp, i)
             self.assertEqualWithinTolerance(
                 norm_err,
                 loo_emulator.nes_error(left_out_data.input, left_out_data.output),
@@ -192,23 +194,13 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
         """A ValueError is raised if the left out index is out of the bounds of the
         emulator's training data."""
 
-        training_data = [
-            TrainingDatum(Input(0, 0.2), 1),
-            TrainingDatum(Input(0.3, 0.1), 2),
-            TrainingDatum(Input(0.6, 0.7), 3),
-            TrainingDatum(Input(0.8, 0.5), 2),
-            TrainingDatum(Input(0.9, 0.9), 1),
-        ]
-        gp = MogpEmulator()
-        gp.fit(training_data)
-
         leave_out_idx = 5
         with self.assertRaisesRegex(
             ValueError,
             f"Leave out index {leave_out_idx} is not within the bounds of the training "
             "data for 'gp'.",
         ):
-            _ = compute_norm_esloo_error(gp, leave_out_idx)
+            _ = compute_norm_esloo_error(self.gp, leave_out_idx)
 
 
 if __name__ == "__main__":
