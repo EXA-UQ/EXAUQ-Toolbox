@@ -10,6 +10,7 @@ from exauq.core.modelling import (
     SimulatorDomain,
     TrainingDatum,
 )
+from exauq.utilities.optimisation import maximise
 from exauq.utilities.validation import check_int
 
 
@@ -148,3 +149,17 @@ def compute_norm_esloo_error(
     loo_emulator = emulator.__class__()
     loo_emulator.fit(remaining_data)
     return loo_emulator.nes_error(left_out_datum.input, left_out_datum.output)
+
+
+def pei(x: Input, gp: AbstractGaussianProcess) -> float:
+    raise NotImplementedError
+
+
+def compute_single_level_loo_samples(
+    gp: AbstractGaussianProcess, domain: SimulatorDomain, batch_size: int = 1
+) -> tuple[Input]:
+    nes_loo_errors = tuple()  # TODO: fill in with LOO error calculations
+
+    gp_e = None  # TODO: create GP from nes_loo_errors, probably of same type as type(gp) and with same hyperparameters(?)
+
+    return maximise(lambda x: pei(x, gp_e), domain)
