@@ -139,10 +139,11 @@ class SingleLevelAdaptiveSampler:
 
 
 def compute_norm_esloo_error(gp: AbstractGaussianProcess, leave_out_idx: int) -> float:
+    training_data = list(gp.training_data)
     try:
-        left_out_datum = gp.training_data[leave_out_idx]
+        left_out_datum = training_data.pop(leave_out_idx)
     except IndexError:
-        if len(gp.training_data) == 0:
+        if len(training_data) == 0:
             raise ValueError(
                 "Cannot compute leave one out error with 'gp' because it has not been "
                 "trained on data."
@@ -153,11 +154,8 @@ def compute_norm_esloo_error(gp: AbstractGaussianProcess, leave_out_idx: int) ->
                 "data for 'gp'."
             ) from None
 
-    remaining_data = (
-        gp.training_data[:leave_out_idx] + gp.training_data[leave_out_idx + 1 :]
-    )
     loo_emulator = gp.__class__()
-    loo_emulator.fit(remaining_data)
+    loo_emulator.fit(training_data)
     return loo_emulator.nes_error(left_out_datum.input, left_out_datum.output)
 
 
