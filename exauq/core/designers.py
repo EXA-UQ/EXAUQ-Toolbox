@@ -2,7 +2,6 @@ import copy
 from collections.abc import Collection
 
 import numpy as np
-
 from exauq.core.modelling import (
     AbstractEmulator,
     AbstractGaussianProcess,
@@ -10,8 +9,10 @@ from exauq.core.modelling import (
     SimulatorDomain,
     TrainingDatum,
 )
+from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
 from exauq.utilities.validation import check_int
+from scipy.stats import norm
 
 
 class SimpleDesigner(object):
@@ -156,7 +157,18 @@ def pei(x: Input, gp: AbstractGaussianProcess) -> float:
 
 
 def expected_improvement(x: Input, gp: AbstractGaussianProcess) -> float:
-    pass
+    prediction = gp.predict(x)
+    if equal_within_tolerance(prediction.variance, 0):
+        return 0.0
+
+    # This will end up being calculated for each point... maybe a class would be more efficient
+    max_targets = max(gp.training_data, key=lambda datum: datum.output).output
+
+    u = (prediction.estimate - max_targets) / prediction.variance
+
+    return (prediction.estimate - max_targets) * norm(loc=0, scale=1).cdf(
+        u
+    ) + prediction.variance * norm(loc=0, scale=1).pdf(u)
 
 
 def repulsion(x: Input, gp: AbstractGaussianProcess) -> np.array:
