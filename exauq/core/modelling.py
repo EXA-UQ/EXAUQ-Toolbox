@@ -572,14 +572,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             2 * (prediction.variance**2) + 4 * prediction.variance * square_err
         )
         try:
-            norm_es_err = expected_sq_err / standard_deviation_sq_err
-            validation.check_finite(norm_es_err, ZeroDivisionError)
-            return float(norm_es_err)
+            return float(expected_sq_err / standard_deviation_sq_err)
         except ZeroDivisionError:
-            raise ValueError(
-                f"Normalised expected squared error at input {x} undefined because "
-                "predictive variance is zero."
-            ) from None
+            return 0 if expected_sq_err == 0 else float("inf")
 
 
 class AbstractHyperparameters(abc.ABC):
