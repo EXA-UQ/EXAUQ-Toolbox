@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+import math
 from collections.abc import Collection, Sequence
 from itertools import product
 from numbers import Real
@@ -283,7 +284,7 @@ class TrainingDatum(object):
         TypeError if not."""
 
         if not isinstance(input, Input):
-            raise TypeError("Argument `input` must be of type Input")
+            raise TypeError("Argument 'input' must be of type Input")
 
     @staticmethod
     def _validate_output(observation: Any) -> None:
@@ -294,7 +295,7 @@ class TrainingDatum(object):
             observation, TypeError("Argument 'output' cannot be None")
         )
         validation.check_real(
-            observation, TypeError("Argument `output` must define a real number")
+            observation, TypeError("Argument 'output' must define a real number")
         )
         validation.check_finite(
             observation, ValueError("Argument 'output' cannot be NaN or non-finite")
@@ -424,6 +425,11 @@ class AbstractEmulator(abc.ABC):
     methodology.
     """
 
+    @property
+    @abc.abstractmethod
+    def training_data(self) -> tuple[TrainingDatum]:
+        """(Read-only) The data on which the emulator has been trained."""
+
     @abc.abstractmethod
     def fit(
         self,
@@ -447,7 +453,7 @@ class AbstractEmulator(abc.ABC):
             (Default: None) Hyperparameters to use directly in fitting the emulator.
             If ``None`` then the hyperparameters should be estimated as part of
             fitting to data.
-        hyperparameter_bounds : sequence of tuple[float, float], optional
+        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
             (Default: None) A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
@@ -474,6 +480,106 @@ class AbstractEmulator(abc.ABC):
         """
 
         raise NotImplementedError
+
+
+class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
+    """Represents an abstract Gaussian process emulator for simulators.
+
+    Classes that inherit from this abstract base class define emulators which
+    are implemented as Gaussian processs. The mathematical assumption of being a Gaussian
+    process gives computational benefits, such as an explicit formula for calculating
+    the normalised expected squared error at a simulator input/output pair."""
+
+    def nes_error(self, x: Input, observed_output: Real) -> float:
+        """Calculate the normalised expected squared (NES) error.
+
+        This is defined as the expectation of the squared error divided by the standard
+        deviation of the squared error, at the input and output. If the predictive
+        variance is zero then the denominator of this fraction is zero and the NES error
+        is undefined.
+
+        Parameters
+        ----------
+        x : Input
+            A simulator input.
+        observed_output : Real
+            The output of a simulator at `x`.
+
+        Returns
+        -------
+        float
+            The normalised expected squared error for the given simulator input and
+            output.
+
+        Raises
+        ------
+        AssertionError
+            If this Gaussian process emulator has not been fit to training data.
+        ValueError
+            If the predictive variance of this emulator is zero at the input `x`, meaning
+            the NES error is undefined.
+
+        Notes
+        -----
+
+        For Gaussian process emulators, the NES error can be computed from the predictive
+        variance and squared error of the emulator's prediction at the simulator input:
+
+        ```
+        sq_error = (m - observed_output) ** 2
+        expected_sq_error = var + sq_error
+        std_sq_error = sqrt((2 * (var**2) + 4 * var * sq_error)
+        nes_error = expected_sq_error / std_sq_error
+        ```
+
+        where `m` is the point estimate of the Gaussian process prediction at `x` and
+        `var` is the predictive variance of this estimate.[1]_
+
+        References
+        ----------
+        .. [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
+           Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+        """
+        validation.check_real(
+            observed_output,
+            TypeError(
+                f"Expected 'observed_output' to be of type {Real} but received type "
+                f"{type(observed_output)}."
+            ),
+        )
+
+        validation.check_finite(
+            observed_output,
+            ValueError(
+                f"'observed_output' must be a finite real number, but received {observed_output}."
+            ),
+        )
+
+        assert (
+            self.training_data
+        ), "Could not compute normalised expected squared error: emulator hasn't been fit to data."
+
+        try:
+            prediction = self.predict(x)
+        except TypeError:
+            raise TypeError(
+                f"Expected 'x' to be of type {Input.__name__} but received type {type(x)}."
+            ) from None
+
+        square_err = (prediction.estimate - observed_output) ** 2
+        expected_sq_err = prediction.variance + square_err
+        standard_deviation_sq_err = math.sqrt(
+            2 * (prediction.variance**2) + 4 * prediction.variance * square_err
+        )
+        try:
+            norm_es_err = expected_sq_err / standard_deviation_sq_err
+            validation.check_finite(norm_es_err, ZeroDivisionError)
+            return float(norm_es_err)
+        except ZeroDivisionError:
+            raise ValueError(
+                f"Normalised expected squared error at input {x} undefined because "
+                "predictive variance is zero."
+            ) from None
 
 
 class AbstractHyperparameters(abc.ABC):

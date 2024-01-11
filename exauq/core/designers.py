@@ -1,10 +1,11 @@
 import copy
+from collections.abc import Collection
 
 import numpy as np
 
 from exauq.core.modelling import (
     AbstractEmulator,
-    AbstractSimulator,
+    AbstractGaussianProcess,
     Input,
     SimulatorDomain,
     TrainingDatum,
@@ -43,7 +44,8 @@ class SimpleDesigner(object):
             A batch of new simulator inputs.
         """
         check_int(
-            size, TypeError(f"Expected 'size' to be an integer but received {type(size)}.")
+            size,
+            TypeError(f"Expected 'size' to be an integer but received {type(size)}."),
         )
         if size < 0:
             raise ValueError(
@@ -64,44 +66,85 @@ class SingleLevelAdaptiveSampler:
 
     Parameters
     ----------
-    initial_design: list[Experiment]
-        A list of design points to form the basis of an initial training
-        dataset.
+    initial_data: finite collection of TrainingDatum
+        Training data on which the emulator will initially be trained.
     """
 
-    def __init__(self, initial_design: list[Input]):
-        self._initial_design = initial_design
+    def __init__(self, initial_data: Collection[TrainingDatum]):
+        self._initial_data = self._validate_initial_data(initial_data)
+        self._esloo_errors = None
+
+    @classmethod
+    def _validate_initial_data(cls, initial_data):
+        try:
+            length = len(initial_data)  # to catch infinite iterators
+            if not all([isinstance(x, TrainingDatum) for x in initial_data]):
+                raise TypeError
+
+            if length == 0:
+                raise ValueError
+
+            return initial_data
+
+        except TypeError:
+            raise TypeError(
+                f"{cls.__name__} must be initialised with a (finite) collection of "
+                "TrainingDatum"
+            )
+
+        except ValueError:
+            raise ValueError("'initial_data' must be nonempty")
 
     def __str__(self) -> str:
-        return f"SingleLevelAdaptiveSampler designer with initial design {str(self._initial_design)}"
+        return f"SingleLevelAdaptiveSampler designer with initial data {str(self._initial_data)}"
 
     def __repr__(self) -> str:
-        return (
-            f"SingleLevelAdaptiveSampler(initial_design={repr(self._initial_design)})"
-        )
+        return f"SingleLevelAdaptiveSampler(initial_data={repr(self._initial_data)})"
 
-    def train(
-        self, emulator: AbstractEmulator, simulator: AbstractSimulator
-    ) -> AbstractEmulator:
-        """Train an emulator with simulator outputs using this SLAS method.
+    def train(self, emulator: AbstractEmulator) -> AbstractEmulator:
+        """Train an emulator using the single-level adaptive sampling method.
+
+        This will train the emulator on the initial data that was supplied during
+        construction of this object.
 
         Parameters
         ----------
         emulator : AbstractEmulator
             The emulator to train.
-        simulator : AbstractSimulator
-            The simulator to be emulated.
 
         Returns
         -------
         AbstractEmulator
-            A new emulator that has been trained with observations produced by
-            the given simulator, using the SLAS methodology. A new object is
-            returned of the same ``type`` as `emulator`.
+            A new emulator that has been trained with the initial training data and
+            using the SLAS methodology. A new object is returned of the same ``type`` as
+            `emulator`.
         """
+
         return_emulator = copy.copy(emulator)
-        initial_training_data = [
-            TrainingDatum(x, simulator.compute(x)) for x in self._initial_design
-        ]
-        return_emulator.fit(initial_training_data)
+        return_emulator.fit(self._initial_data)
         return return_emulator
+
+    def make_design_batch(self, emulator: AbstractEmulator, size: int = 1):
+        if emulator.training_data:
+            self._esloo_errors = [
+                compute_norm_esloo_error(emulator, leave_out_idx=1)
+            ] * len(emulator.training_data)
+
+        return [Input(1)] * size
+
+    @property
+    def esloo_errors(self):
+        return self._esloo_errors
+
+
+def compute_norm_esloo_error(
+    emulator: AbstractGaussianProcess, leave_out_idx: int
+) -> float:
+    left_out_datum = emulator.training_data[leave_out_idx]
+    remaining_data = (
+        emulator.training_data[:leave_out_idx]
+        + emulator.training_data[leave_out_idx + 1 :]
+    )
+    loo_emulator = emulator.__class__()
+    loo_emulator.fit(remaining_data)
+    return loo_emulator.nes_error(left_out_datum.input, left_out_datum.output)

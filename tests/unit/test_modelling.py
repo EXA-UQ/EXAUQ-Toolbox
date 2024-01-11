@@ -1,11 +1,20 @@
 import itertools
+import math
 import unittest
+from numbers import Real
 from typing import Literal
 
 import numpy as np
+
 from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
-from tests.utilities.utilities import compare_input_tuples, exact, make_window
+from tests.unit.fakes import FakeGP, FakeGPHyperparameters
+from tests.utilities.utilities import (
+    ExauqTestCase,
+    compare_input_tuples,
+    exact,
+    make_window,
+)
 
 
 class TestInput(unittest.TestCase):
@@ -18,19 +27,12 @@ class TestInput(unittest.TestCase):
     def test_input_non_real_error(self):
         """Test that TypeError is raised during construction if there is an
         arg that doesn't define a real number."""
-        with self.assertRaises(TypeError) as cm:
-            Input(1, "a")
 
-        self.assertEqual(
-            "Arguments must be instances of real numbers", str(cm.exception)
-        )
-
-        with self.assertRaises(TypeError) as cm:
-            Input(1, complex(1, 1))
-
-        self.assertEqual(
-            "Arguments must be instances of real numbers", str(cm.exception)
-        )
+        msg = "Arguments must be instances of real numbers"
+        for coord in ["a", complex(1, 1)]:
+            with self.subTest(coord=coord):
+                with self.assertRaisesRegex(TypeError, exact(msg)):
+                    Input(1, coord)
 
     def test_input_none_error(self):
         """Test that a TypeError is raised if the input array contains None."""
@@ -161,9 +163,7 @@ class TestInput(unittest.TestCase):
 
         x = Input(2)
         i = 1
-        with self.assertRaisesRegex(
-            IndexError, exact(f"Input index {i} out of range.")
-        ):
+        with self.assertRaisesRegex(IndexError, exact(f"Input index {i} out of range.")):
             x[i]
 
     def test_sequence_implementation(self):
@@ -257,32 +257,22 @@ class TestInput(unittest.TestCase):
 
 class TestTrainingDatum(unittest.TestCase):
     def test_input_error(self):
-        """Test that a TypeError is raised if the constructor arg `input`
+        """Test that a TypeError is raised if the constructor arg 'input'
         is not an Input."""
-        with self.assertRaises(TypeError) as cm:
+
+        msg = "Argument 'input' must be of type Input"
+        with self.assertRaisesRegex(TypeError, exact(msg)):
             TrainingDatum(1, 1)
 
-        self.assertEqual("Argument `input` must be of type Input", str(cm.exception))
-
-    def test_output_not_real_error(self):
-        """Test that a TypeError is raised if the constructor arg `output`
+    def test_output_error(self):
+        """Test that a TypeError is raised if the constructor arg 'output'
         is not a real number."""
 
-        msg = "Argument `output` must define a real number"
-        with self.assertRaises(TypeError) as cm:
-            TrainingDatum(Input(1), "a")
-
-        self.assertEqual(msg, str(cm.exception))
-
-        with self.assertRaises(TypeError) as cm:
-            TrainingDatum(Input(1), complex(1, 1))
-
-        self.assertEqual(msg, str(cm.exception))
-
-        with self.assertRaises(TypeError) as cm:
-            TrainingDatum(Input(1), [1.1])
-
-        self.assertEqual(msg, str(cm.exception))
+        msg = "Argument 'output' must define a real number"
+        for output in ["a", complex(1, 1), [1.1]]:
+            with self.subTest(output=output):
+                with self.assertRaisesRegex(TypeError, exact(msg)):
+                    TrainingDatum(Input(1), output)
 
     def test_output_none_error(self):
         """Test that a TypeError is raised if the constructor arg `output`
@@ -331,15 +321,11 @@ class TestTrainingDatum(unittest.TestCase):
         """Test that the input and output attributes are immutable."""
 
         datum = TrainingDatum(Input(1), 2)
-        with self.assertRaises(AttributeError) as cm:
+        with self.assertRaisesRegex(AttributeError, "cannot assign to field 'input'$"):
             datum.input = Input(2)
 
-        self.assertTrue(str(cm.exception).endswith("cannot assign to field 'input'"))
-
-        with self.assertRaises(AttributeError) as cm:
+        with self.assertRaisesRegex(AttributeError, "cannot assign to field 'output'$"):
             datum.output = 1
-
-        self.assertTrue(str(cm.exception).endswith("cannot assign to field 'output'"))
 
     def test_list_from_arrays(self):
         """Test that a list of training data is created from Numpy arrays of
@@ -399,9 +385,7 @@ class TestPrediction(unittest.TestCase):
         var = -0.1
         with self.assertRaisesRegex(
             ValueError,
-            exact(
-                f"'variance' must be a non-negative real number, but received {var}."
-            ),
+            exact(f"'variance' must be a non-negative real number, but received {var}."),
         ):
             Prediction(estimate=1, variance=var)
 
@@ -441,9 +425,7 @@ class TestPrediction(unittest.TestCase):
         estimate = 0
         for var1 in [0.1 * n for n in range(101)]:
             p1 = Prediction(estimate, var1)
-            for var2 in filter(
-                lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)
-            ):
+            for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
                 p2 = Prediction(estimate, var2)
                 self.assertIs(p1 == p2, equal_within_tolerance(var1, var2))
                 self.assertIs(p2 == p1, p1 == p2)
@@ -461,11 +443,108 @@ class TestPrediction(unittest.TestCase):
                 self.assertIs(p1 == p2, p2 == p1)
 
 
+class TestAbstractGaussianProcess(ExauqTestCase):
+    def setUp(self) -> None:
+        self.emulator = FakeGP()
+        self.training_data = [TrainingDatum(Input(0.5), 1)]
+        self.emulator.fit(self.training_data)
+
+        self.inputs = [Input(0), Input(0.25), Input(1)]
+        self.outputs = [-1, np.int32(1), 2.1, np.float16(3)]
+
+    def test_nes_error_arg_type_errors(self):
+        """A TypeError is raised when computing the normalised expected square error if:
+
+        * making a prediction from the input 'x' raises a TypeError; or
+        * the observed output is not a Real number.
+        """
+
+        x = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'x' to be of type {Input.__name__} but received type {type(x)}."
+            ),
+        ):
+            self.emulator.nes_error(x, 0)
+
+        observed_output = "1"
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'observed_output' to be of type {Real} but received type {type(observed_output)}."
+            ),
+        ):
+            self.emulator.nes_error(Input(1), observed_output)
+
+    def test_nes_error_assertion_error_raised_if_emulator_not_trained_on_data(self):
+        """An AssertionError is raised if an attempt is made to compute the normalised
+        expected square error with an emulator that hasn't been trained on data."""
+
+        emulator = FakeGP()
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(
+                "Could not compute normalised expected squared error: emulator hasn't been fit to data."
+            ),
+        ):
+            emulator.nes_error(Input(0), 1)
+
+    def test_nes_error_value_error_raised_if_observed_output_is_infinite(self):
+        """A ValueError is raised if the observed output is an infinite value or NaN."""
+
+        for observed_output in [np.nan, np.inf, np.NINF]:
+            with self.subTest(observed_output=observed_output), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"'observed_output' must be a finite real number, but received {observed_output}."
+                ),
+            ):
+                self.emulator.nes_error(Input(1), observed_output)
+
+    def test_nes_error_formula(self):
+        """The normalised expected square error is given by the expected square error
+        divided by the standard deviation of the square error, as described in
+        Mohammadi et al (2022).
+        """
+
+        variances = [0.1, 0.2, 0.3]
+        for var, x, observed_output in itertools.product(
+            variances, self.inputs, self.outputs
+        ):
+            with self.subTest(var=var, x=x, observed_output=observed_output):
+                hyperparameters = FakeGPHyperparameters(var=var)
+                self.emulator.fit(self.training_data, hyperparameters=hyperparameters)
+
+                prediction = self.emulator.predict(x)
+                square_err = (prediction.estimate - observed_output) ** 2
+                expected_sq_err = prediction.variance + square_err
+                standard_deviation_sq_err = math.sqrt(
+                    2 * (prediction.variance**2) + 4 * prediction.variance * square_err
+                )
+
+                self.assertEqualWithinTolerance(
+                    expected_sq_err / standard_deviation_sq_err,
+                    self.emulator.nes_error(x, observed_output),
+                )
+
+    def test_nes_error_raises_value_error_if_variance_zero(self):
+        """A ValueError is raised if the predictive variance at the simulator input is
+        zero."""
+
+        # Consider case where we calculate at a training input
+        datum = self.emulator.training_data[0]
+        with self.assertRaisesRegex(
+            ValueError,
+            f"Normalised expected squared error at input {datum.input} undefined because "
+            "predictive variance is zero.",
+        ):
+            _ = self.emulator.nes_error(datum.input, datum.output)
+
+
 class TestSimulatorDomain(unittest.TestCase):
     def setUp(self) -> None:
-        self.epsilon = (
-            FLOAT_TOLERANCE / 2
-        )  # Useful for testing equality up to tolerance
+        self.epsilon = FLOAT_TOLERANCE / 2  # Useful for testing equality up to tolerance
         self.bounds = [(0, 2), (0, 1)]
         self.domain = SimulatorDomain(self.bounds)
 
@@ -915,9 +994,7 @@ class TestSimulatorDomain(unittest.TestCase):
             with self.subTest(coord=coord, limit=limit):
                 self.assertEqual(
                     1,
-                    len(
-                        [x for x in boundary_points if is_on_boundary(x, coord, limit)]
-                    ),
+                    len([x for x in boundary_points if is_on_boundary(x, coord, limit)]),
                 )
 
     def test_closest_boundary_points_does_not_return_boundary_corners(self):
