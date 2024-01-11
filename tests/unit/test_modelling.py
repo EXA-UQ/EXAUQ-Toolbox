@@ -450,7 +450,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         self.emulator.fit(self.training_data)
 
         self.inputs = [Input(0), Input(0.25), Input(1)]
-        self.outputs = [-1, np.int32(1), 2.1, np.float128(3)]
+        self.outputs = [-1, np.int32(1), 2.1, np.float16(3)]
 
     def test_nes_error_arg_type_errors(self):
         """A TypeError is raised when computing the normalised expected square error if:
