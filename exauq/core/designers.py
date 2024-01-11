@@ -159,6 +159,10 @@ def expected_improvement(x: Input, gp: AbstractGaussianProcess) -> float:
     pass
 
 
+def repulsion(x: Input, gp: AbstractGaussianProcess) -> np.array:
+    pass
+
+
 def compute_single_level_loo_samples(
     gp: AbstractGaussianProcess, domain: SimulatorDomain, batch_size: int = 1
 ) -> tuple[Input]:
