@@ -515,6 +515,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         ------
         AssertionError
             If this Gaussian process emulator has not been fit to training data.
+        ValueError
+            If the predictive variance of this emulator is zero at the input `x`, meaning
+            the NES error is undefined.
 
         Notes
         -----
@@ -573,8 +576,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             validation.check_finite(norm_es_err, ZeroDivisionError)
             return float(norm_es_err)
         except ZeroDivisionError:
-            raise ZeroDivisionError(
-                "Normalised expected squared error undefined when variance is zero."
+            raise ValueError(
+                f"Normalised expected squared error at input {x} undefined because "
+                "predictive variance is zero."
             ) from None
 
 

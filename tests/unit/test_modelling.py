@@ -6,15 +6,12 @@ from typing import Literal
 
 import numpy as np
 
-from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
+from exauq.core.modelling import (Input, Prediction, SimulatorDomain,
+                                  TrainingDatum)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
-from tests.utilities.utilities import (
-    ExauqTestCase,
-    compare_input_tuples,
-    exact,
-    make_window,
-)
+from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
+                                       exact, make_window)
 
 
 class TestInput(unittest.TestCase):
@@ -528,14 +525,16 @@ class TestAbstractGaussianProcess(ExauqTestCase):
                     self.emulator.nes_error(x, observed_output),
                 )
 
-    def test_nes_error_raises_zero_division_error_if_variance_zero(self):
-        """A ZeroDivisionError is raised if the predictive variance is zero."""
+    def test_nes_error_raises_value_error_if_variance_zero(self):
+        """A ValueError is raised if the predictive variance at the simulator input is
+        zero."""
 
         # Consider case where we calculate at a training input
         datum = self.emulator.training_data[0]
-        with self.subTest("Training data input"), self.assertRaisesRegex(
-            ZeroDivisionError,
-            "Normalised expected squared error undefined when variance is zero.",
+        with self.assertRaisesRegex(
+            ValueError,
+            f"Normalised expected squared error at input {datum.input} undefined because "
+            "predictive variance is zero.",
         ):
             _ = self.emulator.nes_error(datum.input, datum.output)
 
