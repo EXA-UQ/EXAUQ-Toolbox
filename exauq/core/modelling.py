@@ -495,7 +495,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         This is defined as the expectation of the squared error divided by the standard
         deviation of the squared error, at the input and output. If the denominator of
-        this fraction is zero, then the NES is defined to be zero if the numerator is also
+        this fraction is zero, then the NES error is defined to be zero if the numerator is also
         zero and ``inf`` otherwise. Note that the check for whether the denominator and
         numerator are zero is done with exact equality checks on the floating point
         numbers involved, rather than a check up to some numerical tolerance.
