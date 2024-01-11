@@ -528,18 +528,26 @@ class TestAbstractGaussianProcess(ExauqTestCase):
                     self.emulator.nes_error(x, observed_output),
                 )
 
-    def test_nes_error_raises_value_error_if_variance_zero(self):
-        """A ValueError is raised if the predictive variance at the simulator input is
-        zero."""
+    def test_nes_error_zero_variance_cases(self):
+        """The normalised expected square error is equal to
 
-        # Consider case where we calculate at a training input
+        * zero if both the standard deviation (denominator) and expectation (numerator) of
+          the square error are zero
+        * inf if the standard deviation is zero and the expectation is nonzero.
+        """
+
+        # Consider case where we calculate at a training input - expectation and variance of
+        # square error both zero.
         datum = self.emulator.training_data[0]
-        with self.assertRaisesRegex(
-            ValueError,
-            f"Normalised expected squared error at input {datum.input} undefined because "
-            "predictive variance is zero.",
-        ):
-            _ = self.emulator.nes_error(datum.input, datum.output)
+        self.assertEqual(0, self.emulator.nes_error(datum.input, datum.output))
+
+        # Force predictive variance to be zero even for unseen inputs
+        emulator = FakeGP()
+        emulator.fit(
+            [TrainingDatum(Input(0.5), 1)],
+            hyperparameters=FakeGPHyperparameters(var=0),
+        )
+        self.assertEqual(float("inf"), emulator.nes_error(Input(0.4), 1e-5))
 
 
 class TestSimulatorDomain(unittest.TestCase):
