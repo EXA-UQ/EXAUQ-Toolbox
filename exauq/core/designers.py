@@ -142,10 +142,16 @@ def compute_norm_esloo_error(gp: AbstractGaussianProcess, leave_out_idx: int) ->
     try:
         left_out_datum = gp.training_data[leave_out_idx]
     except IndexError:
-        raise ValueError(
-            f"Leave out index {leave_out_idx} is not within the bounds of the training "
-            "data for 'gp'."
-        ) from None
+        if len(gp.training_data) == 0:
+            raise ValueError(
+                "Cannot compute leave one out error with 'gp' because it has not been "
+                "trained on data."
+            ) from None
+        else:
+            raise ValueError(
+                f"Leave out index {leave_out_idx} is not within the bounds of the training "
+                "data for 'gp'."
+            ) from None
 
     remaining_data = (
         gp.training_data[:leave_out_idx] + gp.training_data[leave_out_idx + 1 :]

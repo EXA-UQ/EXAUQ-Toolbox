@@ -202,6 +202,18 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
         ):
             _ = compute_norm_esloo_error(self.gp, leave_out_idx)
 
+    def test_compute_norm_esloo_error_no_training_data_error(self):
+        """A ValueError is raised if the supplied AbstractGaussianProcess has not been
+        trained on any data."""
+
+        gp = MogpEmulator()
+        with self.assertRaisesRegex(
+            ValueError,
+            "Cannot compute leave one out error with 'gp' because it has not been trained "
+            "on data.",
+        ):
+            _ = compute_norm_esloo_error(gp, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
