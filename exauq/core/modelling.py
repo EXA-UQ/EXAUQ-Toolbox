@@ -503,7 +503,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         x : Input
             A simulator input.
         observed_output : Real
-            A the output of a simulator at `x`.
+            The output of a simulator at `x`.
 
         Returns
         -------
