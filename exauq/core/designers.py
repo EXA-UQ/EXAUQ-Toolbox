@@ -155,6 +155,10 @@ def pei(x: Input, gp: AbstractGaussianProcess) -> float:
     raise NotImplementedError
 
 
+def expected_improvement(x: Input, gp: AbstractGaussianProcess) -> float:
+    pass
+
+
 def compute_single_level_loo_samples(
     gp: AbstractGaussianProcess, domain: SimulatorDomain, batch_size: int = 1
 ) -> tuple[Input]:
