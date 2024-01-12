@@ -150,39 +150,6 @@ class TestMogpEmulator(ExauqTestCase):
             except Exception:
                 self.fail(f"Should not have failed to fit emulator with data = {data}")
 
-    def test_fit_raises_value_error_if_infinite_training_data_supplied(self):
-        """A ValueError is raised if one attempts to fit the emulator to an infinite
-        collection of training data."""
-
-        emulator = MogpEmulator()
-
-        # Mock a stream of unsizeable data (note it doesn't implement __len__ so
-        # doesn't define a collection).
-        def unsizeable_data():
-            for _ in range(1000):
-                yield TrainingDatum(Input(0), 1)
-
-        for data in [1, TrainingDatum(Input(0), 1), unsizeable_data()]:
-            with self.subTest(data=data):
-                with self.assertRaisesRegex(
-                    TypeError,
-                    exact(
-                        f"Expected a finite collection of TrainingDatum, but received {type(data)}."
-                    ),
-                ):
-                    emulator.fit(data)
-
-    def test_fit_allows_finite_collections_of_training_data(self):
-        """The emulator can be fit on (finite) collections of training data."""
-
-        emulator = MogpEmulator()
-        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 1)]
-        for data in [training_data, tuple(training_data)]:
-            try:
-                _ = emulator.fit(data)
-            except Exception:
-                self.fail(f"Should not have failed to fit emulator with data = {data}")
-
     def test_fit_estimates_hyperparameters_by_default(self):
         """Test that fitting the emulator results in the underlying GP being fit
         with hyperparameter estimation."""
