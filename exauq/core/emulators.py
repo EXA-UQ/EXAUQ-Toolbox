@@ -8,6 +8,7 @@ from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Literal, Optional, Union
 
+import mogp_emulator as mogp
 import numpy as np
 from mogp_emulator import GaussianProcess
 from mogp_emulator.GPParams import GPParams
@@ -334,7 +335,15 @@ class MogpEmulator(AbstractGaussianProcess):
             "it hasn't yet been trained on data."
         )
 
-        return tuple(tuple(0.5 for _ in inputs1) for _ in inputs2)
+        # TODO: implement support for other kernels
+        corr_raw = self.fit_hyperparameters.to_mogp_gp_params().corr_raw
+
+        def kernel_func(x1: Input, x2: Input) -> float:
+            return mogp.Kernel.Matern52().kernel_f(
+                np.array(list(x1)), np.array(list(x2)), corr_raw
+            )
+
+        return tuple(tuple(kernel_func(xi, xj) for xj in inputs2) for xi in inputs1)
 
     def predict(self, x: Input) -> Prediction:
         """Make a prediction of a simulator output for a given input.
