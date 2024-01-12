@@ -575,6 +575,31 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         except ZeroDivisionError:
             return 0 if expected_sq_err == 0 else float("inf")
 
+    @abc.abstractmethod
+    def correlation(
+        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
+    ) -> tuple[tuple[float, ...], ...]:
+        """Compute the correlation matrix for two sequences of simulator inputs.
+
+        If ``corr_matrix`` is the output of this method, then the ordering of the
+        nested tuples in ``corr_matrix`` should be such that ``corr_matrix[i][j]``
+        is equal to the correlation between ``inputs1[i]`` and ``inputs2[j]`` (or, in
+        pseudocode, ``corr_matrix[i][j] = correlation(inputs1[i], inputs2[j])``).
+
+        Parameters
+        ----------
+        inputs1, inputs2 : Sequence[Input]
+            Sequences of simulator inputs.
+
+        Returns
+        -------
+        tuple[tuple[float, ...], ...]
+            The correlation matrix for the two sequences of inputs. The outer tuple
+            consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
+        """
+
+        raise NotImplementedError
+
 
 class AbstractHyperparameters(abc.ABC):
     """A base class for hyperparameters used to train an emulator.
