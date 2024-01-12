@@ -341,9 +341,11 @@ class TestMogpEmulator(ExauqTestCase):
         train the underlying MOGP GaussianProcess object."""
 
         hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2, nugget=1.0)
-        for nugget in [2.0, "adaptive", "fit", "pivot"]:
+        for nugget in ["DEFAULT", 2.0, "adaptive", "fit", "pivot"]:
             with self.subTest(nugget=nugget):
-                emulator = MogpEmulator(nugget=nugget)
+                emulator = (
+                    MogpEmulator(nugget=nugget) if nugget != "DEFAULT" else MogpEmulator()
+                )
                 emulator.fit(self.training_data, hyperparameters=hyperparameters)
                 self.assertEqual(hyperparameters, emulator.fit_hyperparameters)
                 self.assertEqual(
@@ -360,9 +362,11 @@ class TestMogpEmulator(ExauqTestCase):
 
         hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2)
         float_val = 1.0
-        for nugget in [float_val, "adaptive", "pivot"]:
+        for nugget in ["DEFAULT", float_val, "adaptive", "pivot"]:
             with self.subTest(nugget=nugget):
-                emulator = MogpEmulator(nugget=nugget)
+                emulator = (
+                    MogpEmulator(nugget=nugget) if nugget != "DEFAULT" else MogpEmulator()
+                )
                 emulator.fit(self.training_data, hyperparameters=hyperparameters)
 
                 # Check the fitted hyperparameters are as calculated from MOGP

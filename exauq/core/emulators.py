@@ -74,6 +74,11 @@ class MogpEmulator(AbstractGaussianProcess):
     def __init__(self, **kwargs):
         self._gp_kwargs = self._remove_entries(kwargs, "inputs", "targets")
         self._gp = self._make_gp(**self._gp_kwargs)
+
+        # Add the default nugget type if not provided explicitly
+        if "nugget" not in self._gp_kwargs:
+            self._gp_kwargs["nugget"] = self._gp.nugget_type
+
         self._training_data = tuple(
             TrainingDatum.list_from_arrays(self._gp.inputs, self._gp.targets)
         )
