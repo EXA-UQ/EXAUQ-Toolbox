@@ -299,6 +299,43 @@ class MogpEmulator(AbstractGaussianProcess):
         ]
         return tuple(raw_bounds)
 
+    def correlation(
+        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
+    ) -> tuple[tuple[float, ...], ...]:
+        """Compute the correlation matrix for two sequences of simulator inputs.
+
+        If ``corr_matrix`` is the output of this method, then the ordering of the nested
+        tuples in ``corr_matrix`` is such that (in pseudocode)
+        ``corr_matrix[i][j] = kernel(inputs1[i], inputs2[j])``, where ``kernel`` is the
+        kernel function for the underlying Gaussian process.
+
+        In order to calculate the correlation, this emulator's ``fit_hyperparameters``
+        needs to not be ``None``, i.e. the emulator needs to have been trained on data.
+
+        Parameters
+        ----------
+        inputs1, inputs2 : Sequence[Input]
+            Sequences of simulator inputs.
+
+        Returns
+        -------
+        tuple[tuple[float, ...], ...]
+            The correlation matrix for the two sequences of inputs. The outer tuple
+            consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
+
+        Raises
+        ------
+        AssertionError
+            If this emulator has not yet been trained on data.
+        """
+
+        assert self.fit_hyperparameters is not None, (
+            f"Cannot calculate correlations for this instance of {self.__class__} because "
+            "it hasn't yet been trained on data."
+        )
+
+        return tuple(tuple(0.5 for _ in inputs1) for _ in inputs2)
+
     def predict(self, x: Input) -> Prediction:
         """Make a prediction of a simulator output for a given input.
 
