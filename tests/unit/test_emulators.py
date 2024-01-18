@@ -117,38 +117,29 @@ class TestMogpEmulator(ExauqTestCase):
         self.assertEqual(0, emulator.gp.targets.size)
         self.assertEqual(tuple(), emulator.training_data)
 
-    def test_fit_raises_value_error_if_infinite_training_data_supplied(self):
-        """A ValueError is raised if one attempts to fit the emulator to an infinite
-        collection of training data."""
+    def test_correlation_matrix_entries_given_by_kernels(self):
+        """The calculation of correlations agrees with the pairwise kernel calculations
+        for the kernel chosen for the underlying MOGP GaussianProcess."""
 
-        emulator = MogpEmulator()
+        # Train an emulator with some hyperparameters and a specific kernel
+        emulator = MogpEmulator(kernel="Matern52")
+        emulator.fit([TrainingDatum(Input(1, 2), 1), TrainingDatum(Input(3, 4), 2)])
 
-        # Mock a stream of unsizeable data (note it doesn't implement __len__ so
-        # doesn't define a collection).
-        def unsizeable_data():
-            for _ in range(1000):
-                yield TrainingDatum(Input(0), 1)
+        corr_raw = emulator.fit_hyperparameters.to_mogp_gp_params().corr_raw
 
-        for data in [1, TrainingDatum(Input(0), 1), unsizeable_data()]:
-            with self.subTest(data=data):
-                with self.assertRaisesRegex(
-                    TypeError,
-                    exact(
-                        f"Expected a finite collection of TrainingDatum, but received {type(data)}."
-                    ),
-                ):
-                    emulator.fit(data)
+        def kernel_func(x1, x2):
+            return mogp.Kernel.Matern52().kernel_f(
+                np.array(list(x1)),
+                np.array(list(x2)),
+                corr_raw,
+            )
 
-    def test_fit_allows_finite_collections_of_training_data(self):
-        """The emulator can be fit on (finite) collections of training data."""
+        inputs1 = [Input(1, 1), Input(2, 2), Input(3, 3)]
+        inputs2 = [Input(10, 10), Input(20, 20)]
 
-        emulator = MogpEmulator()
-        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 1)]
-        for data in [training_data, tuple(training_data)]:
-            try:
-                _ = emulator.fit(data)
-            except Exception:
-                self.fail(f"Should not have failed to fit emulator with data = {data}")
+        correlations = emulator.correlation(inputs1, inputs2)
+        for (i1, x1), (i2, x2) in zip(enumerate(inputs1), enumerate(inputs2)):
+            self.assertEqualWithinTolerance(kernel_func(x1, x2), correlations[i1][i2])
 
     def test_fit_raises_value_error_if_infinite_training_data_supplied(self):
         """A ValueError is raised if one attempts to fit the emulator to an infinite
@@ -341,9 +332,11 @@ class TestMogpEmulator(ExauqTestCase):
         train the underlying MOGP GaussianProcess object."""
 
         hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2, nugget=1.0)
-        for nugget in [2.0, "adaptive", "fit", "pivot"]:
+        for nugget in ["DEFAULT", 2.0, "adaptive", "fit", "pivot"]:
             with self.subTest(nugget=nugget):
-                emulator = MogpEmulator(nugget=nugget)
+                emulator = (
+                    MogpEmulator(nugget=nugget) if nugget != "DEFAULT" else MogpEmulator()
+                )
                 emulator.fit(self.training_data, hyperparameters=hyperparameters)
                 self.assertEqual(hyperparameters, emulator.fit_hyperparameters)
                 self.assertEqual(
@@ -360,9 +353,11 @@ class TestMogpEmulator(ExauqTestCase):
 
         hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2)
         float_val = 1.0
-        for nugget in [float_val, "adaptive", "pivot"]:
+        for nugget in ["DEFAULT", float_val, "adaptive", "pivot"]:
             with self.subTest(nugget=nugget):
-                emulator = MogpEmulator(nugget=nugget)
+                emulator = (
+                    MogpEmulator(nugget=nugget) if nugget != "DEFAULT" else MogpEmulator()
+                )
                 emulator.fit(self.training_data, hyperparameters=hyperparameters)
 
                 # Check the fitted hyperparameters are as calculated from MOGP
