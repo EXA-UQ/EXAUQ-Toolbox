@@ -140,6 +140,39 @@ class SingleLevelAdaptiveSampler:
 def compute_loo_errors_gp(
     gp: AbstractGaussianProcess, gp_for_errors: Optional[AbstractGaussianProcess] = None
 ) -> AbstractGaussianProcess:
+    """Calculate a Gaussian process trained on normalised expected squared leave-one-out
+    (LOO) errors.
+
+    The errors are computed from the supplied Gaussian process, `gp`. This involves
+    training a Gaussian process (GP) for each leave-one-out subset of the training data of
+    `gp` and calculating the normalised expected squared error at the left-out training
+    point for each intermediary GP. The resulting errors, together with the corresponding
+    left out simulator inputs, form the training data for the output GP.
+
+    Note that the intermediary leave-one-out GPs are fit to data using the fitted
+    hyperparameters *from the supplied `gp`*. This avoids costly re-estimation of
+    hyperparameters for each leave-one-out GP. By default, the returned
+    ``AbstractGaussianProcess`` object will be a deep copy of `gp` trained on the
+    leave-one-out errors. Alternatively, another ``AbstractGaussianProcess`` can be
+    supplied that will be trained on the leave-one-out errors and returned (thus it will
+    be modified in-place as well as returned).
+
+    Parameters
+    ----------
+    gp : AbstractGaussianProcess
+        A Gaussian process to calculate the normalised expected squared LOO errors for.
+    gp_for_errors : Optional[AbstractGaussianProcess], optional
+        (Default: None) Another Gaussian process that is trained on the LOO errors to
+        create the output to this function. If ``None`` then a deep copy of `gp` will
+        be used instead.
+
+    Returns
+    -------
+    AbstractGaussianProcess
+        A Gaussian process that is trained on the normalised expected square LOO errors
+        of `gp`. If `gp_for_errors` was supplied then (a reference to) this object will be
+        returned (except now it has been fit to the LOO errors).
+    """
     # TODO: add arg type validation
 
     error_training_data = []
@@ -159,6 +192,31 @@ def compute_loo_errors_gp(
 def compute_loo_gp(
     gp: AbstractGaussianProcess, leave_out_idx: int
 ) -> AbstractGaussianProcess:
+    """Calculate a leave-one-out (LOO) Gaussian process.
+
+    The returned Gaussian process (GP) is obtained by training it on all training data
+    from the supplied GP except for one datum (the 'left out' datum). It is trained using
+    the fitted hyperparameters *from the supplied Gaussian process `gp`*.
+
+    Parameters
+    ----------
+    gp : AbstractGaussianProcess
+        A Gaussian process to calculate the normalised expected squared LOO error for.
+    leave_out_idx : int
+        The index for the training datum of `gp` to leave out. This should be an index
+        of the sequence returned by the ``gp.training_data`` property.
+
+    Returns
+    -------
+    AbstractGaussianProcess
+        A Gaussian process that is trained on all training data from `gp` except the datum
+        that is left out.
+
+    Raises
+    ------
+    ValueError
+        If the supplied ``AbstractGaussianProcess`` hasn't been trained on any data.
+    """
     if not isinstance(gp, AbstractGaussianProcess):
         raise TypeError(
             f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(gp)} "
