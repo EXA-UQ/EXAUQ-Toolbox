@@ -174,8 +174,8 @@ class TestComputeNesLooError(ExauqTestCase):
         self.gp.fit(self.training_data)
 
     def test_compute_nes_loo_error_expected_value_divided_by_variance(self):
-        """The normalised ES-LOO error is equal to the expected square error at the
-        left out training datum."""
+        """The normalised expected square leave-one-out error is equal to the normalised
+        expected square error at the left out training datum."""
 
         tolerance = 1e-5
         for i, left_out_data in enumerate(self.training_data):
