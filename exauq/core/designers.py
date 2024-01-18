@@ -228,33 +228,37 @@ def compute_loo_gp(
     ValueError
         If the supplied ``AbstractGaussianProcess`` hasn't been trained on any data.
     """
+
     if not isinstance(gp, AbstractGaussianProcess):
         raise TypeError(
             f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(gp)} "
             "instead."
         )
-    elif not isinstance(leave_out_idx, int):
+
+    if not isinstance(leave_out_idx, int):
         raise TypeError(
             f"Expected 'leave_out_idx' to be of type int, but received {type(leave_out_idx)} "
             "instead."
         )
-    elif len(gp.training_data) == 0:
+
+    if len(gp.training_data) == 0:
         raise ValueError(
             "Cannot compute leave one out error with 'gp' because it has not been "
             "trained on data."
         )
-    elif not 0 <= leave_out_idx < len(gp.training_data):
+
+    if not 0 <= leave_out_idx < len(gp.training_data):
         raise ValueError(
             f"Leave out index {leave_out_idx} is not within the bounds of the training "
             "data for 'gp'."
         )
-    else:
-        remaining_data = (
-            gp.training_data[:leave_out_idx] + gp.training_data[leave_out_idx + 1 :]
-        )
-        loo_emulator = copy.copy(gp)
-        loo_emulator.fit(remaining_data, hyperparameters=gp.fit_hyperparameters)
-        return loo_emulator
+
+    remaining_data = (
+        gp.training_data[:leave_out_idx] + gp.training_data[leave_out_idx + 1 :]
+    )
+    loo_emulator = copy.copy(gp)
+    loo_emulator.fit(remaining_data, hyperparameters=gp.fit_hyperparameters)
+    return loo_emulator
 
 
 def pei(x: Input, gp: AbstractGaussianProcess) -> float:
