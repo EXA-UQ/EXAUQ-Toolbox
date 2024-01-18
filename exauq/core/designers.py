@@ -1,5 +1,6 @@
 import copy
 from collections.abc import Collection
+from typing import Optional
 
 import numpy as np
 
@@ -138,22 +139,23 @@ class SingleLevelAdaptiveSampler:
         return self._esloo_errors
 
 
-def compute_loo_errors_gp(gp: AbstractGaussianProcess) -> AbstractGaussianProcess:
-    loo_emulator = copy.copy(gp)
+def compute_loo_errors_gp(
+    gp: AbstractGaussianProcess, gp_for_errors: Optional[AbstractGaussianProcess] = None
+) -> AbstractGaussianProcess:
+    # TODO: add arg type validation
+
     error_training_data = []
     for leave_out_idx, datum in enumerate(gp.training_data):
         # Fit LOO GP
-        training_data = (
-            gp.training_data[:leave_out_idx] + gp.training_data[leave_out_idx + 1 :]
-        )
-        loo_emulator.fit(training_data, hyperparameters=gp.fit_hyperparameters)
+        loo_gp = compute_loo_gp(gp, leave_out_idx)
 
         # Add training input and nes error
-        nes_loo_error = loo_emulator.nes_error(datum.input, datum.output)
+        nes_loo_error = loo_gp.nes_error(datum.input, datum.output)
         error_training_data.append(TrainingDatum(datum.input, nes_loo_error))
 
-    gp_e = copy.copy(gp)
+    gp_e = gp_for_errors if gp_for_errors is not None else copy.deepcopy(gp)
     gp_e.fit(error_training_data)
+    return gp_e
 
 
 def compute_loo_gp(

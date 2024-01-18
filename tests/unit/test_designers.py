@@ -5,11 +5,13 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     SimpleDesigner,
     SingleLevelAdaptiveSampler,
+    compute_loo_errors_gp,
     compute_loo_gp,
     compute_nes_loo_error,
 )
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
+from exauq.core.numerics import equal_within_tolerance
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -163,6 +165,83 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
             self.assertIsInstance(_input, Input)
 
 
+class TestComputeLooErrorsGp(ExauqTestCase):
+    def setUp(self) -> None:
+        self.training_data = [
+            TrainingDatum(Input(0), 1),
+            TrainingDatum(Input(0.5), 1),
+            TrainingDatum(Input(1), 1),
+        ]
+        self.gp = fakes.FakeGP()
+        self.gp.fit(self.training_data)
+
+    def test_compute_loo_errors_gp_returned_gp_trainied_on_loo_errors(self):
+        """The GP returned is trained on data consisting of the normalised expected square
+        leave-one-out errors for each of the simulator inputs used to train the supplied
+        GP."""
+
+        loo_errors_gp = compute_loo_errors_gp(self.gp)
+
+        # Construct expected LOO error GP training data
+        loo_errors_training_data = []
+        for leave_out_idx, datum in enumerate(self.gp.training_data):
+            loo_gp = compute_loo_gp(self.gp, leave_out_idx)
+            loo_errors_training_data.append(
+                TrainingDatum(datum.input, loo_gp.nes_error(datum.input, datum.output))
+            )
+
+        # Check actual LOO error GP training data is as expected
+        self.assertTrue(
+            all(
+                expected.input == actual.input
+                and equal_within_tolerance(expected.output, actual.output)
+                for expected, actual in zip(
+                    loo_errors_training_data, loo_errors_gp.training_data
+                )
+            )
+        )
+
+    def test_compute_loo_errors_gp_default_case_same_settings_as_input_gp(self):
+        """By default, the returned GP will be constructed with the same settings used to
+        initialise the input GP."""
+
+        gp = fakes.FakeGP(predictive_mean=99)
+        gp.fit(self.training_data)
+        loo_errors_gp = compute_loo_errors_gp(gp)
+
+        self.assertEqual(gp.predictive_mean, loo_errors_gp.predictive_mean)
+
+    def test_compute_loo_errors_gp_use_given_gp_for_returned_gp(self):
+        """The returned GP will use a particular instance of an
+        AbstractGaussianProcess if supplied."""
+
+        other_gp = fakes.FakeGP(predictive_mean=99)
+        loo_errors_gp = compute_loo_errors_gp(self.gp, gp_for_errors=other_gp)
+
+        self.assertEqual(other_gp.predictive_mean, loo_errors_gp.predictive_mean)
+        self.assertEqual(id(other_gp), id(loo_errors_gp))
+
+    def test_compute_loo_errors_gp_leaves_original_gp_unchanged(self):
+        """The original AbstractGaussianProcess's training data and fit hyperparameters
+        are unchanged after computing the leave-one-out errors GP."""
+
+        training_data = copy.deepcopy(self.gp.training_data)
+        hyperparameters = copy.deepcopy(self.gp.fit_hyperparameters)
+
+        # Default case
+        loo_errors_gp = compute_loo_errors_gp(self.gp)
+        self.assertNotEqual(id(self.gp), id(loo_errors_gp))
+        self.assertEqual(training_data, self.gp.training_data)
+        self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
+
+        # Case where another GP is supplied for training
+        other_gp = fakes.FakeGP(predictive_mean=99)
+        loo_errors_gp = compute_loo_errors_gp(self.gp, gp_for_errors=other_gp)
+        self.assertNotEqual(id(self.gp), id(loo_errors_gp))
+        self.assertEqual(training_data, self.gp.training_data)
+        self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
+
+
 class TestComputeLooGp(ExauqTestCase):
     def setUp(self) -> None:
         self.training_data = [
@@ -259,13 +338,13 @@ class TestComputeLooGp(ExauqTestCase):
         loo_emulator = compute_loo_gp(gp, leave_out_idx=0)
         self.assertEqual(gp.predictive_mean, loo_emulator.predictive_mean)
 
-    def test_compute_nes_loo_error_leaves_original_gp_unchanged(self):
+    def test_compute_loo_gp_leaves_original_gp_unchanged(self):
         """The original AbstractGaussianProcess's training data and fit hyperparameters
         are unchanged after computing a NES LOO error."""
 
         training_data = copy.deepcopy(self.gp.training_data)
         hyperparameters = copy.deepcopy(self.gp.fit_hyperparameters)
-        _ = compute_nes_loo_error(self.gp, leave_out_idx=0)
+        _ = compute_loo_gp(self.gp, leave_out_idx=0)
 
         self.assertEqual(training_data, self.gp.training_data)
         self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
