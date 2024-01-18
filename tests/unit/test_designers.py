@@ -7,7 +7,6 @@ from exauq.core.designers import (
     SingleLevelAdaptiveSampler,
     compute_loo_errors_gp,
     compute_loo_gp,
-    compute_nes_loo_error,
 )
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
@@ -348,92 +347,6 @@ class TestComputeLooGp(ExauqTestCase):
 
         self.assertEqual(training_data, self.gp.training_data)
         self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
-
-
-class TestComputeNesLooError(ExauqTestCase):
-    def setUp(self) -> None:
-        self.training_data = [
-            TrainingDatum(Input(0, 0.2), 1),
-            TrainingDatum(Input(0.3, 0.1), 2),
-            TrainingDatum(Input(0.6, 0.7), 3),
-            TrainingDatum(Input(0.8, 0.5), 2),
-            TrainingDatum(Input(0.9, 0.9), 1),
-        ]
-        self.gp = MogpEmulator()
-        self.gp.fit(self.training_data)
-
-    def test_compute_nes_loo_error_arg_type_errors(self):
-        """A TypeError is raised if the args are not of the correct type."""
-
-        arg = "a"
-        with self.assertRaisesRegex(
-            TypeError,
-            f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(arg)} instead.",
-        ):
-            _ = compute_nes_loo_error(arg, leave_out_idx=1)
-
-        with self.assertRaisesRegex(
-            TypeError,
-            f"Expected 'leave_out_idx' to be of type int, but received {type(arg)} instead.",
-        ):
-            _ = compute_nes_loo_error(self.gp, leave_out_idx=arg)
-
-    def test_compute_nes_loo_error_gives_nes_error_for_loo_gp(self):
-        """The normalised expected square leave-one-out (LOO) error is equal to the
-        normalised expected square error of the LOO GP for the left out training datum.
-        Furthermore, the LOO GP is created with the same settings as the original GP
-        and is fit with the same hyperparameters as the original GP."""
-
-        tolerance = 1e-5
-        gp_settings = {"kernel": "Matern52", "nugget": "fit"}
-        gp = MogpEmulator(**gp_settings)
-        gp.fit(self.training_data)
-        loo_emulator = MogpEmulator(**gp_settings)
-        for i, left_out_data in enumerate(self.training_data):
-            remaining_data = self.training_data[:i] + self.training_data[i + 1 :]
-            loo_emulator.fit(remaining_data, hyperparameters=gp.fit_hyperparameters)
-            norm_err = compute_nes_loo_error(gp, i)
-            self.assertEqualWithinTolerance(
-                norm_err,
-                loo_emulator.nes_error(left_out_data.input, left_out_data.output),
-                rel_tol=tolerance,
-                abs_tol=tolerance,
-            )
-
-    def test_compute_nes_loo_error_leaves_original_gp_unchanged(self):
-        """The original AbstractGaussianProcess's training data and fit hyperparameters
-        are unchanged after computing a NES LOO error."""
-
-        training_data = copy.deepcopy(self.gp.training_data)
-        hyperparameters = copy.deepcopy(self.gp.fit_hyperparameters)
-        _ = compute_nes_loo_error(self.gp, leave_out_idx=0)
-
-        self.assertEqual(training_data, self.gp.training_data)
-        self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
-
-    def test_compute_nes_loo_error_out_of_bounds_index_error(self):
-        """A ValueError is raised if the left out index is out of the bounds of the
-        emulator's training data."""
-
-        leave_out_idx = 5
-        with self.assertRaisesRegex(
-            ValueError,
-            f"Leave out index {leave_out_idx} is not within the bounds of the training "
-            "data for 'gp'.",
-        ):
-            _ = compute_nes_loo_error(self.gp, leave_out_idx)
-
-    def test_compute_nes_loo_error_no_training_data_error(self):
-        """A ValueError is raised if the supplied AbstractGaussianProcess has not been
-        trained on any data."""
-
-        gp = MogpEmulator()
-        with self.assertRaisesRegex(
-            ValueError,
-            "Cannot compute leave one out error with 'gp' because it has not been trained "
-            "on data.",
-        ):
-            _ = compute_nes_loo_error(gp, 0)
 
 
 if __name__ == "__main__":

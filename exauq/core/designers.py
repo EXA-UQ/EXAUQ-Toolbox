@@ -128,9 +128,7 @@ class SingleLevelAdaptiveSampler:
 
     def make_design_batch(self, emulator: AbstractEmulator, size: int = 1):
         if emulator.training_data:
-            self._esloo_errors = [compute_nes_loo_error(emulator, leave_out_idx=1)] * len(
-                emulator.training_data
-            )
+            self._esloo_errors = [0.5] * len(emulator.training_data)
 
         return [Input(1)] * size
 
@@ -190,38 +188,6 @@ def compute_loo_gp(
         return loo_emulator
 
 
-def compute_nes_loo_error(gp: AbstractGaussianProcess, leave_out_idx: int) -> float:
-    if not isinstance(gp, AbstractGaussianProcess):
-        raise TypeError(
-            f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(gp)} "
-            "instead."
-        )
-    if not isinstance(leave_out_idx, int):
-        raise TypeError(
-            f"Expected 'leave_out_idx' to be of type int, but received {type(leave_out_idx)} "
-            "instead."
-        )
-
-    training_data = list(gp.training_data)
-    try:
-        left_out_datum = training_data.pop(leave_out_idx)
-    except IndexError:
-        if len(training_data) == 0:
-            raise ValueError(
-                "Cannot compute leave one out error with 'gp' because it has not been "
-                "trained on data."
-            ) from None
-        else:
-            raise ValueError(
-                f"Leave out index {leave_out_idx} is not within the bounds of the training "
-                "data for 'gp'."
-            ) from None
-
-    loo_emulator = copy.copy(gp)
-    loo_emulator.fit(training_data, hyperparameters=gp.fit_hyperparameters)
-    return loo_emulator.nes_error(left_out_datum.input, left_out_datum.output)
-
-
 def pei(x: Input, gp: AbstractGaussianProcess) -> float:
     raise NotImplementedError
 
@@ -229,12 +195,6 @@ def pei(x: Input, gp: AbstractGaussianProcess) -> float:
 def compute_single_level_loo_samples(
     gp: AbstractGaussianProcess, domain: SimulatorDomain, batch_size: int = 1
 ) -> tuple[Input]:
-    error_training_data = [
-        TrainingDatum(datum.input, compute_nes_loo_error(gp, leave_out_idx))
-        for leave_out_idx, datum in enumerate(gp.training_data)
-    ]
-
-    gp_e = copy.copy(gp)
-    gp_e.fit(error_training_data)
+    gp_e = compute_loo_errors_gp(gp)
 
     return maximise(lambda x: pei(x, gp_e), domain)
