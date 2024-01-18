@@ -138,6 +138,24 @@ class SingleLevelAdaptiveSampler:
         return self._esloo_errors
 
 
+def compute_loo_errors_gp(gp: AbstractGaussianProcess) -> AbstractGaussianProcess:
+    loo_emulator = copy.copy(gp)
+    error_training_data = []
+    for leave_out_idx, datum in enumerate(gp.training_data):
+        # Fit LOO GP
+        training_data = (
+            gp.training_data[:leave_out_idx] + gp.training_data[leave_out_idx + 1 :]
+        )
+        loo_emulator.fit(training_data, hyperparameters=gp.fit_hyperparameters)
+
+        # Add training input and nes error
+        nes_loo_error = loo_emulator.nes_error(datum.input, datum.output)
+        error_training_data.append(TrainingDatum(datum.input, nes_loo_error))
+
+    gp_e = copy.copy(gp)
+    gp_e.fit(error_training_data)
+
+
 def compute_nes_loo_error(gp: AbstractGaussianProcess, leave_out_idx: int) -> float:
     if not isinstance(gp, AbstractGaussianProcess):
         raise TypeError(
@@ -177,8 +195,12 @@ def pei(x: Input, gp: AbstractGaussianProcess) -> float:
 def compute_single_level_loo_samples(
     gp: AbstractGaussianProcess, domain: SimulatorDomain, batch_size: int = 1
 ) -> tuple[Input]:
-    nes_loo_errors = tuple()  # TODO: fill in with LOO error calculations
+    error_training_data = [
+        TrainingDatum(datum.input, compute_nes_loo_error(gp, leave_out_idx))
+        for leave_out_idx, datum in enumerate(gp.training_data)
+    ]
 
-    gp_e = None  # TODO: create GP from nes_loo_errors, probably of same type as type(gp) and with same hyperparameters(?)
+    gp_e = copy.copy(gp)
+    gp_e.fit(error_training_data)
 
     return maximise(lambda x: pei(x, gp_e), domain)
