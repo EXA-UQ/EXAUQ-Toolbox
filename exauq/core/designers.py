@@ -139,6 +139,17 @@ class SingleLevelAdaptiveSampler:
 
 
 def compute_nes_loo_error(gp: AbstractGaussianProcess, leave_out_idx: int) -> float:
+    if not isinstance(gp, AbstractGaussianProcess):
+        raise TypeError(
+            f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(gp)} "
+            "instead."
+        )
+    if not isinstance(leave_out_idx, int):
+        raise TypeError(
+            f"Expected 'leave_out_idx' to be of type int, but received {type(leave_out_idx)} "
+            "instead."
+        )
+
     training_data = list(gp.training_data)
     try:
         left_out_datum = training_data.pop(leave_out_idx)

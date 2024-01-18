@@ -174,6 +174,22 @@ class TestComputeNesLooError(ExauqTestCase):
         self.gp = MogpEmulator()
         self.gp.fit(self.training_data)
 
+    def test_compute_nes_loo_error_arg_type_errors(self):
+        """A TypeError is raised if the args are not of the correct type."""
+
+        arg = "a"
+        with self.assertRaisesRegex(
+            TypeError,
+            f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(arg)} instead.",
+        ):
+            _ = compute_nes_loo_error(arg, leave_out_idx=1)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            f"Expected 'leave_out_idx' to be of type int, but received {type(arg)} instead.",
+        ):
+            _ = compute_nes_loo_error(self.gp, leave_out_idx=arg)
+
     def test_compute_nes_loo_error_gives_nes_error_for_loo_gp(self):
         """The normalised expected square leave-one-out (LOO) error is equal to the
         normalised expected square error of the LOO GP for the left out training datum.
