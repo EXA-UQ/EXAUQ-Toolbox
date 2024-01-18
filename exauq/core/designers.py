@@ -152,6 +152,28 @@ def compute_norm_esloo_error(
     return loo_emulator.nes_error(left_out_datum.input, left_out_datum.output)
 
 
+class PEICalculator:
+    def __init__(self, domain: SimulatorDomain, gp: AbstractGaussianProcess):
+        """
+        Initialises the PEI (PseudoExpected Improvement) Calculator.
+
+        :param domain: An instance of SimulatorDomain, representing the domain of simulation.
+        :param gp: An instance of AbstractGaussianProcess, representing the Gaussian process model.
+        """
+        # TODO: Implement initialisation logic
+        raise NotImplementedError("Initialisation not yet implemented.")
+
+    def compute(self, x: Input) -> float:
+        """
+        Computes the PEI based on the given input.
+
+        :param x: An instance of Input, representing the input data.
+        :return: A float value representing the computed PEI.
+        """
+        # TODO: Implement computation logic
+        raise NotImplementedError("Computation method not yet implemented.")
+
+
 def pei(x: Input, gp: AbstractGaussianProcess) -> float:
     raise NotImplementedError
 
