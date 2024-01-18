@@ -4,7 +4,7 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     SimpleDesigner,
     SingleLevelAdaptiveSampler,
-    compute_norm_esloo_error,
+    compute_nes_loo_error,
 )
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
@@ -161,7 +161,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
             self.assertIsInstance(_input, Input)
 
 
-class TestComputeNormalisedEslooError(ExauqTestCase):
+class TestComputeNesLooError(ExauqTestCase):
     def setUp(self) -> None:
         self.training_data = [
             TrainingDatum(Input(0, 0.2), 1),
@@ -173,7 +173,7 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
         self.gp = MogpEmulator()
         self.gp.fit(self.training_data)
 
-    def test_compute_norm_esloo_error_expected_value_divided_by_variance(self):
+    def test_compute_nes_loo_error_expected_value_divided_by_variance(self):
         """The normalised ES-LOO error is equal to the expected square error at the
         left out training datum."""
 
@@ -182,7 +182,7 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
             remaining_data = self.training_data[:i] + self.training_data[i + 1 :]
             loo_emulator = MogpEmulator()
             loo_emulator.fit(remaining_data)
-            norm_err = compute_norm_esloo_error(self.gp, i)
+            norm_err = compute_nes_loo_error(self.gp, i)
             self.assertEqualWithinTolerance(
                 norm_err,
                 loo_emulator.nes_error(left_out_data.input, left_out_data.output),
@@ -190,7 +190,7 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
                 abs_tol=tolerance,
             )
 
-    def test_compute_norm_esloo_error_out_of_bounds_index_error(self):
+    def test_compute_nes_loo_error_out_of_bounds_index_error(self):
         """A ValueError is raised if the left out index is out of the bounds of the
         emulator's training data."""
 
@@ -200,9 +200,9 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
             f"Leave out index {leave_out_idx} is not within the bounds of the training "
             "data for 'gp'.",
         ):
-            _ = compute_norm_esloo_error(self.gp, leave_out_idx)
+            _ = compute_nes_loo_error(self.gp, leave_out_idx)
 
-    def test_compute_norm_esloo_error_no_training_data_error(self):
+    def test_compute_nes_loo_error_no_training_data_error(self):
         """A ValueError is raised if the supplied AbstractGaussianProcess has not been
         trained on any data."""
 
@@ -212,7 +212,7 @@ class TestComputeNormalisedEslooError(ExauqTestCase):
             "Cannot compute leave one out error with 'gp' because it has not been trained "
             "on data.",
         ):
-            _ = compute_norm_esloo_error(gp, 0)
+            _ = compute_nes_loo_error(gp, 0)
 
 
 if __name__ == "__main__":

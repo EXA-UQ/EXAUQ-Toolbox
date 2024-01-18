@@ -127,9 +127,9 @@ class SingleLevelAdaptiveSampler:
 
     def make_design_batch(self, emulator: AbstractEmulator, size: int = 1):
         if emulator.training_data:
-            self._esloo_errors = [
-                compute_norm_esloo_error(emulator, leave_out_idx=1)
-            ] * len(emulator.training_data)
+            self._esloo_errors = [compute_nes_loo_error(emulator, leave_out_idx=1)] * len(
+                emulator.training_data
+            )
 
         return [Input(1)] * size
 
@@ -138,7 +138,7 @@ class SingleLevelAdaptiveSampler:
         return self._esloo_errors
 
 
-def compute_norm_esloo_error(gp: AbstractGaussianProcess, leave_out_idx: int) -> float:
+def compute_nes_loo_error(gp: AbstractGaussianProcess, leave_out_idx: int) -> float:
     training_data = list(gp.training_data)
     try:
         left_out_datum = training_data.pop(leave_out_idx)
