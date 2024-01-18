@@ -154,8 +154,8 @@ def compute_nes_loo_error(gp: AbstractGaussianProcess, leave_out_idx: int) -> fl
                 "data for 'gp'."
             ) from None
 
-    loo_emulator = gp.__class__()
-    loo_emulator.fit(training_data)
+    loo_emulator = copy.copy(gp)
+    loo_emulator.fit(training_data, hyperparameters=gp.fit_hyperparameters)
     return loo_emulator.nes_error(left_out_datum.input, left_out_datum.output)
 
 

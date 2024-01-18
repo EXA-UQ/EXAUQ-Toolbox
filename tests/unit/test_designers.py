@@ -173,16 +173,21 @@ class TestComputeNesLooError(ExauqTestCase):
         self.gp = MogpEmulator()
         self.gp.fit(self.training_data)
 
-    def test_compute_nes_loo_error_expected_value_divided_by_variance(self):
-        """The normalised expected square leave-one-out error is equal to the normalised
-        expected square error at the left out training datum."""
+    def test_compute_nes_loo_error_gives_nes_error_for_loo_gp(self):
+        """The normalised expected square leave-one-out (LOO) error is equal to the
+        normalised expected square error of the LOO GP for the left out training datum.
+        Furthermore, the LOO GP is created with the same settings as the original GP
+        and is fit with the same hyperparameters as the original GP."""
 
         tolerance = 1e-5
+        gp_settings = {"kernel": "Matern52", "nugget": "fit"}
+        gp = MogpEmulator(**gp_settings)
+        gp.fit(self.training_data)
+        loo_emulator = MogpEmulator(**gp_settings)
         for i, left_out_data in enumerate(self.training_data):
             remaining_data = self.training_data[:i] + self.training_data[i + 1 :]
-            loo_emulator = MogpEmulator()
-            loo_emulator.fit(remaining_data)
-            norm_err = compute_nes_loo_error(self.gp, i)
+            loo_emulator.fit(remaining_data, hyperparameters=gp.fit_hyperparameters)
+            norm_err = compute_nes_loo_error(gp, i)
             self.assertEqualWithinTolerance(
                 norm_err,
                 loo_emulator.nes_error(left_out_data.input, left_out_data.output),
