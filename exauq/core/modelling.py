@@ -429,6 +429,13 @@ class AbstractEmulator(abc.ABC):
     @abc.abstractmethod
     def training_data(self) -> tuple[TrainingDatum]:
         """(Read-only) The data on which the emulator has been trained."""
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def fit_hyperparameters(self) -> AbstractHyperparameters:
+        """(Read-only) The hyperparameters of the underlying fitted emulator, or ``None`` if the model has not been fit to data."""
+        raise NotImplementedError
 
     @abc.abstractmethod
     def fit(
