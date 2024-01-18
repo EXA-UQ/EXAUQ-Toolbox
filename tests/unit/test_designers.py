@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 import tests.unit.fakes as fakes
@@ -194,6 +195,17 @@ class TestComputeNesLooError(ExauqTestCase):
                 rel_tol=tolerance,
                 abs_tol=tolerance,
             )
+
+    def test_compute_nes_loo_error_leaves_original_gp_unchanged(self):
+        """The original AbstractGaussianProcess's training data and fit hyperparameters
+        are unchanged after computing a NES LOO error."""
+
+        training_data = copy.deepcopy(self.gp.training_data)
+        hyperparameters = copy.deepcopy(self.gp.fit_hyperparameters)
+        _ = compute_nes_loo_error(self.gp, leave_out_idx=0)
+
+        self.assertEqual(training_data, self.gp.training_data)
+        self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
 
     def test_compute_nes_loo_error_out_of_bounds_index_error(self):
         """A ValueError is raised if the left out index is out of the bounds of the
