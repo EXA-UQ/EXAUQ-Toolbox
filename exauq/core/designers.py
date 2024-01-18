@@ -251,7 +251,10 @@ def pei(x: Input, gp: AbstractGaussianProcess) -> float:
 
 
 def compute_single_level_loo_samples(
-    gp: AbstractGaussianProcess, domain: SimulatorDomain, batch_size: int = 1
+    gp: AbstractGaussianProcess,
+    domain: SimulatorDomain,
+    batch_size: int = 1,
+    loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> tuple[Input]:
     gp_e = compute_loo_errors_gp(gp)
 
