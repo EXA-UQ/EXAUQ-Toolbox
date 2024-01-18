@@ -430,6 +430,12 @@ class AbstractEmulator(abc.ABC):
     def training_data(self) -> tuple[TrainingDatum]:
         """(Read-only) The data on which the emulator has been trained."""
 
+    @property
+    @abc.abstractmethod
+    def fit_hyperparameters(self) -> Optional[AbstractHyperparameters]:
+        """(Read-only) The hyperparameters of the fit for this emulator, or ``None`` if
+        this emulator has not been fitted to data."""
+
     @abc.abstractmethod
     def fit(
         self,
