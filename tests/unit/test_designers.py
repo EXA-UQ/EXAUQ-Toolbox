@@ -174,6 +174,24 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         self.gp = fakes.FakeGP()
         self.gp.fit(self.training_data)
 
+    def test_compute_loo_errors_gp_arg_type_errors(self):
+        """A TypeError is raised if either of the (kw)args is not an
+        AbstractGaussianProcess.
+        """
+
+        arg = "a"
+        with self.assertRaisesRegex(
+            TypeError,
+            f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(arg)} instead.",
+        ):
+            _ = compute_loo_errors_gp(arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            f"Expected 'gp_for_errors' to be of type AbstractGaussianProcess, but received {type(arg)} instead.",
+        ):
+            _ = compute_loo_errors_gp(self.gp, gp_for_errors=arg)
+
     def test_compute_loo_errors_gp_returned_gp_trainied_on_loo_errors(self):
         """The GP returned is trained on data consisting of the normalised expected square
         leave-one-out errors for each of the simulator inputs used to train the supplied

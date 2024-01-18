@@ -173,7 +173,18 @@ def compute_loo_errors_gp(
         of `gp`. If `gp_for_errors` was supplied then (a reference to) this object will be
         returned (except now it has been fit to the LOO errors).
     """
-    # TODO: add arg type validation
+
+    if not isinstance(gp, AbstractGaussianProcess):
+        raise TypeError(
+            f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(gp)} "
+            "instead."
+        )
+
+    if not (gp_for_errors is None or isinstance(gp_for_errors, AbstractGaussianProcess)):
+        raise TypeError(
+            "Expected 'gp_for_errors' to be of type AbstractGaussianProcess, but received "
+            f"{type(gp_for_errors)} instead."
+        )
 
     error_training_data = []
     for leave_out_idx, datum in enumerate(gp.training_data):
