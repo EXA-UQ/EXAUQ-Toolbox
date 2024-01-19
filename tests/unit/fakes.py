@@ -108,7 +108,7 @@ class FakeGP(AbstractGaussianProcess):
 
         self._training_data = tuple(training_data)
         self._predictive_variance = (
-            hyperparameters.var if hyperparameters is not None else 1
+            hyperparameters.cov if hyperparameters is not None else 1
         )
         self._fit_hyperparameters = hyperparameters
         self._hyperparameter_bounds = (
@@ -167,7 +167,7 @@ class FakeGP(AbstractGaussianProcess):
 
 @dataclasses.dataclass(frozen=True)
 class FakeGPHyperparameters(AbstractHyperparameters):
-    var: float
+    cov: float
 
 
 class OneDimSimulator(AbstractSimulator):
