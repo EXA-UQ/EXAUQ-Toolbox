@@ -1,4 +1,5 @@
 import copy
+import math
 from collections.abc import Collection
 
 import numpy as np
@@ -186,11 +187,11 @@ def expected_improvement(x: Input, gp: AbstractGaussianProcess) -> float:
     # This will end up being calculated for each point... maybe a class would be more efficient
     max_targets = max(gp.training_data, key=lambda datum: datum.output).output
 
-    u = (prediction.estimate - max_targets) / prediction.variance
+    u = (prediction.estimate - max_targets) / math.sqrt(prediction.variance)
 
     return (prediction.estimate - max_targets) * norm(loc=0, scale=1).cdf(
         u
-    ) + prediction.variance * norm(loc=0, scale=1).pdf(u)
+    ) + math.sqrt(prediction.variance) * norm(loc=0, scale=1).pdf(u)
 
 
 def repulsion(x: Input, gp: AbstractGaussianProcess) -> np.array:
