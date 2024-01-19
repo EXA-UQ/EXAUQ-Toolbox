@@ -182,6 +182,11 @@ def compute_loo_errors_gp(
         of `gp`. If `gp_for_errors` was supplied then (a reference to) this object will be
         returned (except now it has been fit to the LOO errors).
 
+    Raises
+    ------
+    ValueError
+        If any of the training inputs in `gp` do not belong to the simulator domain `domain`.
+
     Notes
     -----
     The lower bound on the correlation length scale parameters is obtained by scaling
@@ -199,6 +204,12 @@ def compute_loo_errors_gp(
         raise TypeError(
             f"Expected 'domain' to be of type SimulatorDomain, but received {type(domain)} "
             "instead."
+        )
+
+    if not all(datum.input in domain for datum in gp.training_data):
+        raise ValueError(
+            "Expected all training inputs in 'gp' to belong to the domain 'domain', but "
+            "this is not the case."
         )
 
     if not (gp_for_errors is None or isinstance(gp_for_errors, AbstractGaussianProcess)):
