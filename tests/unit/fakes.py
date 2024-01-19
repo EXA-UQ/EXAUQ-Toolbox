@@ -101,6 +101,27 @@ class FakeGP(AbstractGaussianProcess):
         )
         self._fit_hyperparameters = hyperparameters
 
+    def correlation(
+        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
+    ) -> tuple[tuple[float, ...], ...]:
+        """Compute the correlation matrix for two sequences of simulator inputs.
+
+        This just returns a matrix where each entry is equal to 0.5.
+
+        Parameters
+        ----------
+        inputs1, inputs2 : Sequence[Input]
+            Sequences of simulator inputs.
+
+        Returns
+        -------
+        tuple[tuple[float, ...], ...]
+            The correlation matrix for the two sequences of inputs. The outer tuple
+            consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
+        """
+
+        return tuple(tuple(0.5 for xj in inputs2) for xi in inputs1)
+
     def predict(self, x: Input) -> Prediction:
         """Estimate the simulator output for a given input.
 
