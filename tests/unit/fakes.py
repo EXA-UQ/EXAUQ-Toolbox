@@ -26,25 +26,49 @@ class FakeGP(AbstractGaussianProcess):
     zero predictive variance. Inputs that have not been fitted to the emulator are
     predicted as zero with a variance defined by a hyperparameter.
 
+    Parameters
+    ----------
+    predictive_mean : float, default 0
+        The mean value that this emulator should predict away from training inputs.
 
     Attributes
     ----------
-    training_data: tuple[TrainingDatum]
+    predictive_mean : float
+        The mean value that this emulator predicts away from training inputs.
+    training_data : tuple[TrainingDatum]
         Defines the pairs of inputs and simulator outputs on which the emulator
         has been trained. Each `TrainingDatum` should have a 1-dim
         `Input`.
+    fit_hyperparameters : FakeGPHyperparameters
+        The hyperparameters of the fit for this emulator, or ``None`` if this emulator
+        has not been fitted to data.
     """
 
-    def __init__(self):
+    def __init__(self, predictive_mean: float = 0):
         super()
         self._training_data = tuple()
+        self._predictive_mean = predictive_mean
         self._predictive_variance = 1
+        self._fit_hyperparameters = None
+
+    @property
+    def predictive_mean(self) -> float:
+        """Get the mean value that this emulator predicts away from training inputs."""
+
+        return self._predictive_mean
 
     @property
     def training_data(self) -> tuple[TrainingDatum]:
         """Get the data on which the emulator has been trained."""
 
         return self._training_data
+
+    @property
+    def fit_hyperparameters(self) -> FakeGPHyperparameters:
+        """The hyperparameters of the fit for this emulator, or ``None`` if this emulator
+        has not been fitted to data."""
+
+        return self._fit_hyperparameters
 
     def fit(
         self,
@@ -75,6 +99,7 @@ class FakeGP(AbstractGaussianProcess):
         self._predictive_variance = (
             hyperparameters.var if hyperparameters is not None else 1
         )
+        self._fit_hyperparameters = hyperparameters
 
     def correlation(
         self, inputs1: Sequence[Input], inputs2: Sequence[Input]
@@ -101,8 +126,8 @@ class FakeGP(AbstractGaussianProcess):
         """Estimate the simulator output for a given input.
 
         The emulator will predict the correct simulator output for `x` which
-        feature in the training data. For new `x`, zero will be returned along with
-        a variance that was specified when training.
+        feature in the training data. For new `x`, the prediction with have as its mean
+        value `predictive_mean` and its variance `predictive_variance`.
 
         Parameters
         ----------
@@ -121,7 +146,9 @@ class FakeGP(AbstractGaussianProcess):
             if datum.input == x:
                 return Prediction(estimate=datum.output, variance=0)
 
-        return Prediction(estimate=0, variance=self._predictive_variance)
+        return Prediction(
+            estimate=self._predictive_mean, variance=self._predictive_variance
+        )
 
 
 @dataclasses.dataclass(frozen=True)

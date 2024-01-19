@@ -1,13 +1,16 @@
+import copy
 import unittest
 
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
     SimpleDesigner,
     SingleLevelAdaptiveSampler,
-    compute_norm_esloo_error,
+    compute_loo_errors_gp,
+    compute_loo_gp,
 )
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
+from exauq.core.numerics import equal_within_tolerance
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -161,32 +164,207 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
             self.assertIsInstance(_input, Input)
 
 
-class TestComputeNormalisedEslooError(ExauqTestCase):
-    def test_compute_norm_esloo_error_expected_value_divided_by_variance(self):
-        """The normalised ES-LOO error is equal to the expected square error at the
-        left out training datum."""
+class TestComputeLooErrorsGp(ExauqTestCase):
+    def setUp(self) -> None:
+        self.training_data = [
+            TrainingDatum(Input(0), 1),
+            TrainingDatum(Input(0.5), 1),
+            TrainingDatum(Input(1), 1),
+        ]
+        self.gp = fakes.FakeGP()
+        self.gp.fit(self.training_data)
 
-        training_data = [
+    def test_compute_loo_errors_gp_arg_type_errors(self):
+        """A TypeError is raised if either of the (kw)args is not an
+        AbstractGaussianProcess.
+        """
+
+        arg = "a"
+        with self.assertRaisesRegex(
+            TypeError,
+            f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(arg)} instead.",
+        ):
+            _ = compute_loo_errors_gp(arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            f"Expected 'gp_for_errors' to be of type AbstractGaussianProcess, but received {type(arg)} instead.",
+        ):
+            _ = compute_loo_errors_gp(self.gp, gp_for_errors=arg)
+
+    def test_compute_loo_errors_gp_returned_gp_trainied_on_loo_errors(self):
+        """The GP returned is trained on data consisting of the normalised expected square
+        leave-one-out errors for each of the simulator inputs used to train the supplied
+        GP."""
+
+        loo_errors_gp = compute_loo_errors_gp(self.gp)
+
+        # Construct expected LOO error GP training data
+        loo_errors_training_data = []
+        for leave_out_idx, datum in enumerate(self.gp.training_data):
+            loo_gp = compute_loo_gp(self.gp, leave_out_idx)
+            loo_errors_training_data.append(
+                TrainingDatum(datum.input, loo_gp.nes_error(datum.input, datum.output))
+            )
+
+        # Check actual LOO error GP training data is as expected
+        self.assertTrue(
+            all(
+                expected.input == actual.input
+                and equal_within_tolerance(expected.output, actual.output)
+                for expected, actual in zip(
+                    loo_errors_training_data, loo_errors_gp.training_data
+                )
+            )
+        )
+
+    def test_compute_loo_errors_gp_default_case_same_settings_as_input_gp(self):
+        """By default, the returned GP will be constructed with the same settings used to
+        initialise the input GP."""
+
+        gp = fakes.FakeGP(predictive_mean=99)
+        gp.fit(self.training_data)
+        loo_errors_gp = compute_loo_errors_gp(gp)
+
+        self.assertEqual(gp.predictive_mean, loo_errors_gp.predictive_mean)
+
+    def test_compute_loo_errors_gp_use_given_gp_for_returned_gp(self):
+        """The returned GP will use a particular instance of an
+        AbstractGaussianProcess if supplied."""
+
+        other_gp = fakes.FakeGP(predictive_mean=99)
+        loo_errors_gp = compute_loo_errors_gp(self.gp, gp_for_errors=other_gp)
+
+        self.assertEqual(other_gp.predictive_mean, loo_errors_gp.predictive_mean)
+        self.assertEqual(id(other_gp), id(loo_errors_gp))
+
+    def test_compute_loo_errors_gp_leaves_original_gp_unchanged(self):
+        """The original AbstractGaussianProcess's training data and fit hyperparameters
+        are unchanged after computing the leave-one-out errors GP."""
+
+        training_data = copy.deepcopy(self.gp.training_data)
+        hyperparameters = copy.deepcopy(self.gp.fit_hyperparameters)
+
+        # Default case
+        loo_errors_gp = compute_loo_errors_gp(self.gp)
+        self.assertNotEqual(id(self.gp), id(loo_errors_gp))
+        self.assertEqual(training_data, self.gp.training_data)
+        self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
+
+        # Case where another GP is supplied for training
+        other_gp = fakes.FakeGP(predictive_mean=99)
+        loo_errors_gp = compute_loo_errors_gp(self.gp, gp_for_errors=other_gp)
+        self.assertNotEqual(id(self.gp), id(loo_errors_gp))
+        self.assertEqual(training_data, self.gp.training_data)
+        self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
+
+
+class TestComputeLooGp(ExauqTestCase):
+    def setUp(self) -> None:
+        self.training_data = [
             TrainingDatum(Input(0, 0.2), 1),
             TrainingDatum(Input(0.3, 0.1), 2),
             TrainingDatum(Input(0.6, 0.7), 3),
             TrainingDatum(Input(0.8, 0.5), 2),
             TrainingDatum(Input(0.9, 0.9), 1),
         ]
-        emulator = MogpEmulator()
-        emulator.fit(training_data)
-        tolerance = 1e-5
-        for i, left_out_data in enumerate(training_data):
-            remaining_data = training_data[:i] + training_data[i + 1 :]
-            loo_emulator = MogpEmulator()
-            loo_emulator.fit(remaining_data)
-            norm_err = compute_norm_esloo_error(emulator, i)
-            self.assertEqualWithinTolerance(
-                norm_err,
-                loo_emulator.nes_error(left_out_data.input, left_out_data.output),
-                rel_tol=tolerance,
-                abs_tol=tolerance,
-            )
+        self.gp = MogpEmulator()
+        self.gp.fit(self.training_data)
+
+        # For use with FakeGP instance
+        self.training_data_1dim = [
+            TrainingDatum(Input(0), 1),
+            TrainingDatum(Input(0.5), 1),
+            TrainingDatum(Input(1), 1),
+        ]
+
+    def test_compute_loo_gp_arg_type_errors(self):
+        """A TypeError is raised if either of the following hold:
+
+        * The input GP is not of type AbstractGaussianProcess.
+        * The leave-one-out index is not an integer.
+        """
+
+        arg = "a"
+        with self.assertRaisesRegex(
+            TypeError,
+            f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(arg)} instead.",
+        ):
+            _ = compute_loo_gp(arg, leave_out_idx=1)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            f"Expected 'leave_out_idx' to be of type int, but received {type(arg)} instead.",
+        ):
+            _ = compute_loo_gp(self.gp, leave_out_idx=arg)
+
+    def test_compute_loo_gp_out_of_bounds_index_error(self):
+        """A ValueError is raised if the left out index is out of the bounds of the
+        input AbstractGaussianProcess's training data."""
+
+        leave_out_idx = 5
+        with self.assertRaisesRegex(
+            ValueError,
+            f"Leave out index {leave_out_idx} is not within the bounds of the training "
+            "data for 'gp'.",
+        ):
+            _ = compute_loo_gp(self.gp, leave_out_idx)
+
+    def test_compute_loo_gp_no_training_data_error(self):
+        """A ValueError is raised if the supplied AbstractGaussianProcess has not been
+        trained on any data."""
+
+        gp = MogpEmulator()
+        with self.assertRaisesRegex(
+            ValueError,
+            "Cannot compute leave one out error with 'gp' because it has not been trained "
+            "on data.",
+        ):
+            _ = compute_loo_gp(gp, 0)
+
+    def test_compute_loo_gp_returns_same_type_of_gp(self):
+        """The return type is the same as the input GP."""
+
+        gp = fakes.FakeGP()
+        gp.fit(self.training_data_1dim)
+        self.assertIsInstance(compute_loo_gp(gp, leave_out_idx=0), gp.__class__)
+
+    def test_compute_loo_gp_trained_on_left_out_training_data_subset(self):
+        """The leave-one-out Gaussian process is trained on all training data from the
+        original GP except for the left out training datum."""
+
+        for i, _ in enumerate(self.training_data):
+            remaining_data = tuple(self.training_data[:i] + self.training_data[i + 1 :])
+            loo_gp = compute_loo_gp(self.gp, i)
+            self.assertEqual(remaining_data, loo_gp.training_data)
+
+    def test_compute_loo_gp_fit_with_input_gp_hyperparameters(self):
+        """The leave-one-out GP is fit with the same fit hyperparameters as the original
+        GP."""
+
+        loo_gp = compute_loo_gp(self.gp, leave_out_idx=0)
+        self.assertEqual(self.gp.fit_hyperparameters, loo_gp.fit_hyperparameters)
+
+    def test_compute_loo_gp_returns_gp_having_same_settings_as_input(self):
+        """The leave-one-out GP is created with the same settings that were used to create
+        the input GP."""
+
+        predictive_mean = 99
+        gp = fakes.FakeGP(predictive_mean=predictive_mean)
+        gp.fit(self.training_data_1dim)
+        loo_emulator = compute_loo_gp(gp, leave_out_idx=0)
+        self.assertEqual(gp.predictive_mean, loo_emulator.predictive_mean)
+
+    def test_compute_loo_gp_leaves_original_gp_unchanged(self):
+        """The original AbstractGaussianProcess's training data and fit hyperparameters
+        are unchanged after computing a NES LOO error."""
+
+        training_data = copy.deepcopy(self.gp.training_data)
+        hyperparameters = copy.deepcopy(self.gp.fit_hyperparameters)
+        _ = compute_loo_gp(self.gp, leave_out_idx=0)
+
+        self.assertEqual(training_data, self.gp.training_data)
+        self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
 
 
 if __name__ == "__main__":

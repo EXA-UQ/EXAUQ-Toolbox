@@ -433,8 +433,9 @@ class AbstractEmulator(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def fit_hyperparameters(self) -> AbstractHyperparameters:
-        """(Read-only) The hyperparameters of the underlying fitted emulator, or ``None`` if the model has not been fit to data."""
+    def fit_hyperparameters(self) -> Optional[AbstractHyperparameters]:
+        """(Read-only) The hyperparameters of the fit for this emulator, or ``None`` if
+        this emulator has not been fitted to data."""
         raise NotImplementedError
 
     @abc.abstractmethod
