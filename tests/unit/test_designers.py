@@ -356,8 +356,8 @@ class TestComputeLooGp(ExauqTestCase):
         self.assertEqual(gp.predictive_mean, loo_emulator.predictive_mean)
 
     def test_compute_loo_gp_leaves_original_gp_unchanged(self):
-        """The original AbstractGaussianProcess's training data and fit hyperparameters
-        are unchanged after computing a NES LOO error."""
+        """The original AbstractGaussianProcess is unchanged after computing a NES LOO
+        error GP."""
 
         training_data = copy.deepcopy(self.gp.training_data)
         hyperparameters = copy.deepcopy(self.gp.fit_hyperparameters)
@@ -365,6 +365,10 @@ class TestComputeLooGp(ExauqTestCase):
 
         self.assertEqual(training_data, self.gp.training_data)
         self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
+
+        # Check whether the underlying MOGP GaussianProcess has been modified by checking
+        # number of training inputs.
+        self.assertEqual(len(training_data), self.gp.gp.n)
 
 
 if __name__ == "__main__":
