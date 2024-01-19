@@ -177,8 +177,11 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         self.gp.fit(self.training_data)
 
     def test_compute_loo_errors_gp_arg_type_errors(self):
-        """A TypeError is raised if either of the (kw)args is not an
-        AbstractGaussianProcess.
+        """A TypeError is raised if any of the following hold:
+
+        * The input GP is not of type AbstractGaussianProcess.
+        * The domain is not of type SimulatorDomain.
+        * The suppplied LOO errors GP is not None or of type AbstractGaussianProcess.
         """
 
         arg = "a"
@@ -190,7 +193,13 @@ class TestComputeLooErrorsGp(ExauqTestCase):
 
         with self.assertRaisesRegex(
             TypeError,
-            f"Expected 'gp_for_errors' to be of type AbstractGaussianProcess, but received {type(arg)} instead.",
+            f"Expected 'domain' to be of type SimulatorDomain, but received {type(arg)} instead.",
+        ):
+            _ = compute_loo_errors_gp(self.gp, arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            f"Expected 'gp_for_errors' to be None or of type AbstractGaussianProcess, but received {type(arg)} instead.",
         ):
             _ = compute_loo_errors_gp(self.gp, self.domain, gp_for_errors=arg)
 
@@ -329,10 +338,11 @@ class TestComputeLooGp(ExauqTestCase):
         ]
 
     def test_compute_loo_gp_arg_type_errors(self):
-        """A TypeError is raised if either of the following hold:
+        """A TypeError is raised if any of the following hold:
 
         * The input GP is not of type AbstractGaussianProcess.
         * The leave-one-out index is not an integer.
+        * The LOO GP is not None or of type AbstractGaussianProcess.
         """
 
         arg = "a"
@@ -347,6 +357,12 @@ class TestComputeLooGp(ExauqTestCase):
             f"Expected 'leave_out_idx' to be of type int, but received {type(arg)} instead.",
         ):
             _ = compute_loo_gp(self.gp, leave_out_idx=arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            f"Expected 'loo_gp' to be None or of type AbstractGaussianProcess, but received {type(arg)} instead.",
+        ):
+            _ = compute_loo_gp(self.gp, leave_out_idx=1, loo_gp=arg)
 
     def test_compute_loo_gp_out_of_bounds_index_error(self):
         """A ValueError is raised if the left out index is out of the bounds of the

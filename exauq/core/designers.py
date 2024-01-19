@@ -195,10 +195,16 @@ def compute_loo_errors_gp(
             "instead."
         )
 
+    if not isinstance(domain, SimulatorDomain):
+        raise TypeError(
+            f"Expected 'domain' to be of type SimulatorDomain, but received {type(domain)} "
+            "instead."
+        )
+
     if not (gp_for_errors is None or isinstance(gp_for_errors, AbstractGaussianProcess)):
         raise TypeError(
-            "Expected 'gp_for_errors' to be of type AbstractGaussianProcess, but received "
-            f"{type(gp_for_errors)} instead."
+            "Expected 'gp_for_errors' to be None or of type AbstractGaussianProcess, but "
+            f"received {type(gp_for_errors)} instead."
         )
 
     error_training_data = []
@@ -271,6 +277,12 @@ def compute_loo_gp(
         raise TypeError(
             f"Expected 'leave_out_idx' to be of type int, but received {type(leave_out_idx)} "
             "instead."
+        )
+
+    if not (loo_gp is None or isinstance(loo_gp, AbstractGaussianProcess)):
+        raise TypeError(
+            "Expected 'loo_gp' to be None or of type AbstractGaussianProcess, but "
+            f"received {type(loo_gp)} instead."
         )
 
     if len(gp.training_data) == 0:
