@@ -297,6 +297,17 @@ class TestComputeLooErrorsGp(ExauqTestCase):
             )
         )
 
+    def test_compute_loo_errors_gp_output_and_input_do_not_share_state(self):
+        """In the default case, the original GP and the created LOO errors GP do not share
+        any state."""
+
+        gp = fakes.FakeGP()
+        gp.foo = ["foo"]  # add an extra attribute to check for shared state with output
+        gp.fit(self.training_data)
+        loo_gp = compute_loo_errors_gp(gp, self.domain)
+
+        self.assertNotEqual(id(loo_gp.foo), id(gp.foo))
+
 
 class TestComputeLooGp(ExauqTestCase):
     def setUp(self) -> None:
@@ -362,7 +373,7 @@ class TestComputeLooGp(ExauqTestCase):
             _ = compute_loo_gp(gp, 0)
 
     def test_compute_loo_gp_returns_same_type_of_gp(self):
-        """The return type is the same as the input GP."""
+        """The return type is the same as the input GP in the default case."""
 
         gp = fakes.FakeGP()
         gp.fit(self.training_data_1dim)
@@ -425,13 +436,25 @@ class TestComputeLooGp(ExauqTestCase):
         self.assertEqual(len(training_data), self.gp.gp.n)
 
         # Case of supplying a LOO GP directly
-        _ = compute_loo_gp(self.gp, leave_out_idx=0, loo_gp=fakes.FakeGP())
+        loo_gp = copy.copy(self.gp)
+        _ = compute_loo_gp(self.gp, leave_out_idx=0, loo_gp=loo_gp)
         self.assertEqual(training_data, self.gp.training_data)
         self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
 
         # Check whether the underlying MOGP GaussianProcess has been modified by checking
         # number of training inputs.
         self.assertEqual(len(training_data), self.gp.gp.n)
+
+    def test_compute_loo_gp_output_not_affected_by_mutating_original(self):
+        """In the default case, the original GP and the created LOO GP do not share any
+        state."""
+
+        gp = fakes.FakeGP()
+        gp.foo = ["foo"]  # add an extra attribute to check for shared state with output
+        gp.fit(self.training_data_1dim)
+        loo_gp = compute_loo_gp(gp, leave_out_idx=0)
+
+        self.assertNotEqual(id(loo_gp.foo), id(gp.foo))
 
 
 if __name__ == "__main__":

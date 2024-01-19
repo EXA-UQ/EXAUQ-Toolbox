@@ -202,7 +202,7 @@ def compute_loo_errors_gp(
         )
 
     error_training_data = []
-    loo_gp = copy.copy(gp)
+    loo_gp = copy.deepcopy(gp)
     for leave_out_idx, datum in enumerate(gp.training_data):
         # Fit LOO GP, storing into loo_gp
         _ = compute_loo_gp(gp, leave_out_idx, loo_gp=loo_gp)
@@ -232,7 +232,7 @@ def compute_loo_gp(
     from the supplied GP except for one datum (the 'left out' datum). It is trained using
     the fitted hyperparameters *from the supplied Gaussian process `gp`*.
 
-    By default, the returned ``AbstractGaussianProcess`` object will be a shallow copy of
+    By default, the returned ``AbstractGaussianProcess`` object will be a deep copy of
     `gp` trained on the leave-one-out data. Alternatively, another
     ``AbstractGaussianProcess`` can be supplied that will be trained on the leave-one-out
     data and returned (thus it will be modified in-place as well as returned). This can
@@ -247,7 +247,7 @@ def compute_loo_gp(
         of the sequence returned by the ``gp.training_data`` property.
     loo_gp : Optional[AbstractGaussianProcess], optional
         (Default: None) Another Gaussian process that is trained on the LOO data and then
-        returned. If ``None`` then a shallow copy of `gp` will be used instead.
+        returned. If ``None`` then a deep copy of `gp` will be used instead.
 
     Returns
     -------
@@ -288,7 +288,7 @@ def compute_loo_gp(
     remaining_data = (
         gp.training_data[:leave_out_idx] + gp.training_data[leave_out_idx + 1 :]
     )
-    loo_gp_ = loo_gp if loo_gp is not None else copy.copy(gp)
+    loo_gp_ = loo_gp if loo_gp is not None else copy.deepcopy(gp)
     loo_gp_.fit(remaining_data, hyperparameters=gp.fit_hyperparameters)
     return loo_gp_
 
