@@ -448,7 +448,7 @@ class AbstractEmulator(abc.ABC):
         """Fit the emulator to data.
 
         By default, hyperparameters should be estimated when fitting the emulator to
-        data. Alternatively, a collection of hyperparamters may be supplied to
+        data. Alternatively, a collection of hyperparameters may be supplied to
         use directly as the fitted values. If bounds are supplied for the hyperparameters,
         then estimation of the hyperparameters should respect these bounds.
 
