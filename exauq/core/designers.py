@@ -202,9 +202,10 @@ def compute_loo_errors_gp(
         )
 
     error_training_data = []
+    loo_gp = copy.copy(gp)
     for leave_out_idx, datum in enumerate(gp.training_data):
-        # Fit LOO GP
-        loo_gp = compute_loo_gp(gp, leave_out_idx)
+        # Fit LOO GP, storing into loo_gp
+        _ = compute_loo_gp(gp, leave_out_idx, loo_gp=loo_gp)
 
         # Add training input and nes error
         nes_loo_error = loo_gp.nes_error(datum.input, datum.output)
