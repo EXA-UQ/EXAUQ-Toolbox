@@ -39,9 +39,12 @@ class FakeGP(AbstractGaussianProcess):
         Defines the pairs of inputs and simulator outputs on which the emulator
         has been trained. Each `TrainingDatum` should have a 1-dim
         `Input`.
-    fit_hyperparameters : FakeGPHyperparameters
+    fit_hyperparameters : FakeGPHyperparameters or None
         The hyperparameters of the fit for this emulator, or ``None`` if this emulator
         has not been fitted to data.
+    hyperparameter_bounds : Sequence[OptionalFloatPairs] or None
+        The hyperparameter bounds that were supplied when fitting this emulator to
+        data, or ``None`` if none were.
     """
 
     def __init__(self, predictive_mean: float = 0):
@@ -50,6 +53,7 @@ class FakeGP(AbstractGaussianProcess):
         self._predictive_mean = predictive_mean
         self._predictive_variance = 1
         self._fit_hyperparameters = None
+        self._hyperparameter_bounds = None
 
     @property
     def predictive_mean(self) -> float:
@@ -69,6 +73,13 @@ class FakeGP(AbstractGaussianProcess):
         has not been fitted to data."""
 
         return self._fit_hyperparameters
+
+    @property
+    def hyperparameter_bounds(self) -> Optional[Sequence[OptionalFloatPairs]]:
+        """The hyperparameter bounds that were supplied when fitting this emulator to
+        data, or ``None`` if none were."""
+
+        return self._hyperparameter_bounds
 
     def fit(
         self,
@@ -100,6 +111,9 @@ class FakeGP(AbstractGaussianProcess):
             hyperparameters.var if hyperparameters is not None else 1
         )
         self._fit_hyperparameters = hyperparameters
+        self._hyperparameter_bounds = (
+            tuple(hyperparameter_bounds) if hyperparameter_bounds is not None else None
+        )
 
     def correlation(
         self, inputs1: Sequence[Input], inputs2: Sequence[Input]
