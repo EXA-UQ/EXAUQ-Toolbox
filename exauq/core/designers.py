@@ -1,8 +1,8 @@
 import copy
+import math
 from collections.abc import Collection
 
 import numpy as np
-
 from exauq.core.modelling import (
     AbstractEmulator,
     AbstractGaussianProcess,
@@ -10,8 +10,10 @@ from exauq.core.modelling import (
     SimulatorDomain,
     TrainingDatum,
 )
+from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
 from exauq.utilities.validation import check_int
+from scipy.stats import norm
 
 
 class SimpleDesigner(object):
@@ -151,8 +153,49 @@ def compute_norm_esloo_error(
     return loo_emulator.nes_error(left_out_datum.input, left_out_datum.output)
 
 
+class PEICalculator:
+    def __init__(self, domain: SimulatorDomain, gp: AbstractGaussianProcess):
+        """
+        Initialises the PEI (PseudoExpected Improvement) Calculator.
+
+        :param domain: An instance of SimulatorDomain, representing the domain of simulation.
+        :param gp: An instance of AbstractGaussianProcess, representing the Gaussian process model.
+        """
+        # TODO: Implement initialisation logic
+        raise NotImplementedError("Initialisation not yet implemented.")
+
+    def compute(self, x: Input) -> float:
+        """
+        Computes the PEI based on the given input.
+
+        :param x: An instance of Input, representing the input data.
+        :return: A float value representing the computed PEI.
+        """
+        # TODO: Implement computation logic
+        raise NotImplementedError("Computation method not yet implemented.")
+
+
 def pei(x: Input, gp: AbstractGaussianProcess) -> float:
     raise NotImplementedError
+
+
+def expected_improvement(x: Input, gp: AbstractGaussianProcess) -> float:
+    prediction = gp.predict(x)
+    if equal_within_tolerance(prediction.variance, 0):
+        return 0.0
+
+    # This will end up being calculated for each point... maybe a class would be more efficient
+    max_targets = max(gp.training_data, key=lambda datum: datum.output).output
+
+    u = (prediction.estimate - max_targets) / math.sqrt(prediction.variance)
+
+    return (prediction.estimate - max_targets) * norm(loc=0, scale=1).cdf(
+        u
+    ) + math.sqrt(prediction.variance) * norm(loc=0, scale=1).pdf(u)
+
+
+def repulsion(x: Input, gp: AbstractGaussianProcess) -> np.array:
+    pass
 
 
 def compute_single_level_loo_samples(
