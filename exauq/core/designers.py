@@ -4,6 +4,8 @@ from collections.abc import Collection
 from typing import Optional
 
 import numpy as np
+from scipy.stats import norm
+
 from exauq.core.modelling import (
     AbstractEmulator,
     AbstractGaussianProcess,
@@ -14,7 +16,6 @@ from exauq.core.modelling import (
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
 from exauq.utilities.validation import check_int
-from scipy.stats import norm
 
 
 class SimpleDesigner(object):
@@ -140,7 +141,9 @@ class SingleLevelAdaptiveSampler:
 
 
 def compute_loo_errors_gp(
-    gp: AbstractGaussianProcess, gp_for_errors: Optional[AbstractGaussianProcess] = None
+    gp: AbstractGaussianProcess,
+    domain: SimulatorDomain,
+    gp_for_errors: Optional[AbstractGaussianProcess] = None,
 ) -> AbstractGaussianProcess:
     """Calculate a Gaussian process trained on normalised expected squared leave-one-out
     (LOO) errors.
@@ -148,21 +151,25 @@ def compute_loo_errors_gp(
     The errors are computed from the supplied Gaussian process, `gp`. This involves
     training a Gaussian process (GP) for each leave-one-out subset of the training data of
     `gp` and calculating the normalised expected squared error at the left-out training
-    point for each intermediary GP. The resulting errors, together with the corresponding
-    left out simulator inputs, form the training data for the output GP.
+    point for each intermediary GP. Note that the intermediary leave-one-out GPs are fit
+    to data using the fitted hyperparameters *from the supplied `gp`*, which avoids costly
+    re-estimation of hyperparameters. The resulting errors, together with the
+    corresponding left out simulator inputs, form the training data for the output GP. The
+    output GP is trained with a lower bound on the correlation length scale parameters
+    (see the Notes section).
 
-    Note that the intermediary leave-one-out GPs are fit to data using the fitted
-    hyperparameters *from the supplied `gp`*. This avoids costly re-estimation of
-    hyperparameters for each leave-one-out GP. By default, the returned
-    ``AbstractGaussianProcess`` object will be a deep copy of `gp` trained on the
-    leave-one-out errors. Alternatively, another ``AbstractGaussianProcess`` can be
-    supplied that will be trained on the leave-one-out errors and returned (thus it will
-    be modified in-place as well as returned).
+    By default, the returned ``AbstractGaussianProcess`` object will be a deep copy of
+    `gp` trained on the leave-one-out errors. Alternatively, another
+    ``AbstractGaussianProcess`` can be supplied that will be trained on the leave-one-out
+    errors and returned (thus it will be modified in-place as well as returned).
 
     Parameters
     ----------
     gp : AbstractGaussianProcess
         A Gaussian process to calculate the normalised expected squared LOO errors for.
+    domain : SimulatorDomain
+        The domain of a simulator that the Gaussian process `gp` emulates. The data on
+        which `gp` is trained are expected to have simulator inputs only from this domain.
     gp_for_errors : Optional[AbstractGaussianProcess], optional
         (Default: None) Another Gaussian process that is trained on the LOO errors to
         create the output to this function. If ``None`` then a deep copy of `gp` will
@@ -174,6 +181,12 @@ def compute_loo_errors_gp(
         A Gaussian process that is trained on the normalised expected square LOO errors
         of `gp`. If `gp_for_errors` was supplied then (a reference to) this object will be
         returned (except now it has been fit to the LOO errors).
+
+    Notes
+    -----
+    The lower bound on the correlation length scale parameters is obtained by scaling
+    the value ``sqrt(-0.5 / log(10 ** (-8)))``, for each dimension of the simulator
+    domain, from the unit interval [0, 1] to the interval of the corresponding dimension.
     """
 
     if not isinstance(gp, AbstractGaussianProcess):
@@ -198,7 +211,12 @@ def compute_loo_errors_gp(
         error_training_data.append(TrainingDatum(datum.input, nes_loo_error))
 
     gp_e = gp_for_errors if gp_for_errors is not None else copy.deepcopy(gp)
-    gp_e.fit(error_training_data)
+
+    CORR_BOUND = 0.25 / math.sqrt(math.log(10))
+    bounds = [(bnd, None) for bnd in domain.scale([CORR_BOUND] * domain.dim)] + [
+        (None, None)
+    ]
+    gp_e.fit(error_training_data, hyperparameter_bounds=bounds)
     return gp_e
 
 
@@ -299,9 +317,9 @@ def expected_improvement(x: Input, gp: AbstractGaussianProcess) -> float:
 
     u = (prediction.estimate - max_targets) / math.sqrt(prediction.variance)
 
-    return (prediction.estimate - max_targets) * norm(loc=0, scale=1).cdf(
-        u
-    ) + math.sqrt(prediction.variance) * norm(loc=0, scale=1).pdf(u)
+    return (prediction.estimate - max_targets) * norm(loc=0, scale=1).cdf(u) + math.sqrt(
+        prediction.variance
+    ) * norm(loc=0, scale=1).pdf(u)
 
 
 def repulsion(x: Input, gp: AbstractGaussianProcess) -> np.array:

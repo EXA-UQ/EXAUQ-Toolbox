@@ -1,4 +1,5 @@
 import copy
+import math
 import unittest
 
 import tests.unit.fakes as fakes
@@ -166,6 +167,7 @@ class TestSingleLevelAdaptiveSampler(unittest.TestCase):
 
 class TestComputeLooErrorsGp(ExauqTestCase):
     def setUp(self) -> None:
+        self.domain = SimulatorDomain([(0, 1)])
         self.training_data = [
             TrainingDatum(Input(0), 1),
             TrainingDatum(Input(0.5), 1),
@@ -184,20 +186,20 @@ class TestComputeLooErrorsGp(ExauqTestCase):
             TypeError,
             f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(arg)} instead.",
         ):
-            _ = compute_loo_errors_gp(arg)
+            _ = compute_loo_errors_gp(arg, self.domain)
 
         with self.assertRaisesRegex(
             TypeError,
             f"Expected 'gp_for_errors' to be of type AbstractGaussianProcess, but received {type(arg)} instead.",
         ):
-            _ = compute_loo_errors_gp(self.gp, gp_for_errors=arg)
+            _ = compute_loo_errors_gp(self.gp, self.domain, gp_for_errors=arg)
 
     def test_compute_loo_errors_gp_returned_gp_trainied_on_loo_errors(self):
         """The GP returned is trained on data consisting of the normalised expected square
         leave-one-out errors for each of the simulator inputs used to train the supplied
         GP."""
 
-        loo_errors_gp = compute_loo_errors_gp(self.gp)
+        loo_errors_gp = compute_loo_errors_gp(self.gp, self.domain)
 
         # Construct expected LOO error GP training data
         loo_errors_training_data = []
@@ -224,7 +226,7 @@ class TestComputeLooErrorsGp(ExauqTestCase):
 
         gp = fakes.FakeGP(predictive_mean=99)
         gp.fit(self.training_data)
-        loo_errors_gp = compute_loo_errors_gp(gp)
+        loo_errors_gp = compute_loo_errors_gp(gp, self.domain)
 
         self.assertEqual(gp.predictive_mean, loo_errors_gp.predictive_mean)
 
@@ -233,7 +235,9 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         AbstractGaussianProcess if supplied."""
 
         other_gp = fakes.FakeGP(predictive_mean=99)
-        loo_errors_gp = compute_loo_errors_gp(self.gp, gp_for_errors=other_gp)
+        loo_errors_gp = compute_loo_errors_gp(
+            self.gp, self.domain, gp_for_errors=other_gp
+        )
 
         self.assertEqual(other_gp.predictive_mean, loo_errors_gp.predictive_mean)
         self.assertEqual(id(other_gp), id(loo_errors_gp))
@@ -246,17 +250,52 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         hyperparameters = copy.deepcopy(self.gp.fit_hyperparameters)
 
         # Default case
-        loo_errors_gp = compute_loo_errors_gp(self.gp)
+        loo_errors_gp = compute_loo_errors_gp(self.gp, self.domain)
         self.assertNotEqual(id(self.gp), id(loo_errors_gp))
         self.assertEqual(training_data, self.gp.training_data)
         self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
 
         # Case where another GP is supplied for training
         other_gp = fakes.FakeGP(predictive_mean=99)
-        loo_errors_gp = compute_loo_errors_gp(self.gp, gp_for_errors=other_gp)
+        loo_errors_gp = compute_loo_errors_gp(
+            self.gp, self.domain, gp_for_errors=other_gp
+        )
         self.assertNotEqual(id(self.gp), id(loo_errors_gp))
         self.assertEqual(training_data, self.gp.training_data)
         self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
+
+    def test_compute_loo_errors_gp_uses_constrained_correlations_in_fitting(self):
+        """The leave-one-out errors GP is trained under constrained estimation of the
+        correlation length scale hyperparameters."""
+
+        training_data = [
+            TrainingDatum(Input(0, 0), 1),
+            TrainingDatum(Input(-1, 1), 2),
+        ]
+        gp = fakes.FakeGP()
+        gp.fit(training_data)
+
+        domain = SimulatorDomain([(-1, 1), (0, 1)])
+        loo_gp = fakes.FakeGP()
+        loo_gp = compute_loo_errors_gp(gp, domain, gp_for_errors=fakes.FakeGP())
+
+        CORR_BOUND = math.sqrt(-0.5 / math.log(10 ** (-8)))
+        expected_corr_bounds = [
+            (bnd, None) for bnd in domain.scale((CORR_BOUND, CORR_BOUND))
+        ] + [
+            (None, None)
+        ]  # last entry for the predictive variance
+
+        self.assertEqual(len(expected_corr_bounds), len(loo_gp.hyperparameter_bounds))
+        self.assertEqual((None, None), loo_gp.hyperparameter_bounds[-1])
+        self.assertTrue(
+            all(
+                equal_within_tolerance(expected[0], actual[0]) and actual[1] is None
+                for expected, actual in zip(
+                    expected_corr_bounds[:-1], loo_gp.hyperparameter_bounds[:-1]
+                )
+            )
+        )
 
 
 class TestComputeLooGp(ExauqTestCase):
