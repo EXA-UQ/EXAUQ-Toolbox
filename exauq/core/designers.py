@@ -221,7 +221,9 @@ def compute_loo_errors_gp(
 
 
 def compute_loo_gp(
-    gp: AbstractGaussianProcess, leave_out_idx: int
+    gp: AbstractGaussianProcess,
+    leave_out_idx: int,
+    loo_gp: Optional[AbstractGaussianProcess] = None,
 ) -> AbstractGaussianProcess:
     """Calculate a leave-one-out (LOO) Gaussian process.
 
@@ -229,13 +231,22 @@ def compute_loo_gp(
     from the supplied GP except for one datum (the 'left out' datum). It is trained using
     the fitted hyperparameters *from the supplied Gaussian process `gp`*.
 
+    By default, the returned ``AbstractGaussianProcess`` object will be a shallow copy of
+    `gp` trained on the leave-one-out data. Alternatively, another
+    ``AbstractGaussianProcess`` can be supplied that will be trained on the leave-one-out
+    data and returned (thus it will be modified in-place as well as returned). This can
+    be more efficient when repeated calculation of a LOO GP is required.
+
     Parameters
     ----------
     gp : AbstractGaussianProcess
-        A Gaussian process to calculate the normalised expected squared LOO error for.
+        A Gaussian process to form the basis for the LOO GP.
     leave_out_idx : int
         The index for the training datum of `gp` to leave out. This should be an index
         of the sequence returned by the ``gp.training_data`` property.
+    loo_gp : Optional[AbstractGaussianProcess], optional
+        (Default: None) Another Gaussian process that is trained on the LOO data and then
+        returned. If ``None`` then a shallow copy of `gp` will be used instead.
 
     Returns
     -------
@@ -276,9 +287,9 @@ def compute_loo_gp(
     remaining_data = (
         gp.training_data[:leave_out_idx] + gp.training_data[leave_out_idx + 1 :]
     )
-    loo_emulator = copy.copy(gp)
-    loo_emulator.fit(remaining_data, hyperparameters=gp.fit_hyperparameters)
-    return loo_emulator
+    loo_gp_ = loo_gp if loo_gp is not None else copy.copy(gp)
+    loo_gp_.fit(remaining_data, hyperparameters=gp.fit_hyperparameters)
+    return loo_gp_
 
 
 class PEICalculator:

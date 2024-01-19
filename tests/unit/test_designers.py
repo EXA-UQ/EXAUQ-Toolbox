@@ -377,16 +377,30 @@ class TestComputeLooGp(ExauqTestCase):
             loo_gp = compute_loo_gp(self.gp, i)
             self.assertEqual(remaining_data, loo_gp.training_data)
 
+    def test_compute_loo_gp_uses_supplied_gp_for_loo_fitting(self):
+        """If supplied, another AbstractGaussianProcess is used for fitting to the
+        leave-one-out data."""
+
+        loo_gp = fakes.FakeGP()
+        loo_gp_out = compute_loo_gp(self.gp, leave_out_idx=0, loo_gp=loo_gp)
+        self.assertEqual(id(loo_gp), id(loo_gp_out))
+        self.assertEqual(tuple(self.training_data[1:]), loo_gp.training_data)
+
     def test_compute_loo_gp_fit_with_input_gp_hyperparameters(self):
         """The leave-one-out GP is fit with the same fit hyperparameters as the original
         GP."""
 
+        # Default case
         loo_gp = compute_loo_gp(self.gp, leave_out_idx=0)
         self.assertEqual(self.gp.fit_hyperparameters, loo_gp.fit_hyperparameters)
 
+        # Case of spplying a LOO GP directly
+        loo_gp = compute_loo_gp(self.gp, leave_out_idx=0, loo_gp=fakes.FakeGP())
+        self.assertEqual(self.gp.fit_hyperparameters, loo_gp.fit_hyperparameters)
+
     def test_compute_loo_gp_returns_gp_having_same_settings_as_input(self):
-        """The leave-one-out GP is created with the same settings that were used to create
-        the input GP."""
+        """In the default case, the leave-one-out GP is created with the same settings
+        that were used to create the input GP."""
 
         predictive_mean = 99
         gp = fakes.FakeGP(predictive_mean=predictive_mean)
@@ -400,8 +414,18 @@ class TestComputeLooGp(ExauqTestCase):
 
         training_data = copy.deepcopy(self.gp.training_data)
         hyperparameters = copy.deepcopy(self.gp.fit_hyperparameters)
-        _ = compute_loo_gp(self.gp, leave_out_idx=0)
 
+        # Default case
+        _ = compute_loo_gp(self.gp, leave_out_idx=0)
+        self.assertEqual(training_data, self.gp.training_data)
+        self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
+
+        # Check whether the underlying MOGP GaussianProcess has been modified by checking
+        # number of training inputs.
+        self.assertEqual(len(training_data), self.gp.gp.n)
+
+        # Case of supplying a LOO GP directly
+        _ = compute_loo_gp(self.gp, leave_out_idx=0, loo_gp=fakes.FakeGP())
         self.assertEqual(training_data, self.gp.training_data)
         self.assertEqual(hyperparameters, self.gp.fit_hyperparameters)
 
