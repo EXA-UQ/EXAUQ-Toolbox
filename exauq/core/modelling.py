@@ -675,11 +675,18 @@ class SimulatorDomain(object):
     dim : int
         (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
         from this domain have.
+    bounds : tuple[tuple[Real, Real], ...]
+        (Read-only) The bounds defining this domain, as a tuple of pairs of
+        real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each pair ``(a_i, b_i)``
+        representing the lower and upper bounds for the corresponding coordinate in the
+        domain.
 
     Parameters
     ----------
     bounds : Sequence[tuple[Real, Real]]
-        A sequence of tuples representing the lower and upper bounds for each coordinate dimension in the domain.
+        A sequence of tuples of real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each
+        pair ``(a_i, b_i)`` representing the lower and upper bounds for the corresponding
+        coordinate in the domain.
 
     Examples
     --------
@@ -699,7 +706,7 @@ class SimulatorDomain(object):
 
     def __init__(self, bounds: Sequence[tuple[Real, Real]]):
         self._validate_bounds(bounds)
-        self._bounds = bounds
+        self._bounds = tuple(bounds)
         self._dim = len(bounds)
         self._corners = None
 
@@ -780,6 +787,14 @@ class SimulatorDomain(object):
         """(Read-only) The dimension of this domain, i.e. the number of coordinates
         inputs from this domain have."""
         return self._dim
+
+    @property
+    def bounds(self) -> tuple[tuple[Real, Real], ...]:
+        """(Read-only) The bounds defining this domain, as a tuple of pairs of
+        real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each pair ``(a_i, b_i)``
+        representing the lower and upper bounds for the corresponding coordinate in the
+        domain."""
+        return self._bounds
 
     def scale(self, coordinates: Sequence[Real]) -> Input:
         """Scale coordinates from the unit hypercube into coordinates for this domain.

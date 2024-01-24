@@ -701,6 +701,12 @@ class TestSimulatorDomain(unittest.TestCase):
         with self.assertRaises(AttributeError):
             self.domain.dim = 1
 
+    def test_bounds_returns_supplied_bounds(self):
+        """Test that the bounds supplied at initialisation are returned as a
+        tuple of tuples."""
+
+        self.assertEqual(tuple(self.bounds), self.domain.bounds)
+
     def test_scale_returns_input(self):
         """Test that the scale method returns a tuple of real numbers."""
 
