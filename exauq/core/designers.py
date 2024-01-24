@@ -230,6 +230,7 @@ def compute_loo_errors_gp(
 
     gp_e = gp_for_errors if gp_for_errors is not None else copy.deepcopy(gp)
 
+    # Note: the following is a simplification of sqrt(-0.5 / log(10 ** (-8))) from paper
     CORR_BOUND = 0.25 / math.sqrt(math.log(10))
     bounds = [(bnd, None) for bnd in domain.scale([CORR_BOUND] * domain.dim)] + [
         (None, None)
