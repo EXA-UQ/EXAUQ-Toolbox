@@ -513,7 +513,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
             variances, self.inputs, self.outputs
         ):
             with self.subTest(var=var, x=x, observed_output=observed_output):
-                hyperparameters = FakeGPHyperparameters(var=var)
+                hyperparameters = FakeGPHyperparameters(cov=var)
                 self.emulator.fit(self.training_data, hyperparameters=hyperparameters)
 
                 prediction = self.emulator.predict(x)
@@ -545,7 +545,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         emulator = FakeGP()
         emulator.fit(
             [TrainingDatum(Input(0.5), 1)],
-            hyperparameters=FakeGPHyperparameters(var=0),
+            hyperparameters=FakeGPHyperparameters(cov=0),
         )
         self.assertEqual(float("inf"), emulator.nes_error(Input(0.4), 1e-5))
 
