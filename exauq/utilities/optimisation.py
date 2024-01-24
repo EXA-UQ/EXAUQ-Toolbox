@@ -24,7 +24,7 @@ def maximise(func: Callable[[NDArray], float], domain: SimulatorDomain) -> Input
 
     result = scipy.optimize.differential_evolution(
         lambda x: -func(x),
-        bounds=domain._bounds,
+        bounds=domain.bounds,
         tol=FLOAT_TOLERANCE,
         atol=FLOAT_TOLERANCE,
     )
