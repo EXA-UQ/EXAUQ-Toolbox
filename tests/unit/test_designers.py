@@ -181,7 +181,7 @@ class TestComputeLooErrorsGp(ExauqTestCase):
 
         * The input GP is not of type AbstractGaussianProcess.
         * The domain is not of type SimulatorDomain.
-        * The suppplied LOO errors GP is not None or of type AbstractGaussianProcess.
+        * The supplied LOO errors GP is not None or of type AbstractGaussianProcess.
         """
 
         arg = "a"
