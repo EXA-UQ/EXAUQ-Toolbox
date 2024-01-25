@@ -1,7 +1,7 @@
 import copy
 import math
 from collections.abc import Collection
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from scipy.stats import norm
@@ -332,7 +332,9 @@ class PEICalculator:
         self._calculate_max_targets()
 
     def _calculate_max_targets(self):
-        self._max_targets = max(self._gp.training_data, key=lambda datum: datum.output).output
+        self._max_targets = max(
+            self._gp.training_data, key=lambda datum: datum.output
+        ).output
 
     def compute(self, x: Union[Input, np.array]) -> float:
         """
@@ -344,7 +346,9 @@ class PEICalculator:
         # TODO: Implement computation logic
         raise NotImplementedError("Computation method not yet implemented.")
 
-    def expected_improvement(self, x: Union[Input, np.ndarray], gp: AbstractGaussianProcess) -> float:
+    def expected_improvement(
+        self, x: Union[Input, np.ndarray], gp: AbstractGaussianProcess
+    ) -> float:
 
         # ToDo:- Overload AbstractGaussianProcess.predict
         if isinstance(x, np.dnarray):
@@ -357,9 +361,9 @@ class PEICalculator:
 
         u = (prediction.estimate - self._max_targets) / math.sqrt(prediction.variance)
 
-        return (prediction.estimate - self._max_targets) * norm(loc=0, scale=1).cdf(u) + math.sqrt(
-            prediction.variance
-        ) * norm(loc=0, scale=1).pdf(u)
+        return (prediction.estimate - self._max_targets) * norm(loc=0, scale=1).cdf(
+            u
+        ) + math.sqrt(prediction.variance) * norm(loc=0, scale=1).pdf(u)
 
 
 def compute_single_level_loo_samples(
