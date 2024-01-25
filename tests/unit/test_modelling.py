@@ -6,7 +6,13 @@ from typing import Literal
 
 import numpy as np
 
-from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
+from exauq.core.modelling import (
+    GaussianProcessHyperparameters,
+    Input,
+    Prediction,
+    SimulatorDomain,
+    TrainingDatum,
+)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
 from tests.utilities.utilities import (
@@ -548,6 +554,92 @@ class TestAbstractGaussianProcess(ExauqTestCase):
             hyperparameters=FakeGPHyperparameters(cov=0),
         )
         self.assertEqual(float("inf"), emulator.nes_error(Input(0.4), 1e-5))
+
+
+class TestGaussianProcessHyperparameters(ExauqTestCase):
+    def setUp(self) -> None:
+        # N.B. although single-element Numpy arrays can be converted to scalars this is
+        # deprecated functionality and will throw an error in the future.
+        self.nonreal_objects = [2j, "1", np.array([2])]
+        self.negative_reals = [-0.5, -math.inf]
+        self.nonpositive_reals = self.negative_reals + [0]
+
+    def test_init_checks_arg_types(self):
+        """A TypeError is raised upon initialisation if:
+
+        * the correlations is not a sequence or Numpy array; or
+        * the covariance is not a real number; or
+        * the nugget is not ``None`` or a real number.
+        """
+
+        # correlations
+        nonseq_objects = [1.0, {1.0}]
+        for corr in nonseq_objects:
+            with self.subTest(corr=corr), self.assertRaisesRegex(
+                TypeError,
+                exact(
+                    f"Expected 'corr' to be a sequence or Numpy array, but received {type(corr)}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(corr=corr, cov=1.0, nugget=1.0)
+
+        # covariance
+        for cov in self.nonreal_objects + [None]:
+            with self.subTest(cov=cov), self.assertRaisesRegex(
+                TypeError,
+                exact(f"Expected 'cov' to be a real number, but received {type(cov)}."),
+            ):
+                _ = GaussianProcessHyperparameters(corr=[1.0], cov=cov, nugget=1.0)
+
+        # nugget
+        for nugget in self.nonreal_objects:
+            with self.subTest(nugget=nugget), self.assertRaisesRegex(
+                TypeError,
+                exact(
+                    f"Expected 'nugget' to be a real number, but received {type(nugget)}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
+
+    def test_init_checks_arg_values(self):
+        """A ValueError is raised upon initialisation if:
+
+        * the correlation is not a sequence / array of positive real numbers; or
+        * the covariance is not a positive real number; or
+        * the nugget is < 0 (if not None).
+        """
+
+        # correlations
+        bad_values = [[x] for x in self.nonreal_objects + self.nonpositive_reals]
+        for corr in bad_values:
+            with self.subTest(corr=corr), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "Expected 'corr' to be a sequence or Numpy array of positive real numbers, "
+                    f"but found element {corr[0]} of type {type(corr[0])}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(corr=corr, cov=1.0, nugget=1.0)
+
+        # covariance
+        for cov in self.nonpositive_reals:
+            with self.subTest(cov=cov), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected 'cov' to be a positive real number, but received {cov}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(corr=[1.0], cov=cov, nugget=1.0)
+
+        # nugget
+        for nugget in self.negative_reals:
+            with self.subTest(nugget=nugget), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected 'nugget' to be a positive real number, but received {nugget}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
 
 
 class TestSimulatorDomain(unittest.TestCase):

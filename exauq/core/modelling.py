@@ -660,6 +660,49 @@ class AbstractHyperparameters(abc.ABC):
     pass
 
 
+@dataclasses.dataclass(frozen=True)
+class GaussianProcessHyperparameters(AbstractHyperparameters):
+    corr: Union[Sequence[Real], np.ndarray[Real]]
+    cov: Real
+    nugget: Optional[Real] = None
+
+    def __post_init__(self):
+        if not isinstance(self.corr, (Sequence, np.ndarray)):
+            raise TypeError(
+                f"Expected 'corr' to be a sequence or Numpy array, but received {type(self.corr)}."
+            )
+
+        nonpositive_corrs = [x for x in self.corr if not isinstance(x, Real) or x <= 0]
+        if nonpositive_corrs:
+            nonpositive_element = nonpositive_corrs[0]
+            raise ValueError(
+                "Expected 'corr' to be a sequence or Numpy array of positive real numbers, "
+                f"but found element {nonpositive_element} of type {type(nonpositive_element)}."
+            )
+
+        validation.check_real(
+            self.cov,
+            TypeError(
+                f"Expected 'cov' to be a real number, but received {type(self.cov)}."
+            ),
+        )
+        if self.cov <= 0:
+            raise ValueError(
+                f"Expected 'cov' to be a positive real number, but received {self.cov}."
+            )
+
+        if self.nugget is not None:
+            if not isinstance(self.nugget, Real):
+                raise TypeError(
+                    f"Expected 'nugget' to be a real number, but received {type(self.nugget)}."
+                )
+
+            if self.nugget < 0:
+                raise ValueError(
+                    f"Expected 'nugget' to be a positive real number, but received {self.nugget}."
+                )
+
+
 class SimulatorDomain(object):
     """
     Class representing the domain of a simulator.
