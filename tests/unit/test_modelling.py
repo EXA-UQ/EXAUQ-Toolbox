@@ -451,7 +451,9 @@ class TestPrediction(ExauqTestCase):
             with self.subTest(variance=variance):
                 prediction = Prediction(estimate=1, variance=variance)
                 expected_std = math.sqrt(variance)
-                self.assertEqualWithinTolerance(prediction.standard_deviation, expected_std)
+                self.assertEqualWithinTolerance(
+                    prediction.standard_deviation, expected_std
+                )
 
     def test_standard_deviation_invariance_to_estimate(self):
         """Test that the standard_deviation does not change with different estimates."""
