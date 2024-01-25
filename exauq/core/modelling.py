@@ -345,11 +345,13 @@ class TrainingDatum(object):
 
 @dataclasses.dataclass(frozen=True)
 class Prediction:
-    """Represents a predicted value together with the variance of the prediction.
+    """Represents a predicted value together with the variance and standard_deviation of the prediction.
+    The standard deviation is computed as the square root of the variance.
 
     Two predictions are considered equal if their estimated values and variances agree,
-    to within the standard tolerance ``exauq.core.numerics.FLOAT_TOLERANCE`` as defined
-    by the default parameters for ``exauq.core.numerics.equal_within_tolerance``.
+    to within the standard tolerance `exauq.core.numerics.FLOAT_TOLERANCE` as defined
+    by the default parameters for `exauq.core.numerics.equal_within_tolerance`.
+
 
     Parameters
     ----------
@@ -364,6 +366,8 @@ class Prediction:
         (Read-only) The estimated value of the prediction.
     variance : numbers.Real
         (Read-only) The variance of the prediction.
+    standard_deviation : numbers.Real
+        (Read-only) The standard deviation of the prediction, calculated as the square root of the variance.
 
     See Also
     --------
@@ -372,10 +376,14 @@ class Prediction:
 
     estimate: Real
     variance: Real
+    standard_deviation: Real = dataclasses.field(default=None, init=False)
 
     def __post_init__(self):
         self._validate_estimate(self.estimate)
         self._validate_variance(self.variance)
+
+        std = math.sqrt(self.variance)
+        object.__setattr__(self, "standard_deviation", std)
 
     @staticmethod
     def _validate_estimate(estimate: Any) -> None:

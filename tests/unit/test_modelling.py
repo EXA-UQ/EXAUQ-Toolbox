@@ -341,7 +341,7 @@ class TestTrainingDatum(unittest.TestCase):
         self.assertEqual(expected, TrainingDatum.list_from_arrays(inputs, outputs))
 
 
-class TestPrediction(unittest.TestCase):
+class TestPrediction(ExauqTestCase):
     def test_inputs_preserve_real_type(self):
         """Test that the estimate and variance are of the same types as provided
         at initialisation."""
@@ -390,7 +390,7 @@ class TestPrediction(unittest.TestCase):
             Prediction(estimate=1, variance=var)
 
     def test_immutable_fields(self):
-        """Test that the estimate and variance values in a prediction are immutable."""
+        """Test that the estimate, variance and standard_deviation values in a prediction are immutable."""
 
         prediction = Prediction(1, 1)
         with self.assertRaises(AttributeError):
@@ -398,6 +398,9 @@ class TestPrediction(unittest.TestCase):
 
         with self.assertRaises(AttributeError):
             prediction.variance = 0
+
+        with self.assertRaises(AttributeError):
+            prediction.standard_deviation = 0
 
     def test_equality_with_different_type(self):
         """Test that a Prediction object is not equal to an object of a different type."""
@@ -441,6 +444,29 @@ class TestPrediction(unittest.TestCase):
             for estimate2, var2 in itertools.product(estimates, variances):
                 p2 = Prediction(estimate2, var2)
                 self.assertIs(p1 == p2, p2 == p1)
+
+    def test_standard_deviation_calculation(self):
+        """Test that the standard_deviation is correctly calculated as the square root of the variance."""
+        for variance in [0, 0.25, 1, 2, 4, 9]:
+            with self.subTest(variance=variance):
+                prediction = Prediction(estimate=1, variance=variance)
+                expected_std = math.sqrt(variance)
+                self.assertEqualWithinTolerance(
+                    prediction.standard_deviation, expected_std
+                )
+
+    def test_standard_deviation_invariance_to_estimate(self):
+        """Test that the standard_deviation does not change with different estimates."""
+        variance = 2.5
+        std = math.sqrt(variance)
+        for estimate in range(-10, 11):
+            prediction = Prediction(estimate=estimate, variance=variance)
+            self.assertEqual(prediction.standard_deviation, std)
+
+    def test_standard_deviation_zero_variance(self):
+        """Test that the standard_deviation is zero when variance is zero."""
+        prediction = Prediction(estimate=5, variance=0)
+        self.assertEqual(prediction.standard_deviation, 0)
 
 
 class TestAbstractGaussianProcess(ExauqTestCase):
