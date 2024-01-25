@@ -339,10 +339,6 @@ class PEICalculator:
         raise NotImplementedError("Computation method not yet implemented.")
 
 
-def pei(x: Input, gp: AbstractGaussianProcess) -> float:
-    raise NotImplementedError
-
-
 def expected_improvement(x: Input, gp: AbstractGaussianProcess) -> float:
     prediction = gp.predict(x)
     if equal_within_tolerance(prediction.variance, 0):
