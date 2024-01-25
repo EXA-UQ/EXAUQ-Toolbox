@@ -325,10 +325,16 @@ class PEICalculator:
         :param domain: An instance of SimulatorDomain, representing the domain of simulation.
         :param gp: An instance of AbstractGaussianProcess, representing the Gaussian process model.
         """
-        # TODO: Implement initialisation logic
-        raise NotImplementedError("Initialisation not yet implemented.")
+        self._domain = domain  # Check domain
+        self._gp = gp  # Check gp
+        self._max_targets = None
 
-    def compute(self, x: Input) -> float:
+        self._calculate_max_targets()
+
+    def _calculate_max_targets(self):
+        self._max_targets = max(self._gp.training_data, key=lambda datum: datum.output).output
+
+    def compute(self, x: Union[Input, np.array]) -> float:
         """
         Computes the PEI based on the given input.
 
