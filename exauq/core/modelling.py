@@ -336,7 +336,8 @@ class TrainingDatum(object):
         """
 
         return [
-            cls(Input.from_array(input), output) for input, output in zip(inputs, outputs)
+            cls(Input.from_array(input), output)
+            for input, output in zip(inputs, outputs)
         ]
 
     def __str__(self) -> str:
@@ -383,7 +384,7 @@ class Prediction:
         self._validate_variance(self.variance)
 
         std = math.sqrt(self.variance)
-        object.__setattr__(self, 'standard_deviation', std)
+        object.__setattr__(self, "standard_deviation", std)
 
     @staticmethod
     def _validate_estimate(estimate: Any) -> None:
@@ -584,14 +585,16 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         square_err = (prediction.estimate - observed_output) ** 2
         expected_sq_err = prediction.variance + square_err
         standard_deviation_sq_err = math.sqrt(
-            2 * (prediction.variance**2) + 4 * prediction.variance * square_err
+            2 * (prediction.variance ** 2) + 4 * prediction.variance * square_err
         )
         try:
             return float(expected_sq_err / standard_deviation_sq_err)
         except ZeroDivisionError:
             return 0 if expected_sq_err == 0 else float("inf")
 
-    def covariance_matrix(self, inputs: Sequence[Input]) -> tuple[tuple[float, ...], ...]:
+    def covariance_matrix(
+        self, inputs: Sequence[Input]
+    ) -> tuple[tuple[float, ...], ...]:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
         Computing covariance matrices is only defined for Gaussian processes that have
@@ -866,7 +869,8 @@ class SimulatorDomain(object):
             True if the point is within the bounds, False otherwise.
         """
         return all(
-            self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim)
+            self._bounds[i][0] <= point[i] <= self._bounds[i][1]
+            for i in range(self._dim)
         )
 
     def _validate_points_dim(self, collection: Collection[Input]) -> None:
