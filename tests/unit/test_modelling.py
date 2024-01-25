@@ -6,21 +6,12 @@ from typing import Literal
 
 import numpy as np
 
-from exauq.core.modelling import (
-    GaussianProcessHyperparameters,
-    Input,
-    Prediction,
-    SimulatorDomain,
-    TrainingDatum,
-)
+from exauq.core.modelling import (GaussianProcessHyperparameters, Input,
+                                  Prediction, SimulatorDomain, TrainingDatum)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
-from tests.utilities.utilities import (
-    ExauqTestCase,
-    compare_input_tuples,
-    exact,
-    make_window,
-)
+from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
+                                       exact, make_window)
 
 
 class TestInput(unittest.TestCase):
@@ -563,6 +554,20 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         self.nonreal_objects = [2j, "1", np.array([2])]
         self.negative_reals = [-0.5, -math.inf]
         self.nonpositive_reals = self.negative_reals + [0]
+        self.hyperparameters = {
+            "correlation": {
+                "func": GaussianProcessHyperparameters.transform_corr,
+                "arg": "corr",
+            },
+            "covariance": {
+                "func": GaussianProcessHyperparameters.transform_cov,
+                "arg": "cov",
+            },
+            "nugget": {
+                "func": GaussianProcessHyperparameters.transform_nugget,
+                "arg": "nugget",
+            },
+        }
 
     def test_init_checks_arg_types(self):
         """A TypeError is raised upon initialisation if:
@@ -640,6 +645,76 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
                 ),
             ):
                 _ = GaussianProcessHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
+
+    def test_transformation_formulae(self):
+        """The transformed correlation is equal to `-2 * log(corr)`.
+        The transformed covariance is equal to `log(cov)`.
+        The transformed nugget is equal to `log(nugget)`."""
+
+        positive_reals = [0.1, 1, 10, np.float16(1.1)]
+        for x in positive_reals:
+            with self.subTest(hyperparameter="correlation", x=x):
+                transformation_func = self.hyperparameters["correlation"]["func"]
+                self.assertEqual(-2 * math.log(x), transformation_func(x))
+
+            with self.subTest(hyperparameter="covariance", x=x):
+                transformation_func = self.hyperparameters["covariance"]["func"]
+                self.assertEqual(math.log(x), transformation_func(x))
+
+            with self.subTest(hyperparameter="nugget", x=x):
+                transformation_func = self.hyperparameters["nugget"]["func"]
+                self.assertEqual(math.log(x), transformation_func(x))
+
+    def test_transformations_of_limit_values(self):
+        """The transformation functions handle limit values of their domains in the
+        following ways:
+
+        * For correlations, `inf` maps to `-inf` and `0` maps to `inf`.
+        * For covariances and nuggets, `inf` maps to `inf` and 0 maps to `-inf`.
+        """
+
+        with self.subTest(hyperparameter="correlation"):
+            transformation_func = self.hyperparameters["correlation"]["func"]
+            self.assertEqual(-math.inf, transformation_func(math.inf))
+            self.assertEqual(math.inf, transformation_func(0))
+
+        with self.subTest(hyperparameter="covariance"):
+            transformation_func = self.hyperparameters["covariance"]["func"]
+            self.assertEqual(math.inf, transformation_func(math.inf))
+            self.assertEqual(-math.inf, transformation_func(0))
+
+        with self.subTest(hyperparameter="nugget"):
+            transformation_func = self.hyperparameters["nugget"]["func"]
+            self.assertEqual(math.inf, transformation_func(math.inf))
+            self.assertEqual(-math.inf, transformation_func(0))
+
+    def test_transforms_non_real_arg_raises_type_error(self):
+        "A TypeError is raised if the argument supplied is not a real number."
+
+        for hyperparameter, x in itertools.product(
+            self.hyperparameters, self.nonreal_objects
+        ):
+            arg = self.hyperparameters[hyperparameter]["arg"]
+            transformation_func = self.hyperparameters[hyperparameter]["func"]
+            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
+                TypeError,
+                exact(f"Expected '{arg}' to be a real number, but received {type(x)}."),
+            ):
+                _ = transformation_func(x)
+
+    def test_transforms_with_nonpositive_value_raises_value_error(self):
+        "A ValueError is raised if the argument supplied is < 0."
+
+        for hyperparameter, x in itertools.product(
+            self.hyperparameters, self.negative_reals
+        ):
+            arg = self.hyperparameters[hyperparameter]["arg"]
+            transformation_func = self.hyperparameters[hyperparameter]["func"]
+            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
+                ValueError,
+                exact(f"'{arg}' cannot be < 0, but received {x}."),
+            ):
+                _ = transformation_func(x)
 
 
 class TestSimulatorDomain(unittest.TestCase):

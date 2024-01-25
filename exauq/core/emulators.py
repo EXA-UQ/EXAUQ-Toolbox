@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import dataclasses
-import functools
 import math
 from collections.abc import Collection, Sequence
 from numbers import Real
@@ -20,6 +19,7 @@ from exauq.core.modelling import (
     OptionalFloatPairs,
     Prediction,
     TrainingDatum,
+    _validate_nonnegative_real_domain,
 )
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
@@ -403,30 +403,6 @@ class MogpEmulator(AbstractGaussianProcess):
         return Prediction(
             estimate=mogp_predict_result.mean[0], variance=mogp_predict_result.unc[0]
         )
-
-
-def _validate_nonnegative_real_domain(arg_name: str):
-    """A decorator to be applied to functions with a single real-valued argument called
-    `arg_name`. The decorator adds validation that the argument is a real number >= 0."""
-
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapped(arg: Real):
-            # N.B. Not using try-except here because that would allow single-element Numpy
-            # arrays to pass through with deprecation warning.
-            if not isinstance(arg, Real):
-                raise TypeError(
-                    f"Expected '{arg_name}' to be a real number, but received {type(arg)}."
-                )
-
-            if arg < 0:
-                raise ValueError(f"'{arg_name}' cannot be < 0, but received {arg}.")
-
-            return func(arg)
-
-        return wrapped
-
-    return decorator
 
 
 @dataclasses.dataclass(frozen=True)

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+import functools
 import math
 from collections.abc import Collection, Sequence
 from itertools import product
@@ -660,6 +661,30 @@ class AbstractHyperparameters(abc.ABC):
     pass
 
 
+def _validate_nonnegative_real_domain(arg_name: str):
+    """A decorator to be applied to functions with a single real-valued argument called
+    `arg_name`. The decorator adds validation that the argument is a real number >= 0."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapped(arg: Real):
+            # N.B. Not using try-except here because that would allow single-element Numpy
+            # arrays to pass through with deprecation warning.
+            if not isinstance(arg, Real):
+                raise TypeError(
+                    f"Expected '{arg_name}' to be a real number, but received {type(arg)}."
+                )
+
+            if arg < 0:
+                raise ValueError(f"'{arg_name}' cannot be < 0, but received {arg}.")
+
+            return func(arg)
+
+        return wrapped
+
+    return decorator
+
+
 @dataclasses.dataclass(frozen=True)
 class GaussianProcessHyperparameters(AbstractHyperparameters):
     corr: Union[Sequence[Real], np.ndarray[Real]]
@@ -701,6 +726,45 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
                 raise ValueError(
                     f"Expected 'nugget' to be a positive real number, but received {self.nugget}."
                 )
+
+    @staticmethod
+    @_validate_nonnegative_real_domain("corr")
+    def transform_corr(corr: Real) -> float:
+        """Transform a correlation length scale parameter to a negative log scale.
+
+        This maps the parameter to `-2 * log(corr)`; cf.
+        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        """
+        if corr == 0:
+            return math.inf
+
+        return -2 * math.log(corr)
+
+    @staticmethod
+    @_validate_nonnegative_real_domain("cov")
+    def transform_cov(cov: Real) -> float:
+        """Transform a covariance parameter to the log scale.
+
+        This maps the parameter to `log(cov)`; cf.
+        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        """
+        if cov == 0:
+            return -math.inf
+
+        return math.log(cov)
+
+    @staticmethod
+    @_validate_nonnegative_real_domain("nugget")
+    def transform_nugget(nugget: Real) -> float:
+        """Transform a nugget parameter to the log scale.
+
+        This maps the parameter to `log(nugget)`; cf.
+        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        """
+        if nugget == 0:
+            return -math.inf
+
+        return math.log(nugget)
 
 
 class SimulatorDomain(object):

@@ -537,6 +537,7 @@ class TestMogpHyperparameters(ExauqTestCase):
                 "Either all args should be None or 'corr' and 'cov' should both not be None."
             )
 
+    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
     def test_init_checks_arg_types(self):
         """A TypeError is raised upon initialisation if:
 
@@ -575,6 +576,7 @@ class TestMogpHyperparameters(ExauqTestCase):
             ):
                 _ = MogpHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
 
+    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
     def test_init_checks_arg_values(self):
         """A ValueError is raised upon initialisation if:
 
@@ -615,6 +617,7 @@ class TestMogpHyperparameters(ExauqTestCase):
             ):
                 _ = MogpHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
 
+    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
     def test_transformation_formulae(self):
         """The transformed correlation is equal to `-2 * log(corr)`.
         The transformed covariance is equal to `log(cov)`.
@@ -634,6 +637,7 @@ class TestMogpHyperparameters(ExauqTestCase):
                 transformation_func = self.hyperparameters["nugget"]["func"]
                 self.assertEqual(math.log(x), transformation_func(x))
 
+    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
     def test_transformations_of_limit_values(self):
         """The transformation functions handle limit values of their domains in the
         following ways:
@@ -657,6 +661,7 @@ class TestMogpHyperparameters(ExauqTestCase):
             self.assertEqual(math.inf, transformation_func(math.inf))
             self.assertEqual(-math.inf, transformation_func(0))
 
+    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
     def test_transforms_non_real_arg_raises_type_error(self):
         "A TypeError is raised if the argument supplied is not a real number."
 
@@ -671,6 +676,7 @@ class TestMogpHyperparameters(ExauqTestCase):
             ):
                 _ = transformation_func(x)
 
+    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
     def test_transforms_with_nonpositive_value_raises_value_error(self):
         "A ValueError is raised if the argument supplied is < 0."
 
