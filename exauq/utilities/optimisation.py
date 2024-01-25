@@ -12,9 +12,9 @@ def maximise(func: Callable[[NDArray], float], domain: SimulatorDomain) -> Input
     """Maximise an objective function over a simulator domain.
 
     Finds a point in the bounded input space defined by a simulator domain that maximses
-    a given function. The underlying optimisation uses differential evolution, as
-    implemented in the Scipy package, with the relative and absolute tolerances governing
-    convergence being set to ``exauq.core.numerics.FLOAT_TOLERANCE``.
+    a given function. The underlying optimisation uses differential evolution, using the
+    implementation in the Scipy package with the bounds that define the supplied simulator
+    domain (see notes for further details.)
 
     The objective function `func` is expected to take a 1-dimensional Numpy array as an
     argument and to be defined for arrays corresponding to inputs from the given `domain`.
@@ -37,11 +37,21 @@ def maximise(func: Callable[[NDArray], float], domain: SimulatorDomain) -> Input
 
     See Also
     --------
-
-    The Scipy documentation for differential evolution optimisation: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html
+    The Scipy documentation for differential evolution optimisation:
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html
     This is used with the `tol` and `atol` keyword arguments set to
     ``exauq.core.numerics.FLOAT_TOLERANCE``.
+
+    Notes
+    -----
+    The optimisation is performed with a call to Scipy's
+    ``scipy.optimize.differential_evolution`` function, with the bounds specified in
+    ``domain.bounds``. The relative and absolute tolerances governing
+    convergence (i.e. the ``tol`` and ``atol`` kwargs) are set to
+    ``exauq.core.numerics.FLOAT_TOLERANCE``, but otherwise the default kwargs are used in
+    ``scipy.optimize.differential_evolution``.
     """
+
     if not isinstance(domain, SimulatorDomain):
         raise TypeError(
             f"Expected 'domain' to be of type SimulatorDomain, but received {type(domain)} instead."
