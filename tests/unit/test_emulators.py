@@ -7,7 +7,12 @@ import mogp_emulator as mogp
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import Input, Prediction, TrainingDatum
+from exauq.core.modelling import (
+    GaussianProcessHyperparameters,
+    Input,
+    Prediction,
+    TrainingDatum,
+)
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -537,159 +542,13 @@ class TestMogpHyperparameters(ExauqTestCase):
                 "Either all args should be None or 'corr' and 'cov' should both not be None."
             )
 
-    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
-    def test_init_checks_arg_types(self):
-        """A TypeError is raised upon initialisation if:
+    def test_inherits_from_GaussianProcessHyperparameters(self):
+        """MogpHyperparameters inherits from GaussianProcessHyperparameters."""
 
-        * the correlations is not a sequence; or
-        * the covariance is not a real number; or
-        * the nugget is not ``None`` or a real number.
-        """
-
-        # correlations
-        nonseq_objects = [1.0, {1.0}]
-        for corr in nonseq_objects:
-            with self.subTest(corr=corr), self.assertRaisesRegex(
-                TypeError,
-                exact(
-                    f"Expected 'corr' to be a sequence or array, but received {type(corr)}."
-                ),
-            ):
-                _ = MogpHyperparameters(corr=corr, cov=1.0, nugget=1.0)
-
-        # covariance
-        nonreal_objects = self.nonreal_objects + [None]
-        for cov in nonreal_objects:
-            with self.subTest(cov=cov), self.assertRaisesRegex(
-                TypeError,
-                exact(f"Expected 'cov' to be a real number, but received {type(cov)}."),
-            ):
-                _ = MogpHyperparameters(corr=[1.0], cov=cov, nugget=1.0)
-
-        # nugget
-        for nugget in self.nonreal_objects:
-            with self.subTest(nugget=nugget), self.assertRaisesRegex(
-                TypeError,
-                exact(
-                    f"Expected 'nugget' to be a real number, but received {type(nugget)}."
-                ),
-            ):
-                _ = MogpHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
-
-    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
-    def test_init_checks_arg_values(self):
-        """A ValueError is raised upon initialisation if:
-
-        * the correlation is not a sequence / array of positive real numbers; or
-        * the covariance is not a positive real number; or
-        * the nugget is < 0 (if not None).
-        """
-
-        # correlations
-        bad_values = [[x] for x in self.nonreal_objects + self.nonpositive_reals]
-        for corr in bad_values:
-            with self.subTest(corr=corr), self.assertRaisesRegex(
-                ValueError,
-                exact(
-                    "Expected 'corr' to be a sequence or array of positive real numbers, "
-                    f"but found element {corr[0]} of type {type(corr[0])}."
-                ),
-            ):
-                _ = MogpHyperparameters(corr=corr, cov=1.0, nugget=1.0)
-
-        # covariance
-        for cov in self.nonpositive_reals:
-            with self.subTest(cov=cov), self.assertRaisesRegex(
-                ValueError,
-                exact(
-                    f"Expected 'cov' to be a positive real number, but received {cov}."
-                ),
-            ):
-                _ = MogpHyperparameters(corr=[1.0], cov=cov, nugget=1.0)
-
-        # nugget
-        for nugget in self.negative_reals:
-            with self.subTest(nugget=nugget), self.assertRaisesRegex(
-                ValueError,
-                exact(
-                    f"Expected 'nugget' to be a positive real number, but received {nugget}."
-                ),
-            ):
-                _ = MogpHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
-
-    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
-    def test_transformation_formulae(self):
-        """The transformed correlation is equal to `-2 * log(corr)`.
-        The transformed covariance is equal to `log(cov)`.
-        The transformed nugget is equal to `log(nugget)`."""
-
-        positive_reals = [0.1, 1, 10, np.float16(1.1)]
-        for x in positive_reals:
-            with self.subTest(hyperparameter="correlation", x=x):
-                transformation_func = self.hyperparameters["correlation"]["func"]
-                self.assertEqual(-2 * math.log(x), transformation_func(x))
-
-            with self.subTest(hyperparameter="covariance", x=x):
-                transformation_func = self.hyperparameters["covariance"]["func"]
-                self.assertEqual(math.log(x), transformation_func(x))
-
-            with self.subTest(hyperparameter="nugget", x=x):
-                transformation_func = self.hyperparameters["nugget"]["func"]
-                self.assertEqual(math.log(x), transformation_func(x))
-
-    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
-    def test_transformations_of_limit_values(self):
-        """The transformation functions handle limit values of their domains in the
-        following ways:
-
-        * For correlations, `inf` maps to `-inf` and `0` maps to `inf`.
-        * For covariances and nuggets, `inf` maps to `inf` and 0 maps to `-inf`.
-        """
-
-        with self.subTest(hyperparameter="correlation"):
-            transformation_func = self.hyperparameters["correlation"]["func"]
-            self.assertEqual(-math.inf, transformation_func(math.inf))
-            self.assertEqual(math.inf, transformation_func(0))
-
-        with self.subTest(hyperparameter="covariance"):
-            transformation_func = self.hyperparameters["covariance"]["func"]
-            self.assertEqual(math.inf, transformation_func(math.inf))
-            self.assertEqual(-math.inf, transformation_func(0))
-
-        with self.subTest(hyperparameter="nugget"):
-            transformation_func = self.hyperparameters["nugget"]["func"]
-            self.assertEqual(math.inf, transformation_func(math.inf))
-            self.assertEqual(-math.inf, transformation_func(0))
-
-    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
-    def test_transforms_non_real_arg_raises_type_error(self):
-        "A TypeError is raised if the argument supplied is not a real number."
-
-        for hyperparameter, x in itertools.product(
-            self.hyperparameters, self.nonreal_objects
-        ):
-            arg = self.hyperparameters[hyperparameter]["arg"]
-            transformation_func = self.hyperparameters[hyperparameter]["func"]
-            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
-                TypeError,
-                exact(f"Expected '{arg}' to be a real number, but received {type(x)}."),
-            ):
-                _ = transformation_func(x)
-
-    # TODO: remove when MogpHyperparameters derives from GaussianProcessHyperparameters
-    def test_transforms_with_nonpositive_value_raises_value_error(self):
-        "A ValueError is raised if the argument supplied is < 0."
-
-        for hyperparameter, x in itertools.product(
-            self.hyperparameters, self.negative_reals
-        ):
-            arg = self.hyperparameters[hyperparameter]["arg"]
-            transformation_func = self.hyperparameters[hyperparameter]["func"]
-            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
-                ValueError,
-                exact(f"'{arg}' cannot be < 0, but received {x}."),
-            ):
-                _ = transformation_func(x)
+        self.assertIsInstance(
+            self.make_hyperparameters(corr=[0.1], cov=1.1, nugget=0),
+            GaussianProcessHyperparameters,
+        )
 
     def test_to_mogp_gp_params_type_error_if_nugget_type_not_str(self):
         """A TypeError is raised if the nugget type is not a string."""

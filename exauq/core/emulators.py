@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import dataclasses
-import math
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
 import mogp_emulator as mogp
 import numpy as np
@@ -14,16 +13,14 @@ from mogp_emulator.GPParams import GPParams
 
 from exauq.core.modelling import (
     AbstractGaussianProcess,
-    AbstractHyperparameters,
+    GaussianProcessHyperparameters,
     Input,
     OptionalFloatPairs,
     Prediction,
     TrainingDatum,
-    _validate_nonnegative_real_domain,
 )
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
-from exauq.utilities.validation import check_real
 
 
 class MogpEmulator(AbstractGaussianProcess):
@@ -406,7 +403,7 @@ class MogpEmulator(AbstractGaussianProcess):
 
 
 @dataclasses.dataclass(frozen=True)
-class MogpHyperparameters(AbstractHyperparameters):
+class MogpHyperparameters(GaussianProcessHyperparameters):
     """Hyperparameters for use in fitting Gaussian processes via `MogpEmulator`.
 
     This provides a simplified interface to parameters used in
@@ -440,46 +437,6 @@ class MogpHyperparameters(AbstractHyperparameters):
     nugget : numbers.Real, optional
         (Read only, default: None) The nugget, or ``None`` if not supplied.
     """
-
-    corr: Union[Sequence[Real], np.ndarray[Real]]
-    cov: Real
-    nugget: Optional[Real] = None
-
-    def __post_init__(self):
-        if not isinstance(self.corr, (Sequence, np.ndarray)):
-            raise TypeError(
-                f"Expected 'corr' to be a sequence or array, but received {type(self.corr)}."
-            )
-
-        nonpositive_corrs = [x for x in self.corr if not isinstance(x, Real) or x <= 0]
-        if nonpositive_corrs:
-            nonpositive_element = nonpositive_corrs[0]
-            raise ValueError(
-                "Expected 'corr' to be a sequence or array of positive real numbers, "
-                f"but found element {nonpositive_element} of type {type(nonpositive_element)}."
-            )
-
-        check_real(
-            self.cov,
-            TypeError(
-                f"Expected 'cov' to be a real number, but received {type(self.cov)}."
-            ),
-        )
-        if self.cov <= 0:
-            raise ValueError(
-                f"Expected 'cov' to be a positive real number, but received {self.cov}."
-            )
-
-        if self.nugget is not None:
-            if not isinstance(self.nugget, Real):
-                raise TypeError(
-                    f"Expected 'nugget' to be a real number, but received {type(self.nugget)}."
-                )
-
-            if self.nugget < 0:
-                raise ValueError(
-                    f"Expected 'nugget' to be a positive real number, but received {self.nugget}."
-                )
 
     @classmethod
     def from_mogp_gp_params(cls, params: GPParams) -> MogpHyperparameters:
@@ -616,42 +573,3 @@ class MogpHyperparameters(AbstractHyperparameters):
         params.set_data(np.array(transformed_params, dtype=float))
 
         return params
-
-    @staticmethod
-    @_validate_nonnegative_real_domain("corr")
-    def transform_corr(corr: Real) -> float:
-        """Transform a correlation length scale parameter to a negative log scale.
-
-        This maps the parameter to `-2 * log(corr)`; cf.
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
-        if corr == 0:
-            return math.inf
-
-        return -2 * math.log(corr)
-
-    @staticmethod
-    @_validate_nonnegative_real_domain("cov")
-    def transform_cov(cov: Real) -> float:
-        """Transform a covariance parameter to the log scale.
-
-        This maps the parameter to `log(cov)`; cf.
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
-        if cov == 0:
-            return -math.inf
-
-        return math.log(cov)
-
-    @staticmethod
-    @_validate_nonnegative_real_domain("nugget")
-    def transform_nugget(nugget: Real) -> float:
-        """Transform a nugget parameter to the log scale.
-
-        This maps the parameter to `log(nugget)`; cf.
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
-        if nugget == 0:
-            return -math.inf
-
-        return math.log(nugget)
