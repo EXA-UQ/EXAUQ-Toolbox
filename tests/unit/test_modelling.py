@@ -460,6 +460,11 @@ class TestPrediction(unittest.TestCase):
             prediction = Prediction(estimate=estimate, variance=variance)
             self.assertEqual(prediction.standard_deviation, std)
 
+    def test_standard_deviation_zero_variance(self):
+        """Test that the standard_deviation is zero when variance is zero."""
+        prediction = Prediction(estimate=5, variance=0)
+        self.assertEqual(prediction.standard_deviation, 0)
+
 
 class TestAbstractGaussianProcess(ExauqTestCase):
     def setUp(self) -> None:
