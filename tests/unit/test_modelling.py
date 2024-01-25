@@ -471,6 +471,12 @@ class TestPrediction(unittest.TestCase):
         prediction = Prediction(estimate=1, variance=small_variance)
         self.assertAlmostEqual(prediction.standard_deviation, math.sqrt(small_variance))
 
+    def test_standard_deviation_large_variance(self):
+        """Test behavior with very large variance."""
+        large_variance = 1e10
+        prediction = Prediction(estimate=1, variance=large_variance)
+        self.assertAlmostEqual(prediction.standard_deviation, math.sqrt(large_variance))
+
 
 class TestAbstractGaussianProcess(ExauqTestCase):
     def setUp(self) -> None:
