@@ -445,6 +445,13 @@ class TestPrediction(unittest.TestCase):
                 p2 = Prediction(estimate2, var2)
                 self.assertIs(p1 == p2, p2 == p1)
 
+    def test_standard_deviation_calculation(self):
+        """Test that the standard_deviation is correctly calculated as the square root of the variance."""
+        for variance in [0, 0.25, 1, 2, 4, 9]:
+            prediction = Prediction(estimate=1, variance=variance)
+            expected_std = math.sqrt(variance)
+            self.assertAlmostEqual(prediction.standard_deviation, expected_std)
+
 
 class TestAbstractGaussianProcess(ExauqTestCase):
     def setUp(self) -> None:
