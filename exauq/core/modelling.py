@@ -372,10 +372,14 @@ class Prediction:
 
     estimate: Real
     variance: Real
+    standard_deviation: Real = dataclasses.field(default=None, init=False)
 
     def __post_init__(self):
         self._validate_estimate(self.estimate)
         self._validate_variance(self.variance)
+
+        std = math.sqrt(self.variance)
+        object.__setattr__(self, 'standard_deviation', std)
 
     @staticmethod
     def _validate_estimate(estimate: Any) -> None:
