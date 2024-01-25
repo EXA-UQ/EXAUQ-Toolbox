@@ -390,7 +390,7 @@ class TestPrediction(unittest.TestCase):
             Prediction(estimate=1, variance=var)
 
     def test_immutable_fields(self):
-        """Test that the estimate and variance values in a prediction are immutable."""
+        """Test that the estimate, variance and standard_deviation values in a prediction are immutable."""
 
         prediction = Prediction(1, 1)
         with self.assertRaises(AttributeError):
@@ -398,6 +398,9 @@ class TestPrediction(unittest.TestCase):
 
         with self.assertRaises(AttributeError):
             prediction.variance = 0
+
+        with self.assertRaises(AttributeError):
+            prediction.standard_deviation = 0
 
     def test_equality_with_different_type(self):
         """Test that a Prediction object is not equal to an object of a different type."""
