@@ -344,20 +344,22 @@ class PEICalculator:
         # TODO: Implement computation logic
         raise NotImplementedError("Computation method not yet implemented.")
 
+    def expected_improvement(self, x: Union[Input, np.ndarray], gp: AbstractGaussianProcess) -> float:
 
-def expected_improvement(x: Input, gp: AbstractGaussianProcess) -> float:
-    prediction = gp.predict(x)
-    if equal_within_tolerance(prediction.variance, 0):
-        return 0.0
+        # ToDo:- Overload AbstractGaussianProcess.predict
+        if isinstance(x, np.dnarray):
+            prediction = gp.predict(Input(x))
+        else:
+            prediction = gp.predict(x)
 
-    # This will end up being calculated for each point... maybe a class would be more efficient
-    max_targets = max(gp.training_data, key=lambda datum: datum.output).output
+        if equal_within_tolerance(prediction.variance, 0):
+            return 0.0
 
-    u = (prediction.estimate - max_targets) / math.sqrt(prediction.variance)
+        u = (prediction.estimate - self._max_targets) / math.sqrt(prediction.variance)
 
-    return (prediction.estimate - max_targets) * norm(loc=0, scale=1).cdf(u) + math.sqrt(
-        prediction.variance
-    ) * norm(loc=0, scale=1).pdf(u)
+        return (prediction.estimate - self._max_targets) * norm(loc=0, scale=1).cdf(u) + math.sqrt(
+            prediction.variance
+        ) * norm(loc=0, scale=1).pdf(u)
 
 
 def compute_single_level_loo_samples(
