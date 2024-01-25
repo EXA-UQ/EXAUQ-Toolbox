@@ -341,7 +341,7 @@ class TestTrainingDatum(unittest.TestCase):
         self.assertEqual(expected, TrainingDatum.list_from_arrays(inputs, outputs))
 
 
-class TestPrediction(unittest.TestCase):
+class TestPrediction(ExauqTestCase):
     def test_inputs_preserve_real_type(self):
         """Test that the estimate and variance are of the same types as provided
         at initialisation."""
