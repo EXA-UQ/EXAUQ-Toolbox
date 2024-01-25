@@ -268,6 +268,33 @@ class TestMogpEmulator(ExauqTestCase):
         )
         self.assertAlmostBetween(actual_cov, bounds[2][0], bounds[2][1], rel_tol=1e-10)
 
+    def test_fit_with_no_upper_bound(self):
+        """Test that if None is supplied as an upper/lower bound then this will be
+        interpreted as specifying no upper/lower bound on the corresponding hyperparameter
+        in estimation."""
+
+        emulator = MogpEmulator()
+        training_data = TrainingDatum.list_from_arrays(self.inputs2, self.targets2)
+        emulator.fit(training_data)
+        corr = emulator.fit_hyperparameters.corr
+        cov = emulator.fit_hyperparameters.cov
+
+        # Create bounds based on open windows around the 'true' estimates.
+        open_bounds = [
+            ((0.9 * corr[0], None), (0.9 * corr[1], None), (0.9 * cov, None)),
+            ((None, 1.1 * corr[0]), (None, 1.1 * corr[1]), (None, 1.1 * cov)),
+            ((None, None), (None, None), (None, None)),
+        ]
+        for bounds in open_bounds:
+            emulator.fit(training_data, hyperparameter_bounds=bounds)
+
+            self.assertEqualWithinTolerance(
+                emulator.fit_hyperparameters.corr, corr, rel_tol=1e-5, abs_tol=1e-5
+            )
+            self.assertEqualWithinTolerance(
+                emulator.fit_hyperparameters.cov, cov, rel_tol=1e-5, abs_tol=1e-5
+            )
+
     def test_fit_gp_kwargs(self):
         """Test that, after fitting, the underlying mogp emulator has the same
         kwarg settings as the original did before fitting."""
