@@ -354,10 +354,6 @@ def expected_improvement(x: Input, gp: AbstractGaussianProcess) -> float:
     ) * norm(loc=0, scale=1).pdf(u)
 
 
-def repulsion(x: Input, gp: AbstractGaussianProcess) -> np.array:
-    pass
-
-
 def compute_single_level_loo_samples(
     gp: AbstractGaussianProcess,
     domain: SimulatorDomain,
