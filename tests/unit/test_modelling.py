@@ -452,6 +452,14 @@ class TestPrediction(unittest.TestCase):
             expected_std = math.sqrt(variance)
             self.assertAlmostEqual(prediction.standard_deviation, expected_std)
 
+    def test_standard_deviation_invariance_to_estimate(self):
+        """Test that the standard_deviation does not change with different estimates."""
+        variance = 2.5
+        std = math.sqrt(variance)
+        for estimate in range(-10, 11):
+            prediction = Prediction(estimate=estimate, variance=variance)
+            self.assertEqual(prediction.standard_deviation, std)
+
 
 class TestAbstractGaussianProcess(ExauqTestCase):
     def setUp(self) -> None:
