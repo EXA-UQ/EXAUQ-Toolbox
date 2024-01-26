@@ -339,7 +339,7 @@ class PEICalculator:
         training_data = [datum.input for datum in self._gp.training_data]
         return self._domain.calculate_pseudopoints(training_data)
 
-    def compute(self, x: Union[Input, np.array]) -> float:
+    def compute(self, x: Union[Input, NDArray]) -> float:
         """
         Computes the PEI based on the given input.
 
@@ -351,7 +351,7 @@ class PEICalculator:
     def add_repulsion_point(self, x: Union[Input, NDArray]):
         self._other_repulsion_points = self._other_repulsion_points + (x,)
 
-    def expected_improvement(self, x: Union[Input, np.ndarray]) -> float:
+    def expected_improvement(self, x: Union[Input, NDArray]) -> float:
 
         # ToDo:- Overload AbstractGaussianProcess.predict
         if isinstance(x, np.ndarray):
@@ -368,7 +368,7 @@ class PEICalculator:
             u
         ) + prediction.standard_deviation * norm(loc=0, scale=1).pdf(u)
 
-    def repulsion(self, x: Union[Input, np.ndarray]) -> Real:
+    def repulsion(self, x: Union[Input, NDArray]) -> Real:
         proc_var = self._gp.fit_hyperparameters.cov
         covariance_matrix = self._gp.covariance_matrix(np.array([x]))
         correlations = np.array(covariance_matrix) / proc_var
