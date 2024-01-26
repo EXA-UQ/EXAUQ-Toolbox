@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+import functools
 import math
 from collections.abc import Collection, Sequence
 from itertools import product
@@ -473,9 +474,9 @@ class AbstractEmulator(abc.ABC):
             (Default: None) A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
-            length parameters, in the same order as the ordering of the
+            length scale parameters, in the same order as the ordering of the
             corresponding input coordinates, while the last tuple should
-            represent bounds for the covariance.
+            represent bounds for the process variance.
         """
 
         raise NotImplementedError
@@ -502,9 +503,57 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     """Represents an abstract Gaussian process emulator for simulators.
 
     Classes that inherit from this abstract base class define emulators which
-    are implemented as Gaussian processs. The mathematical assumption of being a Gaussian
-    process gives computational benefits, such as an explicit formula for calculating
-    the normalised expected squared error at a simulator input/output pair."""
+    are implemented as Gaussian process. They should utilise
+    `GaussianProcessHyperparameters` for methods and properties that use parameters, or
+    return objects, of type `AbstractHyperparameters`.
+
+    Notes
+    -----
+    The mathematical assumption of being a Gaussian process gives computational benefits,
+    such as an explicit formula for calculating the normalised expected squared error at a
+    simulator input/output pair.
+    """
+
+    @property
+    @abc.abstractmethod
+    def fit_hyperparameters(self) -> Optional[GaussianProcessHyperparameters]:
+        """(Read-only) The hyperparameters of the fit for this Gaussian process emulator,
+        or ``None`` if this emulator has not been fitted to data."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fit(
+        self,
+        training_data: Collection[TrainingDatum],
+        hyperparameters: Optional[GaussianProcessHyperparameters] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+    ) -> None:
+        """Fit the Guassian process emulator to data.
+
+        By default, hyperparameters should be estimated when fitting the Guassian process
+        to data. Alternatively, a collection of hyperparameters may be supplied to
+        use directly as the fitted values. If bounds are supplied for the hyperparameters,
+        then estimation of the hyperparameters should respect these bounds.
+
+        Parameters
+        ----------
+        training_data : collection of TrainingDatum
+            The pairs of inputs and simulator outputs on which the Gaussian process
+            should be trained.
+        hyperparameters : GaussianProcessHyperparameters, optional
+            (Default: None) Hyperparameters for a Gaussian process to use directly in
+            fitting the emulator. If ``None`` then the hyperparameters should be estimated
+            as part of fitting to data.
+        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
+            (Default: None) A sequence of bounds to apply to hyperparameters
+            during estimation, of the form ``(lower_bound, upper_bound)``. All
+            but the last tuple should represent bounds for the correlation
+            length scale parameters, in the same order as the ordering of the
+            corresponding input coordinates, while the last tuple should
+            represent bounds for the process variance.
+        """
+
+        raise NotImplementedError
 
     def nes_error(self, x: Input, observed_output: Real) -> float:
         """Calculate the normalised expected squared (NES) error.
@@ -666,6 +715,162 @@ class AbstractHyperparameters(abc.ABC):
     """
 
     pass
+
+
+def _validate_nonnegative_real_domain(arg_name: str):
+    """A decorator to be applied to functions with a single real-valued argument called
+    `arg_name`. The decorator adds validation that the argument is a real number >= 0."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapped(arg: Real):
+            # N.B. Not using try-except here because that would allow single-element Numpy
+            # arrays to pass through with deprecation warning.
+            if not isinstance(arg, Real):
+                raise TypeError(
+                    f"Expected '{arg_name}' to be a real number, but received {type(arg)}."
+                )
+
+            if arg < 0:
+                raise ValueError(f"'{arg_name}' cannot be < 0, but received {arg}.")
+
+            return func(arg)
+
+        return wrapped
+
+    return decorator
+
+
+@dataclasses.dataclass(frozen=True)
+class GaussianProcessHyperparameters(AbstractHyperparameters):
+    """Hyperparameters for use in fitting Gaussian processes.
+
+    There are three basic (sets of) hyperparameters used for fitting Gaussian processes:
+    correlation length scales, process variance and, optionally, a nugget. These are
+    expected to be on a linear scale; tranformation functions for converting to a log
+    scale are provided as static methods.
+
+    Equality of `GaussianProcessHyperparameters` objects is tested hyperparameter-wise up
+    to the default numerical precision defined in ``exauq.core.numerics.FLOAT_TOLERANCE``
+    (see ``exauq.core.numerics.equal_within_tolerance``).
+
+    Parameters
+    ----------
+    corr_length_scales : sequence or Numpy array of numbers.Real
+        The correlation length scale parameters. The length of the sequence or array
+        should equal the number of input coordinates for an emulator and each scale
+        parameter should be a positive.
+    process_var : numbers.Real
+        The process variance, which should be positive.
+    nugget : numbers.Real, optional
+        (Default: None) A nugget, which should be non-negative if provided.
+
+    Attributes
+    ----------
+    corr_length_scales : sequence or Numpy array of numbers.Real
+        (Read-only) The correlation length scale parameters.
+    process_var : numbers.Real
+        (Read-only) The process variance.
+    nugget : numbers.Real, optional
+        (Read only, default: None) The nugget, or ``None`` if not supplied.
+    """
+
+    corr_length_scales: Union[Sequence[Real], np.ndarray[Real]]
+    process_var: Real
+    nugget: Optional[Real] = None
+
+    def __post_init__(self):
+        if not isinstance(self.corr_length_scales, (Sequence, np.ndarray)):
+            raise TypeError(
+                "Expected 'corr_length_scales' to be a sequence or Numpy array, but "
+                f"received {type(self.corr_length_scales)}."
+            )
+
+        nonpositive_corrs = [
+            x for x in self.corr_length_scales if not isinstance(x, Real) or x <= 0
+        ]
+        if nonpositive_corrs:
+            nonpositive_element = nonpositive_corrs[0]
+            raise ValueError(
+                "Expected 'corr_length_scales' to be a sequence or Numpy array of "
+                "positive real numbers, but found element "
+                f"{nonpositive_element} of type {type(nonpositive_element)}."
+            )
+
+        validation.check_real(
+            self.process_var,
+            TypeError(
+                "Expected 'process_var' to be a real number, but received "
+                f"{type(self.process_var)}."
+            ),
+        )
+        if self.process_var <= 0:
+            raise ValueError(
+                "Expected 'process_var' to be a positive real number, but received "
+                f"{self.process_var}."
+            )
+
+        if self.nugget is not None:
+            if not isinstance(self.nugget, Real):
+                raise TypeError(
+                    f"Expected 'nugget' to be a real number, but received {type(self.nugget)}."
+                )
+
+            if self.nugget < 0:
+                raise ValueError(
+                    f"Expected 'nugget' to be a positive real number, but received {self.nugget}."
+                )
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        try:
+            nuggets_equal = (
+                self.nugget is None and other.nugget is None
+            ) or equal_within_tolerance(self.nugget, other.nugget)
+        except TypeError:
+            return False
+
+        return all(
+            [
+                nuggets_equal,
+                equal_within_tolerance(self.corr_length_scales, other.corr_length_scales),
+                equal_within_tolerance(self.process_var, other.process_var),
+            ]
+        )
+
+    @staticmethod
+    @_validate_nonnegative_real_domain("corr_length_scales")
+    def transform_corr(corr_length_scales: Real) -> float:
+        """Transform a correlation length scale parameter to a negative log scale.
+
+        This applies the mapping ``corr_length_scale -> -2 * log(corr_length_scale)``,
+        using the natural log.
+        """
+        if corr_length_scales == 0:
+            return math.inf
+
+        return -2 * math.log(corr_length_scales)
+
+    @staticmethod
+    @_validate_nonnegative_real_domain("process_var")
+    def transform_cov(process_var: Real) -> float:
+        """Transform a process variance to the (natural) log scale via
+        ``process_var -> log(process_var)."""
+        if process_var == 0:
+            return -math.inf
+
+        return math.log(process_var)
+
+    @staticmethod
+    @_validate_nonnegative_real_domain("nugget")
+    def transform_nugget(nugget: Real) -> float:
+        """Transform a nugget to the (natural) log scale via ``nugget -> log(nugget)``."""
+        if nugget == 0:
+            return -math.inf
+
+        return math.log(nugget)
 
 
 class SimulatorDomain(object):

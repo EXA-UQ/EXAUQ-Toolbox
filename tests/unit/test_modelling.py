@@ -1,3 +1,4 @@
+import copy
 import itertools
 import math
 import unittest
@@ -6,7 +7,13 @@ from typing import Literal
 
 import numpy as np
 
-from exauq.core.modelling import Input, Prediction, SimulatorDomain, TrainingDatum
+from exauq.core.modelling import (
+    GaussianProcessHyperparameters,
+    Input,
+    Prediction,
+    SimulatorDomain,
+    TrainingDatum,
+)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
 from tests.utilities.utilities import (
@@ -539,7 +546,9 @@ class TestAbstractGaussianProcess(ExauqTestCase):
             variances, self.inputs, self.outputs
         ):
             with self.subTest(var=var, x=x, observed_output=observed_output):
-                hyperparameters = FakeGPHyperparameters(cov=var)
+                hyperparameters = FakeGPHyperparameters(
+                    corr_length_scales=[1], process_var=var, nugget=None
+                )
                 self.emulator.fit(self.training_data, hyperparameters=hyperparameters)
 
                 prediction = self.emulator.predict(x)
@@ -571,9 +580,264 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         emulator = FakeGP()
         emulator.fit(
             [TrainingDatum(Input(0.5), 1)],
-            hyperparameters=FakeGPHyperparameters(cov=0),
+            hyperparameters=FakeGPHyperparameters(
+                corr_length_scales=[1], process_var=0, nugget=None
+            ),
         )
         self.assertEqual(float("inf"), emulator.nes_error(Input(0.4), 1e-5))
+
+
+class TestGaussianProcessHyperparameters(ExauqTestCase):
+    def setUp(self) -> None:
+        # N.B. although single-element Numpy arrays can be converted to scalars this is
+        # deprecated functionality and will throw an error in the future.
+        self.nonreal_objects = [2j, "1", np.array([2])]
+        self.negative_reals = [-0.5, -math.inf]
+        self.nonpositive_reals = self.negative_reals + [0]
+        self.hyperparameters = {
+            "correlation": {
+                "func": GaussianProcessHyperparameters.transform_corr,
+                "arg": "corr_length_scales",
+            },
+            "variance": {
+                "func": GaussianProcessHyperparameters.transform_cov,
+                "arg": "process_var",
+            },
+            "nugget": {
+                "func": GaussianProcessHyperparameters.transform_nugget,
+                "arg": "nugget",
+            },
+        }
+
+    def test_init_checks_arg_types(self):
+        """A TypeError is raised upon initialisation if:
+
+        * the correlations is not a sequence or Numpy array; or
+        * the process variance is not a real number; or
+        * the nugget is not ``None`` or a real number.
+        """
+
+        # correlations
+        nonseq_objects = [1.0, {1.0}]
+        for corr in nonseq_objects:
+            with self.subTest(corr=corr), self.assertRaisesRegex(
+                TypeError,
+                exact(
+                    f"Expected 'corr_length_scales' to be a sequence or Numpy array, but received {type(corr)}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=corr, process_var=1.0, nugget=1.0
+                )
+
+        # process variance
+        for cov in self.nonreal_objects + [None]:
+            with self.subTest(cov=cov), self.assertRaisesRegex(
+                TypeError,
+                exact(
+                    f"Expected 'process_var' to be a real number, but received {type(cov)}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=[1.0], process_var=cov, nugget=1.0
+                )
+
+        # nugget
+        for nugget in self.nonreal_objects:
+            with self.subTest(nugget=nugget), self.assertRaisesRegex(
+                TypeError,
+                exact(
+                    f"Expected 'nugget' to be a real number, but received {type(nugget)}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=[1.0], process_var=1.0, nugget=nugget
+                )
+
+    def test_init_checks_arg_values(self):
+        """A ValueError is raised upon initialisation if:
+
+        * the correlation is not a sequence / array of positive real numbers; or
+        * the process variance is not a positive real number; or
+        * the nugget is < 0 (if not None).
+        """
+
+        # correlations
+        bad_values = [[x] for x in self.nonreal_objects + self.nonpositive_reals]
+        for corr in bad_values:
+            with self.subTest(corr=corr), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "Expected 'corr_length_scales' to be a sequence or Numpy array of positive real numbers, "
+                    f"but found element {corr[0]} of type {type(corr[0])}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=corr, process_var=1.0, nugget=1.0
+                )
+
+        # process variance
+        for cov in self.nonpositive_reals:
+            with self.subTest(cov=cov), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected 'process_var' to be a positive real number, but received {cov}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=[1.0], process_var=cov, nugget=1.0
+                )
+
+        # nugget
+        for nugget in self.negative_reals:
+            with self.subTest(nugget=nugget), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected 'nugget' to be a positive real number, but received {nugget}."
+                ),
+            ):
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=[1.0], process_var=1.0, nugget=nugget
+                )
+
+    def test_transformation_formulae(self):
+        """The transformed correlation is equal to `-2 * log(corr)`.
+        The transformed process variance is equal to `log(cov)`.
+        The transformed nugget is equal to `log(nugget)`."""
+
+        positive_reals = [0.1, 1, 10, np.float16(1.1)]
+        for x in positive_reals:
+            with self.subTest(hyperparameter="correlation", x=x):
+                transformation_func = self.hyperparameters["correlation"]["func"]
+                self.assertEqual(-2 * math.log(x), transformation_func(x))
+
+            with self.subTest(hyperparameter="variance", x=x):
+                transformation_func = self.hyperparameters["variance"]["func"]
+                self.assertEqual(math.log(x), transformation_func(x))
+
+            with self.subTest(hyperparameter="nugget", x=x):
+                transformation_func = self.hyperparameters["nugget"]["func"]
+                self.assertEqual(math.log(x), transformation_func(x))
+
+    def test_equals_hyperparameter_values(self):
+        """Two instances of GaussianProcessHyperparameters are considered equal precisely
+        when all of the following hold:
+
+        * The correlation length scales are equal within the default tolerance.
+        * The process variances are equal within the default tolerance.
+        * The nuggets are real numbers equal within the default tolerances, or are both
+          None.
+        """
+
+        epsilon = 0.75 * FLOAT_TOLERANCE
+
+        args1 = {
+            "corr_length_scales": np.array([1.1, 1.2]),
+            "process_var": 1,
+            "nugget": 0.5,
+        }
+        hyperparameters1 = GaussianProcessHyperparameters(**args1)
+
+        for arg in ["corr_length_scales", "process_var", "nugget"]:
+            # Equality within tolerances
+            args2 = copy.deepcopy(args1)
+            args2[arg] = args1[arg] + epsilon
+            self.assertEqual(
+                hyperparameters1,
+                GaussianProcessHyperparameters(**args2),
+            )
+
+            # Not equal outside of tolerances
+            args2[arg] += epsilon
+            self.assertNotEqual(
+                hyperparameters1,
+                GaussianProcessHyperparameters(**args2),
+            )
+
+        # nugget = None cases
+        self.assertEqual(
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=None
+            ),
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=None
+            ),
+        )
+        self.assertNotEqual(
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=3
+            ),
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=None
+            ),
+        )
+        self.assertNotEqual(
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=None
+            ),
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=3
+            ),
+        )
+
+    def test_equals_not_true_if_different_types(self):
+        """A GaussianProcessHyperparameters instance is not equal to an object of a
+        different type."""
+
+        hyperparameters = GaussianProcessHyperparameters([1], 1, 1)
+        self.assertNotEqual(hyperparameters, "a")
+        self.assertNotEqual("a", hyperparameters)
+
+    def test_transformations_of_limit_values(self):
+        """The transformation functions handle limit values of their domains in the
+        following ways:
+
+        * For correlations, `inf` maps to `-inf` and `0` maps to `inf`.
+        * For process variances and nuggets, `inf` maps to `inf` and 0 maps to `-inf`.
+        """
+
+        with self.subTest(hyperparameter="correlation"):
+            transformation_func = self.hyperparameters["correlation"]["func"]
+            self.assertEqual(-math.inf, transformation_func(math.inf))
+            self.assertEqual(math.inf, transformation_func(0))
+
+        with self.subTest(hyperparameter="variance"):
+            transformation_func = self.hyperparameters["variance"]["func"]
+            self.assertEqual(math.inf, transformation_func(math.inf))
+            self.assertEqual(-math.inf, transformation_func(0))
+
+        with self.subTest(hyperparameter="nugget"):
+            transformation_func = self.hyperparameters["nugget"]["func"]
+            self.assertEqual(math.inf, transformation_func(math.inf))
+            self.assertEqual(-math.inf, transformation_func(0))
+
+    def test_transforms_non_real_arg_raises_type_error(self):
+        """A TypeError is raised if the argument supplied is not a real number."""
+
+        for hyperparameter, x in itertools.product(
+            self.hyperparameters, self.nonreal_objects
+        ):
+            arg = self.hyperparameters[hyperparameter]["arg"]
+            transformation_func = self.hyperparameters[hyperparameter]["func"]
+            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
+                TypeError,
+                exact(f"Expected '{arg}' to be a real number, but received {type(x)}."),
+            ):
+                _ = transformation_func(x)
+
+    def test_transforms_with_nonpositive_value_raises_value_error(self):
+        """A ValueError is raised if the argument supplied is < 0."""
+
+        for hyperparameter, x in itertools.product(
+            self.hyperparameters, self.negative_reals
+        ):
+            arg = self.hyperparameters[hyperparameter]["arg"]
+            transformation_func = self.hyperparameters[hyperparameter]["func"]
+            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
+                ValueError,
+                exact(f"'{arg}' cannot be < 0, but received {x}."),
+            ):
+                _ = transformation_func(x)
 
 
 class TestSimulatorDomain(unittest.TestCase):
