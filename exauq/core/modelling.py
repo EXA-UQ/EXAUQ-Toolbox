@@ -466,9 +466,9 @@ class AbstractEmulator(abc.ABC):
             (Default: None) A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
-            length parameters, in the same order as the ordering of the
+            length scale parameters, in the same order as the ordering of the
             corresponding input coordinates, while the last tuple should
-            represent bounds for the covariance.
+            represent bounds for the process variance.
         """
 
         raise NotImplementedError
@@ -495,9 +495,57 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     """Represents an abstract Gaussian process emulator for simulators.
 
     Classes that inherit from this abstract base class define emulators which
-    are implemented as Gaussian processs. The mathematical assumption of being a Gaussian
-    process gives computational benefits, such as an explicit formula for calculating
-    the normalised expected squared error at a simulator input/output pair."""
+    are implemented as Gaussian process. They should utilise
+    `GaussianProcessHyperparameters` for methods and properties that use parameters, or
+    return objects, of type `AbstractHyperparameters`.
+
+    Notes
+    -----
+    The mathematical assumption of being a Gaussian process gives computational benefits,
+    such as an explicit formula for calculating the normalised expected squared error at a
+    simulator input/output pair.
+    """
+
+    @property
+    @abc.abstractmethod
+    def fit_hyperparameters(self) -> Optional[GaussianProcessHyperparameters]:
+        """(Read-only) The hyperparameters of the fit for this Gaussian process emulator,
+        or ``None`` if this emulator has not been fitted to data."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def fit(
+        self,
+        training_data: Collection[TrainingDatum],
+        hyperparameters: Optional[GaussianProcessHyperparameters] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+    ) -> None:
+        """Fit the Guassian process emulator to data.
+
+        By default, hyperparameters should be estimated when fitting the Guassian process
+        to data. Alternatively, a collection of hyperparameters may be supplied to
+        use directly as the fitted values. If bounds are supplied for the hyperparameters,
+        then estimation of the hyperparameters should respect these bounds.
+
+        Parameters
+        ----------
+        training_data : collection of TrainingDatum
+            The pairs of inputs and simulator outputs on which the Gaussian process
+            should be trained.
+        hyperparameters : GaussianProcessHyperparameters, optional
+            (Default: None) Hyperparameters for a Gaussian process to use directly in
+            fitting the emulator. If ``None`` then the hyperparameters should be estimated
+            as part of fitting to data.
+        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
+            (Default: None) A sequence of bounds to apply to hyperparameters
+            during estimation, of the form ``(lower_bound, upper_bound)``. All
+            but the last tuple should represent bounds for the correlation
+            length scale parameters, in the same order as the ordering of the
+            corresponding input coordinates, while the last tuple should
+            represent bounds for the process variance.
+        """
+
+        raise NotImplementedError
 
     def nes_error(self, x: Input, observed_output: Real) -> float:
         """Calculate the normalised expected squared (NES) error.
