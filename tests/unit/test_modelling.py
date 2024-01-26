@@ -569,7 +569,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
                 "func": GaussianProcessHyperparameters.transform_corr,
                 "arg": "corr",
             },
-            "covariance": {
+            "variance": {
                 "func": GaussianProcessHyperparameters.transform_cov,
                 "arg": "cov",
             },
@@ -583,7 +583,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         """A TypeError is raised upon initialisation if:
 
         * the correlations is not a sequence or Numpy array; or
-        * the covariance is not a real number; or
+        * the process variance is not a real number; or
         * the nugget is not ``None`` or a real number.
         """
 
@@ -598,7 +598,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             ):
                 _ = GaussianProcessHyperparameters(corr=corr, cov=1.0, nugget=1.0)
 
-        # covariance
+        # process variance
         for cov in self.nonreal_objects + [None]:
             with self.subTest(cov=cov), self.assertRaisesRegex(
                 TypeError,
@@ -620,7 +620,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         """A ValueError is raised upon initialisation if:
 
         * the correlation is not a sequence / array of positive real numbers; or
-        * the covariance is not a positive real number; or
+        * the process variance is not a positive real number; or
         * the nugget is < 0 (if not None).
         """
 
@@ -636,7 +636,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             ):
                 _ = GaussianProcessHyperparameters(corr=corr, cov=1.0, nugget=1.0)
 
-        # covariance
+        # process variance
         for cov in self.nonpositive_reals:
             with self.subTest(cov=cov), self.assertRaisesRegex(
                 ValueError,
@@ -658,7 +658,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
 
     def test_transformation_formulae(self):
         """The transformed correlation is equal to `-2 * log(corr)`.
-        The transformed covariance is equal to `log(cov)`.
+        The transformed process variance is equal to `log(cov)`.
         The transformed nugget is equal to `log(nugget)`."""
 
         positive_reals = [0.1, 1, 10, np.float16(1.1)]
@@ -667,8 +667,8 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
                 transformation_func = self.hyperparameters["correlation"]["func"]
                 self.assertEqual(-2 * math.log(x), transformation_func(x))
 
-            with self.subTest(hyperparameter="covariance", x=x):
-                transformation_func = self.hyperparameters["covariance"]["func"]
+            with self.subTest(hyperparameter="variance", x=x):
+                transformation_func = self.hyperparameters["variance"]["func"]
                 self.assertEqual(math.log(x), transformation_func(x))
 
             with self.subTest(hyperparameter="nugget", x=x):
@@ -733,7 +733,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         following ways:
 
         * For correlations, `inf` maps to `-inf` and `0` maps to `inf`.
-        * For covariances and nuggets, `inf` maps to `inf` and 0 maps to `-inf`.
+        * For process variances and nuggets, `inf` maps to `inf` and 0 maps to `-inf`.
         """
 
         with self.subTest(hyperparameter="correlation"):
@@ -741,8 +741,8 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             self.assertEqual(-math.inf, transformation_func(math.inf))
             self.assertEqual(math.inf, transformation_func(0))
 
-        with self.subTest(hyperparameter="covariance"):
-            transformation_func = self.hyperparameters["covariance"]["func"]
+        with self.subTest(hyperparameter="variance"):
+            transformation_func = self.hyperparameters["variance"]["func"]
             self.assertEqual(math.inf, transformation_func(math.inf))
             self.assertEqual(-math.inf, transformation_func(0))
 

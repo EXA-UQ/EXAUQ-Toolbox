@@ -352,7 +352,7 @@ class TestMogpEmulator(ExauqTestCase):
     def test_fit_with_given_hyperparameters_without_fixed_nugget(self):
         """Given an emulator and a set of hyperparameters that doesn't include a value for
         the nugget, when the emulator is fit with the hyperparameters then the correlations
-        and covariance defined in the hyperparameters are used to train the underlying
+        and process variance defined in the hyperparameters are used to train the underlying
         MOGP GaussianProcess object and the nugget used is determined by the settings
         supplied when creating the emulator."""
 
@@ -371,8 +371,8 @@ class TestMogpEmulator(ExauqTestCase):
                 )
                 self.assertEqual(hyperparameters_gp, emulator.fit_hyperparameters)
 
-                # Check the correlation length parameters and covariance agree with those
-                # supplied for fitting.
+                # Check the correlation length scale parameters and process variance agree
+                # with those supplied for fitting.
                 self.assertEqualWithinTolerance(
                     hyperparameters.corr, emulator.fit_hyperparameters.corr
                 )
@@ -496,7 +496,7 @@ class TestMogpHyperparameters(ExauqTestCase):
                 "func": MogpHyperparameters.transform_corr,
                 "arg": "corr",
             },
-            "covariance": {
+            "variance": {
                 "func": MogpHyperparameters.transform_cov,
                 "arg": "cov",
             },
@@ -507,18 +507,19 @@ class TestMogpHyperparameters(ExauqTestCase):
         }
 
         self.correlations = [[0.1], [0.1, 0.2]]
-        self.covariances = [1.1, 1.2]
+        self.variances = [1.1, 1.2]
         self.real_nuggets = [0, 2.1, np.float16(2)]
         self.nugget_types = ["fixed", "fit", "adaptive", "pivot"]
 
     def make_hyperparameters(self, corr=[0.1], cov=1.1, nugget=0):
-        """Make hyperparameters, possibly with default values for the correlations,
-        covariance and nugget."""
+        """Make hyperparameters, possibly with default values for the correlation length
+        scales, process variance and nugget."""
         return MogpHyperparameters(corr, cov, nugget)
 
     def make_mogp_gp_params(self, corr=[0.1], cov=1.1, nugget=1.0):
-        """Make a ``GPParams`` object, possibly with default values for the correlations,
-        covariance and nugget. Note: permitted values of arguments are either:
+        """Make a ``GPParams`` object, possibly with default values for the correlation
+        length scales, process variance and nugget. Note: permitted values of arguments
+        are either:
 
         * both `corr` and `cov` are not ``None``; or
         * all three of `corr`, `cov`, `nugget` are ``None`` (in which case an empty
@@ -586,11 +587,11 @@ class TestMogpHyperparameters(ExauqTestCase):
             _ = self.make_hyperparameters().to_mogp_gp_params(nugget_type="foo")
 
     def test_to_mogp_gp_params_always_copies_over_corr_and_cov(self):
-        """The correlation length parameters and covariance are copied over to the
-        returned GPParams object."""
+        """The correlation length scale parameters and process variance are copied over to
+        the returned GPParams object."""
 
         for corr, cov, nugget, nugget_type in itertools.product(
-            self.correlations, self.covariances, self.real_nuggets, self.nugget_types
+            self.correlations, self.variances, self.real_nuggets, self.nugget_types
         ):
             with self.subTest(corr=corr, cov=cov, nugget=nugget, nugget_type=nugget_type):
                 hyperparameters = self.make_hyperparameters(
@@ -645,7 +646,7 @@ class TestMogpHyperparameters(ExauqTestCase):
 
         nuggets = self.real_nuggets + [None]
         for corr, cov, nugget in itertools.product(
-            self.correlations, self.covariances, nuggets
+            self.correlations, self.variances, nuggets
         ):
             with self.subTest(corr=corr, cov=cov, nugget=nugget):
                 params = self.make_mogp_gp_params(corr, cov, nugget)
@@ -668,13 +669,13 @@ class TestMogpHyperparameters(ExauqTestCase):
 
     def test_from_mogp_gp_params_arg_corr_and_cov_must_not_be_none(self):
         """A ValueError is raised if the argument is a GPParams object with the
-        correlations and the covariance being None."""
+        correlations and the process variance being None."""
 
         with self.assertRaisesRegex(
             ValueError,
             exact(
-                "Cannot create hyperparameters with correlations and covariance equal to "
-                "None in 'params'."
+                "Cannot create hyperparameters with correlation length scales and process "
+                "variance equal to None in 'params'."
             ),
         ):
             params = self.make_mogp_gp_params(corr=None, cov=None, nugget=None)

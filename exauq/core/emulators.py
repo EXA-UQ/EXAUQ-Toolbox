@@ -461,8 +461,8 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
 
         if params.corr is None and params.cov is None:
             raise ValueError(
-                "Cannot create hyperparameters with correlations and covariance equal to "
-                "None in 'params'."
+                "Cannot create hyperparameters with correlation length scales and process "
+                "variance equal to None in 'params'."
             )
 
         return cls(
