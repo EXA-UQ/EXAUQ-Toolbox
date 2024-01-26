@@ -13,7 +13,7 @@ class TestMaximise(ExauqTestCase):
         self.seed = 1
 
     def f(self, x: np.ndarray) -> float:
-        return float(np.sin(1 / x)) if float(x) > 0 else 0
+        return np.sin(1 / x[0]) if x[0] > 0 else 0
 
     def test_constraints_obeyed(self):
         """The input returned lies in the supplied domain."""
@@ -107,12 +107,11 @@ class TestMaximise(ExauqTestCase):
         ):
             _ = maximise(np.sum, domain=arg)
 
-    @unittest.skip("to be fixed in upcoming PR")
     def test_failed_convergence_error(self):
         """A RuntimeError is raised if convergence failed in the maximisation."""
 
         def f(x):
-            return x[0] if x[0] < 0.5 else float("inf")
+            return np.random.random()
 
         with self.assertRaisesRegex(
             RuntimeError,
