@@ -330,7 +330,7 @@ class PEICalculator:
         self._domain = domain  # Check domain
         self._gp = gp  # Check gp
         self._max_targets = self._calculate_max_targets()
-        self._pseudopoints = self._calculate_pseudopoints()
+        self._other_repulsion_points = self._calculate_pseudopoints()
 
     def _calculate_max_targets(self) -> Real:
         return max(self._gp.training_data, key=lambda datum: datum.output).output
@@ -347,6 +347,9 @@ class PEICalculator:
         :return: A float value representing the computed PEI.
         """
         return self.expected_improvement(x) * self.repulsion(x)
+
+    def add_repulsion_point(self, x: Union[Input, NDArray]):
+        self._other_repulsion_points = self._other_repulsion_points + (x,)
 
     def expected_improvement(self, x: Union[Input, np.ndarray]) -> float:
 
@@ -373,7 +376,7 @@ class PEICalculator:
         inputs_term = np.product(1 - flattened_correlations, axis=0)
 
         pseudopoints_term = np.product(
-            1 - np.array(self._gp.correlation([x], self._pseudopoints)), axis=1
+            1 - np.array(self._gp.correlation([x], self._other_repulsion_points)), axis=1
         )
 
         return inputs_term * pseudopoints_term.flatten()[0]
