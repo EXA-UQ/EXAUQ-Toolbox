@@ -12,6 +12,9 @@ class TestMaximise(ExauqTestCase):
         self.domain = SimulatorDomain([(0, 1)])
         self.seed = 1
 
+    def f(self, x: np.ndarray) -> float:
+        return float(np.sin(1 / x)) if float(x) > 0 else 0
+
     def test_constraints_obeyed(self):
         """The input returned lies in the supplied domain."""
 
@@ -41,14 +44,21 @@ class TestMaximise(ExauqTestCase):
         argmax = Input(5 * np.pi / 4)
         self.assertEqualWithinTolerance(argmax, x, rel_tol=1e-5)
 
+    def test_unseeded_by_default(self):
+        """The maximisation is not seeded by default, as evidenced by repeated
+        runs with the same args giving (slightly) different results."""
+
+        x1 = maximise(self.f, self.domain)
+        x2 = maximise(self.f, self.domain)
+
+        # Take .value to return a float and test for exact inequality
+        self.assertNotEqual(x1.value, x2.value)
+
     def test_repeated_results_when_seed_set(self):
         """The output of the maximisation is the same when the seed is the same."""
 
-        def f(x: np.ndarray) -> float:
-            return float(np.sin(1 / x)) if float(x) > 0 else 0
-
-        x1 = maximise(f, self.domain, seed=self.seed)
-        x2 = maximise(f, self.domain, seed=self.seed)
+        x1 = maximise(self.f, self.domain, seed=self.seed)
+        x2 = maximise(self.f, self.domain, seed=self.seed)
 
         # Take .value to return a float and test for exact equality
         self.assertEqual(x1.value, x2.value)
