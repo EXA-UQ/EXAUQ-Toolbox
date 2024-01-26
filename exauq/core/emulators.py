@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import dataclasses
-import functools
-import math
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
 import mogp_emulator as mogp
 import numpy as np
@@ -15,15 +13,13 @@ from mogp_emulator.GPParams import GPParams
 
 from exauq.core.modelling import (
     AbstractGaussianProcess,
-    AbstractHyperparameters,
+    GaussianProcessHyperparameters,
     Input,
     OptionalFloatPairs,
     Prediction,
     TrainingDatum,
 )
-from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
-from exauq.utilities.validation import check_real
 
 
 class MogpEmulator(AbstractGaussianProcess):
@@ -164,7 +160,7 @@ class MogpEmulator(AbstractGaussianProcess):
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
             length parameters, while the last tuple should represent bounds for
-            the covariance.
+            the process variance.
 
         Raises
         ------
@@ -257,7 +253,9 @@ class MogpEmulator(AbstractGaussianProcess):
         # ... Otherwise use the nugget given at GP construction, if a real number...
         elif isinstance(kwargs["nugget"], Real):
             _hyperparameters = MogpHyperparameters(
-                hyperparameters.corr, hyperparameters.cov, kwargs["nugget"]
+                hyperparameters.corr_length_scales,
+                hyperparameters.process_var,
+                kwargs["nugget"],
             )
 
         # ... Otherwise use the nugget calculation method given at GP construction.
@@ -274,7 +272,7 @@ class MogpEmulator(AbstractGaussianProcess):
         bounds: Sequence[OptionalFloatPairs],
     ) -> tuple[OptionalFloatPairs, ...]:
         """Compute raw parameter bounds from bounds on correlation length
-        parameters and covariance.
+        parameters and process variance.
 
         Raises a ValueError if one of the upper bounds is a non-positive number.
 
@@ -412,39 +410,15 @@ class MogpEmulator(AbstractGaussianProcess):
         )
 
 
-def _validate_nonnegative_real_domain(arg_name: str):
-    """A decorator to be applied to functions with a single real-valued argument called
-    `arg_name`. The decorator adds validation that the argument is a real number >= 0."""
-
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapped(arg: Real):
-            # N.B. Not using try-except here because that would allow single-element Numpy
-            # arrays to pass through with deprecation warning.
-            if not isinstance(arg, Real):
-                raise TypeError(
-                    f"Expected '{arg_name}' to be a real number, but received {type(arg)}."
-                )
-
-            if arg < 0:
-                raise ValueError(f"'{arg_name}' cannot be < 0, but received {arg}.")
-
-            return func(arg)
-
-        return wrapped
-
-    return decorator
-
-
 @dataclasses.dataclass(frozen=True)
-class MogpHyperparameters(AbstractHyperparameters):
+class MogpHyperparameters(GaussianProcessHyperparameters):
     """Hyperparameters for use in fitting Gaussian processes via `MogpEmulator`.
 
     This provides a simplified interface to parameters used in
     ``mogp_emulator.GaussianProcess`` objects and is comparable to the
     ``mogp_emulator.GPParams.GPParams`` class. The correlation length scale parameters,
-    covariance and nugget described below are on the 'transformed' (linear) scale rather
-    than the log scale; cf.
+    process variance and nugget described below are on the 'transformed' (linear) scale
+    rather than the log scale; cf.
     https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
 
     Equality of `MogpHyperparameters` objects is tested hyperparameter-wise up to the
@@ -453,64 +427,24 @@ class MogpHyperparameters(AbstractHyperparameters):
 
     Parameters
     ----------
-    corr : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of numbers.Real
         The correlation length scale parameters. The length of the sequence or array
         should equal the number of input coordinates for an emulator and each scale
         parameter should be a positive.
-    cov : numbers.Real
-        The covariance, which should be positive.
+    process_var: numbers.Real
+        The process variance, which should be positive.
     nugget : numbers.Real, optional
         (Default: None) A nugget, which should be non-negative if provided.
 
     Attributes
     ----------
-    corr : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of numbers.Real
         (Read-only) The correlation length scale parameters.
-    cov : numbers.Real
-        (Read-only) The covariance.
+    process_var: numbers.Real
+        (Read-only) The process variance.
     nugget : numbers.Real, optional
         (Read only, default: None) The nugget, or ``None`` if not supplied.
     """
-
-    corr: Union[Sequence[Real], np.ndarray[Real]]
-    cov: Real
-    nugget: Optional[Real] = None
-
-    def __post_init__(self):
-        if not isinstance(self.corr, (Sequence, np.ndarray)):
-            raise TypeError(
-                f"Expected 'corr' to be a sequence or array, but received {type(self.corr)}."
-            )
-
-        nonpositive_corrs = [x for x in self.corr if not isinstance(x, Real) or x <= 0]
-        if nonpositive_corrs:
-            nonpositive_element = nonpositive_corrs[0]
-            raise ValueError(
-                "Expected 'corr' to be a sequence or array of positive real numbers, "
-                f"but found element {nonpositive_element} of type {type(nonpositive_element)}."
-            )
-
-        check_real(
-            self.cov,
-            TypeError(
-                f"Expected 'cov' to be a real number, but received {type(self.cov)}."
-            ),
-        )
-        if self.cov <= 0:
-            raise ValueError(
-                f"Expected 'cov' to be a positive real number, but received {self.cov}."
-            )
-
-        if self.nugget is not None:
-            if not isinstance(self.nugget, Real):
-                raise TypeError(
-                    f"Expected 'nugget' to be a real number, but received {type(self.nugget)}."
-                )
-
-            if self.nugget < 0:
-                raise ValueError(
-                    f"Expected 'nugget' to be a positive real number, but received {self.nugget}."
-                )
 
     @classmethod
     def from_mogp_gp_params(cls, params: GPParams) -> MogpHyperparameters:
@@ -536,39 +470,26 @@ class MogpHyperparameters(AbstractHyperparameters):
 
         if params.corr is None and params.cov is None:
             raise ValueError(
-                "Cannot create hyperparameters with correlations and covariance equal to "
-                "None in 'params'."
+                "Cannot create hyperparameters with correlation length scales and process "
+                "variance equal to None in 'params'."
             )
 
         return cls(
-            corr=params.corr,
-            cov=params.cov,
+            corr_length_scales=params.corr,
+            process_var=params.cov,
             nugget=params.nugget,
         )
 
-    def __eq__(self, other: MogpHyperparameters) -> bool:
-        try:
-            nuggets_equal = (
-                self.nugget is None and other.nugget is None
-            ) or equal_within_tolerance(self.nugget, other.nugget)
-        except TypeError:
-            return False
-
-        return all(
-            [
-                nuggets_equal,
-                equal_within_tolerance(self.corr, other.corr),
-                equal_within_tolerance(self.cov, other.cov),
-            ]
-        )
+    def __eq__(self, other) -> bool:
+        return isinstance(other, self.__class__) and super().__eq__(other)
 
     def to_mogp_gp_params(
         self, nugget_type: Literal["fixed", "fit", "adaptive", "pivot"] = "fixed"
     ) -> GPParams:
         """Convert this object to an instance of ``mogp_emulator.GPParams.GPParams``.
 
-        The correlation length scales and covariance hyperparameters are copied to the
-        returned mogp-emulator parameters object. How the nugget is set in the output
+        The correlation length scales and process variance hyperparameters are copied to
+        the returned mogp-emulator parameters object. How the nugget is set in the output
         depends on the value of the `nugget_type`, which describes the nugget fitting
         method recorded in the output object:
 
@@ -632,57 +553,18 @@ class MogpHyperparameters(AbstractHyperparameters):
                 "when this object's nugget is None."
             )
 
-        transformed_params = [self.transform_corr(x) for x in self.corr] + [
-            self.transform_cov(self.cov)
+        transformed_params = [self.transform_corr(x) for x in self.corr_length_scales] + [
+            self.transform_cov(self.process_var)
         ]
 
         if nugget_type == "fixed":
-            params = GPParams(n_corr=len(self.corr), nugget=self.nugget)
+            params = GPParams(n_corr=len(self.corr_length_scales), nugget=self.nugget)
         elif nugget_type == "fit":
             transformed_params.append(self.transform_nugget(self.nugget))
-            params = GPParams(n_corr=len(self.corr), nugget="fit")
+            params = GPParams(n_corr=len(self.corr_length_scales), nugget="fit")
         else:
-            params = GPParams(n_corr=len(self.corr), nugget=nugget_type)
+            params = GPParams(n_corr=len(self.corr_length_scales), nugget=nugget_type)
 
         params.set_data(np.array(transformed_params, dtype=float))
 
         return params
-
-    @staticmethod
-    @_validate_nonnegative_real_domain("corr")
-    def transform_corr(corr: Real) -> float:
-        """Transform a correlation length scale parameter to a negative log scale.
-
-        This maps the parameter to `-2 * log(corr)`; cf.
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
-        if corr == 0:
-            return math.inf
-
-        return -2 * math.log(corr)
-
-    @staticmethod
-    @_validate_nonnegative_real_domain("cov")
-    def transform_cov(cov: Real) -> float:
-        """Transform a covariance parameter to the log scale.
-
-        This maps the parameter to `log(cov)`; cf.
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
-        if cov == 0:
-            return -math.inf
-
-        return math.log(cov)
-
-    @staticmethod
-    @_validate_nonnegative_real_domain("nugget")
-    def transform_nugget(nugget: Real) -> float:
-        """Transform a nugget parameter to the log scale.
-
-        This maps the parameter to `log(nugget)`; cf.
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
-        if nugget == 0:
-            return -math.inf
-
-        return math.log(nugget)
