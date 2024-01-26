@@ -191,13 +191,13 @@ class TestMogpEmulator(ExauqTestCase):
         tolerance = 1e-5
         self.assertEqualWithinTolerance(
             gp.theta.corr,
-            emulator.fit_hyperparameters.corr,
+            emulator.fit_hyperparameters.corr_length_scales,
             rel_tol=tolerance,
             abs_tol=tolerance,
         )
         self.assertEqualWithinTolerance(
             gp.theta.cov,
-            emulator.fit_hyperparameters.cov,
+            emulator.fit_hyperparameters.process_var,
             rel_tol=tolerance,
             abs_tol=tolerance,
         )
@@ -336,7 +336,9 @@ class TestMogpEmulator(ExauqTestCase):
         nugget, when the emulator is fit with the hyperparameters then these are used to
         train the underlying MOGP GaussianProcess object."""
 
-        hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2, nugget=1.0)
+        hyperparameters = MogpHyperparameters(
+            corr_length_scales=[0.5, 0.4], process_var=2, nugget=1.0
+        )
         for nugget in ["DEFAULT", 2.0, "adaptive", "fit", "pivot"]:
             with self.subTest(nugget=nugget):
                 emulator = (
@@ -356,7 +358,9 @@ class TestMogpEmulator(ExauqTestCase):
         MOGP GaussianProcess object and the nugget used is determined by the settings
         supplied when creating the emulator."""
 
-        hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2)
+        hyperparameters = MogpHyperparameters(
+            corr_length_scales=[0.5, 0.4], process_var=2
+        )
         float_val = 1.0
         for nugget in ["DEFAULT", float_val, "adaptive", "pivot"]:
             with self.subTest(nugget=nugget):
@@ -374,10 +378,11 @@ class TestMogpEmulator(ExauqTestCase):
                 # Check the correlation length scale parameters and process variance agree
                 # with those supplied for fitting.
                 self.assertEqualWithinTolerance(
-                    hyperparameters.corr, emulator.fit_hyperparameters.corr
+                    hyperparameters.corr_length_scales,
+                    emulator.fit_hyperparameters.corr_length_scales,
                 )
                 self.assertEqualWithinTolerance(
-                    hyperparameters.cov, emulator.fit_hyperparameters.cov
+                    hyperparameters.process_var, emulator.fit_hyperparameters.process_var
                 )
 
                 # Check nugget used in fitting agrees with the specific value supplied at
@@ -393,7 +398,9 @@ class TestMogpEmulator(ExauqTestCase):
         hyperparameters that don't include a nugget."""
 
         emulator = MogpEmulator(nugget="fit")
-        hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2)
+        hyperparameters = MogpHyperparameters(
+            corr_length_scales=[0.5, 0.4], process_var=2
+        )
         with self.assertRaisesRegex(
             ValueError,
             exact(
@@ -540,7 +547,8 @@ class TestMogpHyperparameters(ExauqTestCase):
 
         else:
             raise ValueError(
-                "Either all args should be None or 'corr' and 'cov' should both not be None."
+                "Either all args should be None or 'corr_length_scales' and 'process_var' "
+                "should both not be None."
             )
 
     def test_inherits_from_GaussianProcessHyperparameters(self):
@@ -598,8 +606,10 @@ class TestMogpHyperparameters(ExauqTestCase):
                     corr=corr, cov=cov, nugget=nugget
                 )
                 params = hyperparameters.to_mogp_gp_params(nugget_type=nugget_type)
-                self.assertEqualWithinTolerance(params.corr, hyperparameters.corr)
-                self.assertEqualWithinTolerance(params.cov, hyperparameters.cov)
+                self.assertEqualWithinTolerance(
+                    params.corr, hyperparameters.corr_length_scales
+                )
+                self.assertEqualWithinTolerance(params.cov, hyperparameters.process_var)
 
     def test_to_mogp_gp_params_sets_nugget_when_type_fixed_or_fit(self):
         """When the `nugget_type` is one of 'fixed' or 'fit' and the nugget is defined as

@@ -567,11 +567,11 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         self.hyperparameters = {
             "correlation": {
                 "func": GaussianProcessHyperparameters.transform_corr,
-                "arg": "corr",
+                "arg": "corr_length_scales",
             },
             "variance": {
                 "func": GaussianProcessHyperparameters.transform_cov,
-                "arg": "cov",
+                "arg": "process_var",
             },
             "nugget": {
                 "func": GaussianProcessHyperparameters.transform_nugget,
@@ -593,18 +593,24 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             with self.subTest(corr=corr), self.assertRaisesRegex(
                 TypeError,
                 exact(
-                    f"Expected 'corr' to be a sequence or Numpy array, but received {type(corr)}."
+                    f"Expected 'corr_length_scales' to be a sequence or Numpy array, but received {type(corr)}."
                 ),
             ):
-                _ = GaussianProcessHyperparameters(corr=corr, cov=1.0, nugget=1.0)
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=corr, process_var=1.0, nugget=1.0
+                )
 
         # process variance
         for cov in self.nonreal_objects + [None]:
             with self.subTest(cov=cov), self.assertRaisesRegex(
                 TypeError,
-                exact(f"Expected 'cov' to be a real number, but received {type(cov)}."),
+                exact(
+                    f"Expected 'process_var' to be a real number, but received {type(cov)}."
+                ),
             ):
-                _ = GaussianProcessHyperparameters(corr=[1.0], cov=cov, nugget=1.0)
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=[1.0], process_var=cov, nugget=1.0
+                )
 
         # nugget
         for nugget in self.nonreal_objects:
@@ -614,7 +620,9 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
                     f"Expected 'nugget' to be a real number, but received {type(nugget)}."
                 ),
             ):
-                _ = GaussianProcessHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=[1.0], process_var=1.0, nugget=nugget
+                )
 
     def test_init_checks_arg_values(self):
         """A ValueError is raised upon initialisation if:
@@ -630,21 +638,25 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             with self.subTest(corr=corr), self.assertRaisesRegex(
                 ValueError,
                 exact(
-                    "Expected 'corr' to be a sequence or Numpy array of positive real numbers, "
+                    "Expected 'corr_length_scales' to be a sequence or Numpy array of positive real numbers, "
                     f"but found element {corr[0]} of type {type(corr[0])}."
                 ),
             ):
-                _ = GaussianProcessHyperparameters(corr=corr, cov=1.0, nugget=1.0)
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=corr, process_var=1.0, nugget=1.0
+                )
 
         # process variance
         for cov in self.nonpositive_reals:
             with self.subTest(cov=cov), self.assertRaisesRegex(
                 ValueError,
                 exact(
-                    f"Expected 'cov' to be a positive real number, but received {cov}."
+                    f"Expected 'process_var' to be a positive real number, but received {cov}."
                 ),
             ):
-                _ = GaussianProcessHyperparameters(corr=[1.0], cov=cov, nugget=1.0)
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=[1.0], process_var=cov, nugget=1.0
+                )
 
         # nugget
         for nugget in self.negative_reals:
@@ -654,7 +666,9 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
                     f"Expected 'nugget' to be a positive real number, but received {nugget}."
                 ),
             ):
-                _ = GaussianProcessHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
+                _ = GaussianProcessHyperparameters(
+                    corr_length_scales=[1.0], process_var=1.0, nugget=nugget
+                )
 
     def test_transformation_formulae(self):
         """The transformed correlation is equal to `-2 * log(corr)`.
@@ -687,10 +701,14 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
 
         epsilon = 0.75 * FLOAT_TOLERANCE
 
-        args1 = {"corr": np.array([1.1, 1.2]), "cov": 1, "nugget": 0.5}
+        args1 = {
+            "corr_length_scales": np.array([1.1, 1.2]),
+            "process_var": 1,
+            "nugget": 0.5,
+        }
         hyperparameters1 = GaussianProcessHyperparameters(**args1)
 
-        for arg in ["corr", "cov", "nugget"]:
+        for arg in ["corr_length_scales", "process_var", "nugget"]:
             # Equality within tolerances
             args2 = copy.deepcopy(args1)
             args2[arg] = args1[arg] + epsilon
@@ -708,16 +726,28 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
 
         # nugget = None cases
         self.assertEqual(
-            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=None),
-            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=None),
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=None
+            ),
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=None
+            ),
         )
         self.assertNotEqual(
-            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=3),
-            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=None),
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=3
+            ),
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=None
+            ),
         )
         self.assertNotEqual(
-            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=None),
-            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=3),
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=None
+            ),
+            GaussianProcessHyperparameters(
+                corr_length_scales=[1], process_var=2, nugget=3
+            ),
         )
 
     def test_equals_not_true_if_different_types(self):

@@ -700,11 +700,11 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
 
     Parameters
     ----------
-    corr : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of numbers.Real
         The correlation length scale parameters. The length of the sequence or array
         should equal the number of input coordinates for an emulator and each scale
         parameter should be a positive.
-    cov : numbers.Real
+    process_var : numbers.Real
         The process variance, which should be positive.
     nugget : numbers.Real, optional
         (Default: None) A nugget, which should be non-negative if provided.
@@ -719,33 +719,39 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
         (Read only, default: None) The nugget, or ``None`` if not supplied.
     """
 
-    corr: Union[Sequence[Real], np.ndarray[Real]]
-    cov: Real
+    corr_length_scales: Union[Sequence[Real], np.ndarray[Real]]
+    process_var: Real
     nugget: Optional[Real] = None
 
     def __post_init__(self):
-        if not isinstance(self.corr, (Sequence, np.ndarray)):
+        if not isinstance(self.corr_length_scales, (Sequence, np.ndarray)):
             raise TypeError(
-                f"Expected 'corr' to be a sequence or Numpy array, but received {type(self.corr)}."
+                "Expected 'corr_length_scales' to be a sequence or Numpy array, but "
+                f"received {type(self.corr_length_scales)}."
             )
 
-        nonpositive_corrs = [x for x in self.corr if not isinstance(x, Real) or x <= 0]
+        nonpositive_corrs = [
+            x for x in self.corr_length_scales if not isinstance(x, Real) or x <= 0
+        ]
         if nonpositive_corrs:
             nonpositive_element = nonpositive_corrs[0]
             raise ValueError(
-                "Expected 'corr' to be a sequence or Numpy array of positive real numbers, "
-                f"but found element {nonpositive_element} of type {type(nonpositive_element)}."
+                "Expected 'corr_length_scales' to be a sequence or Numpy array of "
+                "positive real numbers, but found element "
+                f"{nonpositive_element} of type {type(nonpositive_element)}."
             )
 
         validation.check_real(
-            self.cov,
+            self.process_var,
             TypeError(
-                f"Expected 'cov' to be a real number, but received {type(self.cov)}."
+                "Expected 'process_var' to be a real number, but received "
+                f"{type(self.process_var)}."
             ),
         )
-        if self.cov <= 0:
+        if self.process_var <= 0:
             raise ValueError(
-                f"Expected 'cov' to be a positive real number, but received {self.cov}."
+                "Expected 'process_var' to be a positive real number, but received "
+                f"{self.process_var}."
             )
 
         if self.nugget is not None:
@@ -773,31 +779,33 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
         return all(
             [
                 nuggets_equal,
-                equal_within_tolerance(self.corr, other.corr),
-                equal_within_tolerance(self.cov, other.cov),
+                equal_within_tolerance(self.corr_length_scales, other.corr_length_scales),
+                equal_within_tolerance(self.process_var, other.process_var),
             ]
         )
 
     @staticmethod
-    @_validate_nonnegative_real_domain("corr")
-    def transform_corr(corr: Real) -> float:
+    @_validate_nonnegative_real_domain("corr_length_scales")
+    def transform_corr(corr_length_scales: Real) -> float:
         """Transform a correlation length scale parameter to a negative log scale.
 
-        This applies the mapping ``corr -> -2 * log(corr)``, using the natural log.
+        This applies the mapping ``corr_length_scale -> -2 * log(corr_length_scale)``,
+        using the natural log.
         """
-        if corr == 0:
+        if corr_length_scales == 0:
             return math.inf
 
-        return -2 * math.log(corr)
+        return -2 * math.log(corr_length_scales)
 
     @staticmethod
-    @_validate_nonnegative_real_domain("cov")
-    def transform_cov(cov: Real) -> float:
-        """Transform a process variance to the (natural) log scale via ``cov -> log(cov)."""
-        if cov == 0:
+    @_validate_nonnegative_real_domain("process_var")
+    def transform_cov(process_var: Real) -> float:
+        """Transform a process variance to the (natural) log scale via
+        ``process_var -> log(process_var)."""
+        if process_var == 0:
             return -math.inf
 
-        return math.log(cov)
+        return math.log(process_var)
 
     @staticmethod
     @_validate_nonnegative_real_domain("nugget")

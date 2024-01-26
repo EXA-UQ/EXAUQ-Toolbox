@@ -254,7 +254,9 @@ class MogpEmulator(AbstractGaussianProcess):
         # ... Otherwise use the nugget given at GP construction, if a real number...
         elif isinstance(kwargs["nugget"], Real):
             _hyperparameters = MogpHyperparameters(
-                hyperparameters.corr, hyperparameters.cov, kwargs["nugget"]
+                hyperparameters.corr_length_scales,
+                hyperparameters.process_var,
+                kwargs["nugget"],
             )
 
         # ... Otherwise use the nugget calculation method given at GP construction.
@@ -418,20 +420,20 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
 
     Parameters
     ----------
-    corr : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of numbers.Real
         The correlation length scale parameters. The length of the sequence or array
         should equal the number of input coordinates for an emulator and each scale
         parameter should be a positive.
-    cov : numbers.Real
+    process_var: numbers.Real
         The process variance, which should be positive.
     nugget : numbers.Real, optional
         (Default: None) A nugget, which should be non-negative if provided.
 
     Attributes
     ----------
-    corr : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of numbers.Real
         (Read-only) The correlation length scale parameters.
-    cov : numbers.Real
+    process_var: numbers.Real
         (Read-only) The process variance.
     nugget : numbers.Real, optional
         (Read only, default: None) The nugget, or ``None`` if not supplied.
@@ -466,8 +468,8 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
             )
 
         return cls(
-            corr=params.corr,
-            cov=params.cov,
+            corr_length_scales=params.corr,
+            process_var=params.cov,
             nugget=params.nugget,
         )
 
@@ -544,17 +546,17 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
                 "when this object's nugget is None."
             )
 
-        transformed_params = [self.transform_corr(x) for x in self.corr] + [
-            self.transform_cov(self.cov)
+        transformed_params = [self.transform_corr(x) for x in self.corr_length_scales] + [
+            self.transform_cov(self.process_var)
         ]
 
         if nugget_type == "fixed":
-            params = GPParams(n_corr=len(self.corr), nugget=self.nugget)
+            params = GPParams(n_corr=len(self.corr_length_scales), nugget=self.nugget)
         elif nugget_type == "fit":
             transformed_params.append(self.transform_nugget(self.nugget))
-            params = GPParams(n_corr=len(self.corr), nugget="fit")
+            params = GPParams(n_corr=len(self.corr_length_scales), nugget="fit")
         else:
-            params = GPParams(n_corr=len(self.corr), nugget=nugget_type)
+            params = GPParams(n_corr=len(self.corr_length_scales), nugget=nugget_type)
 
         params.set_data(np.array(transformed_params, dtype=float))
 
