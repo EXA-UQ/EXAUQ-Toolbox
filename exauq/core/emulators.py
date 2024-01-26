@@ -160,7 +160,7 @@ class MogpEmulator(AbstractGaussianProcess):
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
             length parameters, while the last tuple should represent bounds for
-            the covariance.
+            the process variance.
 
         Raises
         ------
@@ -271,7 +271,7 @@ class MogpEmulator(AbstractGaussianProcess):
         bounds: Sequence[OptionalFloatPairs],
     ) -> tuple[OptionalFloatPairs, ...]:
         """Compute raw parameter bounds from bounds on correlation length
-        parameters and covariance.
+        parameters and process variance.
 
         Raises a ValueError if one of the upper bounds is a non-positive number.
 
@@ -408,8 +408,8 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
     This provides a simplified interface to parameters used in
     ``mogp_emulator.GaussianProcess`` objects and is comparable to the
     ``mogp_emulator.GPParams.GPParams`` class. The correlation length scale parameters,
-    covariance and nugget described below are on the 'transformed' (linear) scale rather
-    than the log scale; cf.
+    process variance and nugget described below are on the 'transformed' (linear) scale
+    rather than the log scale; cf.
     https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
 
     Equality of `MogpHyperparameters` objects is tested hyperparameter-wise up to the
@@ -423,7 +423,7 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
         should equal the number of input coordinates for an emulator and each scale
         parameter should be a positive.
     cov : numbers.Real
-        The covariance, which should be positive.
+        The process variance, which should be positive.
     nugget : numbers.Real, optional
         (Default: None) A nugget, which should be non-negative if provided.
 
@@ -432,7 +432,7 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
     corr : sequence or Numpy array of numbers.Real
         (Read-only) The correlation length scale parameters.
     cov : numbers.Real
-        (Read-only) The covariance.
+        (Read-only) The process variance.
     nugget : numbers.Real, optional
         (Read only, default: None) The nugget, or ``None`` if not supplied.
     """
@@ -479,8 +479,8 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
     ) -> GPParams:
         """Convert this object to an instance of ``mogp_emulator.GPParams.GPParams``.
 
-        The correlation length scales and covariance hyperparameters are copied to the
-        returned mogp-emulator parameters object. How the nugget is set in the output
+        The correlation length scales and process variance hyperparameters are copied to
+        the returned mogp-emulator parameters object. How the nugget is set in the output
         depends on the value of the `nugget_type`, which describes the nugget fitting
         method recorded in the output object:
 

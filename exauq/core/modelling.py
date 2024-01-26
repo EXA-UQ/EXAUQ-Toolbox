@@ -687,6 +687,38 @@ def _validate_nonnegative_real_domain(arg_name: str):
 
 @dataclasses.dataclass(frozen=True)
 class GaussianProcessHyperparameters(AbstractHyperparameters):
+    """Hyperparameters for use in fitting Gaussian processes.
+
+    There are three basic (sets of) hyperparameters used for fitting Gaussian processes:
+    correlation length scales, process variance and, optionally, a nugget. These are
+    expected to be on a linear scale; tranformation functions for converting to a log
+    scale are provided as static methods.
+
+    Equality of `GaussianProcessHyperparameters` objects is tested hyperparameter-wise up
+    to the default numerical precision defined in ``exauq.core.numerics.FLOAT_TOLERANCE``
+    (see ``exauq.core.numerics.equal_within_tolerance``).
+
+    Parameters
+    ----------
+    corr : sequence or Numpy array of numbers.Real
+        The correlation length scale parameters. The length of the sequence or array
+        should equal the number of input coordinates for an emulator and each scale
+        parameter should be a positive.
+    cov : numbers.Real
+        The process variance, which should be positive.
+    nugget : numbers.Real, optional
+        (Default: None) A nugget, which should be non-negative if provided.
+
+    Attributes
+    ----------
+    corr : sequence or Numpy array of numbers.Real
+        (Read-only) The correlation length scale parameters.
+    cov : numbers.Real
+        (Read-only) The process variance.
+    nugget : numbers.Real, optional
+        (Read only, default: None) The nugget, or ``None`` if not supplied.
+    """
+
     corr: Union[Sequence[Real], np.ndarray[Real]]
     cov: Real
     nugget: Optional[Real] = None
@@ -751,8 +783,7 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
     def transform_corr(corr: Real) -> float:
         """Transform a correlation length scale parameter to a negative log scale.
 
-        This maps the parameter to `-2 * log(corr)`; cf.
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        This applies the mapping ``corr -> -2 * log(corr)``, using the natural log.
         """
         if corr == 0:
             return math.inf
@@ -762,11 +793,7 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
     @staticmethod
     @_validate_nonnegative_real_domain("cov")
     def transform_cov(cov: Real) -> float:
-        """Transform a covariance parameter to the log scale.
-
-        This maps the parameter to `log(cov)`; cf.
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
+        """Transform a process variance to the (natural) log scale via ``cov -> log(cov)."""
         if cov == 0:
             return -math.inf
 
@@ -775,11 +802,7 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
     @staticmethod
     @_validate_nonnegative_real_domain("nugget")
     def transform_nugget(nugget: Real) -> float:
-        """Transform a nugget parameter to the log scale.
-
-        This maps the parameter to `log(nugget)`; cf.
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
-        """
+        """Transform a nugget to the (natural) log scale via ``nugget -> log(nugget)``."""
         if nugget == 0:
             return -math.inf
 
