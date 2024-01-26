@@ -345,8 +345,7 @@ class PEICalculator:
         :param x: An instance of Input, representing the input data.
         :return: A float value representing the computed PEI.
         """
-        # TODO: Implement computation logic
-        raise NotImplementedError("Computation method not yet implemented.")
+        return self.expected_improvement(x) * self.repulsion(x)
 
     def expected_improvement(self, x: Union[Input, np.ndarray]) -> float:
 
