@@ -727,6 +727,25 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
                     f"Expected 'nugget' to be a positive real number, but received {self.nugget}."
                 )
 
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        try:
+            nuggets_equal = (
+                self.nugget is None and other.nugget is None
+            ) or equal_within_tolerance(self.nugget, other.nugget)
+        except TypeError:
+            return False
+
+        return all(
+            [
+                nuggets_equal,
+                equal_within_tolerance(self.corr, other.corr),
+                equal_within_tolerance(self.cov, other.cov),
+            ]
+        )
+
     @staticmethod
     @_validate_nonnegative_real_domain("corr")
     def transform_corr(corr: Real) -> float:

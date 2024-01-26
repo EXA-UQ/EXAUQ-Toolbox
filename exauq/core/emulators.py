@@ -19,7 +19,6 @@ from exauq.core.modelling import (
     Prediction,
     TrainingDatum,
 )
-from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
@@ -472,21 +471,8 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
             nugget=params.nugget,
         )
 
-    def __eq__(self, other: MogpHyperparameters) -> bool:
-        try:
-            nuggets_equal = (
-                self.nugget is None and other.nugget is None
-            ) or equal_within_tolerance(self.nugget, other.nugget)
-        except TypeError:
-            return False
-
-        return all(
-            [
-                nuggets_equal,
-                equal_within_tolerance(self.corr, other.corr),
-                equal_within_tolerance(self.cov, other.cov),
-            ]
-        )
+    def __eq__(self, other) -> bool:
+        return isinstance(other, self.__class__) and super().__eq__(other)
 
     def to_mogp_gp_params(
         self, nugget_type: Literal["fixed", "fit", "adaptive", "pivot"] = "fixed"

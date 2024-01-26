@@ -1,3 +1,4 @@
+import copy
 import itertools
 import math
 import unittest
@@ -6,12 +7,21 @@ from typing import Literal
 
 import numpy as np
 
-from exauq.core.modelling import (GaussianProcessHyperparameters, Input,
-                                  Prediction, SimulatorDomain, TrainingDatum)
+from exauq.core.modelling import (
+    GaussianProcessHyperparameters,
+    Input,
+    Prediction,
+    SimulatorDomain,
+    TrainingDatum,
+)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
-from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
-                                       exact, make_window)
+from tests.utilities.utilities import (
+    ExauqTestCase,
+    compare_input_tuples,
+    exact,
+    make_window,
+)
 
 
 class TestInput(unittest.TestCase):
@@ -664,6 +674,59 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             with self.subTest(hyperparameter="nugget", x=x):
                 transformation_func = self.hyperparameters["nugget"]["func"]
                 self.assertEqual(math.log(x), transformation_func(x))
+
+    def test_equals_hyperparameter_values(self):
+        """Two instances of GaussianProcessHyperparameters are considered equal precisely
+        when all of the following hold:
+
+        * The correlation length scales are equal within the default tolerance.
+        * The process variances are equal within the default tolerance.
+        * The nuggets are real numbers equal within the default tolerances, or are both
+          None.
+        """
+
+        epsilon = 0.75 * FLOAT_TOLERANCE
+
+        args1 = {"corr": np.array([1.1, 1.2]), "cov": 1, "nugget": 0.5}
+        hyperparameters1 = GaussianProcessHyperparameters(**args1)
+
+        for arg in ["corr", "cov", "nugget"]:
+            # Equality within tolerances
+            args2 = copy.deepcopy(args1)
+            args2[arg] = args1[arg] + epsilon
+            self.assertEqual(
+                hyperparameters1,
+                GaussianProcessHyperparameters(**args2),
+            )
+
+            # Not equal outside of tolerances
+            args2[arg] += epsilon
+            self.assertNotEqual(
+                hyperparameters1,
+                GaussianProcessHyperparameters(**args2),
+            )
+
+        # nugget = None cases
+        self.assertEqual(
+            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=None),
+            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=None),
+        )
+        self.assertNotEqual(
+            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=3),
+            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=None),
+        )
+        self.assertNotEqual(
+            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=None),
+            GaussianProcessHyperparameters(corr=[1], cov=2, nugget=3),
+        )
+
+    def test_equals_not_true_if_different_types(self):
+        """A GaussianProcessHyperparameters instance is not equal to an object of a
+        different type."""
+
+        hyperparameters = GaussianProcessHyperparameters([1], 1, 1)
+        self.assertNotEqual(hyperparameters, "a")
+        self.assertNotEqual("a", hyperparameters)
 
     def test_transformations_of_limit_values(self):
         """The transformation functions handle limit values of their domains in the

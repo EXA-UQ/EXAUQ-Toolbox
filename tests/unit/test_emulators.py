@@ -550,6 +550,15 @@ class TestMogpHyperparameters(ExauqTestCase):
             GaussianProcessHyperparameters,
         )
 
+    def test_equals_checks_for_same_type(self):
+        """An instance of MogpHyperparameters is not equal to an object of a different
+        class."""
+
+        params1 = MogpHyperparameters([1], 1, 1)
+        params2 = GaussianProcessHyperparameters([1], 1, 1)
+        self.assertNotEqual(params1, params2)
+        self.assertNotEqual(params2, params1)
+
     def test_to_mogp_gp_params_type_error_if_nugget_type_not_str(self):
         """A TypeError is raised if the nugget type is not a string."""
 
