@@ -1,3 +1,4 @@
+from numbers import Real
 from typing import Callable
 
 import numpy as np
@@ -8,7 +9,7 @@ from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.numerics import FLOAT_TOLERANCE
 
 
-def maximise(func: Callable[[NDArray], float], domain: SimulatorDomain) -> Input:
+def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
     """Maximise an objective function over a simulator domain.
 
     Finds a point in the bounded input space defined by a simulator domain that maximses
@@ -19,13 +20,13 @@ def maximise(func: Callable[[NDArray], float], domain: SimulatorDomain) -> Input
     The objective function `func` is expected to take a 1-dimensional Numpy array as an
     argument and to be defined for arrays corresponding to inputs from the given `domain`.
     (In other words, if ``x`` is for type ``Input`` and ``x in domain`` is ``true``, then
-    ``func(numpy.array(x)))`` returns a finite floating point number.
+    ``func(numpy.array(x)))`` returns a finite real number.
 
     Parameters
     ----------
-    func : Callable[[NDArray], float]
+    func : Callable[[NDArray], numbers.Real]
         The objective function to maximse. Should take in a 1-dimensional Numpy array and
-        return a float.
+        return a real number.
     domain : SimulatorDomain
         The domain of a simulator, defining the bounded input space over which `func`
         will be maximsed.
@@ -34,6 +35,12 @@ def maximise(func: Callable[[NDArray], float], domain: SimulatorDomain) -> Input
     -------
     Input
         The point in the domain that maximises the objective function, as an ``Input``.
+
+    Raises
+    ------
+    RuntimeError
+        If finding the maximal value for the objective function failed for some reason
+        (e.g. due to non-convergence).
 
     See Also
     --------
@@ -58,17 +65,29 @@ def maximise(func: Callable[[NDArray], float], domain: SimulatorDomain) -> Input
         )
 
     try:
-        _ = func(np.array(domain.scale([0.5] * domain.dim)))
+        y = func(np.array(domain.scale([0.5] * domain.dim)))
     except Exception:
         raise ValueError(
-            "Expected 'func' to be a callable that takes a 1-dim Numpy array as argument "
-            "and returns a float."
+            "Expected 'func' to be a callable that takes a 1-dim Numpy array as argument."
         )
 
-    result = scipy.optimize.differential_evolution(
-        lambda x: -func(x),
-        bounds=domain.bounds,
-        tol=FLOAT_TOLERANCE,
-        atol=FLOAT_TOLERANCE,
-    )
+    if not isinstance(y, Real):
+        raise ValueError(
+            "Expected 'func' to be a callable that returns a real number, but instead "
+            f"it returns type {type(y)}."
+        )
+
+    try:
+        result = scipy.optimize.differential_evolution(
+            lambda x: -func(x),
+            bounds=domain.bounds,
+            tol=FLOAT_TOLERANCE,
+            atol=FLOAT_TOLERANCE,
+        )
+    except Exception as e:
+        raise RuntimeError(f"Maximisation failed: {str(e)}")
+
+    if not result.success:
+        raise RuntimeError(f"Maximisation failed to converge: {result.message}")
+
     return Input(*result.x)
