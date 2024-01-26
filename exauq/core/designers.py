@@ -1,6 +1,7 @@
 import copy
 import math
 from collections.abc import Collection
+from numbers import Real
 from typing import Optional, Union
 
 import numpy as np
@@ -327,14 +328,15 @@ class PEICalculator:
         """
         self._domain = domain  # Check domain
         self._gp = gp  # Check gp
-        self._max_targets = None
+        self._max_targets = self._calculate_max_targets()
+        self._pseudopoints = self._calculate_pseudopoints()
 
-        self._calculate_max_targets()
+    def _calculate_max_targets(self) -> Real:
+        return max(self._gp.training_data, key=lambda datum: datum.output).output
 
-    def _calculate_max_targets(self):
-        self._max_targets = max(
-            self._gp.training_data, key=lambda datum: datum.output
-        ).output
+    def _calculate_pseudopoints(self) -> tuple[Input]:
+        training_data = [datum.input for datum in self._gp.training_data]
+        return self._domain.calculate_pseudopoints(training_data)
 
     def compute(self, x: Union[Input, np.array]) -> float:
         """
