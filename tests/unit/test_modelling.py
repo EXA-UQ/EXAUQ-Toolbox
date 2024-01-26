@@ -786,7 +786,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             self.assertEqual(-math.inf, transformation_func(0))
 
     def test_transforms_non_real_arg_raises_type_error(self):
-        "A TypeError is raised if the argument supplied is not a real number."
+        """A TypeError is raised if the argument supplied is not a real number."""
 
         for hyperparameter, x in itertools.product(
             self.hyperparameters, self.nonreal_objects
@@ -800,7 +800,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
                 _ = transformation_func(x)
 
     def test_transforms_with_nonpositive_value_raises_value_error(self):
-        "A ValueError is raised if the argument supplied is < 0."
+        """A ValueError is raised if the argument supplied is < 0."""
 
         for hyperparameter, x in itertools.product(
             self.hyperparameters, self.negative_reals

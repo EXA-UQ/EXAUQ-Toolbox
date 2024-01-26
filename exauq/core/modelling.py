@@ -759,9 +759,9 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
 
     Attributes
     ----------
-    corr : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of numbers.Real
         (Read-only) The correlation length scale parameters.
-    cov : numbers.Real
+    process_var : numbers.Real
         (Read-only) The process variance.
     nugget : numbers.Real, optional
         (Read only, default: None) The nugget, or ``None`` if not supplied.
