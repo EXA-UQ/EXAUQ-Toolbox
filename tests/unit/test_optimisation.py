@@ -40,6 +40,19 @@ class TestMaximise(ExauqTestCase):
         argmax = Input(5 * np.pi / 4)
         self.assertEqualWithinTolerance(argmax, x, rel_tol=1e-5)
 
+    def test_repeated_results_when_seed_set(self):
+        """The output of the maximisation is the same when the seed is the same."""
+
+        def f(x: np.ndarray) -> float:
+            return float(np.sin(1 / x)) if float(x) > 0 else 0
+
+        seed = 1
+        x1 = maximise(f, self.domain, seed=seed)
+        x2 = maximise(f, self.domain, seed=seed)
+
+        # Take .value to return a float and test for exact equality
+        self.assertEqual(x1.value, x2.value)
+
     def test_function_arg_errors(self):
         """A ValueError is raised if the provided function does not accept Numpy arrays as
         args or does not return a real number. A TypeError is raised the supplied domain

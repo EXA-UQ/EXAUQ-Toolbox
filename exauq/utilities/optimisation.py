@@ -1,5 +1,5 @@
 from numbers import Real
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 import scipy.optimize
@@ -9,7 +9,9 @@ from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.numerics import FLOAT_TOLERANCE
 
 
-def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
+def maximise(
+    func: Callable[[NDArray], Real], domain: SimulatorDomain, seed: Optional[int] = None
+) -> Input:
     """Maximise an objective function over a simulator domain.
 
     Finds a point in the bounded input space defined by a simulator domain that maximses
@@ -30,6 +32,9 @@ def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
     domain : SimulatorDomain
         The domain of a simulator, defining the bounded input space over which `func`
         will be maximsed.
+    seed : int, optional
+        (Default: None) A number to seed the random number generator used in the
+        underlying optimisation. If ``None`` then no seeding will be used.
 
     Returns
     -------
@@ -55,7 +60,8 @@ def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
     ``scipy.optimize.differential_evolution`` function, with the bounds specified in
     ``domain.bounds``. The relative and absolute tolerances governing
     convergence (i.e. the ``tol`` and ``atol`` kwargs) are set to
-    ``exauq.core.numerics.FLOAT_TOLERANCE``, but otherwise the default kwargs are used in
+    ``exauq.core.numerics.FLOAT_TOLERANCE``, and the ``seed`` parameter is exposed as
+    described above, but otherwise the default kwargs are used in
     ``scipy.optimize.differential_evolution``.
     """
 
@@ -83,6 +89,7 @@ def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
             bounds=domain.bounds,
             tol=FLOAT_TOLERANCE,
             atol=FLOAT_TOLERANCE,
+            seed=seed,
         )
     except Exception as e:
         raise RuntimeError(f"Maximisation failed: {str(e)}")
