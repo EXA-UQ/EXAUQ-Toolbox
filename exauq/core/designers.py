@@ -350,7 +350,7 @@ class PEICalculator:
     def expected_improvement(self, x: Union[Input, np.ndarray]) -> float:
 
         # ToDo:- Overload AbstractGaussianProcess.predict
-        if isinstance(x, np.dnarray):
+        if isinstance(x, np.ndarray):
             prediction = self._gp.predict(Input(x))
         else:
             prediction = self._gp.predict(x)
@@ -375,9 +375,12 @@ class PEICalculator:
 
         inputs_term = np.product(1 - correlations, axis=0)
 
-        pseudopoints_term = np.product(1 - np.array(self._gp.correlation([x], self._pseudopoints)), axis=1)
+        pseudopoints_term = np.product(
+            1 - np.array(self._gp.correlation([x], self._pseudopoints)), axis=1
+        )
 
         return inputs_term * pseudopoints_term
+
 
 def compute_single_level_loo_samples(
     gp: AbstractGaussianProcess,
