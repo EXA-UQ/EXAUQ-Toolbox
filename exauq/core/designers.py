@@ -359,7 +359,7 @@ class PEICalculator:
         else:
             prediction = self._gp.predict(x)
 
-        if equal_within_tolerance(prediction.variance, 0):
+        if equal_within_tolerance(prediction.standard_deviation, 0):
             return 0.0
 
         u = (prediction.estimate - self._max_targets) / prediction.standard_deviation
