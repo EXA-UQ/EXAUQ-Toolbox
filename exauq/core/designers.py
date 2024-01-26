@@ -370,16 +370,15 @@ class PEICalculator:
 
     def repulsion(self, x: Union[Input, NDArray]) -> Real:
         proc_var = self._gp.fit_hyperparameters.cov
-        covariance_matrix = self._gp.covariance_matrix(np.array([x]))
+        covariance_matrix = self._gp.covariance_matrix([x])
         correlations = np.array(covariance_matrix) / proc_var
-        flattened_correlations = correlations.flatten()
-        inputs_term = np.product(1 - flattened_correlations, axis=0)
+        inputs_term = np.product(1 - correlations, axis=0)[0]
 
         other_repulsion_pts_term = np.product(
             1 - np.array(self._gp.correlation([x], self._other_repulsion_points)), axis=1
-        )
+        )[0]
 
-        return inputs_term * other_repulsion_pts_term.flatten()[0]
+        return inputs_term * other_repulsion_pts_term
 
 
 def compute_single_level_loo_samples(

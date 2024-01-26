@@ -353,7 +353,7 @@ class MogpEmulator(AbstractGaussianProcess):
         def kernel_func(x1: Input, x2: Input) -> float:
             return mogp.Kernel.Matern52().kernel_f(
                 np.array(list(x1)), np.array(list(x2)), corr_raw
-            )
+            )[0, 0]
 
         return tuple(tuple(kernel_func(xi, xj) for xj in inputs2) for xi in inputs1)
 
