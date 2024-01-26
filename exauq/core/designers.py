@@ -348,15 +348,13 @@ class PEICalculator:
         # TODO: Implement computation logic
         raise NotImplementedError("Computation method not yet implemented.")
 
-    def expected_improvement(
-        self, x: Union[Input, np.ndarray], gp: AbstractGaussianProcess
-    ) -> float:
+    def expected_improvement(self, x: Union[Input, np.ndarray]) -> float:
 
         # ToDo:- Overload AbstractGaussianProcess.predict
         if isinstance(x, np.dnarray):
-            prediction = gp.predict(Input(x))
+            prediction = self._gp.predict(Input(x))
         else:
-            prediction = gp.predict(x)
+            prediction = self._gp.predict(x)
 
         if equal_within_tolerance(prediction.variance, 0):
             return 0.0
