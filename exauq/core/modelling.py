@@ -676,7 +676,8 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         training_inputs = tuple(datum.input for datum in self.training_data)
         correlations = self.correlation(training_inputs, inputs)
         return tuple(
-            tuple(self.fit_hyperparameters.cov * z for z in row) for row in correlations
+            tuple(self.fit_hyperparameters.process_var * z for z in row)
+            for row in correlations
         )
 
     @abc.abstractmethod
