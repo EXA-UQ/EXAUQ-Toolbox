@@ -358,11 +358,11 @@ class PEICalculator:
         if equal_within_tolerance(prediction.variance, 0):
             return 0.0
 
-        u = (prediction.estimate - self._max_targets) / math.sqrt(prediction.variance)
+        u = (prediction.estimate - self._max_targets) / prediction.standard_deviation
 
         return (prediction.estimate - self._max_targets) * norm(loc=0, scale=1).cdf(
             u
-        ) + math.sqrt(prediction.variance) * norm(loc=0, scale=1).pdf(u)
+        ) + prediction.standard_deviation * norm(loc=0, scale=1).pdf(u)
 
     def repulsion(self, x: Union[Input, np.ndarray]) -> Real:
         proc_var = self._gp.fit_hyperparameters.cov
