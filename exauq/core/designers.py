@@ -1,7 +1,8 @@
 import copy
 import math
 from collections.abc import Collection
-from typing import Optional
+from numbers import Real
+from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -326,41 +327,59 @@ class PEICalculator:
         :param domain: An instance of SimulatorDomain, representing the domain of simulation.
         :param gp: An instance of AbstractGaussianProcess, representing the Gaussian process model.
         """
-        # TODO: Implement initialisation logic
-        raise NotImplementedError("Initialisation not yet implemented.")
+        self._domain = domain  # Check domain
+        self._gp = gp  # Check gp
+        self._max_targets = self._calculate_max_targets()
+        self._other_repulsion_points = self._calculate_pseudopoints()
 
-    def compute(self, x: Input) -> float:
+    def _calculate_max_targets(self) -> Real:
+        return max(self._gp.training_data, key=lambda datum: datum.output).output
+
+    def _calculate_pseudopoints(self) -> tuple[Input]:
+        training_data = [datum.input for datum in self._gp.training_data]
+        return self._domain.calculate_pseudopoints(training_data)
+
+    def compute(self, x: Union[Input, NDArray]) -> float:
         """
         Computes the PEI based on the given input.
 
         :param x: An instance of Input, representing the input data.
         :return: A float value representing the computed PEI.
         """
-        # TODO: Implement computation logic
-        raise NotImplementedError("Computation method not yet implemented.")
+        return self.expected_improvement(x) * self.repulsion(x)
 
+    def add_repulsion_point(self, x: Union[Input, NDArray]):
+        self._other_repulsion_points = self._other_repulsion_points + (x,)
 
-def pei(x: NDArray, gp: AbstractGaussianProcess) -> float:
-    return 1
+    def expected_improvement(self, x: Union[Input, NDArray]) -> float:
+        # ToDo:- Overload AbstractGaussianProcess.predict
+        if isinstance(x, np.ndarray):
+            prediction = self._gp.predict(Input(*x))
+        elif isinstance(x, Input):
+            prediction = self._gp.predict(x)
+        else:
+            raise TypeError
 
+        if equal_within_tolerance(prediction.standard_deviation, 0):
+            return 0.0
 
-def expected_improvement(x: Input, gp: AbstractGaussianProcess) -> float:
-    prediction = gp.predict(x)
-    if equal_within_tolerance(prediction.variance, 0):
-        return 0.0
+        u = (prediction.estimate - self._max_targets) / prediction.standard_deviation
 
-    # This will end up being calculated for each point... maybe a class would be more efficient
-    max_targets = max(gp.training_data, key=lambda datum: datum.output).output
+        return (prediction.estimate - self._max_targets) * norm(loc=0, scale=1).cdf(
+            u
+        ) + prediction.standard_deviation * norm(loc=0, scale=1).pdf(u)
 
-    u = (prediction.estimate - max_targets) / math.sqrt(prediction.variance)
+    def repulsion(self, x: Union[Input, NDArray]) -> Real:
+        proc_var = self._gp.fit_hyperparameters.process_var
+        covariance_matrix = self._gp.covariance_matrix([x])
+        correlations = np.array(covariance_matrix) / proc_var
+        inputs_term = np.product(1 - correlations, axis=0)[0]
 
-    return (prediction.estimate - max_targets) * norm(loc=0, scale=1).cdf(u) + math.sqrt(
-        prediction.variance
-    ) * norm(loc=0, scale=1).pdf(u)
+        other_repulsion_pts_term = np.product(
+            1 - np.array(self._gp.correlation([x], self._other_repulsion_points)), axis=1
+        )[0]
 
-
-def repulsion(x: Input, gp: AbstractGaussianProcess) -> np.array:
-    pass
+        return inputs_term * other_repulsion_pts_term
 
 
 def compute_single_level_loo_samples(
@@ -370,6 +389,7 @@ def compute_single_level_loo_samples(
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> tuple[Input]:
     gp_e = compute_loo_errors_gp(gp, domain)
+    pei = PEICalculator(domain, gp_e)
 
     # TODO: correct the implementation to iteratively use updated PEI function
-    return (maximise(lambda x: pei(x, gp_e), domain),) * batch_size
+    return (maximise(lambda x: pei.compute(x), domain),) * batch_size

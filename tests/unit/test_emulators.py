@@ -7,7 +7,12 @@ import mogp_emulator as mogp
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import Input, Prediction, TrainingDatum
+from exauq.core.modelling import (
+    GaussianProcessHyperparameters,
+    Input,
+    Prediction,
+    TrainingDatum,
+)
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -132,7 +137,7 @@ class TestMogpEmulator(ExauqTestCase):
                 np.array(list(x1)),
                 np.array(list(x2)),
                 corr_raw,
-            )
+            )[0, 0]
 
         inputs1 = [Input(1, 1), Input(2, 2), Input(3, 3)]
         inputs2 = [Input(10, 10), Input(20, 20)]
@@ -186,13 +191,13 @@ class TestMogpEmulator(ExauqTestCase):
         tolerance = 1e-5
         self.assertEqualWithinTolerance(
             gp.theta.corr,
-            emulator.fit_hyperparameters.corr,
+            emulator.fit_hyperparameters.corr_length_scales,
             rel_tol=tolerance,
             abs_tol=tolerance,
         )
         self.assertEqualWithinTolerance(
             gp.theta.cov,
-            emulator.fit_hyperparameters.cov,
+            emulator.fit_hyperparameters.process_var,
             rel_tol=tolerance,
             abs_tol=tolerance,
         )
@@ -276,8 +281,8 @@ class TestMogpEmulator(ExauqTestCase):
         emulator = MogpEmulator()
         training_data = TrainingDatum.list_from_arrays(self.inputs2, self.targets2)
         emulator.fit(training_data)
-        corr = emulator.fit_hyperparameters.corr
-        cov = emulator.fit_hyperparameters.cov
+        corr = emulator.fit_hyperparameters.corr_length_scales
+        cov = emulator.fit_hyperparameters.process_var
 
         # Create bounds based on open windows around the 'true' estimates.
         open_bounds = [
@@ -289,10 +294,13 @@ class TestMogpEmulator(ExauqTestCase):
             emulator.fit(training_data, hyperparameter_bounds=bounds)
 
             self.assertEqualWithinTolerance(
-                emulator.fit_hyperparameters.corr, corr, rel_tol=1e-5, abs_tol=1e-5
+                emulator.fit_hyperparameters.corr_length_scales,
+                corr,
+                rel_tol=1e-5,
+                abs_tol=1e-5,
             )
             self.assertEqualWithinTolerance(
-                emulator.fit_hyperparameters.cov, cov, rel_tol=1e-5, abs_tol=1e-5
+                emulator.fit_hyperparameters.process_var, cov, rel_tol=1e-5, abs_tol=1e-5
             )
 
     def test_fit_gp_kwargs(self):
@@ -358,7 +366,9 @@ class TestMogpEmulator(ExauqTestCase):
         nugget, when the emulator is fit with the hyperparameters then these are used to
         train the underlying MOGP GaussianProcess object."""
 
-        hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2, nugget=1.0)
+        hyperparameters = MogpHyperparameters(
+            corr_length_scales=[0.5, 0.4], process_var=2, nugget=1.0
+        )
         for nugget in ["DEFAULT", 2.0, "adaptive", "fit", "pivot"]:
             with self.subTest(nugget=nugget):
                 emulator = (
@@ -374,11 +384,13 @@ class TestMogpEmulator(ExauqTestCase):
     def test_fit_with_given_hyperparameters_without_fixed_nugget(self):
         """Given an emulator and a set of hyperparameters that doesn't include a value for
         the nugget, when the emulator is fit with the hyperparameters then the correlations
-        and covariance defined in the hyperparameters are used to train the underlying
+        and process variance defined in the hyperparameters are used to train the underlying
         MOGP GaussianProcess object and the nugget used is determined by the settings
         supplied when creating the emulator."""
 
-        hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2)
+        hyperparameters = MogpHyperparameters(
+            corr_length_scales=[0.5, 0.4], process_var=2
+        )
         float_val = 1.0
         for nugget in ["DEFAULT", float_val, "adaptive", "pivot"]:
             with self.subTest(nugget=nugget):
@@ -393,13 +405,14 @@ class TestMogpEmulator(ExauqTestCase):
                 )
                 self.assertEqual(hyperparameters_gp, emulator.fit_hyperparameters)
 
-                # Check the correlation length parameters and covariance agree with those
-                # supplied for fitting.
+                # Check the correlation length scale parameters and process variance agree
+                # with those supplied for fitting.
                 self.assertEqualWithinTolerance(
-                    hyperparameters.corr, emulator.fit_hyperparameters.corr
+                    hyperparameters.corr_length_scales,
+                    emulator.fit_hyperparameters.corr_length_scales,
                 )
                 self.assertEqualWithinTolerance(
-                    hyperparameters.cov, emulator.fit_hyperparameters.cov
+                    hyperparameters.process_var, emulator.fit_hyperparameters.process_var
                 )
 
                 # Check nugget used in fitting agrees with the specific value supplied at
@@ -415,7 +428,9 @@ class TestMogpEmulator(ExauqTestCase):
         hyperparameters that don't include a nugget."""
 
         emulator = MogpEmulator(nugget="fit")
-        hyperparameters = MogpHyperparameters(corr=[0.5, 0.4], cov=2)
+        hyperparameters = MogpHyperparameters(
+            corr_length_scales=[0.5, 0.4], process_var=2
+        )
         with self.assertRaisesRegex(
             ValueError,
             exact(
@@ -518,7 +533,7 @@ class TestMogpHyperparameters(ExauqTestCase):
                 "func": MogpHyperparameters.transform_corr,
                 "arg": "corr",
             },
-            "covariance": {
+            "variance": {
                 "func": MogpHyperparameters.transform_cov,
                 "arg": "cov",
             },
@@ -529,18 +544,19 @@ class TestMogpHyperparameters(ExauqTestCase):
         }
 
         self.correlations = [[0.1], [0.1, 0.2]]
-        self.covariances = [1.1, 1.2]
+        self.variances = [1.1, 1.2]
         self.real_nuggets = [0, 2.1, np.float16(2)]
         self.nugget_types = ["fixed", "fit", "adaptive", "pivot"]
 
     def make_hyperparameters(self, corr=[0.1], cov=1.1, nugget=0):
-        """Make hyperparameters, possibly with default values for the correlations,
-        covariance and nugget."""
+        """Make hyperparameters, possibly with default values for the correlation length
+        scales, process variance and nugget."""
         return MogpHyperparameters(corr, cov, nugget)
 
     def make_mogp_gp_params(self, corr=[0.1], cov=1.1, nugget=1.0):
-        """Make a ``GPParams`` object, possibly with default values for the correlations,
-        covariance and nugget. Note: permitted values of arguments are either:
+        """Make a ``GPParams`` object, possibly with default values for the correlation
+        length scales, process variance and nugget. Note: permitted values of arguments
+        are either:
 
         * both `corr` and `cov` are not ``None``; or
         * all three of `corr`, `cov`, `nugget` are ``None`` (in which case an empty
@@ -561,156 +577,26 @@ class TestMogpHyperparameters(ExauqTestCase):
 
         else:
             raise ValueError(
-                "Either all args should be None or 'corr' and 'cov' should both not be None."
+                "Either all args should be None or 'corr_length_scales' and 'process_var' "
+                "should both not be None."
             )
 
-    def test_init_checks_arg_types(self):
-        """A TypeError is raised upon initialisation if:
+    def test_inherits_from_GaussianProcessHyperparameters(self):
+        """MogpHyperparameters inherits from GaussianProcessHyperparameters."""
 
-        * the correlations is not a sequence; or
-        * the covariance is not a real number; or
-        * the nugget is not ``None`` or a real number.
-        """
+        self.assertIsInstance(
+            self.make_hyperparameters(corr=[0.1], cov=1.1, nugget=0),
+            GaussianProcessHyperparameters,
+        )
 
-        # correlations
-        nonseq_objects = [1.0, {1.0}]
-        for corr in nonseq_objects:
-            with self.subTest(corr=corr), self.assertRaisesRegex(
-                TypeError,
-                exact(
-                    f"Expected 'corr' to be a sequence or array, but received {type(corr)}."
-                ),
-            ):
-                _ = MogpHyperparameters(corr=corr, cov=1.0, nugget=1.0)
+    def test_equals_checks_for_same_type(self):
+        """An instance of MogpHyperparameters is not equal to an object of a different
+        class."""
 
-        # covariance
-        nonreal_objects = self.nonreal_objects + [None]
-        for cov in nonreal_objects:
-            with self.subTest(cov=cov), self.assertRaisesRegex(
-                TypeError,
-                exact(f"Expected 'cov' to be a real number, but received {type(cov)}."),
-            ):
-                _ = MogpHyperparameters(corr=[1.0], cov=cov, nugget=1.0)
-
-        # nugget
-        for nugget in self.nonreal_objects:
-            with self.subTest(nugget=nugget), self.assertRaisesRegex(
-                TypeError,
-                exact(
-                    f"Expected 'nugget' to be a real number, but received {type(nugget)}."
-                ),
-            ):
-                _ = MogpHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
-
-    def test_init_checks_arg_values(self):
-        """A ValueError is raised upon initialisation if:
-
-        * the correlation is not a sequence / array of positive real numbers; or
-        * the covariance is not a positive real number; or
-        * the nugget is < 0 (if not None).
-        """
-
-        # correlations
-        bad_values = [[x] for x in self.nonreal_objects + self.nonpositive_reals]
-        for corr in bad_values:
-            with self.subTest(corr=corr), self.assertRaisesRegex(
-                ValueError,
-                exact(
-                    "Expected 'corr' to be a sequence or array of positive real numbers, "
-                    f"but found element {corr[0]} of type {type(corr[0])}."
-                ),
-            ):
-                _ = MogpHyperparameters(corr=corr, cov=1.0, nugget=1.0)
-
-        # covariance
-        for cov in self.nonpositive_reals:
-            with self.subTest(cov=cov), self.assertRaisesRegex(
-                ValueError,
-                exact(
-                    f"Expected 'cov' to be a positive real number, but received {cov}."
-                ),
-            ):
-                _ = MogpHyperparameters(corr=[1.0], cov=cov, nugget=1.0)
-
-        # nugget
-        for nugget in self.negative_reals:
-            with self.subTest(nugget=nugget), self.assertRaisesRegex(
-                ValueError,
-                exact(
-                    f"Expected 'nugget' to be a positive real number, but received {nugget}."
-                ),
-            ):
-                _ = MogpHyperparameters(corr=[1.0], cov=1.0, nugget=nugget)
-
-    def test_transformation_formulae(self):
-        """The transformed correlation is equal to `-2 * log(corr)`.
-        The transformed covariance is equal to `log(cov)`.
-        The transformed nugget is equal to `log(nugget)`."""
-
-        positive_reals = [0.1, 1, 10, np.float16(1.1)]
-        for x in positive_reals:
-            with self.subTest(hyperparameter="correlation", x=x):
-                transformation_func = self.hyperparameters["correlation"]["func"]
-                self.assertEqual(-2 * math.log(x), transformation_func(x))
-
-            with self.subTest(hyperparameter="covariance", x=x):
-                transformation_func = self.hyperparameters["covariance"]["func"]
-                self.assertEqual(math.log(x), transformation_func(x))
-
-            with self.subTest(hyperparameter="nugget", x=x):
-                transformation_func = self.hyperparameters["nugget"]["func"]
-                self.assertEqual(math.log(x), transformation_func(x))
-
-    def test_transformations_of_limit_values(self):
-        """The transformation functions handle limit values of their domains in the
-        following ways:
-
-        * For correlations, `inf` maps to `-inf` and `0` maps to `inf`.
-        * For covariances and nuggets, `inf` maps to `inf` and 0 maps to `-inf`.
-        """
-
-        with self.subTest(hyperparameter="correlation"):
-            transformation_func = self.hyperparameters["correlation"]["func"]
-            self.assertEqual(-math.inf, transformation_func(math.inf))
-            self.assertEqual(math.inf, transformation_func(0))
-
-        with self.subTest(hyperparameter="covariance"):
-            transformation_func = self.hyperparameters["covariance"]["func"]
-            self.assertEqual(math.inf, transformation_func(math.inf))
-            self.assertEqual(-math.inf, transformation_func(0))
-
-        with self.subTest(hyperparameter="nugget"):
-            transformation_func = self.hyperparameters["nugget"]["func"]
-            self.assertEqual(math.inf, transformation_func(math.inf))
-            self.assertEqual(-math.inf, transformation_func(0))
-
-    def test_transforms_non_real_arg_raises_type_error(self):
-        "A TypeError is raised if the argument supplied is not a real number."
-
-        for hyperparameter, x in itertools.product(
-            self.hyperparameters, self.nonreal_objects
-        ):
-            arg = self.hyperparameters[hyperparameter]["arg"]
-            transformation_func = self.hyperparameters[hyperparameter]["func"]
-            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
-                TypeError,
-                exact(f"Expected '{arg}' to be a real number, but received {type(x)}."),
-            ):
-                _ = transformation_func(x)
-
-    def test_transforms_with_nonpositive_value_raises_value_error(self):
-        "A ValueError is raised if the argument supplied is < 0."
-
-        for hyperparameter, x in itertools.product(
-            self.hyperparameters, self.negative_reals
-        ):
-            arg = self.hyperparameters[hyperparameter]["arg"]
-            transformation_func = self.hyperparameters[hyperparameter]["func"]
-            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
-                ValueError,
-                exact(f"'{arg}' cannot be < 0, but received {x}."),
-            ):
-                _ = transformation_func(x)
+        params1 = MogpHyperparameters([1], 1, 1)
+        params2 = GaussianProcessHyperparameters([1], 1, 1)
+        self.assertNotEqual(params1, params2)
+        self.assertNotEqual(params2, params1)
 
     def test_to_mogp_gp_params_type_error_if_nugget_type_not_str(self):
         """A TypeError is raised if the nugget type is not a string."""
@@ -739,19 +625,21 @@ class TestMogpHyperparameters(ExauqTestCase):
             _ = self.make_hyperparameters().to_mogp_gp_params(nugget_type="foo")
 
     def test_to_mogp_gp_params_always_copies_over_corr_and_cov(self):
-        """The correlation length parameters and covariance are copied over to the
-        returned GPParams object."""
+        """The correlation length scale parameters and process variance are copied over to
+        the returned GPParams object."""
 
         for corr, cov, nugget, nugget_type in itertools.product(
-            self.correlations, self.covariances, self.real_nuggets, self.nugget_types
+            self.correlations, self.variances, self.real_nuggets, self.nugget_types
         ):
             with self.subTest(corr=corr, cov=cov, nugget=nugget, nugget_type=nugget_type):
                 hyperparameters = self.make_hyperparameters(
                     corr=corr, cov=cov, nugget=nugget
                 )
                 params = hyperparameters.to_mogp_gp_params(nugget_type=nugget_type)
-                self.assertEqualWithinTolerance(params.corr, hyperparameters.corr)
-                self.assertEqualWithinTolerance(params.cov, hyperparameters.cov)
+                self.assertEqualWithinTolerance(
+                    params.corr, hyperparameters.corr_length_scales
+                )
+                self.assertEqualWithinTolerance(params.cov, hyperparameters.process_var)
 
     def test_to_mogp_gp_params_sets_nugget_when_type_fixed_or_fit(self):
         """When the `nugget_type` is one of 'fixed' or 'fit' and the nugget is defined as
@@ -798,7 +686,7 @@ class TestMogpHyperparameters(ExauqTestCase):
 
         nuggets = self.real_nuggets + [None]
         for corr, cov, nugget in itertools.product(
-            self.correlations, self.covariances, nuggets
+            self.correlations, self.variances, nuggets
         ):
             with self.subTest(corr=corr, cov=cov, nugget=nugget):
                 params = self.make_mogp_gp_params(corr, cov, nugget)
@@ -821,13 +709,13 @@ class TestMogpHyperparameters(ExauqTestCase):
 
     def test_from_mogp_gp_params_arg_corr_and_cov_must_not_be_none(self):
         """A ValueError is raised if the argument is a GPParams object with the
-        correlations and the covariance being None."""
+        correlations and the process variance being None."""
 
         with self.assertRaisesRegex(
             ValueError,
             exact(
-                "Cannot create hyperparameters with correlations and covariance equal to "
-                "None in 'params'."
+                "Cannot create hyperparameters with correlation length scales and process "
+                "variance equal to None in 'params'."
             ),
         ):
             params = self.make_mogp_gp_params(corr=None, cov=None, nugget=None)
