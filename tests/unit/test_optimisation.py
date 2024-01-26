@@ -8,6 +8,9 @@ from tests.utilities.utilities import ExauqTestCase, exact
 
 
 class TestMaximise(ExauqTestCase):
+    def setUp(self) -> None:
+        self.domain = SimulatorDomain([(0, 1)])
+
     def test_constraints_obeyed(self):
         """The input returned lies in the supplied domain."""
 
@@ -42,8 +45,6 @@ class TestMaximise(ExauqTestCase):
         args or does not return a real number. A TypeError is raised the supplied domain
         is not of type SimulatorDomain."""
 
-        domain = SimulatorDomain([(0, 1)])
-
         # Does not accept Numpy arrays as args
         def f(x: dict) -> float:
             return x["a"]
@@ -54,7 +55,7 @@ class TestMaximise(ExauqTestCase):
                 "Expected 'func' to be a callable that takes a 1-dim Numpy array as argument."
             ),
         ):
-            _ = maximise(f, domain)
+            _ = maximise(f, self.domain)
 
         # Returns non-real objects
         def f(x: np.ndarray):
@@ -69,7 +70,7 @@ class TestMaximise(ExauqTestCase):
                 f"it returns type {return_type}."
             ),
         ):
-            _ = maximise(f, domain)
+            _ = maximise(f, self.domain)
 
     def test_domain_type_error(self):
         """A TypeError is raised the supplied domain is not of type SimulatorDomain."""
@@ -86,8 +87,6 @@ class TestMaximise(ExauqTestCase):
     def test_failed_convergence_error(self):
         """A RuntimeError is raised if convergence failed in the maximisation."""
 
-        domain = SimulatorDomain([(0, 1)])
-
         def f(x):
             return x[0] if x[0] < 0.5 else float("inf")
 
@@ -95,7 +94,7 @@ class TestMaximise(ExauqTestCase):
             RuntimeError,
             "^Maximisation failed to converge: ",
         ):
-            _ = maximise(f, domain)
+            _ = maximise(f, self.domain)
 
 
 if __name__ == "__main__":
