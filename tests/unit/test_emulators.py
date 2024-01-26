@@ -281,8 +281,8 @@ class TestMogpEmulator(ExauqTestCase):
         emulator = MogpEmulator()
         training_data = TrainingDatum.list_from_arrays(self.inputs2, self.targets2)
         emulator.fit(training_data)
-        corr = emulator.fit_hyperparameters.corr
-        cov = emulator.fit_hyperparameters.cov
+        corr = emulator.fit_hyperparameters.corr_length_scales
+        cov = emulator.fit_hyperparameters.process_var
 
         # Create bounds based on open windows around the 'true' estimates.
         open_bounds = [
@@ -294,10 +294,13 @@ class TestMogpEmulator(ExauqTestCase):
             emulator.fit(training_data, hyperparameter_bounds=bounds)
 
             self.assertEqualWithinTolerance(
-                emulator.fit_hyperparameters.corr, corr, rel_tol=1e-5, abs_tol=1e-5
+                emulator.fit_hyperparameters.corr_length_scales,
+                corr,
+                rel_tol=1e-5,
+                abs_tol=1e-5,
             )
             self.assertEqualWithinTolerance(
-                emulator.fit_hyperparameters.cov, cov, rel_tol=1e-5, abs_tol=1e-5
+                emulator.fit_hyperparameters.process_var, cov, rel_tol=1e-5, abs_tol=1e-5
             )
 
     def test_fit_gp_kwargs(self):

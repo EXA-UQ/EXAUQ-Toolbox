@@ -370,7 +370,7 @@ class PEICalculator:
         ) + prediction.standard_deviation * norm(loc=0, scale=1).pdf(u)
 
     def repulsion(self, x: Union[Input, NDArray]) -> Real:
-        proc_var = self._gp.fit_hyperparameters.cov
+        proc_var = self._gp.fit_hyperparameters.process_var
         covariance_matrix = self._gp.covariance_matrix([x])
         correlations = np.array(covariance_matrix) / proc_var
         inputs_term = np.product(1 - correlations, axis=0)[0]
