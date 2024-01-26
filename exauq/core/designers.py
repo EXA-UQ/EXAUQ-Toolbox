@@ -352,12 +352,13 @@ class PEICalculator:
         self._other_repulsion_points = self._other_repulsion_points + (x,)
 
     def expected_improvement(self, x: Union[Input, NDArray]) -> float:
-
         # ToDo:- Overload AbstractGaussianProcess.predict
         if isinstance(x, np.ndarray):
-            prediction = self._gp.predict(Input(x))
-        else:
+            prediction = self._gp.predict(Input(*x))
+        elif isinstance(x, Input):
             prediction = self._gp.predict(x)
+        else:
+            raise TypeError
 
         if equal_within_tolerance(prediction.standard_deviation, 0):
             return 0.0
@@ -388,6 +389,7 @@ def compute_single_level_loo_samples(
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> tuple[Input]:
     gp_e = compute_loo_errors_gp(gp, domain)
+    pei = PEICalculator(domain, gp_e)
 
     # TODO: correct the implementation to iteratively use updated PEI function
-    return (maximise(lambda x: pei(x, gp_e), domain),) * batch_size
+    return (maximise(lambda x: pei.compute(x), domain),) * batch_size

@@ -132,7 +132,7 @@ class TestMogpEmulator(ExauqTestCase):
                 np.array(list(x1)),
                 np.array(list(x2)),
                 corr_raw,
-            )
+            )[0, 0]
 
         inputs1 = [Input(1, 1), Input(2, 2), Input(3, 3)]
         inputs2 = [Input(10, 10), Input(20, 20)]
