@@ -10,6 +10,7 @@ from tests.utilities.utilities import ExauqTestCase, exact
 class TestMaximise(ExauqTestCase):
     def setUp(self) -> None:
         self.domain = SimulatorDomain([(0, 1)])
+        self.seed = 1
 
     def test_constraints_obeyed(self):
         """The input returned lies in the supplied domain."""
@@ -36,7 +37,7 @@ class TestMaximise(ExauqTestCase):
             return -float(x + np.sqrt(2) * np.sin(x))
 
         domain = SimulatorDomain([(2, 100)])
-        x = maximise(f, domain)
+        x = maximise(f, domain, seed=self.seed)
         argmax = Input(5 * np.pi / 4)
         self.assertEqualWithinTolerance(argmax, x, rel_tol=1e-5)
 
@@ -46,9 +47,8 @@ class TestMaximise(ExauqTestCase):
         def f(x: np.ndarray) -> float:
             return float(np.sin(1 / x)) if float(x) > 0 else 0
 
-        seed = 1
-        x1 = maximise(f, self.domain, seed=seed)
-        x2 = maximise(f, self.domain, seed=seed)
+        x1 = maximise(f, self.domain, seed=self.seed)
+        x2 = maximise(f, self.domain, seed=self.seed)
 
         # Take .value to return a float and test for exact equality
         self.assertEqual(x1.value, x2.value)
@@ -107,7 +107,7 @@ class TestMaximise(ExauqTestCase):
             RuntimeError,
             "^Maximisation failed to converge: ",
         ):
-            _ = maximise(f, self.domain)
+            _ = maximise(f, self.domain, seed=self.seed)
 
 
 if __name__ == "__main__":
