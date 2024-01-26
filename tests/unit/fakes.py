@@ -9,8 +9,8 @@ from typing import Optional
 from exauq.core.hardware import HardwareInterface
 from exauq.core.modelling import (
     AbstractGaussianProcess,
-    AbstractHyperparameters,
     AbstractSimulator,
+    GaussianProcessHyperparameters,
     Input,
     OptionalFloatPairs,
     Prediction,
@@ -108,7 +108,7 @@ class FakeGP(AbstractGaussianProcess):
 
         self._training_data = tuple(training_data)
         self._predictive_variance = (
-            hyperparameters.cov if hyperparameters is not None else 1
+            hyperparameters.process_var if hyperparameters is not None else 1
         )
         self._fit_hyperparameters = hyperparameters
         self._hyperparameter_bounds = (
@@ -166,8 +166,11 @@ class FakeGP(AbstractGaussianProcess):
 
 
 @dataclasses.dataclass(frozen=True)
-class FakeGPHyperparameters(AbstractHyperparameters):
-    cov: float
+class FakeGPHyperparameters(GaussianProcessHyperparameters):
+    # Override superclass __post_init__ to disable arg validation. This allows for
+    # creating hyperparameter values that can test edge cases.
+    def __post_init__(self):
+        pass
 
 
 class OneDimSimulator(AbstractSimulator):
