@@ -5,6 +5,7 @@ from numbers import Real
 from typing import Optional, Union
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy.stats import norm
 
 from exauq.core.modelling import (
@@ -384,6 +385,7 @@ def compute_single_level_loo_samples(
     batch_size: int = 1,
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> tuple[Input]:
-    gp_e = compute_loo_errors_gp(gp)
+    gp_e = compute_loo_errors_gp(gp, domain)
 
-    return maximise(lambda x: pei(x, gp_e), domain)
+    # TODO: correct the implementation to iteratively use updated PEI function
+    return (maximise(lambda x: pei(x, gp_e), domain),) * batch_size
