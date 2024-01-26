@@ -8,6 +8,7 @@ from exauq.core.designers import (
     SingleLevelAdaptiveSampler,
     compute_loo_errors_gp,
     compute_loo_gp,
+    compute_single_level_loo_samples,
 )
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
@@ -482,6 +483,51 @@ class TestComputeLooGp(ExauqTestCase):
         loo_gp = compute_loo_gp(gp, leave_out_idx=0)
 
         self.assertNotEqual(id(loo_gp.foo), id(gp.foo))
+
+
+class TestComputeSingleLevelLooSamples(ExauqTestCase):
+    def test_number_of_new_design_points_matches_batch_number(self):
+        """The number of new design points returned is equal to the supplied batch
+        number."""
+
+        domain = SimulatorDomain([(0, 1)])
+        gp = MogpEmulator()
+        gp.fit(
+            [
+                TrainingDatum(Input(0.1), 1),
+                TrainingDatum(Input(0.3), 2),
+                TrainingDatum(Input(0.5), 3),
+                TrainingDatum(Input(0.7), 4),
+                TrainingDatum(Input(0.9), 5),
+            ]
+        )
+
+        for batch_size in [1, 2, 3]:
+            with self.subTest(batch_size=batch_size):
+                design_pts = compute_single_level_loo_samples(
+                    gp, domain, batch_size=batch_size
+                )
+                self.assertEqual(batch_size, len(design_pts))
+
+    @unittest.skip("Functionality not implemented yet")
+    def test_new_design_points_differ_in_batch(self):
+        """A batch of new design points consists of Input objects that are likely all
+        distinct."""
+
+        domain = SimulatorDomain([(0, 1)])
+        gp = MogpEmulator()
+        gp.fit(
+            [
+                TrainingDatum(Input(0.1), 1),
+                TrainingDatum(Input(0.3), 2),
+                TrainingDatum(Input(0.5), 3),
+                TrainingDatum(Input(0.7), 4),
+                TrainingDatum(Input(0.9), 5),
+            ]
+        )
+
+        design_pts = compute_single_level_loo_samples(gp, domain, batch_size=2)
+        self.assertFalse(equal_within_tolerance(design_pts[0], design_pts[1]))
 
 
 if __name__ == "__main__":

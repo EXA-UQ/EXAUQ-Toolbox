@@ -168,7 +168,6 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Raises
         ------
-
         ValueError
             If `hyperparameters` is provided with nugget being ``None`` but `self.gp`
             was created with nugget fitting method 'fit'.
@@ -293,17 +292,25 @@ class MogpEmulator(AbstractGaussianProcess):
         # to max of correlation and vice-versa).
         raw_bounds = [
             (
-                MogpHyperparameters.transform_corr(bnd[1]),
-                MogpHyperparameters.transform_corr(bnd[0]),
+                MogpEmulator._transform_corr(bnd[1]),
+                MogpEmulator._transform_corr(bnd[0]),
             )
             for bnd in bounds[:-1]
         ] + [
             (
-                MogpHyperparameters.transform_cov(bounds[-1][0]),
-                MogpHyperparameters.transform_cov(bounds[-1][1]),
+                MogpEmulator._transform_cov(bounds[-1][0]),
+                MogpEmulator._transform_cov(bounds[-1][1]),
             )
         ]
         return tuple(raw_bounds)
+
+    @staticmethod
+    def _transform_corr(corr: Optional[Real]) -> Optional[Real]:
+        return MogpHyperparameters.transform_corr(corr) if corr is not None else None
+
+    @staticmethod
+    def _transform_cov(cov: Optional[Real]) -> Optional[Real]:
+        return MogpHyperparameters.transform_cov(cov) if cov is not None else None
 
     def correlation(
         self, inputs1: Sequence[Input], inputs2: Sequence[Input]
