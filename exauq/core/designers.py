@@ -375,11 +375,11 @@ class PEICalculator:
         flattened_correlations = correlations.flatten()
         inputs_term = np.product(1 - flattened_correlations, axis=0)
 
-        pseudopoints_term = np.product(
+        other_repulsion_pts_term = np.product(
             1 - np.array(self._gp.correlation([x], self._other_repulsion_points)), axis=1
         )
 
-        return inputs_term * pseudopoints_term.flatten()[0]
+        return inputs_term * other_repulsion_pts_term.flatten()[0]
 
 
 def compute_single_level_loo_samples(
