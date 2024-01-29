@@ -328,9 +328,15 @@ class PEICalculator:
         :param gp: An instance of AbstractGaussianProcess, representing the Gaussian process model.
         """
         if not isinstance(domain, SimulatorDomain):
-            raise TypeError("domain must be an instance of SimulatorDomain")
+            raise TypeError(
+                f"Expected 'domain' to be of type SimulatorDomain, but received {type(domain)} "
+                "instead."
+            )
         if not isinstance(gp, AbstractGaussianProcess):
-            raise TypeError("gp must be an instance of AbstractGaussianProcess")
+            raise TypeError(
+                f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(gp)} "
+                "instead."
+            )
 
         self._domain = domain  # Check domain
         self._gp = gp  # Check gp
