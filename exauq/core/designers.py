@@ -346,6 +346,8 @@ class PEICalculator:
         self._max_targets = self._calculate_max_targets()
         self._other_repulsion_points = self._calculate_pseudopoints()
 
+        self._standard_norm = norm(loc=0, scale=1)
+
     def _calculate_max_targets(self) -> Real:
         return max(self._gp.training_data, key=lambda datum: datum.output).output
 
@@ -391,9 +393,12 @@ class PEICalculator:
 
         u = (prediction.estimate - self._max_targets) / prediction.standard_deviation
 
-        return (prediction.estimate - self._max_targets) * norm(loc=0, scale=1).cdf(
-            u
-        ) + prediction.standard_deviation * norm(loc=0, scale=1).pdf(u)
+        cdf_u = self._standard_norm.cdf(u)
+        pdf_u = self._standard_norm.pdf(u)
+
+        return (
+            prediction.estimate - self._max_targets
+        ) * cdf_u + prediction.standard_deviation * pdf_u
 
     def repulsion(self, x: Union[Input, NDArray]) -> Real:
         if isinstance(x, np.ndarray):
