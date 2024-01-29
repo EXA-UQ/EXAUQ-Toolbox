@@ -398,7 +398,9 @@ class PEICalculator:
         self._other_repulsion_points = self._other_repulsion_points + (validated_x,)
 
     def expected_improvement(self, x: Union[Input, NDArray]) -> Real:
-        validated_x = self._validate_input_type(x, (Input, np.ndarray), "expected_improvement")
+        validated_x = self._validate_input_type(
+            x, (Input, np.ndarray), "expected_improvement"
+        )
         prediction = self._gp.predict(validated_x)
 
         if equal_within_tolerance(prediction.standard_deviation, 0):
