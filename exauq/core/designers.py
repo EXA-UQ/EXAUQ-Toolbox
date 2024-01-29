@@ -396,6 +396,14 @@ class PEICalculator:
         ) + prediction.standard_deviation * norm(loc=0, scale=1).pdf(u)
 
     def repulsion(self, x: Union[Input, NDArray]) -> Real:
+        if isinstance(x, np.ndarray):
+            x = Input(x)
+        elif not isinstance(x, Input):
+            raise TypeError(
+                f"Expected 'x' to be of type Input or NDArray, but received {type(x)} "
+                "instead."
+            )
+
         proc_var = self._gp.fit_hyperparameters.process_var
         covariance_matrix = self._gp.covariance_matrix([x])
         correlations = np.array(covariance_matrix) / proc_var
