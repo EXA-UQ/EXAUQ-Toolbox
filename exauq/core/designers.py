@@ -419,7 +419,7 @@ class PEICalculator:
     ) -> Input:
         if not isinstance(x, expected_types):
             raise TypeError(
-                f"In method '{method_name}', expected 'x' to be of types {expected_types}, "
+                f"In method '{method_name}', expected 'x' to be one of the types {expected_types}, "
                 f"but received {type(x)} instead."
             )
 
