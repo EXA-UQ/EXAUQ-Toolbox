@@ -321,7 +321,7 @@ def compute_loo_gp(
 
 class PEICalculator:
     """
-    A calculator for PseudoExpected Improvement (PEI) in Gaussian Process-based optimisation.
+    A calculator of pseudo-expected improvement (PEI) for Gaussian processes.
 
     This class computes the PEI for given inputs in a simulation domain, integrating both
     expected improvement and repulsion factors. It's designed to aid in balancing exploration
