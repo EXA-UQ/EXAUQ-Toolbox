@@ -320,13 +320,58 @@ def compute_loo_gp(
 
 
 class PEICalculator:
-    def __init__(self, domain: SimulatorDomain, gp: AbstractGaussianProcess):
-        """
-        Initialises the PEI (PseudoExpected Improvement) Calculator.
+    """
+    A calculator for PseudoExpected Improvement (PEI) in Gaussian Process-based optimisation.
 
-        :param domain: An instance of SimulatorDomain, representing the domain of simulation.
-        :param gp: An instance of AbstractGaussianProcess, representing the Gaussian process model.
-        """
+    This class computes the PEI for given inputs in a simulation domain, integrating both
+    expected improvement and repulsion factors. It's designed to aid in balancing exploration
+    and exploitation in optimisation problems where the objective function is expensive to evaluate.
+
+    Parameters
+    ----------
+    domain : SimulatorDomain
+        An instance of SimulatorDomain, representing the domain of the simulation.
+    gp : AbstractGaussianProcess
+        An instance of AbstractGaussianProcess, representing the Gaussian process model.
+
+    Attributes
+    ----------
+    _domain : SimulatorDomain
+        The simulation domain.
+    _gp : AbstractGaussianProcess
+        The Gaussian Process model used for predictions.
+    _max_targets : Real
+        The maximum target value from the training data of the Gaussian Process.
+    _other_repulsion_points : tuple[Input]
+        Points used for calculating the repulsion effect.
+    _standard_norm : scipy.stats._distn_infrastructure.rv_continuous_frozen
+        A standard normal distribution object used for statistical computations.
+
+    Methods
+    -------
+    compute(x)
+        Compute the PEI for a given input.
+    add_repulsion_point(x)
+        Add a new point to the set of repulsion points.
+    expected_improvement(x)
+        Calculate the expected improvement for a given input.
+    repulsion(x)
+        Compute the repulsion effect for a given input.
+
+    Examples
+    --------
+    >>> domain = SimulatorDomain(...)
+    >>> gp_model = AbstractGaussianProcess(...)
+    >>> pei_calculator = PEICalculator(domain, gp_model)
+    >>> pei_value = pei_calculator.compute(trial_point)
+
+    Notes
+    -----
+    This class is tailored for Gaussian Process models and assumes properly initialised
+    `AbstractGaussianProcess` and `SimulatorDomain` instances.
+    """
+
+    def __init__(self, domain: SimulatorDomain, gp: AbstractGaussianProcess):
         if not isinstance(domain, SimulatorDomain):
             raise TypeError(
                 f"Expected 'domain' to be of type SimulatorDomain, but received {type(domain)} "
