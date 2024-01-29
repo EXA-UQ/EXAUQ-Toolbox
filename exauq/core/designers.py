@@ -387,7 +387,7 @@ def compute_single_level_loo_samples(
     batch_size: int = 1,
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> tuple[Input]:
-    gp_e = compute_loo_errors_gp(gp, domain)
+    gp_e = compute_loo_errors_gp(gp, domain, gp_for_errors=loo_errors_gp)
     pei = PEICalculator(domain, gp_e)
 
     design_points = []

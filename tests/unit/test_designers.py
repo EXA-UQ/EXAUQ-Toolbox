@@ -2,6 +2,7 @@ import copy
 import itertools
 import math
 import unittest
+import unittest.mock
 
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
@@ -570,6 +571,26 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         gp.fit(training_data)
         design_pts = compute_single_level_loo_samples(gp, domain, batch_size=3)
         self.assertTrue(all(design_pt in domain for design_pt in design_pts))
+
+    def test_use_supplied_loo_gp(self):
+        """If an AbstractGaussianProcess is supplied to use for the LOO errors GP, then
+        this is indeed used for the LOO errors GP."""
+
+        loo_errors_gp = MogpEmulator()
+
+        # Create a LOO errors GP to be returned by the mocked call of
+        # compute_loo_errors_gp
+        gp_e = compute_loo_errors_gp(self.gp, self.domain)
+
+        with unittest.mock.patch(
+            "exauq.core.designers.compute_loo_errors_gp", return_value=gp_e
+        ) as mock:
+            _ = compute_single_level_loo_samples(
+                self.gp, self.domain, batch_size=1, loo_errors_gp=loo_errors_gp
+            )
+            mock.assert_called_once_with(
+                self.gp, self.domain, gp_for_errors=loo_errors_gp
+            )
 
 
 if __name__ == "__main__":
