@@ -323,12 +323,6 @@ class PEICalculator:
     """
     A calculator of pseudo-expected improvement (PEI) for Gaussian processes.
 
-    This class computes the PEI for given inputs in a simulation domain, which features both
-    expected improvement and a repulsion factor. Large values of pseudo-expected improvement
-    indicate new inputs that reduce predictive uncertainty while not being too close to
-    already-seen inputs. Optimising against PEI supports the search of experimental designs
-    that balances exploration and exploitation of the input space.
-
     Parameters
     ----------
     domain : SimulatorDomain
@@ -369,6 +363,12 @@ class PEICalculator:
 
     Notes
     -----
+    It computes the PEI for given inputs in a simulation domain, which features both expected
+    improvement and a repulsion factor. Large values of pseudo-expected improvement indicate new
+    inputs that reduce predictive uncertainty while not being too close to already-seen inputs.
+    Optimising against PEI supports the search of experimental designs that balances exploration
+    and exploitation of the input space.
+
     This class is tailored for Gaussian Process models and assumes properly initialised
     `AbstractGaussianProcess` and `SimulatorDomain` instances.
     """
