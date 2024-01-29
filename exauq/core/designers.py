@@ -340,6 +340,9 @@ class PEICalculator:
 
         self._domain = domain
         self._gp = gp
+
+        self._validate_training_data()
+
         self._max_targets = self._calculate_max_targets()
         self._other_repulsion_points = self._calculate_pseudopoints()
 
@@ -349,6 +352,15 @@ class PEICalculator:
     def _calculate_pseudopoints(self) -> tuple[Input]:
         training_data = [datum.input for datum in self._gp.training_data]
         return self._domain.calculate_pseudopoints(training_data)
+
+    def _validate_training_data(self):
+        if not self._gp.training_data:
+            raise ValueError("'gp' training data is empty.")
+
+        if not all(isinstance(datum, TrainingDatum) for datum in self._gp.training_data):
+            raise TypeError(
+                "All elements in 'gp' training data must be instances of TrainingDatum"
+            )
 
     def compute(self, x: Union[Input, NDArray]) -> float:
         """
