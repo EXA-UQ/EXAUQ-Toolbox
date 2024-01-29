@@ -2,7 +2,7 @@ import copy
 import math
 from collections.abc import Collection
 from numbers import Real
-from typing import Optional, Union
+from typing import Any, Optional, Type, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -363,6 +363,24 @@ class PEICalculator:
             raise TypeError(
                 "All elements in 'gp' training data must be instances of TrainingDatum"
             )
+
+    def _validate_input_type(
+        self, x: Any, expected_types: tuple[Type, ...], method_name: str
+    ) -> Input:
+        if not isinstance(x, expected_types):
+            raise TypeError(
+                f"In method '{method_name}', expected 'x' to be of types {expected_types}, "
+                f"but received {type(x)} instead."
+            )
+
+        if isinstance(x, np.ndarray):
+            if x.ndim != 1:
+                raise ValueError(
+                    f"In method '{method_name}', the numpy ndarray 'x' must be one-dimensional."
+                )
+            return Input(*x)
+
+        return x
 
     def compute(self, x: Union[Input, NDArray]) -> float:
         """
