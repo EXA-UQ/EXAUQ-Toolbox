@@ -191,9 +191,8 @@ def compute_loo_errors_gp(
 
     Notes
     -----
-    The lower bound on the correlation length scale parameters is obtained by scaling
-    the value ``sqrt(-0.5 / log(10 ** (-8)))``, for each dimension of the simulator
-    domain, from the unit interval [0, 1] to the interval of the corresponding dimension.
+    The lower bounds on the correlation length scale parameters are obtained by
+    multiplying the lengths of the domain's dimensions by ``sqrt(-0.5 / log(10 ** (-8)))``.
     """
 
     if not isinstance(gp, AbstractGaussianProcess):
@@ -233,8 +232,8 @@ def compute_loo_errors_gp(
     gp_e = gp_for_errors if gp_for_errors is not None else copy.deepcopy(gp)
 
     # Note: the following is a simplification of sqrt(-0.5 / log(10 ** (-8))) from paper
-    CORR_BOUND = 0.25 / math.sqrt(math.log(10))
-    bounds = [(bnd, None) for bnd in domain.scale([CORR_BOUND] * domain.dim)] + [
+    bound_scale = 0.25 / math.sqrt(math.log(10))
+    bounds = [(bound_scale * (bnd[1] - bnd[0]), None) for bnd in domain.bounds] + [
         (None, None)
     ]
     gp_e.fit(error_training_data, hyperparameter_bounds=bounds)

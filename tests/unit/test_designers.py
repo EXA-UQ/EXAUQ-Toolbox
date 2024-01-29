@@ -290,31 +290,36 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         """The leave-one-out errors GP is trained under constrained estimation of the
         correlation length scale hyperparameters."""
 
+        domain = SimulatorDomain([(-1, 2.5), (0, 2)])
         training_data = [
             TrainingDatum(Input(0, 0), 1),
-            TrainingDatum(Input(-1, 1), 2),
+            TrainingDatum(Input(2.1, 1), 1),
+            TrainingDatum(Input(-1, 1.5), 1),
+            TrainingDatum(Input(-0.3, 0.4), 1),
+            TrainingDatum(Input(-0.2, 0.9), 1),
         ]
         gp = fakes.FakeGP()
         gp.fit(training_data)
 
-        domain = SimulatorDomain([(-1, 1), (0, 1)])
         loo_gp = fakes.FakeGP()
         loo_gp = compute_loo_errors_gp(gp, domain, gp_for_errors=fakes.FakeGP())
 
-        CORR_BOUND = math.sqrt(-0.5 / math.log(10 ** (-8)))
+        scale_factor = math.sqrt(-0.5 / math.log(10 ** (-8)))
+        domain_side_lengths = [
+            domain.bounds[0][1] - domain.bounds[0][0],  # first dim
+            domain.bounds[1][1] - domain.bounds[1][0],  # second dim
+        ]
         expected_corr_bounds = [
-            (bnd, None) for bnd in domain.scale((CORR_BOUND, CORR_BOUND))
-        ] + [
-            (None, None)
+            (scale_factor * length, None) for length in domain_side_lengths
         ]  # last entry for the predictive variance
 
-        self.assertEqual(len(expected_corr_bounds), len(loo_gp.hyperparameter_bounds))
+        self.assertEqual(len(expected_corr_bounds) + 1, len(loo_gp.hyperparameter_bounds))
         self.assertEqual((None, None), loo_gp.hyperparameter_bounds[-1])
         self.assertTrue(
             all(
                 equal_within_tolerance(expected[0], actual[0]) and actual[1] is None
                 for expected, actual in zip(
-                    expected_corr_bounds[:-1], loo_gp.hyperparameter_bounds[:-1]
+                    expected_corr_bounds, loo_gp.hyperparameter_bounds[:-1]
                 )
             )
         )
