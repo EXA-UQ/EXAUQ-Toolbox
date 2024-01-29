@@ -369,7 +369,10 @@ class PEICalculator:
         elif isinstance(x, Input):
             prediction = self._gp.predict(x)
         else:
-            raise TypeError
+            raise TypeError(
+                f"Expected 'x' to be of type Input or NDArray, but received {type(x)} "
+                "instead."
+            )
 
         if equal_within_tolerance(prediction.standard_deviation, 0):
             return 0.0
