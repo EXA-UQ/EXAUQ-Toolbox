@@ -338,8 +338,8 @@ class PEICalculator:
                 "instead."
             )
 
-        self._domain = domain  # Check domain
-        self._gp = gp  # Check gp
+        self._domain = domain
+        self._gp = gp
         self._max_targets = self._calculate_max_targets()
         self._other_repulsion_points = self._calculate_pseudopoints()
 
