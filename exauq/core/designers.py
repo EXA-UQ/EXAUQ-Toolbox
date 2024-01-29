@@ -429,11 +429,49 @@ class PEICalculator:
 
     def compute(self, x: Union[Input, NDArray]) -> Real:
         """
-        Computes the PEI based on the given input.
+        Compute the PseudoExpected Improvement (PEI) for a given input.
 
-        :param x: An instance of Input, representing the input data.
-        :return: A float value representing the computed PEI.
+        This method calculates the PEI at a given point `x` by combining the expected improvement
+        (EI) and the repulsion factor. The PEI is a metric used in Bayesian optimisation to balance
+        exploration and exploitation, taking into account both the potential improvement over the
+        current best target and the desire to explore less sampled regions of the domain.
+
+        Parameters
+        ----------
+        x : Union[Input, NDArray]
+            The input point for which to compute the PEI. This can be an instance of `Input` or
+            a one-dimensional `numpy.ndarray`.
+
+        Returns
+        -------
+        Real
+            The computed PEI value for the given input. It is the product of the expected improvement
+            and the repulsion factor.
+
+        Raises
+        ------
+        TypeError
+            If `x` is not an instance of `Input` or `numpy.ndarray`, or if `numpy.ndarray` is not one-dimensional.
+        ValueError
+            If `x` as `numpy.ndarray` is not one-dimensional.
+
+        Examples
+        --------
+        >>> input_point = Input(2.0, 3.0)
+        >>> pei = pei_calculator.compute(input_point)
+
+        >>> array_input = np.array([2.0, 3.0])
+        >>> pei = pei_calculator.compute(array_input)
+
+        Notes
+        -----
+        The PEI is a product of two components: expected improvement, which quantifies the
+        potential for improvement over the current maximum, and the repulsion factor, which
+        discourages the selection of points near already sampled locations. This calculation
+        assumes that the Gaussian Process model and other components of the system are properly
+        initialised and configured.
         """
+
         return self.expected_improvement(x) * self.repulsion(x)
 
     def add_repulsion_point(self, x: Union[Input, NDArray]) -> None:
