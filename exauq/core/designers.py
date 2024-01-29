@@ -409,9 +409,10 @@ class PEICalculator:
                 "instead."
             )
 
-        proc_var = self._gp.fit_hyperparameters.process_var
         covariance_matrix = self._gp.covariance_matrix([x])
-        correlations = np.array(covariance_matrix) / proc_var
+        correlations = (
+            np.array(covariance_matrix) / self._gp.fit_hyperparameters.process_var
+        )
         inputs_term = np.product(1 - correlations, axis=0)[0]
 
         other_repulsion_pts_term = np.product(
