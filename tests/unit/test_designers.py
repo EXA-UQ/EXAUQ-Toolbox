@@ -202,9 +202,9 @@ class TestComputeLooErrorsGp(ExauqTestCase):
 
         with self.assertRaisesRegex(
             TypeError,
-            f"Expected 'gp_for_errors' to be None or of type AbstractGaussianProcess, but received {type(arg)} instead.",
+            f"Expected 'loo_errors_gp' to be None or of type AbstractGaussianProcess, but received {type(arg)} instead.",
         ):
-            _ = compute_loo_errors_gp(self.gp, self.domain, gp_for_errors=arg)
+            _ = compute_loo_errors_gp(self.gp, self.domain, loo_errors_gp=arg)
 
     def test_compute_loo_errors_domain_wrong_dim_error(self):
         """A ValueError is raised if the supplied domain's dimension does not agree with
@@ -259,7 +259,7 @@ class TestComputeLooErrorsGp(ExauqTestCase):
 
         other_gp = fakes.FakeGP(predictive_mean=99)
         loo_errors_gp = compute_loo_errors_gp(
-            self.gp, self.domain, gp_for_errors=other_gp
+            self.gp, self.domain, loo_errors_gp=other_gp
         )
 
         self.assertEqual(other_gp.predictive_mean, loo_errors_gp.predictive_mean)
@@ -281,7 +281,7 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         # Case where another GP is supplied for training
         other_gp = fakes.FakeGP(predictive_mean=99)
         loo_errors_gp = compute_loo_errors_gp(
-            self.gp, self.domain, gp_for_errors=other_gp
+            self.gp, self.domain, loo_errors_gp=other_gp
         )
         self.assertNotEqual(id(self.gp), id(loo_errors_gp))
         self.assertEqual(training_data, self.gp.training_data)
@@ -303,7 +303,7 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         gp.fit(training_data)
 
         loo_gp = fakes.FakeGP()
-        loo_gp = compute_loo_errors_gp(gp, domain, gp_for_errors=fakes.FakeGP())
+        loo_gp = compute_loo_errors_gp(gp, domain, loo_errors_gp=fakes.FakeGP())
 
         scale_factor = math.sqrt(-0.5 / math.log(10 ** (-8)))
         domain_side_lengths = [
@@ -589,7 +589,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
                 self.gp, self.domain, batch_size=1, loo_errors_gp=loo_errors_gp
             )
             mock.assert_called_once_with(
-                self.gp, self.domain, gp_for_errors=loo_errors_gp
+                self.gp, self.domain, loo_errors_gp=loo_errors_gp
             )
 
 

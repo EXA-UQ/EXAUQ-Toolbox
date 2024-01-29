@@ -145,7 +145,7 @@ class SingleLevelAdaptiveSampler:
 def compute_loo_errors_gp(
     gp: AbstractGaussianProcess,
     domain: SimulatorDomain,
-    gp_for_errors: Optional[AbstractGaussianProcess] = None,
+    loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> AbstractGaussianProcess:
     """Calculate a Gaussian process trained on normalised expected squared leave-one-out
     (LOO) errors.
@@ -172,7 +172,7 @@ def compute_loo_errors_gp(
     domain : SimulatorDomain
         The domain of a simulator that the Gaussian process `gp` emulates. The data on
         which `gp` is trained are expected to have simulator inputs only from this domain.
-    gp_for_errors : Optional[AbstractGaussianProcess], optional
+    loo_errors_gp : Optional[AbstractGaussianProcess], optional
         (Default: None) Another Gaussian process that is trained on the LOO errors to
         create the output to this function. If ``None`` then a deep copy of `gp` will
         be used instead.
@@ -181,7 +181,7 @@ def compute_loo_errors_gp(
     -------
     AbstractGaussianProcess
         A Gaussian process that is trained on the normalised expected square LOO errors
-        of `gp`. If `gp_for_errors` was supplied then (a reference to) this object will be
+        of `gp`. If `loo_errors_gp` was supplied then (a reference to) this object will be
         returned (except now it has been fit to the LOO errors).
 
     Raises
@@ -213,10 +213,10 @@ def compute_loo_errors_gp(
             "this is not the case."
         )
 
-    if not (gp_for_errors is None or isinstance(gp_for_errors, AbstractGaussianProcess)):
+    if not (loo_errors_gp is None or isinstance(loo_errors_gp, AbstractGaussianProcess)):
         raise TypeError(
-            "Expected 'gp_for_errors' to be None or of type AbstractGaussianProcess, but "
-            f"received {type(gp_for_errors)} instead."
+            "Expected 'loo_errors_gp' to be None or of type AbstractGaussianProcess, but "
+            f"received {type(loo_errors_gp)} instead."
         )
 
     error_training_data = []
@@ -229,7 +229,7 @@ def compute_loo_errors_gp(
         nes_loo_error = loo_gp.nes_error(datum.input, datum.output)
         error_training_data.append(TrainingDatum(datum.input, nes_loo_error))
 
-    gp_e = gp_for_errors if gp_for_errors is not None else copy.deepcopy(gp)
+    gp_e = loo_errors_gp if loo_errors_gp is not None else copy.deepcopy(gp)
 
     # Note: the following is a simplification of sqrt(-0.5 / log(10 ** (-8))) from paper
     bound_scale = 0.25 / math.sqrt(math.log(10))
@@ -387,7 +387,7 @@ def compute_single_level_loo_samples(
     batch_size: int = 1,
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> tuple[Input]:
-    gp_e = compute_loo_errors_gp(gp, domain, gp_for_errors=loo_errors_gp)
+    gp_e = compute_loo_errors_gp(gp, domain, loo_errors_gp=loo_errors_gp)
     pei = PEICalculator(domain, gp_e)
 
     design_points = []
