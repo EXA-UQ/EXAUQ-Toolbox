@@ -387,7 +387,21 @@ def compute_single_level_loo_samples(
     batch_size: int = 1,
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> tuple[Input]:
-    gp_e = compute_loo_errors_gp(gp, domain, loo_errors_gp=loo_errors_gp)
+    if not isinstance(batch_size, int):
+        raise TypeError(
+            f"Expected 'batch_size' to be an integer, but received {type(batch_size)} instead."
+        )
+
+    if batch_size < 1:
+        raise ValueError(
+            f"Expected batch size to be a positive integer, but received {batch_size} instead."
+        )
+
+    try:
+        gp_e = compute_loo_errors_gp(gp, domain, loo_errors_gp=loo_errors_gp)
+    except (TypeError, ValueError) as e:
+        raise e from None
+
     pei = PEICalculator(domain, gp_e)
 
     design_points = []

@@ -519,6 +519,73 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         # underlying optimsation. The following value was chosen by trial-and-error.
         self.tolerance = 1e-3
 
+    def test_arg_type_errors(self):
+        """A TypeError is raised if any of the following hold:
+
+        * The input GP is not of type AbstractGaussianProcess.
+        * The domain is not of type SimulatorDomain.
+        * The batch size is not an integer.
+        * The supplied LOO errors GP is not None or of type AbstractGaussianProcess.
+        """
+
+        arg = "a"
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(arg)} instead."
+            ),
+        ):
+            _ = compute_single_level_loo_samples(arg, self.domain)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'domain' to be of type SimulatorDomain, but received {type(arg)} instead."
+            ),
+        ):
+            _ = compute_single_level_loo_samples(self.gp, arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'loo_errors_gp' to be None or of type AbstractGaussianProcess, but received {type(arg)} instead."
+            ),
+        ):
+            _ = compute_single_level_loo_samples(self.gp, self.domain, loo_errors_gp=arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'batch_size' to be an integer, but received {type(arg)} instead."
+            ),
+        ):
+            _ = compute_single_level_loo_samples(self.gp, self.domain, batch_size=arg)
+
+    def test_domain_wrong_dim_error(self):
+        """A ValueError is raised if the supplied domain's dimension does not agree with
+        the dimension of the inputs in the GP's training data."""
+
+        domain_2dim = SimulatorDomain([(0, 1), (0, 1)])
+        with self.assertRaisesRegex(
+            ValueError,
+            "Expected all training inputs in 'gp' to belong to the domain 'domain', but this is not the case.",
+        ):
+            _ = compute_single_level_loo_samples(self.gp, domain_2dim)
+
+    def test_non_positive_batch_size_error(self):
+        """A ValueError is raised if the batch size is not a positive integer."""
+
+        for batch_size in [0, -1]:
+            with self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected batch size to be a positive integer, but received {batch_size} instead."
+                ),
+            ):
+                _ = compute_single_level_loo_samples(
+                    self.gp, self.domain, batch_size=batch_size
+                )
+
     def test_number_of_new_design_points_matches_batch_number(self):
         """The number of new design points returned is equal to the supplied batch
         number."""
