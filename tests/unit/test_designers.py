@@ -505,6 +505,14 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         self.gp = MogpEmulator()
         self.gp.fit(self.training_data)
 
+        # A GP to return when mocking the calculation of the LOO errors GP. Uses training
+        # data with the same inputs as self.gp
+        self.gp_e = MogpEmulator()
+        self.training_data2 = [
+            TrainingDatum(datum.input, 0.1) for datum in self.training_data
+        ]
+        self.gp_e.fit(self.training_data2)
+
         # Tolerance for checking equality of new design points. Needs to be sufficiently
         # small so as to detect when two new design points are essentially the same, but
         # relaxed enough to accommodate variation coming from the stochastic nature of the
@@ -572,18 +580,23 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         design_pts = compute_single_level_loo_samples(gp, domain, batch_size=3)
         self.assertTrue(all(design_pt in domain for design_pt in design_pts))
 
+    def test_use_replica_of_supplied_gp_for_loo_gp(self):
+        """If no AbstractGaussianProcess is specified to use as the LOO errors GP, then
+        the default construction of the LOO errors GP is used instead."""
+
+        with unittest.mock.patch(
+            "exauq.core.designers.compute_loo_errors_gp", return_value=self.gp_e
+        ) as mock:
+            _ = compute_single_level_loo_samples(self.gp, self.domain, batch_size=1)
+            mock.assert_called_once_with(self.gp, self.domain, loo_errors_gp=None)
+
     def test_use_supplied_loo_gp(self):
         """If an AbstractGaussianProcess is supplied to use for the LOO errors GP, then
         this is indeed used for the LOO errors GP."""
 
         loo_errors_gp = MogpEmulator()
-
-        # Create a LOO errors GP to be returned by the mocked call of
-        # compute_loo_errors_gp
-        gp_e = compute_loo_errors_gp(self.gp, self.domain)
-
         with unittest.mock.patch(
-            "exauq.core.designers.compute_loo_errors_gp", return_value=gp_e
+            "exauq.core.designers.compute_loo_errors_gp", return_value=self.gp_e
         ) as mock:
             _ = compute_single_level_loo_samples(
                 self.gp, self.domain, batch_size=1, loo_errors_gp=loo_errors_gp
