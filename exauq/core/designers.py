@@ -387,6 +387,57 @@ def compute_single_level_loo_samples(
     batch_size: int = 1,
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> tuple[Input]:
+    """Compute a new batch of design points adaptively for a single-level Gaussian process.
+
+    Implements the cross-validation-based adaptive sampling for emulators, as described in
+    Mohammadi et. al. (2022)[1]_. This involves computing a Guassian process (GP) trained
+    on normalised expected squared errors arising from a leave-one-out (LOO)
+    cross-validaton, then finding design points that maximise the pseudo-expected
+    improvement of this LOO errors GP.
+
+    By default, a deep copy of the main GP supplied (`gp`) is trained on the leave-one-out
+    errors. Alternatively, another ``AbstractGaussianProcess`` can be supplied that will
+    be trained on the leave-one-out errors (and so modified in-place), allowing for the
+    use of different Gaussian process settings (e.g. a different kernel function).
+
+    Parameters
+    ----------
+    gp : AbstractGaussianProcess
+        A Gaussian process to compute new design points for.
+    domain : SimulatorDomain
+        The domain of a simulator that the Gaussian process `gp` emulates. The data on
+        which `gp` is trained are expected to have simulator inputs only from this domain.
+    batch_size : int, optional
+        (Default: 1) The number of new design points to compute.
+    loo_errors_gp : Optional[AbstractGaussianProcess], optional
+        (Default: None) Another Gaussian process that is trained on the LOO errors as part
+        of the adaptive sampling method. If ``None`` then a deep copy of `gp` will be used
+        instead.
+
+    Returns
+    -------
+    tuple[Input]
+        The batch of new design points.
+
+    Raises
+    ------
+    ValueError
+        If any of the training inputs in `gp` do not belong to the simulator domain `domain`.
+
+    See Also
+    --------
+    compute_loo_errors_gp :
+        Computation of the leave-one-out errors Gaussian process.
+    PEICalculator :
+        Pseudo-expected improvement calculation.
+    modelling.AbstractGaussianProcess.nes_error :
+        Normalised expected squared errors for Gaussian processes.
+
+    References
+    ----------
+    .. [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
+        Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+    """
     if not isinstance(batch_size, int):
         raise TypeError(
             f"Expected 'batch_size' to be an integer, but received {type(batch_size)} instead."
