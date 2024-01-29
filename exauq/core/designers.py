@@ -407,6 +407,12 @@ class PEICalculator:
 
         return self._repulsion_points
 
+    @property
+    def domain(self) -> SimulatorDomain:
+        """(Read-only) simulation domain."""
+
+        return self._domain
+
     def _calculate_max_targets(self) -> Real:
         return max(self._gp.training_data, key=lambda datum: datum.output).output
 
