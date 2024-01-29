@@ -7,7 +7,6 @@ import unittest.mock
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
     SimpleDesigner,
-    SingleLevelAdaptiveSampler,
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_single_level_loo_samples,
@@ -70,102 +69,6 @@ class TestSimpleDesigner(unittest.TestCase):
 
         for x in designer.make_design_batch(2):
             self.assertTrue(x in domain)
-
-
-class TestSingleLevelAdaptiveSampler(unittest.TestCase):
-    def setUp(self) -> None:
-        self.datum = TrainingDatum(Input(0), 1)
-        self.initial_data = [self.datum]
-        self.designer = SingleLevelAdaptiveSampler(self.initial_data)
-        self.emulator = fakes.FakeGP()
-
-    def test_training_data_empty_error(self):
-        """Test that a ValueError is raised if the SLAS designer is initialised with
-        an empty list of training data."""
-
-        msg = "'initial_data' must be nonempty"
-        with self.assertRaisesRegex(ValueError, exact(msg)):
-            SingleLevelAdaptiveSampler([])
-
-    def test_training_data(self):
-        """Test that a SingleLevelAdaptiveSampler can be initialised from different
-        collections of TrainingDatum."""
-
-        for data in [[self.datum], tuple([self.datum])]:
-            with self.subTest(data=data):
-                SingleLevelAdaptiveSampler(data)
-
-    def test_str(self):
-        """Test that the string description of an instance of
-        SingleLevelAdaptiveSampler designer is derived from its constituent
-        parts."""
-
-        expected = (
-            "SingleLevelAdaptiveSampler designer with initial data "
-            f"{str(self.initial_data)}"
-        )
-        self.assertEqual(expected, str(self.designer))
-
-    def test_repr(self):
-        """Test that the string representation of an instance of
-        SingleLevelAdaptiveSampler designer is derived from its constituent
-        parts."""
-
-        expected = f"SingleLevelAdaptiveSampler(initial_data={repr(self.initial_data)})"
-        self.assertEqual(expected, repr(self.designer))
-
-    def test_train(self):
-        """Test that training an emulator with the SLAS designer returns an
-        emulator of the same type."""
-
-        trained_emulator = self.designer.train(self.emulator)
-
-        self.assertIsInstance(trained_emulator, type(self.emulator))
-
-    def test_train_fits_with_initial_design(self):
-        """Test that the emulator returned by the SLAS designer has been trained
-        on initial data."""
-
-        initial_design = (
-            TrainingDatum(Input(0.2), 0.2),
-            TrainingDatum(Input(0.55), 0.55),
-        )
-        designer = SingleLevelAdaptiveSampler(initial_design)
-
-        trained_emulator = designer.train(self.emulator)
-
-        self.assertEqual(initial_design, trained_emulator.training_data)
-
-    def test_train_returns_new_emulator(self):
-        """Test that training an emulator returns a new emulator object,
-        leaving the original unchanged."""
-
-        trained_emulator = self.designer.train(self.emulator)
-
-        self.assertNotEqual(self.emulator, trained_emulator)
-        self.assertEqual(tuple(), self.emulator.training_data)
-
-    def test_make_design_batch_default(self):
-        """Test that a list with a single Input is returned for a default batch."""
-
-        batch = self.designer.make_design_batch(self.emulator)
-
-        self.assertIsInstance(batch, list)
-        self.assertEqual(1, len(batch))
-        self.assertIsInstance(batch[0], Input)
-
-    def test_make_design_batch_number(self):
-        """Test that a list of the correct number of inputs is returned when batch
-        number is specified."""
-
-        size = 2
-
-        batch = self.designer.make_design_batch(self.emulator, size=size)
-
-        self.assertIsInstance(batch, list)
-        self.assertEqual(size, len(batch))
-        for _input in batch:
-            self.assertIsInstance(_input, Input)
 
 
 class TestComputeLooErrorsGp(ExauqTestCase):
