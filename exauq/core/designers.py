@@ -475,6 +475,37 @@ class PEICalculator:
         return self.expected_improvement(x) * self.repulsion(x)
 
     def add_repulsion_point(self, x: Union[Input, NDArray]) -> None:
+        """
+        Add a new point to the set of repulsion points.
+
+        This method updates the internal set of repulsion points used in the repulsion factor
+        calculation. Repulsion points are used to influence the optimisation process, encouraging
+        the exploration of new areas by reducing the likelihood of selecting points near these
+        repulsion points.
+
+        Parameters
+        ----------
+        x : Union[Input, NDArray]
+            The point to be added to the repulsion points set. This can be an instance of `Input`
+            or a one-dimensional `numpy.ndarray`. If `x` is a `numpy.ndarray`, it is converted
+            to an `Input` object.
+
+        Raises
+        ------
+        TypeError
+            If `x` is not an instance of `Input` or `numpy.ndarray`, or if `numpy.ndarray` is not one-dimensional.
+        ValueError
+            If `x` as `numpy.ndarray` is not one-dimensional.
+
+        Examples
+        --------
+        >>> new_repulsion_point = Input(4.0, 5.0)
+        >>> pei_calculator.add_repulsion_point(new_repulsion_point)
+
+        >>> array_repulsion_point = np.array([4.0, 5.0])
+        >>> pei_calculator.add_repulsion_point(array_repulsion_point)
+        """
+
         validated_x = self._validate_input_type(
             x, (Input, np.ndarray), "add_repulsion_point"
         )
