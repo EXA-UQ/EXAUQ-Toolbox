@@ -486,48 +486,44 @@ class TestComputeLooGp(ExauqTestCase):
 
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
+    def setUp(self) -> None:
+        self.domain = SimulatorDomain([(0, 1)])
+        self.training_data = [
+            TrainingDatum(Input(0.1), 1),
+            TrainingDatum(Input(0.3), 2),
+            TrainingDatum(Input(0.5), 3),
+            TrainingDatum(Input(0.7), 4),
+            TrainingDatum(Input(0.9), 5),
+        ]
+        self.gp = MogpEmulator()
+        self.gp.fit(self.training_data)
+
     def test_number_of_new_design_points_matches_batch_number(self):
         """The number of new design points returned is equal to the supplied batch
         number."""
 
-        domain = SimulatorDomain([(0, 1)])
-        gp = MogpEmulator()
-        gp.fit(
-            [
-                TrainingDatum(Input(0.1), 1),
-                TrainingDatum(Input(0.3), 2),
-                TrainingDatum(Input(0.5), 3),
-                TrainingDatum(Input(0.7), 4),
-                TrainingDatum(Input(0.9), 5),
-            ]
-        )
-
         for batch_size in [1, 2, 3]:
             with self.subTest(batch_size=batch_size):
                 design_pts = compute_single_level_loo_samples(
-                    gp, domain, batch_size=batch_size
+                    self.gp, self.domain, batch_size=batch_size
                 )
                 self.assertEqual(batch_size, len(design_pts))
 
-    @unittest.skip("Functionality not implemented yet")
     def test_new_design_points_differ_in_batch(self):
-        """A batch of new design points consists of Input objects that are likely all
-        distinct."""
+        """A batch of new design points consists of Input objects that are (likely)
+        all distinct."""
 
-        domain = SimulatorDomain([(0, 1)])
-        gp = MogpEmulator()
-        gp.fit(
-            [
-                TrainingDatum(Input(0.1), 1),
-                TrainingDatum(Input(0.3), 2),
-                TrainingDatum(Input(0.5), 3),
-                TrainingDatum(Input(0.7), 4),
-                TrainingDatum(Input(0.9), 5),
-            ]
+        design_pts = compute_single_level_loo_samples(self.gp, self.domain, batch_size=2)
+
+        # Choose a tolerance which is sufficiently large to not distinguish between
+        # the built in stochasticity of optimisation, but small enough to detect when
+        # essentially the same design points have been calculated.
+        tolerance = 1e-3
+        self.assertFalse(
+            equal_within_tolerance(
+                design_pts[0], design_pts[1], rel_tol=tolerance, abs_tol=tolerance
+            )
         )
-
-        design_pts = compute_single_level_loo_samples(gp, domain, batch_size=2)
-        self.assertFalse(equal_within_tolerance(design_pts[0], design_pts[1]))
 
 
 if __name__ == "__main__":

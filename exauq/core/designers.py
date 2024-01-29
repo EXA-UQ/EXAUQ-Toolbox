@@ -391,5 +391,10 @@ def compute_single_level_loo_samples(
     gp_e = compute_loo_errors_gp(gp, domain)
     pei = PEICalculator(domain, gp_e)
 
-    # TODO: correct the implementation to iteratively use updated PEI function
-    return (maximise(lambda x: pei.compute(x), domain),) * batch_size
+    design_points = []
+    for _ in range(batch_size):
+        new_design_point = maximise(lambda x: pei.compute(x), domain)
+        design_points.append(new_design_point)
+        pei.add_repulsion_point(new_design_point)
+
+    return tuple(design_points)
