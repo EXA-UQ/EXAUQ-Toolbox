@@ -554,6 +554,23 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
                     )
                 )
 
+    def test_new_design_points_lie_in_given_domain(self):
+        """Each Input from a batch of design points lies in the supplied simulator
+        domain."""
+
+        domain = SimulatorDomain([(-1, 1), (1, 3.9)])
+        training_data = [
+            TrainingDatum(Input(0.1, 3), 1),
+            TrainingDatum(Input(-0.3, 2.1), 2),
+            TrainingDatum(Input(0.5, 1.9), 3),
+            TrainingDatum(Input(0.7, 3.5), 4),
+            TrainingDatum(Input(-0.9, 1), 5),
+        ]
+        gp = MogpEmulator()
+        gp.fit(training_data)
+        design_pts = compute_single_level_loo_samples(gp, domain, batch_size=3)
+        self.assertTrue(all(design_pt in domain for design_pt in design_pts))
+
 
 if __name__ == "__main__":
     unittest.main()
