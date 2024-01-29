@@ -443,6 +443,49 @@ class PEICalculator:
         self._other_repulsion_points = self._other_repulsion_points + (validated_x,)
 
     def expected_improvement(self, x: Union[Input, NDArray]) -> Real:
+        """
+        Calculate the expected improvement (EI) for a given input.
+
+        This method computes the EI of the given input point `x` using the Gaussian Process model.
+        EI is a measure used in Bayesian optimisation and is particularly useful for guiding the
+        selection of points in the domain where the objective function should be evaluated next.
+        It is calculated based on the model's prediction at `x`, the current maximum target value,
+        and the standard deviation of the prediction.
+
+        Parameters
+        ----------
+        x : Union[Input, NDArray]
+            The input point for which to calculate the expected improvement. This can be an instance
+            of `Input` or a one-dimensional `numpy.ndarray`.
+
+        Returns
+        -------
+        Real
+            The expected improvement value for the given input. If the standard deviation of the
+            prediction is zero (indicating no uncertainty), the EI is returned as 0.0.
+
+        Raises
+        ------
+        TypeError
+            If `x` is not an instance of `Input` or `numpy.ndarray`, or if `numpy.ndarray` is not one-dimensional.
+        ValueError
+            If `x` as `numpy.ndarray` is not one-dimensional.
+
+        Examples
+        --------
+        >>> input_point = Input(1.0, 2.0)
+        >>> ei = pei_calculator.expected_improvement(input_point)
+
+        >>> array_input = np.array([1.0, 2.0])
+        >>> ei = pei_calculator.expected_improvement(array_input)
+
+        Notes
+        -----
+        The calculation of EI assumes that the Gaussian Process model (`self._gp`) has been
+        trained with relevant data and that the current maximum target value (`self._max_targets`)
+        has been computed from this data.
+        """
+
         validated_x = self._validate_input_type(
             x, (Input, np.ndarray), "expected_improvement"
         )
