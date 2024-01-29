@@ -646,8 +646,7 @@ class PEICalculator:
         inputs_term = np.product(1 - correlations, axis=0)[0]
 
         other_repulsion_pts_term = np.product(
-            1
-            - np.array(self._gp.correlation([validated_x], self._repulsion_points)),
+            1 - np.array(self._gp.correlation([validated_x], self._repulsion_points)),
             axis=1,
         )[0]
 
