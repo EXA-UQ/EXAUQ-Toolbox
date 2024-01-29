@@ -355,7 +355,7 @@ class PEICalculator:
         training_data = [datum.input for datum in self._gp.training_data]
         return self._domain.calculate_pseudopoints(training_data)
 
-    def _validate_training_data(self):
+    def _validate_training_data(self) -> None:
         if not self._gp.training_data:
             raise ValueError("'gp' training data is empty.")
 
@@ -382,7 +382,7 @@ class PEICalculator:
 
         return x
 
-    def compute(self, x: Union[Input, NDArray]) -> float:
+    def compute(self, x: Union[Input, NDArray]) -> Real:
         """
         Computes the PEI based on the given input.
 
