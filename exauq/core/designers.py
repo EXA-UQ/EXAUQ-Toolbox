@@ -327,6 +327,11 @@ class PEICalculator:
         :param domain: An instance of SimulatorDomain, representing the domain of simulation.
         :param gp: An instance of AbstractGaussianProcess, representing the Gaussian process model.
         """
+        if not isinstance(domain, SimulatorDomain):
+            raise TypeError("domain must be an instance of SimulatorDomain")
+        if not isinstance(gp, AbstractGaussianProcess):
+            raise TypeError("gp must be an instance of AbstractGaussianProcess")
+
         self._domain = domain  # Check domain
         self._gp = gp  # Check gp
         self._max_targets = self._calculate_max_targets()
