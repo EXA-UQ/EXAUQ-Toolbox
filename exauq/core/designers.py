@@ -338,7 +338,7 @@ class PEICalculator:
         The Gaussian Process model used for predictions.
     _max_targets : Real
         The maximum target value from the training data of the Gaussian Process.
-    _other_repulsion_points : tuple[Input]
+    _repulsion_points : tuple[Input]
         Points used for calculating the repulsion effect.
     _standard_norm : scipy.stats._distn_infrastructure.rv_continuous_frozen
         A standard normal distribution object used for statistical computations.
@@ -391,7 +391,7 @@ class PEICalculator:
         self._validate_training_data()
 
         self._max_targets = self._calculate_max_targets()
-        self._other_repulsion_points = self._calculate_pseudopoints()
+        self._repulsion_points = self._calculate_pseudopoints()
 
         self._standard_norm = norm(loc=0, scale=1)
 
@@ -400,6 +400,12 @@ class PEICalculator:
         """(Read-only) The underlying AbstractGaussianProcess."""
 
         return self._gp
+
+    @property
+    def repulsion_points(self) -> tuple:
+        """(Read-only) The current repulsion points."""
+
+        return self._repulsion_points
 
     def _calculate_max_targets(self) -> Real:
         return max(self._gp.training_data, key=lambda datum: datum.output).output
@@ -517,7 +523,7 @@ class PEICalculator:
         validated_x = self._validate_input_type(
             x, (Input, np.ndarray), "add_repulsion_point"
         )
-        self._other_repulsion_points = self._other_repulsion_points + (validated_x,)
+        self._repulsion_points = self._repulsion_points + (validated_x,)
 
     def expected_improvement(self, x: Union[Input, NDArray]) -> Real:
         """
@@ -620,7 +626,7 @@ class PEICalculator:
         Notes
         -----
         The repulsion factor calculation relies on the Gaussian Process model (`self._gp`) and the
-        set of other repulsion points (`self._other_repulsion_points`). It is important that the
+        set of other repulsion points (`self._repulsion_points`). It is important that the
         Gaussian Process model is properly trained and that relevant repulsion points are added
         to the system for accurate calculations.
         """
@@ -635,7 +641,7 @@ class PEICalculator:
 
         other_repulsion_pts_term = np.product(
             1
-            - np.array(self._gp.correlation([validated_x], self._other_repulsion_points)),
+            - np.array(self._gp.correlation([validated_x], self._repulsion_points)),
             axis=1,
         )[0]
 
