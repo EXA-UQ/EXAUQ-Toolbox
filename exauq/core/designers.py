@@ -332,7 +332,7 @@ class PEICalculator:
     Parameters
     ----------
     domain : SimulatorDomain
-        An instance of SimulatorDomain, representing the domain of the simulation.
+        The domain of a simulation.
     gp : AbstractGaussianProcess
         An instance of AbstractGaussianProcess, representing the Gaussian process model.
 
