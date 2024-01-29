@@ -397,17 +397,9 @@ class PEICalculator:
         )
         self._other_repulsion_points = self._other_repulsion_points + (validated_x,)
 
-    def expected_improvement(self, x: Union[Input, NDArray]) -> float:
-        # ToDo:- Overload AbstractGaussianProcess.predict
-        if isinstance(x, np.ndarray):
-            prediction = self._gp.predict(Input(*x))
-        elif isinstance(x, Input):
-            prediction = self._gp.predict(x)
-        else:
-            raise TypeError(
-                f"Expected 'x' to be of type Input or NDArray, but received {type(x)} "
-                "instead."
-            )
+    def expected_improvement(self, x: Union[Input, NDArray]) -> Real:
+        validated_x = self._validate_input_type(x, (Input, np.ndarray), "expected_improvement")
+        prediction = self._gp.predict(validated_x)
 
         if equal_within_tolerance(prediction.standard_deviation, 0):
             return 0.0
