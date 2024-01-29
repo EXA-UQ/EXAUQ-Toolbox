@@ -1,4 +1,5 @@
 import copy
+import itertools
 import math
 import unittest
 
@@ -498,6 +499,12 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         self.gp = MogpEmulator()
         self.gp.fit(self.training_data)
 
+        # Tolerance for checking equality of new design points. Needs to be sufficiently
+        # small so as to detect when two new design points are essentially the same, but
+        # relaxed enough to accommodate variation coming from the stochastic nature of the
+        # underlying optimsation. The following value was chosen by trial-and-error.
+        self.tolerance = 1e-3
+
     def test_number_of_new_design_points_matches_batch_number(self):
         """The number of new design points returned is equal to the supplied batch
         number."""
@@ -515,15 +522,32 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
 
         design_pts = compute_single_level_loo_samples(self.gp, self.domain, batch_size=2)
 
-        # Choose a tolerance which is sufficiently large to not distinguish between
-        # the built in stochasticity of optimisation, but small enough to detect when
-        # essentially the same design points have been calculated.
-        tolerance = 1e-3
         self.assertFalse(
             equal_within_tolerance(
-                design_pts[0], design_pts[1], rel_tol=tolerance, abs_tol=tolerance
+                design_pts[0],
+                design_pts[1],
+                rel_tol=self.tolerance,
+                abs_tol=self.tolerance,
             )
         )
+
+    def test_new_design_points_distinct_from_training_inputs(self):
+        """A batch of new design points consists of Input objects that are (likely)
+        distinct from the training data inputs."""
+
+        design_pts = compute_single_level_loo_samples(self.gp, self.domain, batch_size=3)
+        training_inputs = [datum.input for datum in self.training_data]
+
+        for training_input, design_pt in itertools.product(training_inputs, design_pts):
+            with self.subTest(training_input=training_input, design_pt=design_pt):
+                self.assertFalse(
+                    equal_within_tolerance(
+                        training_input,
+                        design_pt,
+                        rel_tol=self.tolerance,
+                        abs_tol=self.tolerance,
+                    )
+                )
 
 
 if __name__ == "__main__":
