@@ -395,6 +395,12 @@ class PEICalculator:
 
         self._standard_norm = norm(loc=0, scale=1)
 
+    @property
+    def gp(self) -> AbstractGaussianProcess:
+        """(Read-only) The underlying AbstractGaussianProcess."""
+
+        return self._gp
+
     def _calculate_max_targets(self) -> Real:
         return max(self._gp.training_data, key=lambda datum: datum.output).output
 
