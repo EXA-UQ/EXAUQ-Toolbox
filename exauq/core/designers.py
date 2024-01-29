@@ -329,7 +329,8 @@ def compute_single_level_loo_samples(
         The domain of a simulator that the Gaussian process `gp` emulates. The data on
         which `gp` is trained are expected to have simulator inputs only from this domain.
     batch_size : int, optional
-        (Default: 1) The number of new design points to compute.
+        (Default: 1) The number of new design points to compute. Should be a positive
+        integer.
     loo_errors_gp : Optional[AbstractGaussianProcess], optional
         (Default: None) Another Gaussian process that is trained on the LOO errors as part
         of the adaptive sampling method. If ``None`` then a deep copy of `gp` will be used
