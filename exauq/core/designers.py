@@ -339,17 +339,6 @@ class PEICalculator:
     domain : SimulatorDomain
         Readonly property that returns the simulation domain.
 
-    Methods
-    -------
-    compute(x)
-        Compute the PEI for a given input.
-    add_repulsion_point(x)
-        Add a new point to the set of repulsion points.
-    expected_improvement(x)
-        Calculate the expected improvement for a given input.
-    repulsion(x)
-        Compute the repulsion effect for a given input.
-
     Examples
     --------
     >>> domain = SimulatorDomain(...)
