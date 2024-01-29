@@ -332,16 +332,12 @@ class PEICalculator:
 
     Attributes
     ----------
-    _domain : SimulatorDomain
-        The simulation domain.
-    _gp : AbstractGaussianProcess
-        The Gaussian Process model used for predictions.
-    _max_targets : Real
-        The maximum target value from the training data of the Gaussian Process.
-    _repulsion_points : tuple[Input]
-        Points used for calculating the repulsion effect.
-    _standard_norm : scipy.stats._distn_infrastructure.rv_continuous_frozen
-        A standard normal distribution object used for statistical computations.
+    gp : AbstractGaussianProcess
+        Readonly property that returns the Gaussian Process model used in the calculator.
+    repulsion_points : tuple
+        Readonly property that returns the current set of repulsion points.
+    domain : SimulatorDomain
+        Readonly property that returns the simulation domain.
 
     Methods
     -------
