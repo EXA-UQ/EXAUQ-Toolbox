@@ -436,11 +436,6 @@ class PEICalculator:
         """
         Compute the PseudoExpected Improvement (PEI) for a given input.
 
-        This method calculates the PEI at a given point `x` by combining the expected improvement
-        (EI) and the repulsion factor. The PEI is a metric used in Bayesian optimisation to balance
-        exploration and exploitation, taking into account both the potential improvement over the
-        current best target and the desire to explore less sampled regions of the domain.
-
         Parameters
         ----------
         x : Union[Input, NDArray]
@@ -453,13 +448,6 @@ class PEICalculator:
             The computed PEI value for the given input. It is the product of the expected improvement
             and the repulsion factor.
 
-        Raises
-        ------
-        TypeError
-            If `x` is not an instance of `Input` or `numpy.ndarray`, or if `numpy.ndarray` is not one-dimensional.
-        ValueError
-            If `x` as `numpy.ndarray` is not one-dimensional.
-
         Examples
         --------
         >>> input_point = Input(2.0, 3.0)
@@ -470,11 +458,10 @@ class PEICalculator:
 
         Notes
         -----
-        The PEI is a product of two components: expected improvement, which quantifies the
-        potential for improvement over the current maximum, and the repulsion factor, which
-        discourages the selection of points near already sampled locations. This calculation
-        assumes that the Gaussian Process model and other components of the system are properly
-        initialised and configured.
+        This method calculates the PEI at a given point `x` by combining the expected improvement
+        (EI) and the repulsion factor. The PEI is a metric used in Bayesian optimisation to balance
+        exploration and exploitation, taking into account both the potential improvement over the
+        current best target and the desire to explore less sampled regions of the domain.
         """
 
         return self.expected_improvement(x) * self.repulsion(x)
