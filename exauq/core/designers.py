@@ -414,22 +414,18 @@ class PEICalculator:
         ) * cdf_u + prediction.standard_deviation * pdf_u
 
     def repulsion(self, x: Union[Input, NDArray]) -> Real:
-        if isinstance(x, np.ndarray):
-            x = Input(x)
-        elif not isinstance(x, Input):
-            raise TypeError(
-                f"Expected 'x' to be of type Input or NDArray, but received {type(x)} "
-                "instead."
-            )
+        validated_x = self._validate_input_type(x, (Input, np.ndarray), "repulsion")
 
-        covariance_matrix = self._gp.covariance_matrix([x])
+        covariance_matrix = self._gp.covariance_matrix([validated_x])
         correlations = (
             np.array(covariance_matrix) / self._gp.fit_hyperparameters.process_var
         )
         inputs_term = np.product(1 - correlations, axis=0)[0]
 
         other_repulsion_pts_term = np.product(
-            1 - np.array(self._gp.correlation([x], self._other_repulsion_points)), axis=1
+            1
+            - np.array(self._gp.correlation([validated_x], self._other_repulsion_points)),
+            axis=1,
         )[0]
 
         return inputs_term * other_repulsion_pts_term
