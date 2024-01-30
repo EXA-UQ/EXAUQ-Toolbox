@@ -1,6 +1,5 @@
 import copy
 import math
-from collections.abc import Collection
 from numbers import Real
 from typing import Any, Optional, Type, Union
 
@@ -9,7 +8,6 @@ from numpy.typing import NDArray
 from scipy.stats import norm
 
 from exauq.core.modelling import (
-    AbstractEmulator,
     AbstractGaussianProcess,
     Input,
     SimulatorDomain,
@@ -65,87 +63,10 @@ class SimpleDesigner(object):
         ]
 
 
-class SingleLevelAdaptiveSampler:
-    """Single level adaptive sampling (SLAS) for training emulators.
-
-    Implements the cross-validation-based adaptive sampling for emulators, as
-    described in Mohammadi et. al. (2022).
-
-    Parameters
-    ----------
-    initial_data: finite collection of TrainingDatum
-        Training data on which the emulator will initially be trained.
-    """
-
-    def __init__(self, initial_data: Collection[TrainingDatum]):
-        self._initial_data = self._validate_initial_data(initial_data)
-        self._esloo_errors = None
-
-    @classmethod
-    def _validate_initial_data(cls, initial_data):
-        try:
-            length = len(initial_data)  # to catch infinite iterators
-            if not all([isinstance(x, TrainingDatum) for x in initial_data]):
-                raise TypeError
-
-            if length == 0:
-                raise ValueError
-
-            return initial_data
-
-        except TypeError:
-            raise TypeError(
-                f"{cls.__name__} must be initialised with a (finite) collection of "
-                "TrainingDatum"
-            )
-
-        except ValueError:
-            raise ValueError("'initial_data' must be nonempty")
-
-    def __str__(self) -> str:
-        return f"SingleLevelAdaptiveSampler designer with initial data {str(self._initial_data)}"
-
-    def __repr__(self) -> str:
-        return f"SingleLevelAdaptiveSampler(initial_data={repr(self._initial_data)})"
-
-    def train(self, emulator: AbstractEmulator) -> AbstractEmulator:
-        """Train an emulator using the single-level adaptive sampling method.
-
-        This will train the emulator on the initial data that was supplied during
-        construction of this object.
-
-        Parameters
-        ----------
-        emulator : AbstractEmulator
-            The emulator to train.
-
-        Returns
-        -------
-        AbstractEmulator
-            A new emulator that has been trained with the initial training data and
-            using the SLAS methodology. A new object is returned of the same ``type`` as
-            `emulator`.
-        """
-
-        return_emulator = copy.copy(emulator)
-        return_emulator.fit(self._initial_data)
-        return return_emulator
-
-    def make_design_batch(self, emulator: AbstractEmulator, size: int = 1):
-        if emulator.training_data:
-            self._esloo_errors = [0.5] * len(emulator.training_data)
-
-        return [Input(1)] * size
-
-    @property
-    def esloo_errors(self):
-        return self._esloo_errors
-
-
 def compute_loo_errors_gp(
     gp: AbstractGaussianProcess,
     domain: SimulatorDomain,
-    gp_for_errors: Optional[AbstractGaussianProcess] = None,
+    loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> AbstractGaussianProcess:
     """Calculate a Gaussian process trained on normalised expected squared leave-one-out
     (LOO) errors.
@@ -172,7 +93,7 @@ def compute_loo_errors_gp(
     domain : SimulatorDomain
         The domain of a simulator that the Gaussian process `gp` emulates. The data on
         which `gp` is trained are expected to have simulator inputs only from this domain.
-    gp_for_errors : Optional[AbstractGaussianProcess], optional
+    loo_errors_gp : Optional[AbstractGaussianProcess], optional
         (Default: None) Another Gaussian process that is trained on the LOO errors to
         create the output to this function. If ``None`` then a deep copy of `gp` will
         be used instead.
@@ -181,7 +102,7 @@ def compute_loo_errors_gp(
     -------
     AbstractGaussianProcess
         A Gaussian process that is trained on the normalised expected square LOO errors
-        of `gp`. If `gp_for_errors` was supplied then (a reference to) this object will be
+        of `gp`. If `loo_errors_gp` was supplied then (a reference to) this object will be
         returned (except now it has been fit to the LOO errors).
 
     Raises
@@ -191,9 +112,8 @@ def compute_loo_errors_gp(
 
     Notes
     -----
-    The lower bound on the correlation length scale parameters is obtained by scaling
-    the value ``sqrt(-0.5 / log(10 ** (-8)))``, for each dimension of the simulator
-    domain, from the unit interval [0, 1] to the interval of the corresponding dimension.
+    The lower bounds on the correlation length scale parameters are obtained by
+    multiplying the lengths of the domain's dimensions by ``sqrt(-0.5 / log(10 ** (-8)))``.
     """
 
     if not isinstance(gp, AbstractGaussianProcess):
@@ -214,10 +134,10 @@ def compute_loo_errors_gp(
             "this is not the case."
         )
 
-    if not (gp_for_errors is None or isinstance(gp_for_errors, AbstractGaussianProcess)):
+    if not (loo_errors_gp is None or isinstance(loo_errors_gp, AbstractGaussianProcess)):
         raise TypeError(
-            "Expected 'gp_for_errors' to be None or of type AbstractGaussianProcess, but "
-            f"received {type(gp_for_errors)} instead."
+            "Expected 'loo_errors_gp' to be None or of type AbstractGaussianProcess, but "
+            f"received {type(loo_errors_gp)} instead."
         )
 
     error_training_data = []
@@ -230,11 +150,11 @@ def compute_loo_errors_gp(
         nes_loo_error = loo_gp.nes_error(datum.input, datum.output)
         error_training_data.append(TrainingDatum(datum.input, nes_loo_error))
 
-    gp_e = gp_for_errors if gp_for_errors is not None else copy.deepcopy(gp)
+    gp_e = loo_errors_gp if loo_errors_gp is not None else copy.deepcopy(gp)
 
     # Note: the following is a simplification of sqrt(-0.5 / log(10 ** (-8))) from paper
-    CORR_BOUND = 0.25 / math.sqrt(math.log(10))
-    bounds = [(bnd, None) for bnd in domain.scale([CORR_BOUND] * domain.dim)] + [
+    bound_scale = 0.25 / math.sqrt(math.log(10))
+    bounds = [(bound_scale * (bnd[1] - bnd[0]), None) for bnd in domain.bounds] + [
         (None, None)
     ]
     gp_e.fit(error_training_data, hyperparameter_bounds=bounds)
@@ -609,8 +529,79 @@ def compute_single_level_loo_samples(
     batch_size: int = 1,
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
 ) -> tuple[Input]:
-    gp_e = compute_loo_errors_gp(gp, domain)
+    """Compute a new batch of design points adaptively for a single-level Gaussian process.
+
+    Implements the cross-validation-based adaptive sampling for emulators, as described in
+    Mohammadi et. al. (2022)[1]_. This involves computing a Guassian process (GP) trained
+    on normalised expected squared errors arising from a leave-one-out (LOO)
+    cross-validaton, then finding design points that maximise the pseudo-expected
+    improvement of this LOO errors GP.
+
+    By default, a deep copy of the main GP supplied (`gp`) is trained on the leave-one-out
+    errors. Alternatively, another ``AbstractGaussianProcess`` can be supplied that will
+    be trained on the leave-one-out errors (and so modified in-place), allowing for the
+    use of different Gaussian process settings (e.g. a different kernel function).
+
+    Parameters
+    ----------
+    gp : AbstractGaussianProcess
+        A Gaussian process to compute new design points for.
+    domain : SimulatorDomain
+        The domain of a simulator that the Gaussian process `gp` emulates. The data on
+        which `gp` is trained are expected to have simulator inputs only from this domain.
+    batch_size : int, optional
+        (Default: 1) The number of new design points to compute. Should be a positive
+        integer.
+    loo_errors_gp : Optional[AbstractGaussianProcess], optional
+        (Default: None) Another Gaussian process that is trained on the LOO errors as part
+        of the adaptive sampling method. If ``None`` then a deep copy of `gp` will be used
+        instead.
+
+    Returns
+    -------
+    tuple[Input]
+        The batch of new design points.
+
+    Raises
+    ------
+    ValueError
+        If any of the training inputs in `gp` do not belong to the simulator domain `domain`.
+
+    See Also
+    --------
+    compute_loo_errors_gp :
+        Computation of the leave-one-out errors Gaussian process.
+    PEICalculator :
+        Pseudo-expected improvement calculation.
+    modelling.AbstractGaussianProcess.nes_error :
+        Normalised expected squared errors for Gaussian processes.
+
+    References
+    ----------
+    .. [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
+        Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+    """
+    if not isinstance(batch_size, int):
+        raise TypeError(
+            f"Expected 'batch_size' to be an integer, but received {type(batch_size)} instead."
+        )
+
+    if batch_size < 1:
+        raise ValueError(
+            f"Expected batch size to be a positive integer, but received {batch_size} instead."
+        )
+
+    try:
+        gp_e = compute_loo_errors_gp(gp, domain, loo_errors_gp=loo_errors_gp)
+    except (TypeError, ValueError) as e:
+        raise e from None
+
     pei = PEICalculator(domain, gp_e)
 
-    # TODO: correct the implementation to iteratively use updated PEI function
-    return (maximise(lambda x: pei.compute(x), domain),) * batch_size
+    design_points = []
+    for _ in range(batch_size):
+        new_design_point = maximise(lambda x: pei.compute(x), domain)
+        design_points.append(new_design_point)
+        pei.add_repulsion_point(new_design_point)
+
+    return tuple(design_points)
