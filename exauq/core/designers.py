@@ -471,9 +471,9 @@ class PEICalculator:
         Add a new point to the set of repulsion points.
 
         This method updates the internal set of repulsion points used in the repulsion factor
-        calculation. Repulsion points are used to influence the optimisation process, encouraging
-        the exploration of new areas by reducing the likelihood of selecting points near these
-        repulsion points.
+        calculation. Simulator very positively correlated with repulsion points result in low
+        repulsion values, whereas inputs very negatively correlated with repulsion points result
+        in high repulsion values.
 
         Parameters
         ----------
@@ -481,13 +481,6 @@ class PEICalculator:
             The point to be added to the repulsion points set. This can be an instance of `Input`
             or a one-dimensional `numpy.ndarray`. If `x` is a `numpy.ndarray`, it is converted
             to an `Input` object.
-
-        Raises
-        ------
-        TypeError
-            If `x` is not an instance of `Input` or `numpy.ndarray`, or if `numpy.ndarray` is not one-dimensional.
-        ValueError
-            If `x` as `numpy.ndarray` is not one-dimensional.
 
         Examples
         --------
