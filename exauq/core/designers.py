@@ -553,11 +553,12 @@ class PEICalculator:
         """
         Calculate the repulsion factor for a given input.
 
-        This method assesses the repulsion effect of a given point `x` in relation to other points in the
-        optimisation process. The repulsion factor is used to discourage the selection of points near
-        already sampled locations, facilitating exploration of the domain. It is computed based on the
-        covariance matrix of the input with respect to other points and the correlations derived from
-        the Gaussian Process model.
+        This method assesses the repulsion effect of a given point `x` in relation to other,
+        stored repulsion points. It is calculated as the product of terms ``1 - correlation(x,
+        rp)``, where ``rp`` is a repulsion point and the correlation is computed with the
+        Gaussian process supplied at this object's initialisation. The repulsion factor can be
+        used to discourage the selection of points near already sampled locations, facilitating
+        exploration of the input space.
 
         Parameters
         ----------
@@ -571,13 +572,6 @@ class PEICalculator:
             The repulsion factor for the given input. A higher value indicates a stronger repulsion
             effect, suggesting the point is near other sampled locations.
 
-        Raises
-        ------
-        TypeError
-            If `x` is not an instance of `Input` or `numpy.ndarray`, or if `numpy.ndarray` is not one-dimensional.
-        ValueError
-            If `x` as `numpy.ndarray` is not one-dimensional.
-
         Examples
         --------
         >>> input_point = Input(1.5, 2.5)
@@ -585,13 +579,6 @@ class PEICalculator:
 
         >>> array_input = np.array([1.5, 2.5])
         >>> repulsion_factor = pei_calculator.repulsion(array_input)
-
-        Notes
-        -----
-        The repulsion factor calculation relies on the Gaussian Process model (`self._gp`) and the
-        set of other repulsion points (`self._repulsion_points`). It is important that the
-        Gaussian Process model is properly trained and that relevant repulsion points are added
-        to the system for accurate calculations.
         """
 
         validated_x = self._validate_input_type(x, (Input, np.ndarray), "repulsion")
