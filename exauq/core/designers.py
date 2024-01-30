@@ -500,11 +500,9 @@ class PEICalculator:
         """
         Calculate the expected improvement (EI) for a given input.
 
-        This method computes the EI of the given input point `x` using the Gaussian Process model.
-        EI is a measure used in Bayesian optimisation and is particularly useful for guiding the
-        selection of points in the domain where the objective function should be evaluated next.
-        It is calculated based on the model's prediction at `x`, the current maximum target value,
-        and the standard deviation of the prediction.
+        If the standard deviation of the prediction is zero (indicating no uncertainty),
+        the EI is returned as 0.0. With zero tested by being within the default tolerance
+        'exauq.core.numerics.FLOAT_TOLERANCE'
 
         Parameters
         ----------
@@ -515,15 +513,7 @@ class PEICalculator:
         Returns
         -------
         Real
-            The expected improvement value for the given input. If the standard deviation of the
-            prediction is zero (indicating no uncertainty), the EI is returned as 0.0.
-
-        Raises
-        ------
-        TypeError
-            If `x` is not an instance of `Input` or `numpy.ndarray`, or if `numpy.ndarray` is not one-dimensional.
-        ValueError
-            If `x` as `numpy.ndarray` is not one-dimensional.
+            The expected improvement value for the given input.
 
         Examples
         --------
@@ -535,9 +525,11 @@ class PEICalculator:
 
         Notes
         -----
-        The calculation of EI assumes that the Gaussian Process model (`self._gp`) has been
-        trained with relevant data and that the current maximum target value (`self._max_targets`)
-        has been computed from this data.
+        This method computes the EI of the given input point `x` using the Gaussian Process model.
+        EI is a measure used in Bayesian optimisation and is particularly useful for guiding the
+        selection of points in the domain where the objective function should be evaluated next.
+        It is calculated based on the model's prediction at `x`, the current maximum target value,
+        and the standard deviation of the prediction.
         """
 
         validated_x = self._validate_input_type(
