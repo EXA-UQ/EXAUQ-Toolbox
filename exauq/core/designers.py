@@ -323,8 +323,9 @@ class PEICalculator:
     """
     A calculator of pseudo-expected improvement (PEI) for Gaussian processes.
 
-    This class is tailored for Gaussian Process models and assumes properly initialised
-    `AbstractGaussianProcess` and `SimulatorDomain` instances.
+    Implements the PEI detailed in Mohammadi et. al. (2022)[1]_. This class is tailored for
+    Gaussian Process models and assumes properly initialised `AbstractGaussianProcess` and
+    `SimulatorDomain` instances.
 
     Parameters
     ----------
@@ -356,6 +357,11 @@ class PEICalculator:
     inputs that reduce predictive uncertainty while not being too close to already-seen inputs.
     Optimising against PEI supports the search of experimental designs that balances exploration
     and exploitation of the input space.
+
+    References
+    ----------
+    .. [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
+        Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
     """
 
     def __init__(self, domain: SimulatorDomain, gp: AbstractGaussianProcess):
