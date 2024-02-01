@@ -3,7 +3,6 @@ import itertools
 import math
 import unittest
 import unittest.mock
-
 from unittest.mock import MagicMock
 
 from scipy.stats import norm
@@ -520,6 +519,7 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
                     f"Expected improvement should increase with standard deviation, failed at std_dev={std_dev}.",
                 )
 
+
 class TestPEICalculatorRepulsion(ExauqTestCase):
     def setUp(self):
         self.domain = SimulatorDomain([(0, 1)])
@@ -530,7 +530,9 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
             TrainingDatum(Input(0.7), 4),
             TrainingDatum(Input(0.9), 5),
         ]
-        self.pseudopoints = self.domain.calculate_pseudopoints([datum.input for datum in self.training_data])
+        self.pseudopoints = self.domain.calculate_pseudopoints(
+            [datum.input for datum in self.training_data]
+        )
         self.gp = MogpEmulator()
         self.gp.fit(training_data=self.training_data)
         self.pei_calculator = PEICalculator(self.domain, self.gp)
@@ -543,18 +545,23 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
             with self.subTest():
                 repulsion_factor = self.pei_calculator.repulsion(training_datum.input)
                 print(repulsion_factor)
-                self.assertEqual(repulsion_factor, 0.0, msg="Repulsion Factor should be zero.")
+                self.assertEqual(
+                    repulsion_factor, 0.0, msg="Repulsion Factor should be zero."
+                )
 
     def test_repulsion_factor_zero_at_repulsion_points(self):
         for repulsion_point in self.pei_calculator.repulsion_points:
             with self.subTest():
                 repulsion_factor = self.pei_calculator.repulsion(repulsion_point)
                 print(repulsion_factor)
-                self.assertEqual(repulsion_factor, 0.0, msg="Repulsion Factor should be zero.")
+                self.assertEqual(
+                    repulsion_factor, 0.0, msg="Repulsion Factor should be zero."
+                )
 
     def test_invalid_input(self):
         with self.assertRaises(TypeError):
             self.pei_calculator.repulsion("invalid input")
+
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
     def setUp(self) -> None:
