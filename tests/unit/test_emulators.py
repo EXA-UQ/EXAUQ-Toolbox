@@ -175,6 +175,67 @@ class TestMogpEmulator(ExauqTestCase):
                 correlations[i1][i2],
             )
 
+    def test_correlation_depends_on_fit_correlations(self):
+        """The correlation calculation depends on the correlation length scales that the
+        GP is fit with, but not the process variance or nugget."""
+
+        corr = [1, 2]
+        process_var = 1
+        nugget = 1
+        x1, x2 = self.inputs3[0], self.inputs4[0]
+        gp = MogpEmulator()
+
+        # Check correlation differs when correlation length scales changed
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=[1, 2], process_var=process_var, nugget=nugget
+            ),
+        )
+        correlation1 = gp.correlation([x1], [x2])[0][0]
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=[10, 20], process_var=process_var, nugget=nugget
+            ),
+        )
+        correlation2 = gp.correlation([x1], [x2])[0][0]
+        self.assertNotEqual(correlation1, correlation2)
+
+        # Check correlation unchanged when only process variance changed
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=corr, process_var=1, nugget=nugget
+            ),
+        )
+        correlation1 = gp.correlation([x1], [x2])[0][0]
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=corr, process_var=2, nugget=nugget
+            ),
+        )
+        correlation2 = gp.correlation([x1], [x2])[0][0]
+        self.assertEqual(correlation1, correlation2)
+
+        # Check correlation unchanged when only nugget changed
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=corr, process_var=process_var, nugget=1
+            ),
+        )
+        correlation1 = gp.correlation([x1], [x2])[0][0]
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=corr, process_var=process_var, nugget=2
+            ),
+        )
+        correlation2 = gp.correlation([x1], [x2])[0][0]
+        self.assertEqual(correlation1, correlation2)
+
     def test_fit_raises_value_error_if_infinite_training_data_supplied(self):
         """A ValueError is raised if one attempts to fit the emulator to an infinite
         collection of training data."""
