@@ -480,11 +480,11 @@ class PEICalculator:
         Calculate the repulsion factor for a given simulator input.
 
         This method assesses the repulsion effect of a given point `x` in relation to other,
-        stored repulsion points. It is calculated as the product of terms ``1 - correlation(x,
-        rp)``, where ``rp`` is a repulsion point and the correlation is computed with the
-        Gaussian process supplied at this object's initialisation. The repulsion factor can be
-        used to discourage the selection of points near already sampled locations, facilitating
-        exploration of the input space.
+        stored repulsion points. It is calculated as the product of terms
+        ``1 - correlation(x, rp)``, where ``rp`` is a repulsion point and the correlation is 
+        computed with the Gaussian process supplied at this object's initialisation. The 
+        repulsion factor can be used to discourage the selection of points near already 
+        sampled locations, facilitating exploration of the input space.
 
         Parameters
         ----------
