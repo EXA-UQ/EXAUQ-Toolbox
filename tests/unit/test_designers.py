@@ -504,6 +504,21 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
             ei, 0.0, "Expected improvement should be positive due to uncertainty."
         )
 
+    def test_ei_scaling_with_std_deviation(self):
+        estimate = 6.0  # Above max target
+        for std_dev in [0.1, 1.0, 10.0]:  # Increasing standard deviation
+            with self.subTest():
+                self.gp.predict = MagicMock(
+                    return_value=MagicMock(estimate=estimate, standard_deviation=std_dev)
+                )
+
+                input_point = Input(0.5, 0.5)
+                ei = self.pei_calculator.expected_improvement(input_point)
+                self.assertGreater(
+                    ei,
+                    0.0,
+                    f"Expected improvement should increase with standard deviation, failed at std_dev={std_dev}.",
+                )
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
     def setUp(self) -> None:
