@@ -1,15 +1,17 @@
 """Provides emulators for simulators."""
+
 from __future__ import annotations
 
 import dataclasses
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Literal, Optional
+from typing import Callable, Literal, Optional
 
 import mogp_emulator as mogp
 import numpy as np
 from mogp_emulator import GaussianProcess
 from mogp_emulator.GPParams import GPParams
+from numpy.typing import NDArray
 
 from exauq.core.modelling import (
     AbstractGaussianProcess,
@@ -76,10 +78,19 @@ class MogpEmulator(AbstractGaussianProcess):
         if "nugget" not in self._gp_kwargs:
             self._gp_kwargs["nugget"] = self._gp.nugget_type
 
+        self._kernel = (
+            self._make_kernel_function(self._gp_kwargs["kernel"])
+            if "kernel" in self._gp_kwargs
+            else self._make_kernel_function()
+        )
+
         self._training_data = tuple(
             TrainingDatum.list_from_arrays(self._gp.inputs, self._gp.targets)
         )
         self._fit_hyperparameters = None
+        self._corr_transformed = (
+            None  # correlation length scale parameters on a negative log scale
+        )
 
     @staticmethod
     def _remove_entries(_dict: dict, *args) -> dict:
@@ -102,6 +113,21 @@ class MogpEmulator(AbstractGaussianProcess):
                 "initialisation of MogpEmulator"
             )
             raise RuntimeError(msg)
+
+    @staticmethod
+    def _make_kernel_function(
+        kernel: str = "SquaredExponential",
+    ) -> Callable[[Input, Input, NDArray], float]:
+        kernel_funcs = {
+            "Matern52": mogp.Kernel.Matern52().kernel_f,
+            "SquaredExponential": mogp.Kernel.SquaredExponential().kernel_f,
+            "ProductMat52": mogp.Kernel.ProductMat52().kernel_f,
+        }
+
+        def kernel_f(x1: Input, x2: Input, corr_raw: NDArray) -> float:
+            return float(kernel_funcs[kernel](np.array(x1), np.array(x2), corr_raw)[0, 0])
+
+        return kernel_f
 
     @property
     def gp(self) -> GaussianProcess:
@@ -191,6 +217,7 @@ class MogpEmulator(AbstractGaussianProcess):
         self._fit_hyperparameters = MogpHyperparameters.from_mogp_gp_params(
             self._gp.theta
         )
+        self._corr_transformed = self._gp.theta.corr_raw
         self._training_data = training_data
 
         return None
@@ -340,20 +367,15 @@ class MogpEmulator(AbstractGaussianProcess):
             If this emulator has not yet been trained on data.
         """
 
-        assert self.fit_hyperparameters is not None, (
+        assert self._corr_transformed is not None, (
             f"Cannot calculate correlations for this instance of {self.__class__} because "
             "it hasn't yet been trained on data."
         )
 
-        # TODO: implement support for other kernels
-        corr_raw = self.fit_hyperparameters.to_mogp_gp_params().corr_raw
-
-        def kernel_func(x1: Input, x2: Input) -> float:
-            return mogp.Kernel.Matern52().kernel_f(
-                np.array(list(x1)), np.array(list(x2)), corr_raw
-            )[0, 0]
-
-        return tuple(tuple(kernel_func(xi, xj) for xj in inputs2) for xi in inputs1)
+        return tuple(
+            tuple(self._kernel(xi, xj, self._corr_transformed) for xj in inputs2)
+            for xi in inputs1
+        )
 
     def predict(self, x: Input) -> Prediction:
         """Make a prediction of a simulator output for a given input.

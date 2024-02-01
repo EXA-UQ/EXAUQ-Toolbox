@@ -126,25 +126,30 @@ class TestMogpEmulator(ExauqTestCase):
         """The calculation of correlations agrees with the pairwise kernel calculations
         for the kernel chosen for the underlying MOGP GaussianProcess."""
 
-        # Train an emulator with some hyperparameters and a specific kernel
-        emulator = MogpEmulator(kernel="Matern52")
-        emulator.fit([TrainingDatum(Input(1, 2), 1), TrainingDatum(Input(3, 4), 2)])
+        kernel_funcs = {
+            "Matern52": mogp.Kernel.Matern52().kernel_f,
+            "SquaredExponential": mogp.Kernel.SquaredExponential().kernel_f,
+            "ProductMat52": mogp.Kernel.ProductMat52().kernel_f,
+        }
 
-        corr_raw = emulator.fit_hyperparameters.to_mogp_gp_params().corr_raw
-
-        def kernel_func(x1, x2):
-            return mogp.Kernel.Matern52().kernel_f(
-                np.array(list(x1)),
-                np.array(list(x2)),
-                corr_raw,
-            )[0, 0]
-
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        corr_raw = params.to_mogp_gp_params().corr_raw
         inputs1 = [Input(1, 1), Input(2, 2), Input(3, 3)]
         inputs2 = [Input(10, 10), Input(20, 20)]
 
-        correlations = emulator.correlation(inputs1, inputs2)
-        for (i1, x1), (i2, x2) in zip(enumerate(inputs1), enumerate(inputs2)):
-            self.assertEqualWithinTolerance(kernel_func(x1, x2), correlations[i1][i2])
+        for kernel in kernel_funcs:
+            with self.subTest(kernel=kernel):
+                # Train an emulator with some hyperparameters and a specific kernel
+                emulator = MogpEmulator(kernel=kernel)
+                emulator.fit(self.training_data, hyperparameters=params)
+
+                kernel_f = kernel_funcs[kernel]
+                correlations = emulator.correlation(inputs1, inputs2)
+                for (i1, x1), (i2, x2) in zip(enumerate(inputs1), enumerate(inputs2)):
+                    self.assertEqualWithinTolerance(
+                        kernel_f(np.array(x1), np.array(x2), corr_raw)[0, 0],
+                        correlations[i1][i2],
+                    )
 
     def test_fit_raises_value_error_if_infinite_training_data_supplied(self):
         """A ValueError is raised if one attempts to fit the emulator to an infinite
