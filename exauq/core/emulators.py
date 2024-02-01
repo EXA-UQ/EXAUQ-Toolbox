@@ -29,14 +29,15 @@ class MogpEmulator(AbstractGaussianProcess):
     An emulator wrapping a ``GaussianProcess`` object from the mogp-emulator
     package.
 
-    This class allows mogp-emulator ``GaussianProcess`` objects to be used with
-    the designers defined in the EXAUQ-Toolbox, ensuring the interface required
-    by the designers is present. Keyword arguments supplied to the
-    `MogpEmulator` are passed onto the ``GaussianProcess``
-    initialiser to create the underlying (i.e. wrapped) ``GaussianProcess``
-    object. Note that any ``inputs`` or ``targets`` supplied are ignored: the
-    underlying ``GaussianProcess`` will initially be constructed with no
-    training data.
+    This class allows mogp-emulator ``GaussianProcess`` objects to be used with the
+    designers defined in the EXAUQ-Toolbox, ensuring the interface required by the
+    designers is present. Keyword arguments supplied to the `MogpEmulator` are passed onto
+    the ``GaussianProcess`` initialiser to create the underlying (i.e. wrapped)
+    ``GaussianProcess`` object. Note that any ``inputs`` or ``targets`` supplied are
+    ignored: the underlying ``GaussianProcess`` will initially be constructed with no
+    training data. Additionally, the only ``kernel``s currently supported are
+    'SquaredExponential' (the default), 'Matern52' and 'ProductMat52'; these should be
+    specified as strings during initialisation.
 
     The underlying ``GaussianProcess` object can be obtained through the
     `gp` property. Note that the `fit` method, used to train the emulator, will
@@ -45,10 +46,11 @@ class MogpEmulator(AbstractGaussianProcess):
     Parameters
     ----------
     **kwargs : dict, optional
-        Any permitted keyword arguments that can be used to create a
-        mogp-emulator ``GaussianProcess`` object. See the mogp-emulator
-        documentation for details. If ``inputs`` or ``targets`` are supplied as
-        keyword arguments then these will be ignored.
+        Any permitted keyword arguments that can be used to create a mogp-emulator
+        ``GaussianProcess`` object. See the mogp-emulator documentation for details. If
+        ``inputs`` or ``targets`` are supplied as keyword arguments then these will be
+        ignored. ``kernel``, if supplied, should be a string of one of the currently
+        supported kernels (see above).
 
     Attributes
     ----------
@@ -64,6 +66,8 @@ class MogpEmulator(AbstractGaussianProcess):
 
     Raises
     ------
+    ValueError
+        If the kernel supplied is not one of the supported kernel functions.
     RuntimeError
         If keyword arguments are supplied upon initialisation that aren't
         supported by the initialiser of ``GaussianProcess`` from the
