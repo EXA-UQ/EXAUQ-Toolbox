@@ -259,8 +259,8 @@ class PEICalculator:
     ----------
     gp : AbstractGaussianProcess
         (Read-only) The Gaussian process used in calculations.
-    repulsion_points : tuple
-        Readonly property that returns the current set of repulsion points.
+    repulsion_points : tuple[Input]
+        (Read-only) The current set of repulsion points used in calculations.
     domain : SimulatorDomain
         Readonly property that returns the simulation domain.
 
