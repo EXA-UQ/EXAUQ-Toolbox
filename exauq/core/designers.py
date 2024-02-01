@@ -314,8 +314,8 @@ class PEICalculator:
         return self._gp
 
     @property
-    def repulsion_points(self) -> tuple:
-        """(Read-only) The current repulsion points."""
+    def repulsion_points(self) -> tuple[Input]:
+        """(Read-only) The current set of repulsion points used in calculations."""
 
         return self._repulsion_points
 
