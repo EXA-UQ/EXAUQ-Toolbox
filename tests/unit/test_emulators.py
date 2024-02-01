@@ -151,6 +151,27 @@ class TestMogpEmulator(ExauqTestCase):
                         correlations[i1][i2],
                     )
 
+    def test_correlation_default_kernel(self):
+        """If a kernel is not specified at MogpEmulator initialisation, then a
+        squared exponential kernel will be used."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        corr_raw = params.to_mogp_gp_params().corr_raw
+        inputs1 = [Input(1, 1), Input(2, 2), Input(3, 3)]
+        inputs2 = [Input(10, 10), Input(20, 20)]
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+
+        correlations = emulator.correlation(inputs1, inputs2)
+        for (i1, x1), (i2, x2) in zip(enumerate(inputs1), enumerate(inputs2)):
+            self.assertEqualWithinTolerance(
+                mogp.Kernel.SquaredExponential().kernel_f(
+                    np.array(x1), np.array(x2), corr_raw
+                )[0, 0],
+                correlations[i1][i2],
+            )
+
     def test_fit_raises_value_error_if_infinite_training_data_supplied(self):
         """A ValueError is raised if one attempts to fit the emulator to an infinite
         collection of training data."""

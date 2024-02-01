@@ -88,9 +88,9 @@ class MogpEmulator(AbstractGaussianProcess):
             TrainingDatum.list_from_arrays(self._gp.inputs, self._gp.targets)
         )
         self._fit_hyperparameters = None
-        self._corr_transformed = (
-            None  # correlation length scale parameters on a negative log scale
-        )
+
+        # Correlation length scale parameters on a negative log scale
+        self._corr_transformed = None
 
     @staticmethod
     def _remove_entries(_dict: dict, *args) -> dict:
