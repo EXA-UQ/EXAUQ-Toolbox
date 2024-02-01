@@ -552,6 +552,10 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
                 print(repulsion_factor)
                 self.assertEqual(repulsion_factor, 0.0, msg="Repulsion Factor should be zero.")
 
+    def test_invalid_input(self):
+        with self.assertRaises(TypeError):
+            self.pei_calculator.repulsion("invalid input")
+
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
     def setUp(self) -> None:
         self.domain = SimulatorDomain([(0, 1)])
