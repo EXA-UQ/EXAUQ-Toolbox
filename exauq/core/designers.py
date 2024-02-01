@@ -1,7 +1,7 @@
 import copy
 import math
 from numbers import Real
-from typing import Optional, Union
+from typing import Any, Optional, Type, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -240,17 +240,90 @@ def compute_loo_gp(
 
 
 class PEICalculator:
-    def __init__(self, domain: SimulatorDomain, gp: AbstractGaussianProcess):
-        """
-        Initialises the PEI (PseudoExpected Improvement) Calculator.
+    """
+    A calculator of pseudo-expected improvement (PEI) for Gaussian processes.
 
-        :param domain: An instance of SimulatorDomain, representing the domain of simulation.
-        :param gp: An instance of AbstractGaussianProcess, representing the Gaussian process model.
-        """
-        self._domain = domain  # Check domain
-        self._gp = gp  # Check gp
+    Implements the PEI detailed in Mohammadi et. al. (2022)[1]_. The functionality in this
+    class applies to Gaussian Process models that have been trained on data with inputs
+    lying in the supplied simulator domain.
+
+    Parameters
+    ----------
+    domain : SimulatorDomain
+        The domain of a simulation.
+    gp : AbstractGaussianProcess
+        A Gaussian process model, which is trained on data where the simulator inputs are
+        in `domain`.
+
+    Attributes
+    ----------
+    gp : AbstractGaussianProcess
+        (Read-only) The Gaussian process used in calculations.
+    repulsion_points : tuple[Input]
+        (Read-only) The current set of repulsion points used in calculations.
+    domain : SimulatorDomain
+        (Read-only) The simulator domain used in calculations.
+
+    Examples
+    --------
+    >>> domain = SimulatorDomain(...)
+    >>> gp_model = AbstractGaussianProcess(...)
+    >>> pei_calculator = PEICalculator(domain, gp_model)
+    >>> pei_value = pei_calculator.compute(trial_point)
+
+    Notes
+    -----
+    This class computes the PEI for given inputs in a simulation domain, which features both expected
+    improvement and a repulsion factor. Large values of pseudo-expected improvement indicate new
+    inputs that reduce predictive uncertainty while not being too close to already-seen inputs.
+    Optimising against PEI supports the search of experimental designs that balances exploration
+    and exploitation of the input space.
+
+    References
+    ----------
+    .. [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
+        Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+    """
+
+    def __init__(self, domain: SimulatorDomain, gp: AbstractGaussianProcess):
+        if not isinstance(domain, SimulatorDomain):
+            raise TypeError(
+                f"Expected 'domain' to be of type SimulatorDomain, but received {type(domain)} "
+                "instead."
+            )
+        if not isinstance(gp, AbstractGaussianProcess):
+            raise TypeError(
+                f"Expected 'gp' to be of type AbstractGaussianProcess, but received {type(gp)} "
+                "instead."
+            )
+
+        self._domain = domain
+        self._gp = gp
+
+        self._validate_training_data()
+
         self._max_targets = self._calculate_max_targets()
-        self._other_repulsion_points = self._calculate_pseudopoints()
+        self._repulsion_points = self._calculate_pseudopoints()
+
+        self._standard_norm = norm(loc=0, scale=1)
+
+    @property
+    def gp(self) -> AbstractGaussianProcess:
+        """(Read-only) The Gaussian process used in calculations."""
+
+        return self._gp
+
+    @property
+    def repulsion_points(self) -> tuple[Input]:
+        """(Read-only) The current set of repulsion points used in calculations."""
+
+        return self._repulsion_points
+
+    @property
+    def domain(self) -> SimulatorDomain:
+        """(Read-only) The simulator domain used in calculations."""
+
+        return self._domain
 
     def _calculate_max_targets(self) -> Real:
         return max(self._gp.training_data, key=lambda datum: datum.output).output
@@ -259,44 +332,192 @@ class PEICalculator:
         training_data = [datum.input for datum in self._gp.training_data]
         return self._domain.calculate_pseudopoints(training_data)
 
-    def compute(self, x: Union[Input, NDArray]) -> float:
-        """
-        Computes the PEI based on the given input.
+    def _validate_training_data(self) -> None:
+        if not self._gp.training_data:
+            raise ValueError("'gp' training data is empty.")
 
-        :param x: An instance of Input, representing the input data.
-        :return: A float value representing the computed PEI.
+        if not all(isinstance(datum, TrainingDatum) for datum in self._gp.training_data):
+            raise TypeError(
+                "All elements in 'gp' training data must be instances of TrainingDatum"
+            )
+
+    def _validate_input_type(
+        self, x: Any, expected_types: tuple[Type, ...], method_name: str
+    ) -> Input:
+        if not isinstance(x, expected_types):
+            raise TypeError(
+                f"In method '{method_name}', expected 'x' to be one of the types {expected_types}, "
+                f"but received {type(x)} instead."
+            )
+
+        if isinstance(x, np.ndarray):
+            if x.ndim != 1:
+                raise ValueError(
+                    f"In method '{method_name}', the numpy ndarray 'x' must be one-dimensional."
+                )
+            return Input(*x)
+
+        return x
+
+    def compute(self, x: Union[Input, NDArray]) -> Real:
         """
+        Compute the PseudoExpected Improvement (PEI) for a given input.
+
+        Parameters
+        ----------
+        x : Union[Input, NDArray]
+            The input point for which to compute the PEI. This can be an instance of `Input` or
+            a one-dimensional `numpy.ndarray`.
+
+        Returns
+        -------
+        Real
+            The computed PEI value for the given input. It is the product of the expected improvement
+            and the repulsion factor.
+
+        Examples
+        --------
+        >>> input_point = Input(2.0, 3.0)
+        >>> pei = pei_calculator.compute(input_point)
+
+        >>> array_input = np.array([2.0, 3.0])
+        >>> pei = pei_calculator.compute(array_input)
+
+        Notes
+        -----
+        This method calculates the PEI at a given point `x` by combining the expected improvement
+        (EI) and the repulsion factor. The PEI is a metric used in Bayesian optimisation to balance
+        exploration and exploitation, taking into account both the potential improvement over the
+        current best target and the desire to explore less sampled regions of the domain.
+        """
+
         return self.expected_improvement(x) * self.repulsion(x)
 
-    def add_repulsion_point(self, x: Union[Input, NDArray]):
-        self._other_repulsion_points = self._other_repulsion_points + (x,)
+    def add_repulsion_point(self, x: Union[Input, NDArray]) -> None:
+        """
+        Add a new point to the set of repulsion points.
 
-    def expected_improvement(self, x: Union[Input, NDArray]) -> float:
-        # ToDo:- Overload AbstractGaussianProcess.predict
-        if isinstance(x, np.ndarray):
-            prediction = self._gp.predict(Input(*x))
-        elif isinstance(x, Input):
-            prediction = self._gp.predict(x)
-        else:
-            raise TypeError
+        This method updates the internal set of repulsion points used in the repulsion factor
+        calculation. Simulator inputs very positively correlated with repulsion points result in low
+        repulsion values, whereas inputs very negatively correlated with repulsion points result
+        in high repulsion values.
+
+        Parameters
+        ----------
+        x : Union[Input, NDArray]
+            The point to be added to the repulsion points set. This can be an instance of `Input`
+            or a one-dimensional `numpy.ndarray`. If `x` is a `numpy.ndarray`, it is converted
+            to an `Input` object.
+
+        Examples
+        --------
+        >>> new_repulsion_point = Input(4.0, 5.0)
+        >>> pei_calculator.add_repulsion_point(new_repulsion_point)
+
+        >>> array_repulsion_point = np.array([4.0, 5.0])
+        >>> pei_calculator.add_repulsion_point(array_repulsion_point)
+        """
+
+        validated_x = self._validate_input_type(
+            x, (Input, np.ndarray), "add_repulsion_point"
+        )
+        self._repulsion_points = self._repulsion_points + (validated_x,)
+
+    def expected_improvement(self, x: Union[Input, NDArray]) -> Real:
+        """
+        Calculate the expected improvement (EI) for a given input.
+
+        If the standard deviation of the prediction is within the default 
+        tolerance ``exauq.core.numerics.FLOAT_TOLERANCE`` of 0 then the EI returned is 0.0.
+
+        Parameters
+        ----------
+        x : Union[Input, NDArray]
+            The input point for which to calculate the expected improvement. This can be an instance
+            of `Input` or a one-dimensional `numpy.ndarray`.
+
+        Returns
+        -------
+        Real
+            The expected improvement value for the given input.
+
+        Examples
+        --------
+        >>> input_point = Input(1.0, 2.0)
+        >>> ei = pei_calculator.expected_improvement(input_point)
+
+        >>> array_input = np.array([1.0, 2.0])
+        >>> ei = pei_calculator.expected_improvement(array_input)
+
+        Notes
+        -----
+        This method computes the EI of the given input point `x` using the Gaussian Process model.
+        EI is a measure used in Bayesian optimisation and is particularly useful for guiding the
+        selection of points in the domain where the objective function should be evaluated next.
+        It is calculated based on the model's prediction at `x`, the current maximum target value,
+        and the standard deviation of the prediction.
+        """
+
+        validated_x = self._validate_input_type(
+            x, (Input, np.ndarray), "expected_improvement"
+        )
+        prediction = self._gp.predict(validated_x)
 
         if equal_within_tolerance(prediction.standard_deviation, 0):
             return 0.0
 
         u = (prediction.estimate - self._max_targets) / prediction.standard_deviation
 
-        return (prediction.estimate - self._max_targets) * norm(loc=0, scale=1).cdf(
-            u
-        ) + prediction.standard_deviation * norm(loc=0, scale=1).pdf(u)
+        cdf_u = self._standard_norm.cdf(u)
+        pdf_u = self._standard_norm.pdf(u)
+
+        return (
+            prediction.estimate - self._max_targets
+        ) * cdf_u + prediction.standard_deviation * pdf_u
 
     def repulsion(self, x: Union[Input, NDArray]) -> Real:
-        proc_var = self._gp.fit_hyperparameters.process_var
-        covariance_matrix = self._gp.covariance_matrix([x])
-        correlations = np.array(covariance_matrix) / proc_var
+        """
+        Calculate the repulsion factor for a given simulator input.
+
+        This method assesses the repulsion effect of a given point `x` in relation to other,
+        stored repulsion points. It is calculated as the product of terms
+        ``1 - correlation(x, rp)``, where ``rp`` is a repulsion point and the correlation is 
+        computed with the Gaussian process supplied at this object's initialisation. The 
+        repulsion factor can be used to discourage the selection of points near already 
+        sampled locations, facilitating exploration of the input space.
+
+        Parameters
+        ----------
+        x : Union[Input, NDArray]
+            The input point for which to calculate the repulsion factor. This can be an instance
+            of `Input` or a one-dimensional `numpy.ndarray`.
+
+        Returns
+        -------
+        Real
+            The repulsion factor for the given input. A higher value indicates a stronger repulsion
+            effect, suggesting the point is near other sampled locations.
+
+        Examples
+        --------
+        >>> input_point = Input(1.5, 2.5)
+        >>> repulsion_factor = pei_calculator.repulsion(input_point)
+
+        >>> array_input = np.array([1.5, 2.5])
+        >>> repulsion_factor = pei_calculator.repulsion(array_input)
+        """
+
+        validated_x = self._validate_input_type(x, (Input, np.ndarray), "repulsion")
+
+        covariance_matrix = self._gp.covariance_matrix([validated_x])
+        correlations = (
+            np.array(covariance_matrix) / self._gp.fit_hyperparameters.process_var
+        )
         inputs_term = np.product(1 - correlations, axis=0)[0]
 
         other_repulsion_pts_term = np.product(
-            1 - np.array(self._gp.correlation([x], self._other_repulsion_points)), axis=1
+            1 - np.array(self._gp.correlation([validated_x], self._repulsion_points)),
+            axis=1,
         )[0]
 
         return inputs_term * other_repulsion_pts_term
