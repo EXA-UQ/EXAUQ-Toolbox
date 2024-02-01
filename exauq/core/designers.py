@@ -321,7 +321,7 @@ class PEICalculator:
 
     @property
     def domain(self) -> SimulatorDomain:
-        """(Read-only) simulation domain."""
+        """(Read-only) The simulator domain used in calculations."""
 
         return self._domain
 
