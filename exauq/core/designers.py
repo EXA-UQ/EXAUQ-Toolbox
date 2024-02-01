@@ -303,7 +303,7 @@ class PEICalculator:
         self._validate_training_data()
 
         self._max_targets = self._calculate_max_targets()
-        self._repulsion_points = self._calculate_pseudopoints()
+        self._other_repulsion_points = self._calculate_pseudopoints()
 
         self._standard_norm = norm(loc=0, scale=1)
 
@@ -316,8 +316,8 @@ class PEICalculator:
     @property
     def repulsion_points(self) -> tuple[Input]:
         """(Read-only) The current set of repulsion points used in calculations."""
-
-        return self._repulsion_points
+        training_points = tuple(datum.input for datum in self._gp.training_data)
+        return self._other_repulsion_points + training_points
 
     @property
     def domain(self) -> SimulatorDomain:
@@ -421,7 +421,7 @@ class PEICalculator:
         validated_x = self._validate_input_type(
             x, (Input, np.ndarray), "add_repulsion_point"
         )
-        self._repulsion_points = self._repulsion_points + (validated_x,)
+        self._other_repulsion_points = self._other_repulsion_points + (validated_x,)
 
     def expected_improvement(self, x: Union[Input, NDArray]) -> Real:
         """
@@ -516,7 +516,7 @@ class PEICalculator:
         inputs_term = np.product(1 - correlations, axis=0)[0]
 
         other_repulsion_pts_term = np.product(
-            1 - np.array(self._gp.correlation([validated_x], self._repulsion_points)),
+            1 - np.array(self._gp.correlation([validated_x], self._other_repulsion_points)),
             axis=1,
         )[0]
 
