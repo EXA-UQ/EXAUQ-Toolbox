@@ -427,9 +427,8 @@ class PEICalculator:
         """
         Calculate the expected improvement (EI) for a given input.
 
-        If the standard deviation of the prediction is zero (indicating no uncertainty),
-        the EI is returned as 0.0. With zero tested by being within the default tolerance
-        'exauq.core.numerics.FLOAT_TOLERANCE'
+        If the standard deviation of the prediction is within the default 
+        tolerance ``exauq.core.numerics.FLOAT_TOLERANCE`` of 0 then the EI returned is 0.0.
 
         Parameters
         ----------
