@@ -6,6 +6,7 @@ import unittest.mock
 
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
+    PEICalculator,
     SimpleDesigner,
     compute_loo_errors_gp,
     compute_loo_gp,
@@ -393,6 +394,24 @@ class TestComputeLooGp(ExauqTestCase):
         loo_gp = compute_loo_gp(gp, leave_out_idx=0)
 
         self.assertNotEqual(id(loo_gp.foo), id(gp.foo))
+
+
+class TestPEICalculatorExpectedImprovement(ExauqTestCase):
+    def setUp(self):
+        self.domain = SimulatorDomain([(0, 1), (0, 1)])
+        self.training_data = [
+            TrainingDatum(Input(0.1, 0.1), 1),
+            TrainingDatum(Input(0.3, 0.3), 2),
+            TrainingDatum(Input(0.5, 0.5), 3),
+            TrainingDatum(Input(0.7, 0.7), 4),
+            TrainingDatum(Input(0.9, 0.9), 5),
+        ]
+        self.gp = MogpEmulator()
+        self.gp.fit(training_data=self.training_data)
+        self.pei_calculator = PEICalculator(self.domain, self.gp)
+
+        # Mock the GP model's max target value for visibility
+        self.pei_calculator._max_targets = 5.0
 
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
