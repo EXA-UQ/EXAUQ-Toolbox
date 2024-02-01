@@ -520,6 +520,21 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
                     f"Expected improvement should increase with standard deviation, failed at std_dev={std_dev}.",
                 )
 
+class TestPEICalculatorRepulsion(ExauqTestCase):
+    def setUp(self):
+        self.domain = SimulatorDomain([(0, 1)])
+        self.training_data = [
+            TrainingDatum(Input(0.1), 1),
+            TrainingDatum(Input(0.3), 2),
+            TrainingDatum(Input(0.5), 3),
+            TrainingDatum(Input(0.7), 4),
+            TrainingDatum(Input(0.9), 5),
+        ]
+        self.pseudopoints = self.domain.calculate_pseudopoints([datum.input for datum in self.training_data])
+        self.gp = MogpEmulator()
+        self.gp.fit(training_data=self.training_data)
+        self.pei_calculator = PEICalculator(self.domain, self.gp)
+
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
     def setUp(self) -> None:
         self.domain = SimulatorDomain([(0, 1)])
