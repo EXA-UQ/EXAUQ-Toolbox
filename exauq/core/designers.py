@@ -309,7 +309,7 @@ class PEICalculator:
 
     @property
     def gp(self) -> AbstractGaussianProcess:
-        """(Read-only) The underlying AbstractGaussianProcess."""
+        """(Read-only) The Gaussian process used in calculations."""
 
         return self._gp
 
