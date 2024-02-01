@@ -485,6 +485,25 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
         # Assert the accuracy of the EI calculation
         self.assertEqualWithinTolerance(ei, expected_ei)
 
+    def test_ei_at_max_target(self):
+        estimate = 5.0  # Exact match to max target
+        standard_deviation = 1.0  # Non-zero uncertainty
+
+        # Configure mock
+        self.gp.predict = MagicMock(
+            return_value=MagicMock(
+                estimate=estimate, standard_deviation=standard_deviation
+            )
+        )
+
+        input_point = Input(0.5, 0.5)
+        ei = self.pei_calculator.expected_improvement(input_point)
+
+        # EI should be positive due to uncertainty
+        self.assertGreater(
+            ei, 0.0, "Expected improvement should be positive due to uncertainty."
+        )
+
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
     def setUp(self) -> None:
