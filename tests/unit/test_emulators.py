@@ -19,10 +19,13 @@ from tests.utilities.utilities import ExauqTestCase, exact
 class TestMogpEmulator(ExauqTestCase):
     def setUp(self) -> None:
         # Some default args to use for constructing mogp GaussianProcess objects
-        self.inputs = np.array([[0, 0], [0.2, 0.1]])
-        self.targets = np.array([1, 2])
-        self.inputs2 = np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]])
-        self.targets2 = np.array([1, 2, 3.1, 9, 2])
+        self.inputs_arr = np.array(
+            [[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]]
+        )
+        self.targets_arr = np.array([1, 2, 3.1, 9, 2])
+
+        self.inputs3 = [Input(1, 1), Input(2, 2), Input(3, 3)]
+        self.inputs4 = [Input(10, 10), Input(20, 20)]
 
         # kwargs for constructing an mogp GuassianProcess object
         self.gp_kwargs = {
@@ -109,7 +112,9 @@ class TestMogpEmulator(ExauqTestCase):
         """Test that inputs and targets kwargs are ignored when initialising
         an emulator."""
 
-        emulator = MogpEmulator(inputs=self.inputs, targets=self.targets)
+        emulator = MogpEmulator(
+            inputs=np.array([[0, 0], [0.2, 0.1]]), targets=np.array([1, 2])
+        )
         self.assertEqual(0, emulator.gp.inputs.size)
         self.assertEqual(0, emulator.gp.targets.size)
 
@@ -134,8 +139,6 @@ class TestMogpEmulator(ExauqTestCase):
 
         params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
         corr_raw = params.to_mogp_gp_params().corr_raw
-        inputs1 = [Input(1, 1), Input(2, 2), Input(3, 3)]
-        inputs2 = [Input(10, 10), Input(20, 20)]
 
         for kernel in kernel_funcs:
             with self.subTest(kernel=kernel):
@@ -144,8 +147,10 @@ class TestMogpEmulator(ExauqTestCase):
                 emulator.fit(self.training_data, hyperparameters=params)
 
                 kernel_f = kernel_funcs[kernel]
-                correlations = emulator.correlation(inputs1, inputs2)
-                for (i1, x1), (i2, x2) in zip(enumerate(inputs1), enumerate(inputs2)):
+                correlations = emulator.correlation(self.inputs3, self.inputs4)
+                for (i1, x1), (i2, x2) in zip(
+                    enumerate(self.inputs3), enumerate(self.inputs4)
+                ):
                     self.assertEqualWithinTolerance(
                         kernel_f(np.array(x1), np.array(x2), corr_raw)[0, 0],
                         correlations[i1][i2],
@@ -157,14 +162,12 @@ class TestMogpEmulator(ExauqTestCase):
 
         params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
         corr_raw = params.to_mogp_gp_params().corr_raw
-        inputs1 = [Input(1, 1), Input(2, 2), Input(3, 3)]
-        inputs2 = [Input(10, 10), Input(20, 20)]
 
         emulator = MogpEmulator()
         emulator.fit(self.training_data, hyperparameters=params)
 
-        correlations = emulator.correlation(inputs1, inputs2)
-        for (i1, x1), (i2, x2) in zip(enumerate(inputs1), enumerate(inputs2)):
+        correlations = emulator.correlation(self.inputs3, self.inputs4)
+        for (i1, x1), (i2, x2) in zip(enumerate(self.inputs3), enumerate(self.inputs4)):
             self.assertEqualWithinTolerance(
                 mogp.Kernel.SquaredExponential().kernel_f(
                     np.array(x1), np.array(x2), corr_raw
@@ -209,9 +212,9 @@ class TestMogpEmulator(ExauqTestCase):
         """Test that fitting the emulator results in the underlying GP being fit
         with hyperparameter estimation."""
 
-        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(self.inputs2, self.targets2))
+        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(self.inputs_arr, self.targets_arr))
         emulator = MogpEmulator()
-        emulator.fit(TrainingDatum.list_from_arrays(self.inputs2, self.targets2))
+        emulator.fit(TrainingDatum.list_from_arrays(self.inputs_arr, self.targets_arr))
 
         # Note: need to use allclose because fitting is not deterministic.
         tolerance = 1e-5
@@ -239,11 +242,13 @@ class TestMogpEmulator(ExauqTestCase):
         and its training_data property is updated."""
 
         emulator = MogpEmulator()
-        training_data = tuple(TrainingDatum.list_from_arrays(self.inputs2, self.targets2))
+        training_data = tuple(
+            TrainingDatum.list_from_arrays(self.inputs_arr, self.targets_arr)
+        )
         emulator.fit(training_data)
 
-        self.assertEqualWithinTolerance(self.inputs2, emulator.gp.inputs)
-        self.assertEqualWithinTolerance(self.targets2, emulator.gp.targets)
+        self.assertEqualWithinTolerance(self.inputs_arr, emulator.gp.inputs)
+        self.assertEqualWithinTolerance(self.targets_arr, emulator.gp.targets)
         self.assertEqual(training_data, emulator.training_data)
 
     def test_fit_with_bounds_error(self):
@@ -269,7 +274,7 @@ class TestMogpEmulator(ExauqTestCase):
         """Test that fitting the emulator respects bounds on hyperparameters
         when these are supplied."""
 
-        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(self.inputs2, self.targets2))
+        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(self.inputs_arr, self.targets_arr))
 
         # Compute bounds to apply, by creating small windows away from known
         # optimal values of the hyperparameters.
@@ -283,7 +288,7 @@ class TestMogpEmulator(ExauqTestCase):
 
         emulator = MogpEmulator()
         emulator.fit(
-            TrainingDatum.list_from_arrays(self.inputs2, self.targets2),
+            TrainingDatum.list_from_arrays(self.inputs_arr, self.targets_arr),
             hyperparameter_bounds=bounds,
         )
         actual_corr = emulator.gp.theta.corr
@@ -305,7 +310,7 @@ class TestMogpEmulator(ExauqTestCase):
         in estimation."""
 
         emulator = MogpEmulator()
-        training_data = TrainingDatum.list_from_arrays(self.inputs2, self.targets2)
+        training_data = TrainingDatum.list_from_arrays(self.inputs_arr, self.targets_arr)
         emulator.fit(training_data)
         corr = emulator.fit_hyperparameters.corr_length_scales
         cov = emulator.fit_hyperparameters.process_var
@@ -343,7 +348,9 @@ class TestMogpEmulator(ExauqTestCase):
         """Test that fitting ignores any inputs and targets supplied during
         initialisation of the emulator."""
 
-        emulator = MogpEmulator(inputs=self.inputs, targets=self.targets)
+        emulator = MogpEmulator(
+            inputs=np.array([[0, 0], [0.2, 0.1]]), targets=np.array([1, 2])
+        )
         emulator.fit([])
 
         self.assertEqual(0, emulator.gp.inputs.size)
@@ -364,7 +371,7 @@ class TestMogpEmulator(ExauqTestCase):
         self.assertEqual(tuple(), emulator.training_data)
 
         # Case where data has previously been fit
-        emulator.fit(TrainingDatum.list_from_arrays(self.inputs2, self.targets2))
+        emulator.fit(TrainingDatum.list_from_arrays(self.inputs_arr, self.targets_arr))
         expected_inputs = emulator.gp.inputs
         expected_targets = emulator.gp.targets
         expected_training_data = emulator.training_data
