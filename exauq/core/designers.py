@@ -262,7 +262,7 @@ class PEICalculator:
     repulsion_points : tuple[Input]
         (Read-only) The current set of repulsion points used in calculations.
     domain : SimulatorDomain
-        Readonly property that returns the simulation domain.
+        (Read-only) The simulator domain used in calculations.
 
     Examples
     --------
