@@ -6,6 +6,8 @@ import unittest.mock
 
 from unittest.mock import MagicMock
 
+from scipy.stats import norm
+
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
@@ -456,6 +458,32 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
 
         # Expected improvement should be non-negative even if estimate is less than the max target
         self.assertGreaterEqual(ei, 0.0, "Expected improvement should be non-negative.")
+
+    def test_expected_improvement_accuracy(self):
+        estimate = 6.0
+        standard_deviation = 2.0
+        self.pei_calculator._max_targets = 5.0  # Current max target
+
+        # Mock predict method
+        self.gp.predict = MagicMock(
+            return_value=MagicMock(
+                estimate=estimate, standard_deviation=standard_deviation
+            )
+        )
+
+        input_point = Input(0.5, 0.5)
+        ei = self.pei_calculator.expected_improvement(input_point)
+
+        # Manual calculation
+        u = (estimate - self.pei_calculator._max_targets) / standard_deviation
+        cdf_u = norm.cdf(u)
+        pdf_u = norm.pdf(u)
+        expected_ei = (
+            estimate - self.pei_calculator._max_targets
+        ) * cdf_u + standard_deviation * pdf_u
+
+        # Assert the accuracy of the EI calculation
+        self.assertEqualWithinTolerance(ei, expected_ei)
 
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
