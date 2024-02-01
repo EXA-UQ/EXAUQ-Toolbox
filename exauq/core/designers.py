@@ -398,7 +398,7 @@ class PEICalculator:
         Add a new point to the set of repulsion points.
 
         This method updates the internal set of repulsion points used in the repulsion factor
-        calculation. Simulator very positively correlated with repulsion points result in low
+        calculation. Simulator inputs very positively correlated with repulsion points result in low
         repulsion values, whereas inputs very negatively correlated with repulsion points result
         in high repulsion values.
 
