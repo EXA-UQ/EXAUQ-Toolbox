@@ -545,6 +545,13 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
                 print(repulsion_factor)
                 self.assertEqual(repulsion_factor, 0.0, msg="Repulsion Factor should be zero.")
 
+    def test_repulsion_factor_zero_at_repulsion_points(self):
+        for repulsion_point in self.pei_calculator.repulsion_points:
+            with self.subTest():
+                repulsion_factor = self.pei_calculator.repulsion(repulsion_point)
+                print(repulsion_factor)
+                self.assertEqual(repulsion_factor, 0.0, msg="Repulsion Factor should be zero.")
+
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
     def setUp(self) -> None:
         self.domain = SimulatorDomain([(0, 1)])
