@@ -252,7 +252,8 @@ class PEICalculator:
     domain : SimulatorDomain
         The domain of a simulation.
     gp : AbstractGaussianProcess
-        A Gaussian process model.
+        A Gaussian process model, which is trained on data where the simulator inputs are
+        in `domain`.
 
     Attributes
     ----------
