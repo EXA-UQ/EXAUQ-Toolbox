@@ -477,7 +477,7 @@ class PEICalculator:
 
     def repulsion(self, x: Union[Input, NDArray]) -> Real:
         """
-        Calculate the repulsion factor for a given input.
+        Calculate the repulsion factor for a given simulator input.
 
         This method assesses the repulsion effect of a given point `x` in relation to other,
         stored repulsion points. It is calculated as the product of terms ``1 - correlation(x,
