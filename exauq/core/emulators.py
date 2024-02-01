@@ -70,19 +70,25 @@ class MogpEmulator(AbstractGaussianProcess):
         mogp-emulator package.
     """
 
+    _kernel_funcs = {
+        "Matern52": mogp.Kernel.Matern52().kernel_f,
+        "SquaredExponential": mogp.Kernel.SquaredExponential().kernel_f,
+        "ProductMat52": mogp.Kernel.ProductMat52().kernel_f,
+    }
+
     def __init__(self, **kwargs):
         self._gp_kwargs = self._remove_entries(kwargs, "inputs", "targets")
-        self._gp = self._make_gp(**self._gp_kwargs)
-
-        # Add the default nugget type if not provided explicitly
-        if "nugget" not in self._gp_kwargs:
-            self._gp_kwargs["nugget"] = self._gp.nugget_type
-
+        self._validate_kernel(self._gp_kwargs)
         self._kernel = (
             self._make_kernel_function(self._gp_kwargs["kernel"])
             if "kernel" in self._gp_kwargs
             else self._make_kernel_function()
         )
+        self._gp = self._make_gp(**self._gp_kwargs)
+
+        # Add the default nugget type if not provided explicitly
+        if "nugget" not in self._gp_kwargs:
+            self._gp_kwargs["nugget"] = self._gp.nugget_type
 
         self._training_data = tuple(
             TrainingDatum.list_from_arrays(self._gp.inputs, self._gp.targets)
@@ -97,6 +103,21 @@ class MogpEmulator(AbstractGaussianProcess):
         """Return a dict with the specified keys removed."""
 
         return {k: v for (k, v) in _dict.items() if k not in args}
+
+    @classmethod
+    def _validate_kernel(cls, kwargs):
+        try:
+            kernel = kwargs["kernel"]
+        except KeyError:
+            return None
+
+        if kernel not in cls._kernel_funcs:
+            raise ValueError(
+                f"Could not initialise MogpEmulator with kernel = {kernel}: not a "
+                "supported kernel function."
+            )
+        else:
+            return None
 
     @staticmethod
     def _make_gp(**kwargs) -> GaussianProcess:
@@ -114,18 +135,16 @@ class MogpEmulator(AbstractGaussianProcess):
             )
             raise RuntimeError(msg)
 
-    @staticmethod
+    @classmethod
     def _make_kernel_function(
+        cls,
         kernel: str = "SquaredExponential",
     ) -> Callable[[Input, Input, NDArray], float]:
-        kernel_funcs = {
-            "Matern52": mogp.Kernel.Matern52().kernel_f,
-            "SquaredExponential": mogp.Kernel.SquaredExponential().kernel_f,
-            "ProductMat52": mogp.Kernel.ProductMat52().kernel_f,
-        }
 
         def kernel_f(x1: Input, x2: Input, corr_raw: NDArray) -> float:
-            return float(kernel_funcs[kernel](np.array(x1), np.array(x2), corr_raw)[0, 0])
+            return float(
+                cls._kernel_funcs[kernel](np.array(x1), np.array(x2), corr_raw)[0, 0]
+            )
 
         return kernel_f
 

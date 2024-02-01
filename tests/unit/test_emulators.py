@@ -118,6 +118,20 @@ class TestMogpEmulator(ExauqTestCase):
         self.assertEqual(0, emulator.gp.inputs.size)
         self.assertEqual(0, emulator.gp.targets.size)
 
+    def test_initialiser_invalid_kernel_error(self):
+        """A ValueError is raised if the supplied kernel does not describe one of the
+        supported kernel functions."""
+
+        kernel = "UniformSqExp"
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Could not initialise MogpEmulator with kernel = {kernel}: not a "
+                "supported kernel function."
+            ),
+        ):
+            _ = MogpEmulator(kernel=kernel)
+
     def test_training_data(self):
         """Test that the training data in the underlying GP and the
         training_data property is empty when an emulator is constructed."""
