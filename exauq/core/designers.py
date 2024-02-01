@@ -273,7 +273,7 @@ class PEICalculator:
 
     Notes
     -----
-    It computes the PEI for given inputs in a simulation domain, which features both expected
+    This class computes the PEI for given inputs in a simulation domain, which features both expected
     improvement and a repulsion factor. Large values of pseudo-expected improvement indicate new
     inputs that reduce predictive uncertainty while not being too close to already-seen inputs.
     Optimising against PEI supports the search of experimental designs that balances exploration
