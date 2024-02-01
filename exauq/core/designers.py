@@ -243,9 +243,9 @@ class PEICalculator:
     """
     A calculator of pseudo-expected improvement (PEI) for Gaussian processes.
 
-    Implements the PEI detailed in Mohammadi et. al. (2022)[1]_. This class is tailored for
-    Gaussian Process models and assumes properly initialised `AbstractGaussianProcess` and
-    `SimulatorDomain` instances.
+    Implements the PEI detailed in Mohammadi et. al. (2022)[1]_. The functionality in this
+    class applies to Gaussian Process models that have been trained on data with inputs
+    lying in the supplied simulator domain.
 
     Parameters
     ----------
