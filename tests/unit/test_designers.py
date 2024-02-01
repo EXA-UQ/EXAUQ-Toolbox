@@ -429,6 +429,22 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
             ei, 0.0, "Expected improvement should be zero for zero standard deviation."
         )
 
+    def test_expected_improvement_positive(self):
+        # Mock the GP model's predict method to return a positive expected improvement scenario
+        self.gp.predict = MagicMock(
+            return_value=MagicMock(estimate=6.0, standard_deviation=1.0)
+        )
+
+        input_point = Input(0.5, 0.5)
+        ei = self.pei_calculator.expected_improvement(input_point)
+
+        # Expected improvement should be positive since the estimate is greater than the max target
+        self.assertGreater(
+            ei,
+            0.0,
+            "Expected improvement should be positive for estimates greater than the max target.",
+        )
+
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
     def setUp(self) -> None:
