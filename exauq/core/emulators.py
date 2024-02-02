@@ -369,7 +369,9 @@ class MogpEmulator(AbstractGaussianProcess):
         If ``corr_matrix`` is the output of this method, then the ordering of the nested
         tuples in ``corr_matrix`` is such that (in pseudocode)
         ``corr_matrix[i][j] = kernel(inputs1[i], inputs2[j])``, where ``kernel`` is the
-        kernel function for the underlying Gaussian process.
+        kernel function for the underlying Gaussian process. The only exception to this is
+        when either of the sequence of inputs is empty, in which case a (single level)
+        empty tuple is returned.
 
         In order to calculate the correlation, this emulator's ``fit_hyperparameters``
         needs to not be ``None``, i.e. the emulator needs to have been trained on data.
@@ -395,10 +397,15 @@ class MogpEmulator(AbstractGaussianProcess):
         """
 
         try:
-            return tuple(
+            correlations = tuple(
                 tuple(self._kernel(xi, xj, self._corr_transformed) for xj in inputs2)
                 for xi in inputs1
             )
+            if any(len(row) > 0 for row in correlations):
+                return correlations
+            else:
+                return tuple()
+
         except TypeError:
             # Raised if inputs1 or inputs2 not iterable
             raise TypeError(

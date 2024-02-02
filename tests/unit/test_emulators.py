@@ -7,8 +7,12 @@ import mogp_emulator as mogp
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import (GaussianProcessHyperparameters, Input,
-                                  Prediction, TrainingDatum)
+from exauq.core.modelling import (
+    GaussianProcessHyperparameters,
+    Input,
+    Prediction,
+    TrainingDatum,
+)
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -196,6 +200,17 @@ class TestMogpEmulator(ExauqTestCase):
             ),
         ):
             _ = emulator.correlation([x1], [x2])
+
+    def test_correlation_empty_input_sequences(self):
+        """An empty tuple is raised if either of the supplied input sequences is empty."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+
+        inputs = [Input(1, 1), Input(2, 4)]
+        self.assertEqual(tuple(), emulator.correlation([], inputs))
+        self.assertEqual(tuple(), emulator.correlation(inputs, []))
 
     def test_correlation_incompatible_dimensions_error(self):
         """A ValueError is raised if the dimensions one of the inputs does not agree with
