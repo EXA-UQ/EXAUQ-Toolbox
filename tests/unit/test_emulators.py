@@ -7,12 +7,8 @@ import mogp_emulator as mogp
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import (
-    GaussianProcessHyperparameters,
-    Input,
-    Prediction,
-    TrainingDatum,
-)
+from exauq.core.modelling import (GaussianProcessHyperparameters, Input,
+                                  Prediction, TrainingDatum)
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -186,6 +182,20 @@ class TestMogpEmulator(ExauqTestCase):
             ),
         ):
             _ = emulator.correlation(inputs1, inputs2)
+
+    def test_correlation_not_trained_error(self):
+        """An AssertionError is raised if the GP has not been trained on data."""
+
+        emulator = MogpEmulator()
+        x1, x2 = self.inputs3[0], self.inputs4[0]
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(
+                f"Cannot calculate correlations for this instance of {emulator.__class__} because "
+                "it hasn't yet been trained on data."
+            ),
+        ):
+            _ = emulator.correlation([x1], [x2])
 
     def test_correlation_incompatible_dimensions_error(self):
         """A ValueError is raised if the dimensions one of the inputs does not agree with

@@ -394,11 +394,6 @@ class MogpEmulator(AbstractGaussianProcess):
             dimension of training data inputs.
         """
 
-        assert self._corr_transformed is not None, (
-            f"Cannot calculate correlations for this instance of {self.__class__} because "
-            "it hasn't yet been trained on data."
-        )
-
         try:
             return tuple(
                 tuple(self._kernel(xi, xj, self._corr_transformed) for xj in inputs2)
@@ -411,6 +406,10 @@ class MogpEmulator(AbstractGaussianProcess):
                 f"but received {type(inputs1)} and {type(inputs2)} instead."
             )
         except AssertionError:
+            assert self._corr_transformed is not None, (
+                f"Cannot calculate correlations for this instance of {self.__class__} "
+                "because it hasn't yet been trained on data."
+            )
             # mogp-emulator arg validation errors typically seem to be raised as
             # AssertionErrors - these get bubbled up through self._kernel
             if not (
