@@ -373,8 +373,9 @@ class MogpEmulator(AbstractGaussianProcess):
         when either of the sequence of inputs is empty, in which case a (single level)
         empty tuple is returned.
 
-        In order to calculate the correlation, this emulator's ``fit_hyperparameters``
-        needs to not be ``None``, i.e. the emulator needs to have been trained on data.
+        In order to calculate the correlation between nonempty sequences of inputs, this
+        emulator's ``fit_hyperparameters`` needs to not be ``None``, i.e. the emulator
+        needs to have been trained on data.
 
         Parameters
         ----------
@@ -424,8 +425,7 @@ class MogpEmulator(AbstractGaussianProcess):
                 and all(isinstance(x, Input) for x in inputs2)
             ):
                 raise TypeError(
-                    f"Expected 'inputs1' of type {type(inputs1)} and 'inputs2' of type "
-                    f"{type(inputs2)} to be sequences of Input objects."
+                    "Expected 'inputs1' and 'inputs2' to only contain Input objects."
                 )
         except ValueError:
             expected_dim = len(self.training_data[0].input)
@@ -438,6 +438,20 @@ class MogpEmulator(AbstractGaussianProcess):
                 raise ValueError(
                     f"Expected inputs to have dimension equal to {expected_dim}, but "
                     f"received input of dimension {wrong_dims[0]}."
+                ) from None
+
+    def covariance_matrix(self, inputs: Sequence[Input]) -> tuple[tuple[float, ...], ...]:
+        try:
+            return super().covariance_matrix(inputs)
+        except TypeError:
+            if not isinstance(inputs, Sequence):
+                raise TypeError(
+                    "Expected 'inputs' to be a sequence of Input objects, but received "
+                    f"{type(inputs)} instead."
+                ) from None
+            else:
+                raise TypeError(
+                    "Expected 'inputs' to only contain Input objects."
                 ) from None
 
     def predict(self, x: Input) -> Prediction:

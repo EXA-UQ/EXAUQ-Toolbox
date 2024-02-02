@@ -169,10 +169,7 @@ class TestMogpEmulator(ExauqTestCase):
         inputs2 = [Input(3)]
         with self.assertRaisesRegex(
             TypeError,
-            exact(
-                f"Expected 'inputs1' of type {type(inputs1)} and 'inputs2' of type {type(inputs2)} "
-                "to be sequences of Input objects."
-            ),
+            exact("Expected 'inputs1' and 'inputs2' to only contain Input objects."),
         ):
             _ = emulator.correlation(inputs1, inputs2)
 
@@ -180,10 +177,7 @@ class TestMogpEmulator(ExauqTestCase):
         inputs2 = Input(3)
         with self.assertRaisesRegex(
             TypeError,
-            exact(
-                f"Expected 'inputs1' of type {type(inputs1)} and 'inputs2' of type {type(inputs2)} "
-                "to be sequences of Input objects."
-            ),
+            exact("Expected 'inputs1' and 'inputs2' to only contain Input objects."),
         ):
             _ = emulator.correlation(inputs1, inputs2)
 
@@ -202,7 +196,7 @@ class TestMogpEmulator(ExauqTestCase):
             _ = emulator.correlation([x1], [x2])
 
     def test_correlation_empty_input_sequences(self):
-        """An empty tuple is raised if either of the supplied input sequences is empty."""
+        """An empty tuple is returned if either of the supplied input sequences is empty."""
 
         params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
         emulator = MogpEmulator()
@@ -351,6 +345,77 @@ class TestMogpEmulator(ExauqTestCase):
         )
         correlation2 = gp.correlation([x1], [x2])[0][0]
         self.assertEqual(correlation1, correlation2)
+
+    def test_covariance_matrix_empty_sequence_arg(self):
+        """An empty tuple is returned if the supplied input sequences is empty."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+
+        self.assertEqual(tuple(), emulator.covariance_matrix([]))
+
+    def test_covariance_matrix_not_trained(self):
+        """An empty tuple is returned if the GP has not been trained on data."""
+
+        emulator = MogpEmulator()
+        self.assertEqual(tuple(), emulator.covariance_matrix([Input(1)]))
+
+    def test_covariance_matrix_correlations_with_training_data(self):
+        """The covariance matrix is equal to the correlation between the supplied inputs
+        and the training data inputs."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+        inputs = [Input(0.1, 0.9), Input(0.2, 0.2)]
+        self.assertEqual(
+            emulator.correlation([d.input for d in self.training_data], inputs),
+            emulator.covariance_matrix(inputs),
+        )
+
+    def test_covariance_matrix_arg_validation(self):
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+
+        inputs = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'inputs' to be a sequence of Input objects, but received "
+                f"{type(inputs)} instead."
+            ),
+        ):
+            _ = emulator.covariance_matrix(inputs)
+
+        inputs = Input(1)
+        with self.assertRaisesRegex(
+            TypeError,
+            exact("Expected 'inputs' to only contain Input objects."),
+        ):
+            _ = emulator.covariance_matrix(inputs)
+
+    def test_covariance_matrix_incompatible_dimensions_error(self):
+        """A ValueError is raised if the dimensions of one of the inputs does not agree with
+        the number dimension of inputs used to train the GP."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+        expected_dim = len(self.training_data[0].input)
+
+        inputs = [Input(1, 1), Input(0)]
+        wrong_dim = len(inputs[1])
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected inputs to have dimension equal to {expected_dim}, but received input of "
+                f"dimension {wrong_dim}."
+            ),
+        ):
+            _ = emulator.covariance_matrix(inputs)
 
     def test_fit_raises_value_error_if_infinite_training_data_supplied(self):
         """A ValueError is raised if one attempts to fit the emulator to an infinite
