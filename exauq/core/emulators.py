@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import itertools
 from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Callable, Literal, Optional
@@ -388,6 +389,9 @@ class MogpEmulator(AbstractGaussianProcess):
         ------
         AssertionError
             If this emulator has not yet been trained on data.
+        ValueError
+            If the dimension of any of the supplied simulator inputs doesn't match the
+            dimension of training data inputs.
         """
 
         assert self._corr_transformed is not None, (
@@ -395,10 +399,40 @@ class MogpEmulator(AbstractGaussianProcess):
             "it hasn't yet been trained on data."
         )
 
-        return tuple(
-            tuple(self._kernel(xi, xj, self._corr_transformed) for xj in inputs2)
-            for xi in inputs1
-        )
+        try:
+            return tuple(
+                tuple(self._kernel(xi, xj, self._corr_transformed) for xj in inputs2)
+                for xi in inputs1
+            )
+        except TypeError:
+            # Raised if inputs1 or inputs2 not iterable
+            raise TypeError(
+                "Expected 'inputs1' and 'inputs2' to be sequences of Input objects, "
+                f"but received {type(inputs1)} and {type(inputs2)} instead."
+            )
+        except AssertionError:
+            # mogp-emulator arg validation errors typically seem to be raised as
+            # AssertionErrors - these get bubbled up through self._kernel
+            if not (
+                all(isinstance(x, Input) for x in inputs1)
+                and all(isinstance(x, Input) for x in inputs2)
+            ):
+                raise TypeError(
+                    f"Expected 'inputs1' of type {type(inputs1)} and 'inputs2' of type "
+                    f"{type(inputs2)} to be sequences of Input objects."
+                )
+        except ValueError:
+            expected_dim = len(self.training_data[0].input)
+            wrong_dims = list(
+                len(x)
+                for x in itertools.chain(inputs1, inputs2)
+                if len(x) != expected_dim
+            )
+            if wrong_dims:
+                raise ValueError(
+                    f"Expected inputs to have dimension equal to {expected_dim}, but "
+                    f"received input of dimension {wrong_dims[0]}."
+                ) from None
 
     def predict(self, x: Input) -> Prediction:
         """Make a prediction of a simulator output for a given input.

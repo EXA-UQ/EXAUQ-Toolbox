@@ -141,6 +141,83 @@ class TestMogpEmulator(ExauqTestCase):
         self.assertEqual(0, emulator.gp.targets.size)
         self.assertEqual(tuple(), emulator.training_data)
 
+    def test_correlation_arg_validation(self):
+        """A TypeError is raised if one of the args is not a sequence of Input objects."""
+
+        params = MogpHyperparameters(corr_length_scales=[2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        training_data = [
+            TrainingDatum(Input(0), 1),
+            TrainingDatum(Input(0.2), 1),
+            TrainingDatum(Input(0.4), 1),
+            TrainingDatum(Input(0.6), 1),
+        ]
+        emulator.fit(training_data, hyperparameters=params)
+
+        inputs1 = 1
+        inputs2 = [Input(3)]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'inputs1' and 'inputs2' to be sequences of Input objects, but received "
+                f"{type(inputs1)} and {type(inputs2)} instead."
+            ),
+        ):
+            _ = emulator.correlation(inputs1, inputs2)
+
+        inputs1 = Input(1)
+        inputs2 = [Input(3)]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'inputs1' of type {type(inputs1)} and 'inputs2' of type {type(inputs2)} "
+                "to be sequences of Input objects."
+            ),
+        ):
+            _ = emulator.correlation(inputs1, inputs2)
+
+        inputs1 = [Input(1)]
+        inputs2 = Input(3)
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'inputs1' of type {type(inputs1)} and 'inputs2' of type {type(inputs2)} "
+                "to be sequences of Input objects."
+            ),
+        ):
+            _ = emulator.correlation(inputs1, inputs2)
+
+    def test_correlation_incompatible_dimensions_error(self):
+        """A ValueError is raised if the dimensions one of the inputs does not agree with
+        the number dimension of inputs used to train the GP."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+        expected_dim = len(self.training_data[0].input)
+
+        inputs1, inputs2 = [Input(0), Input(1, 1)], [Input(0, 1)]
+        wrong_dim = len(inputs1[0])
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected inputs to have dimension equal to {expected_dim}, but received input of "
+                f"dimension {wrong_dim}."
+            ),
+        ):
+            _ = emulator.correlation(inputs1, inputs2)
+
+        inputs1, inputs2 = [Input(0, 1)], [Input(1, 1), Input(0)]
+        wrong_dim = len(inputs2[1])
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected inputs to have dimension equal to {expected_dim}, but received input of "
+                f"dimension {wrong_dim}."
+            ),
+        ):
+            _ = emulator.correlation(inputs1, inputs2)
+
     def test_correlation_matrix_entries_given_by_kernels(self):
         """The calculation of correlations agrees with the pairwise kernel calculations
         for the kernel chosen for the underlying MOGP GaussianProcess."""
