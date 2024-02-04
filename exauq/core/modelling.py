@@ -349,7 +349,7 @@ class TrainingDatum(object):
     ) -> tuple[TrainingDatum, ...]:
         training_data = []
         with open(path, mode="r", newline="") as csvfile:
-            reader = csv.reader(csvfile)
+            reader = enumerate(csv.reader(csvfile))
             if header:
                 # Skip header, or return empty tuple if file is empty
                 try:
@@ -357,7 +357,7 @@ class TrainingDatum(object):
                 except StopIteration:
                     return tuple()
 
-            for row in (row for row in reader if len(row) > 0):
+            for i, row in ((i, row) for i, row in reader if len(row) > 0):
                 try:
                     parsed_row = cls._parse_csv_row(row)
                 except AssertionError as e:
@@ -369,7 +369,7 @@ class TrainingDatum(object):
                 except IndexError:
                     raise ValueError(
                         f"'output_col={output_col}' does not define a valid column index for "
-                        f"csv data with {len(row)} columns."
+                        f"csv data with {len(row)} columns in row {i}."
                     )
                 except ValueError:
                     raise AssertionError(

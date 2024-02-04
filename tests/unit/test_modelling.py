@@ -462,20 +462,36 @@ class TestTrainingDatum(unittest.TestCase):
             _ = TrainingDatum.read_from_csv(self.path)
 
     def test_read_from_csv_bad_column_index_error(self):
-        """A ValueError is raised if an out-of-bounds column index is given."""
+        """A ValueError is raised if an out-of-bounds column index is given, where the
+        index bounds are determined row-wise."""
 
+        # Square data case
         data = [[1, 2, 3], [10, 20, 30]]
-        n_cols = len(data[0])
-        self.write_csv_data(self.path, [[1, 2, 3], [10, 20, 30]])
+        self.write_csv_data(self.path, data)
+        bad_row = 0
         for output_col in [-4, 3]:
             with self.assertRaisesRegex(
                 ValueError,
                 exact(
                     f"'output_col={output_col}' does not define a valid column index for "
-                    f"csv data with {n_cols} columns."
+                    f"csv data with {len(data[bad_row])} columns in row {bad_row}."
                 ),
             ):
                 _ = TrainingDatum.read_from_csv(self.path, output_col=output_col)
+
+        # Jagged shape case - row 1 the culprit
+        data = [[1, 2, 3], [10, 30]]
+        self.write_csv_data(self.path, data, mode="w")
+        output_col = 2
+        bad_row = 1
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"'output_col={output_col}' does not define a valid column index for "
+                f"csv data with {len(data[bad_row])} columns in row {bad_row}."
+            ),
+        ):
+            _ = TrainingDatum.read_from_csv(self.path, output_col=output_col)
 
 
 class TestPrediction(ExauqTestCase):
