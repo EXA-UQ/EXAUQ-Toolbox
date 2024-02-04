@@ -396,6 +396,21 @@ class TestTrainingDatum(unittest.TestCase):
         expected = (TrainingDatum(Input(1, 2), 3), TrainingDatum(Input(10, 20), 30))
         self.assertEqual(expected, training_data)
 
+    def test_read_from_csv_empty_data(self):
+        """If the csv file does not contain any training data, then an empty tuple is
+        returned."""
+
+        # No header row case
+        self.write_csv_data(self.path, [[]])
+        training_data = TrainingDatum.read_from_csv(self.path)
+        self.assertEqual(tuple(), training_data)
+
+        # Header row case
+        path2 = pathlib.Path(self.tmp_dir, "data2.csv")
+        self.write_csv_data(path2, [["x", "y"], []])
+        training_data = TrainingDatum.read_from_csv(path2, header=True)
+        self.assertEqual(tuple(), training_data)
+
 
 class TestPrediction(ExauqTestCase):
     def test_inputs_preserve_real_type(self):

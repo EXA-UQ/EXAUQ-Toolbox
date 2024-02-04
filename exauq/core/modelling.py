@@ -353,7 +353,7 @@ class TrainingDatum(object):
             if header:
                 _ = next(reader)
 
-            for row in reader:
+            for row in (row for row in reader if len(row) > 0):
                 output = float(row.pop(output_col))
                 inputs = tuple(map(float, row))
                 training_data.append(TrainingDatum(Input(*inputs), output))
