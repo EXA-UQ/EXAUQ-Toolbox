@@ -377,6 +377,16 @@ class TestTrainingDatum(unittest.TestCase):
         expected = (TrainingDatum(Input(1, 2), 3), TrainingDatum(Input(10, 20), 30))
         self.assertEqual(expected, training_data)
 
+    def test_read_from_csv_no_header_row_output_column_specified(self):
+        """The column of the simulator outputs can be specified as a zero-based index.
+        The remaining columns are then interpreted as simulator inputs (in the order they
+        appear in the file)."""
+
+        self.write_csv_data(self.path, [[1, 2, 3], [10, 20, 30]])
+        training_data = TrainingDatum.read_from_csv(self.path, output_col=1)
+        expected = (TrainingDatum(Input(1, 3), 2), TrainingDatum(Input(10, 30), 20))
+        self.assertEqual(expected, training_data)
+
 
 class TestPrediction(ExauqTestCase):
     def test_inputs_preserve_real_type(self):

@@ -344,13 +344,13 @@ class TrainingDatum(object):
         ]
 
     @classmethod
-    def read_from_csv(cls, path: Path) -> tuple[TrainingDatum, ...]:
+    def read_from_csv(cls, path: Path, output_col: int = -1) -> tuple[TrainingDatum, ...]:
         training_data = []
         with open(path, mode="r", newline="") as csvfile:
             reader = csv.reader(csvfile)
             for row in reader:
-                inputs = tuple(map(float, row[:-1]))
-                output = float(row[-1])
+                output = float(row.pop(output_col))
+                inputs = tuple(map(float, row))
                 training_data.append(TrainingDatum(Input(*inputs), output))
 
         return tuple(training_data)
