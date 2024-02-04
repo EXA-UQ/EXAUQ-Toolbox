@@ -1,9 +1,11 @@
 import copy
 import itertools
 import math
+import pathlib
+import tempfile
 import unittest
 from numbers import Real
-from typing import Literal
+from typing import Literal, Sequence
 
 import numpy as np
 
@@ -15,6 +17,7 @@ from exauq.core.modelling import (
     TrainingDatum,
 )
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
+from exauq.utilities.csv_db import Path
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
 from tests.utilities.utilities import (
     ExauqTestCase,
@@ -263,6 +266,23 @@ class TestInput(unittest.TestCase):
 
 
 class TestTrainingDatum(unittest.TestCase):
+    def setUp(self) -> None:
+        # Temp directory for holding csv file during a unit test run
+        self._dir = tempfile.TemporaryDirectory()
+        self.tmp_dir = self._dir.name
+        self.path = pathlib.Path(self.tmp_dir, "data.csv")
+
+    def tearDown(self) -> None:
+        self._dir.cleanup()
+
+    @staticmethod
+    def write_csv_data(path: Path, data: Sequence[Sequence[str]], mode="x"):
+        """Write data to a csv file."""
+
+        with open(path, mode=mode, newline="") as f:
+            for row in data:
+                f.write(",".join(map(str, row)) + "\n")
+
     def test_input_error(self):
         """Test that a TypeError is raised if the constructor arg 'input'
         is not an Input."""
@@ -346,6 +366,16 @@ class TestTrainingDatum(unittest.TestCase):
             TrainingDatum(Input(3.5, 9.87), 1.1),
         ]
         self.assertEqual(expected, TrainingDatum.list_from_arrays(inputs, outputs))
+
+    def test_read_from_csv_no_header_row_default_output_column(self):
+        """By default, the csv data is read into a sequence of training data where the
+        last column in the csv file defines the simulator outputs and the other columns
+        define simulator inputs."""
+
+        self.write_csv_data(self.path, [[1, 2, 3], [10, 20, 30]])
+        training_data = TrainingDatum.read_from_csv(self.path)
+        expected = (TrainingDatum(Input(1, 2), 3), TrainingDatum(Input(10, 20), 30))
+        self.assertEqual(expected, training_data)
 
 
 class TestPrediction(ExauqTestCase):

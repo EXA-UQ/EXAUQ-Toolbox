@@ -1,7 +1,9 @@
 """Basic objects for expressing emulation of simulators."""
+
 from __future__ import annotations
 
 import abc
+import csv
 import dataclasses
 import functools
 import math
@@ -14,6 +16,7 @@ import numpy as np
 
 import exauq.utilities.validation as validation
 from exauq.core.numerics import equal_within_tolerance
+from exauq.utilities.csv_db import Path
 
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 
@@ -339,6 +342,18 @@ class TrainingDatum(object):
         return [
             cls(Input.from_array(input), output) for input, output in zip(inputs, outputs)
         ]
+
+    @classmethod
+    def read_from_csv(cls, path: Path) -> tuple[TrainingDatum, ...]:
+        training_data = []
+        with open(path, mode="r", newline="") as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                inputs = tuple(map(float, row[:-1]))
+                output = float(row[-1])
+                training_data.append(TrainingDatum(Input(*inputs), output))
+
+        return tuple(training_data)
 
     def __str__(self) -> str:
         return f"({str(self.input)}, {str(self.output)})"
