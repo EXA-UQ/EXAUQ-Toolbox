@@ -367,7 +367,7 @@ class TestTrainingDatum(unittest.TestCase):
         ]
         self.assertEqual(expected, TrainingDatum.list_from_arrays(inputs, outputs))
 
-    def test_read_from_csv_no_header_row_default_output_column(self):
+    def test_read_from_csv_default_output_column(self):
         """By default, the csv data is read into a sequence of training data where the
         last column in the csv file defines the simulator outputs and the other columns
         define simulator inputs."""
@@ -377,7 +377,7 @@ class TestTrainingDatum(unittest.TestCase):
         expected = (TrainingDatum(Input(1, 2), 3), TrainingDatum(Input(10, 20), 30))
         self.assertEqual(expected, training_data)
 
-    def test_read_from_csv_no_header_row_output_column_specified(self):
+    def test_read_from_csv_output_column_specified(self):
         """The column of the simulator outputs can be specified as a zero-based index.
         The remaining columns are then interpreted as simulator inputs (in the order they
         appear in the file)."""
@@ -385,6 +385,15 @@ class TestTrainingDatum(unittest.TestCase):
         self.write_csv_data(self.path, [[1, 2, 3], [10, 20, 30]])
         training_data = TrainingDatum.read_from_csv(self.path, output_col=1)
         expected = (TrainingDatum(Input(1, 3), 2), TrainingDatum(Input(10, 30), 20))
+        self.assertEqual(expected, training_data)
+
+    def test_read_from_csv_header_row_skipped(self):
+        """If the csv file contains a header row, then this is skipped when reading the
+        data."""
+
+        self.write_csv_data(self.path, [["x1", "x2", "y"], [1, 2, 3], [10, 20, 30]])
+        training_data = TrainingDatum.read_from_csv(self.path, header=True)
+        expected = (TrainingDatum(Input(1, 2), 3), TrainingDatum(Input(10, 20), 30))
         self.assertEqual(expected, training_data)
 
 

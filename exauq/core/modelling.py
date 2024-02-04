@@ -344,10 +344,15 @@ class TrainingDatum(object):
         ]
 
     @classmethod
-    def read_from_csv(cls, path: Path, output_col: int = -1) -> tuple[TrainingDatum, ...]:
+    def read_from_csv(
+        cls, path: Path, output_col: int = -1, header: bool = False
+    ) -> tuple[TrainingDatum, ...]:
         training_data = []
         with open(path, mode="r", newline="") as csvfile:
             reader = csv.reader(csvfile)
+            if header:
+                _ = next(reader)
+
             for row in reader:
                 output = float(row.pop(output_col))
                 inputs = tuple(map(float, row))
