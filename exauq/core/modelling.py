@@ -359,9 +359,14 @@ class TrainingDatum(object):
                 except AssertionError as e:
                     raise AssertionError(f"Could not read data from {path}: {e}.")
 
-                output = parsed_row.pop(output_col)
                 try:
+                    output = parsed_row.pop(output_col)
                     training_data.append(TrainingDatum(Input(*parsed_row), output))
+                except IndexError:
+                    raise ValueError(
+                        f"'output_col={output_col}' does not define a valid column index for "
+                        f"csv data with {len(row)} columns."
+                    )
                 except ValueError:
                     raise AssertionError(
                         f"Could not read data from {path}: infinite or NaN values found."

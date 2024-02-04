@@ -456,6 +456,22 @@ class TestTrainingDatum(unittest.TestCase):
         ):
             _ = TrainingDatum.read_from_csv(self.path)
 
+    def test_read_from_csv_bad_column_index_error(self):
+        """A ValueError is raised if an out-of-bounds column index is given."""
+
+        data = [[1, 2, 3], [10, 20, 30]]
+        n_cols = len(data[0])
+        self.write_csv_data(self.path, [[1, 2, 3], [10, 20, 30]])
+        for output_col in [-4, 3]:
+            with self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"'output_col={output_col}' does not define a valid column index for "
+                    f"csv data with {n_cols} columns."
+                ),
+            ):
+                _ = TrainingDatum.read_from_csv(self.path, output_col=output_col)
+
 
 class TestPrediction(ExauqTestCase):
     def test_inputs_preserve_real_type(self):
