@@ -351,7 +351,11 @@ class TrainingDatum(object):
         with open(path, mode="r", newline="") as csvfile:
             reader = csv.reader(csvfile)
             if header:
-                _ = next(reader)
+                # Skip header, or return empty tuple if file is empty
+                try:
+                    _ = next(reader)
+                except StopIteration:
+                    return tuple()
 
             for row in (row for row in reader if len(row) > 0):
                 try:

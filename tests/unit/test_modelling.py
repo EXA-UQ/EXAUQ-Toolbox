@@ -410,6 +410,11 @@ class TestTrainingDatum(unittest.TestCase):
         training_data = TrainingDatum.read_from_csv(self.path, header=True)
         self.assertEqual(tuple(), training_data)
 
+        # Header row case with empty file
+        self.write_csv_data(self.path, [], mode="w")
+        training_data = TrainingDatum.read_from_csv(self.path, header=True)
+        self.assertEqual(tuple(), training_data)
+
     def test_read_from_csv_cannot_parse_float_error(self):
         """An AssertionError is raised if any of the read data cannot be parsed as a
         float."""
