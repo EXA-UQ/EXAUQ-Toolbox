@@ -406,10 +406,34 @@ class TestTrainingDatum(unittest.TestCase):
         self.assertEqual(tuple(), training_data)
 
         # Header row case
-        path2 = pathlib.Path(self.tmp_dir, "data2.csv")
-        self.write_csv_data(path2, [["x", "y"], []])
-        training_data = TrainingDatum.read_from_csv(path2, header=True)
+        self.write_csv_data(self.path, [["x", "y"], []], mode="w")
+        training_data = TrainingDatum.read_from_csv(self.path, header=True)
         self.assertEqual(tuple(), training_data)
+
+    def test_read_from_csv_cannot_parse_float_error(self):
+        """An AssertionError is raised if any of the read data cannot be parsed as a
+        float."""
+
+        # Input column
+        bad_data = "foo"
+        self.write_csv_data(self.path, [[1, 2, 3], [10, bad_data, 30]])
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(
+                f"Could not read data from {self.path}: unable to parse value {bad_data} as a float."
+            ),
+        ):
+            _ = TrainingDatum.read_from_csv(self.path)
+
+        # Output column
+        self.write_csv_data(self.path, [[1, 2, bad_data], [10, 20, 30]], mode="w")
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(
+                f"Could not read data from {self.path}: unable to parse value {bad_data} as a float."
+            ),
+        ):
+            _ = TrainingDatum.read_from_csv(self.path)
 
 
 class TestPrediction(ExauqTestCase):

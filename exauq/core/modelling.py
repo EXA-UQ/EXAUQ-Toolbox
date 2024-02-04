@@ -354,11 +354,33 @@ class TrainingDatum(object):
                 _ = next(reader)
 
             for row in (row for row in reader if len(row) > 0):
-                output = float(row.pop(output_col))
-                inputs = tuple(map(float, row))
-                training_data.append(TrainingDatum(Input(*inputs), output))
+                try:
+                    parsed_row = cls._parse_csv_row(row)
+                except AssertionError as e:
+                    raise AssertionError(f"Could not read data from {path}: {e}.")
+
+                output = parsed_row.pop(output_col)
+                training_data.append(TrainingDatum(Input(*parsed_row), output))
 
         return tuple(training_data)
+
+    @classmethod
+    def _parse_csv_row(cls, row: Sequence[str]) -> list[float]:
+        try:
+            return list(map(float, row))
+        except ValueError:
+            bad_data = cls._find_first_non_float(row)
+            raise AssertionError(f"unable to parse value {bad_data} as a float")
+
+    @staticmethod
+    def _find_first_non_float(strings: Sequence[str]) -> Optional[str]:
+        for s in strings:
+            try:
+                _ = float(s)
+            except ValueError:
+                return s
+
+        return None
 
     def __str__(self) -> str:
         return f"({str(self.input)}, {str(self.output)})"
