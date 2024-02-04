@@ -437,6 +437,8 @@ class TestTrainingDatum(unittest.TestCase):
             _ = TrainingDatum.read_from_csv(self.path)
 
     def test_read_from_csv_cannot_parse_inf_and_NaN_error(self):
+        """An AssertionError is raised if any of the data contains infinite or NaN
+        values."""
 
         # Infinite value
         self.write_csv_data(self.path, [[1, 2, 3], [10, "inf", 30]])
