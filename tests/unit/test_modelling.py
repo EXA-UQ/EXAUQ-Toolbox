@@ -414,7 +414,7 @@ class TestTrainingDatum(unittest.TestCase):
         """An AssertionError is raised if any of the read data cannot be parsed as a
         float."""
 
-        # Input column
+        # Bad simulator input
         bad_data = "foo"
         self.write_csv_data(self.path, [[1, 2, 3], [10, bad_data, 30]])
         with self.assertRaisesRegex(
@@ -425,7 +425,7 @@ class TestTrainingDatum(unittest.TestCase):
         ):
             _ = TrainingDatum.read_from_csv(self.path)
 
-        # Output column
+        # Bad simulator output
         bad_data = ""
         self.write_csv_data(self.path, [[1, 2, bad_data], [10, 20, 30]], mode="w")
         with self.assertRaisesRegex(
