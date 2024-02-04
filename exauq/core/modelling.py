@@ -360,7 +360,12 @@ class TrainingDatum(object):
                     raise AssertionError(f"Could not read data from {path}: {e}.")
 
                 output = parsed_row.pop(output_col)
-                training_data.append(TrainingDatum(Input(*parsed_row), output))
+                try:
+                    training_data.append(TrainingDatum(Input(*parsed_row), output))
+                except ValueError:
+                    raise AssertionError(
+                        f"Could not read data from {path}: infinite or NaN values found."
+                    )
 
         return tuple(training_data)
 
@@ -370,7 +375,7 @@ class TrainingDatum(object):
             return list(map(float, row))
         except ValueError:
             bad_data = cls._find_first_non_float(row)
-            raise AssertionError(f"unable to parse value {bad_data} as a float")
+            raise AssertionError(f"unable to parse value '{bad_data}' as a float")
 
     @staticmethod
     def _find_first_non_float(strings: Sequence[str]) -> Optional[str]:

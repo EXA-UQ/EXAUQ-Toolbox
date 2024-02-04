@@ -420,18 +420,37 @@ class TestTrainingDatum(unittest.TestCase):
         with self.assertRaisesRegex(
             AssertionError,
             exact(
-                f"Could not read data from {self.path}: unable to parse value {bad_data} as a float."
+                f"Could not read data from {self.path}: unable to parse value '{bad_data}' as a float."
             ),
         ):
             _ = TrainingDatum.read_from_csv(self.path)
 
         # Output column
+        bad_data = ""
         self.write_csv_data(self.path, [[1, 2, bad_data], [10, 20, 30]], mode="w")
         with self.assertRaisesRegex(
             AssertionError,
             exact(
-                f"Could not read data from {self.path}: unable to parse value {bad_data} as a float."
+                f"Could not read data from {self.path}: unable to parse value '{bad_data}' as a float."
             ),
+        ):
+            _ = TrainingDatum.read_from_csv(self.path)
+
+    def test_read_from_csv_cannot_parse_inf_and_NaN_error(self):
+
+        # Infinite value
+        self.write_csv_data(self.path, [[1, 2, 3], [10, "inf", 30]])
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(f"Could not read data from {self.path}: infinite or NaN values found."),
+        ):
+            _ = TrainingDatum.read_from_csv(self.path)
+
+        # NaN value
+        self.write_csv_data(self.path, [[1, 2, 3], [10, "NaN", 30]], mode="w")
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(f"Could not read data from {self.path}: infinite or NaN values found."),
         ):
             _ = TrainingDatum.read_from_csv(self.path)
 
