@@ -4,7 +4,7 @@ import itertools
 import math
 import unittest
 import unittest.mock
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 from scipy.stats import norm
 
@@ -16,11 +16,7 @@ from exauq.core.designers import (
     compute_loo_gp,
     compute_single_level_loo_samples,
 )
-from exauq.core.emulators import (
-    AbstractGaussianProcess,
-    MogpEmulator,
-    MogpHyperparameters,
-)
+from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import equal_within_tolerance
 from tests.utilities.utilities import ExauqTestCase, exact
