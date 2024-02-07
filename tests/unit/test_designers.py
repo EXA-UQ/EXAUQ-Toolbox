@@ -647,7 +647,6 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
         for training_datum in self.training_data:
             with self.subTest():
                 repulsion_factor = self.pei_calculator.repulsion(training_datum.input)
-                print(repulsion_factor)
                 self.assertEqual(
                     repulsion_factor, 0.0, msg="Repulsion Factor should be zero."
                 )
@@ -656,7 +655,6 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
         for repulsion_point in self.pei_calculator.repulsion_points:
             with self.subTest():
                 repulsion_factor = self.pei_calculator.repulsion(repulsion_point)
-                print(repulsion_factor)
                 self.assertEqual(
                     repulsion_factor, 0.0, msg="Repulsion Factor should be zero."
                 )
