@@ -3,9 +3,7 @@ import itertools
 import math
 import unittest
 import unittest.mock
-from unittest.mock import MagicMock
-
-from scipy.stats import norm
+from unittest.mock import MagicMock, call
 
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
@@ -15,9 +13,10 @@ from exauq.core.designers import (
     compute_loo_gp,
     compute_single_level_loo_samples,
 )
-from exauq.core.emulators import MogpEmulator
+from exauq.core.emulators import AbstractGaussianProcess, MogpEmulator
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import equal_within_tolerance
+from scipy.stats import norm
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -397,6 +396,104 @@ class TestComputeLooGp(ExauqTestCase):
         loo_gp = compute_loo_gp(gp, leave_out_idx=0)
 
         self.assertNotEqual(id(loo_gp.foo), id(gp.foo))
+
+
+class TestPEICalculatorInit(ExauqTestCase):
+    def setUp(self):
+        self.domain = SimulatorDomain([(0, 1)])
+        self.training_data = [
+            TrainingDatum(Input(0.1), 1),
+            TrainingDatum(Input(0.3), 2),
+            TrainingDatum(Input(0.5), 3),
+            TrainingDatum(Input(0.7), 4),
+            TrainingDatum(Input(0.9), 5),
+        ]
+        self.gp = MogpEmulator()
+
+    def test_init_with_valid_parameters(self):
+        """Test initialisation with valid domain and gp parameters."""
+        self.gp.fit(self.training_data)
+
+        try:
+            calculator = PEICalculator(domain=self.domain, gp=self.gp)
+            self.assertIsInstance(calculator, PEICalculator)
+        except Exception as e:
+            self.fail(f"Initialisation with valid parameters raised an exception: {e}")
+
+    def test_init_with_invalid_domain_type(self):
+        """Test initialisation with an invalid domain type and check the error message."""
+        self.gp.fit(self.training_data)
+
+        with self.assertRaises(TypeError) as context:
+            PEICalculator("not_a_domain_instance", self.gp)
+        self.assertIn(
+            "Expected 'domain' to be of type SimulatorDomain", str(context.exception)
+        )
+
+    def test_init_with_invalid_gp_type(self):
+        """Test initialisation with an invalid gp type and check the error message."""
+        with self.assertRaises(TypeError) as context:
+            PEICalculator(self.domain, "not_a_gp_instance")
+        self.assertIn(
+            "Expected 'gp' to be of type AbstractGaussianProcess", str(context.exception)
+        )
+
+    def test_validation_with_empty_gp_training_data(self):
+        """Test that an error is raised if the GP training data is empty."""
+        with self.assertRaises(ValueError) as context:
+            PEICalculator(domain=self.domain, gp=self.gp)
+        self.assertEqual("'gp' training data is empty.", str(context.exception))
+
+    def test_validation_with_invalid_gp_training_data_elements(self):
+        """Test that an error is raised if the GP training data contains invalid elements."""
+        self.gp._training_data = [self.training_data[0], "not_a_training_datum", 42.0]
+
+        with self.assertRaises(TypeError) as context:
+            PEICalculator(domain=self.domain, gp=self.gp)
+        self.assertEqual(
+            "All elements in 'gp' training data must be instances of TrainingDatum",
+            str(context.exception),
+        )
+
+    def test_max_targets_with_valid_training_data(self):
+        """Test that max target is calculated correctly with valid training data."""
+        self.gp.fit(self.training_data)
+        calculator = PEICalculator(domain=self.domain, gp=self.gp)
+        self.assertEqual(calculator._max_targets, 5, "Max target should be 5")
+
+    def test_max_targets_with_negative_values(self):
+        """Test that max target is calculated correctly with negative target values."""
+        negative_target_training_data = [
+            TrainingDatum(Input(0.1), -1),
+            TrainingDatum(Input(0.3), -2),
+            TrainingDatum(Input(0.5), -3),
+            TrainingDatum(Input(0.7), -4),
+            TrainingDatum(Input(0.9), -5),
+        ]
+        self.gp.fit(negative_target_training_data)
+        calculator = PEICalculator(domain=self.domain, gp=self.gp)
+        self.assertEqual(calculator._max_targets, -1, "Max target should be -1")
+
+    def test_calculate_pseudopoints_calls_domain_method(self):
+        """Test to ensure wrapping functionality `_calculate_pseudopoints` correctly integrates with SimulatorDomain."""
+        domain_mock = MagicMock(spec=SimulatorDomain)
+
+        expected_pseudopoints = [(Input(1.0),), (Input(2.0),)]
+        domain_mock.calculate_pseudopoints.return_value = expected_pseudopoints
+
+        self.gp.fit(self.training_data)
+
+        calculator = PEICalculator(domain=domain_mock, gp=self.gp)
+
+        domain_mock.calculate_pseudopoints.assert_called_once_with(
+            [datum.input for datum in self.training_data]
+        )
+        # Verify that _calculate_pseudopoints correctly sets the expected pseudopoints
+        self.assertEqual(
+            calculator._other_repulsion_points,
+            expected_pseudopoints,
+            "The calculated pseudopoints should match the expected return value from the domain mock.",
+        )
 
 
 class TestPEICalculatorExpectedImprovement(ExauqTestCase):
