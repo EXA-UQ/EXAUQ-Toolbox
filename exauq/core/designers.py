@@ -427,7 +427,7 @@ class PEICalculator:
         """
         Calculate the expected improvement (EI) for a given input.
 
-        If the standard deviation of the prediction is within the default 
+        If the standard deviation of the prediction is within the default
         tolerance ``exauq.core.numerics.FLOAT_TOLERANCE`` of 0 then the EI returned is 0.0.
 
         Parameters
@@ -481,9 +481,9 @@ class PEICalculator:
 
         This method assesses the repulsion effect of a given point `x` in relation to other,
         stored repulsion points. It is calculated as the product of terms
-        ``1 - correlation(x, rp)``, where ``rp`` is a repulsion point and the correlation is 
-        computed with the Gaussian process supplied at this object's initialisation. The 
-        repulsion factor can be used to discourage the selection of points near already 
+        ``1 - correlation(x, rp)``, where ``rp`` is a repulsion point and the correlation is
+        computed with the Gaussian process supplied at this object's initialisation. The
+        repulsion factor can be used to discourage the selection of points near already
         sampled locations, facilitating exploration of the input space.
 
         Parameters
@@ -513,10 +513,11 @@ class PEICalculator:
         correlations = (
             np.array(covariance_matrix) / self._gp.fit_hyperparameters.process_var
         )
-        inputs_term = np.product(1 - correlations, axis=0)[0]
+        inputs_term = np.prod(1 - correlations, axis=0)[0]
 
-        other_repulsion_pts_term = np.product(
-            1 - np.array(self._gp.correlation([validated_x], self._other_repulsion_points)),
+        other_repulsion_pts_term = np.prod(
+            1
+            - np.array(self._gp.correlation([validated_x], self._other_repulsion_points)),
             axis=1,
         )[0]
 
