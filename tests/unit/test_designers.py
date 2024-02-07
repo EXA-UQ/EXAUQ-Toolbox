@@ -1,9 +1,12 @@
 import copy
+import functools
 import itertools
 import math
 import unittest
 import unittest.mock
 from unittest.mock import MagicMock, call
+
+from scipy.stats import norm
 
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
@@ -13,10 +16,13 @@ from exauq.core.designers import (
     compute_loo_gp,
     compute_single_level_loo_samples,
 )
-from exauq.core.emulators import AbstractGaussianProcess, MogpEmulator
+from exauq.core.emulators import (
+    AbstractGaussianProcess,
+    MogpEmulator,
+    MogpHyperparameters,
+)
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import equal_within_tolerance
-from scipy.stats import norm
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -654,6 +660,31 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
                 self.assertEqual(
                     repulsion_factor, 0.0, msg="Repulsion Factor should be zero."
                 )
+
+    def test_repulsion_factor_formula(self):
+        """Test that the repulsion factor is given by the product of terms
+        (1 - correlation) for correlations between the new input and the repulsion
+        points."""
+
+        domain = SimulatorDomain([(-1, 1)])
+        gp = MogpEmulator()
+        training_inputs = [Input(0.2), Input(0.6)]
+        training_data = [TrainingDatum(x, 1) for x in training_inputs]
+        gp.fit(
+            training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=[1], process_var=1, nugget=0
+            ),
+        )
+
+        def product(numbers: list[float]) -> float:
+            return functools.reduce(lambda x, y: x * y, numbers)
+
+        x = Input(0.5)
+        repulsion_pts = domain.calculate_pseudopoints([]) + tuple(training_inputs)
+        expected = product([1 - gp.correlation([x], [y])[0][0] for y in repulsion_pts])
+        calculator = PEICalculator(domain, gp)
+        self.assertEqual(expected, calculator.repulsion(x))
 
     def test_invalid_input(self):
         with self.assertRaises(TypeError):
