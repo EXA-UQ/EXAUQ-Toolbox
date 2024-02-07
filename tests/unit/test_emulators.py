@@ -19,10 +19,13 @@ from tests.utilities.utilities import ExauqTestCase, exact
 class TestMogpEmulator(ExauqTestCase):
     def setUp(self) -> None:
         # Some default args to use for constructing mogp GaussianProcess objects
-        self.inputs = np.array([[0, 0], [0.2, 0.1]])
-        self.targets = np.array([1, 2])
-        self.inputs2 = np.array([[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]])
-        self.targets2 = np.array([1, 2, 3.1, 9, 2])
+        self.inputs_arr = np.array(
+            [[0, 0], [0.2, 0.1], [0.3, 0.5], [0.7, 0.4], [0.9, 0.8]]
+        )
+        self.targets_arr = np.array([1, 2, 3.1, 9, 2])
+
+        self.inputs3 = [Input(1, 1), Input(2, 2), Input(3, 3)]
+        self.inputs4 = [Input(10, 10), Input(20, 20)]
 
         # kwargs for constructing an mogp GuassianProcess object
         self.gp_kwargs = {
@@ -109,9 +112,25 @@ class TestMogpEmulator(ExauqTestCase):
         """Test that inputs and targets kwargs are ignored when initialising
         an emulator."""
 
-        emulator = MogpEmulator(inputs=self.inputs, targets=self.targets)
+        emulator = MogpEmulator(
+            inputs=np.array([[0, 0], [0.2, 0.1]]), targets=np.array([1, 2])
+        )
         self.assertEqual(0, emulator.gp.inputs.size)
         self.assertEqual(0, emulator.gp.targets.size)
+
+    def test_initialiser_invalid_kernel_error(self):
+        """A ValueError is raised if the supplied kernel does not describe one of the
+        supported kernel functions."""
+
+        kernel = "UniformSqExp"
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Could not initialise MogpEmulator with kernel = {kernel}: not a "
+                "supported kernel function."
+            ),
+        ):
+            _ = MogpEmulator(kernel=kernel)
 
     def test_training_data(self):
         """Test that the training data in the underlying GP and the
@@ -122,29 +141,281 @@ class TestMogpEmulator(ExauqTestCase):
         self.assertEqual(0, emulator.gp.targets.size)
         self.assertEqual(tuple(), emulator.training_data)
 
+    def test_correlation_arg_validation(self):
+        """A TypeError is raised if one of the args is not a sequence of Input objects."""
+
+        params = MogpHyperparameters(corr_length_scales=[2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        training_data = [
+            TrainingDatum(Input(0), 1),
+            TrainingDatum(Input(0.2), 1),
+            TrainingDatum(Input(0.4), 1),
+            TrainingDatum(Input(0.6), 1),
+        ]
+        emulator.fit(training_data, hyperparameters=params)
+
+        inputs1 = 1
+        inputs2 = [Input(3)]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'inputs1' and 'inputs2' to be sequences of Input objects, but received "
+                f"{type(inputs1)} and {type(inputs2)} instead."
+            ),
+        ):
+            _ = emulator.correlation(inputs1, inputs2)
+
+        inputs1 = Input(1)
+        inputs2 = [Input(3)]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact("Expected 'inputs1' and 'inputs2' to only contain Input objects."),
+        ):
+            _ = emulator.correlation(inputs1, inputs2)
+
+        inputs1 = [Input(1)]
+        inputs2 = Input(3)
+        with self.assertRaisesRegex(
+            TypeError,
+            exact("Expected 'inputs1' and 'inputs2' to only contain Input objects."),
+        ):
+            _ = emulator.correlation(inputs1, inputs2)
+
+    def test_correlation_not_trained_error(self):
+        """An AssertionError is raised if the GP has not been trained on data."""
+
+        emulator = MogpEmulator()
+        x1, x2 = self.inputs3[0], self.inputs4[0]
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(
+                f"Cannot calculate correlations for this instance of {emulator.__class__} because "
+                "it hasn't yet been trained on data."
+            ),
+        ):
+            _ = emulator.correlation([x1], [x2])
+
+    def test_correlation_empty_input_sequences(self):
+        """An empty tuple is returned if either of the supplied input sequences is empty."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+
+        inputs = [Input(1, 1), Input(2, 4)]
+        self.assertEqual(tuple(), emulator.correlation([], inputs))
+        self.assertEqual(tuple(), emulator.correlation(inputs, []))
+
+    def test_correlation_incompatible_dimensions_error(self):
+        """A ValueError is raised if the dimensions one of the inputs does not agree with
+        the number dimension of inputs used to train the GP."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+        expected_dim = len(self.training_data[0].input)
+
+        inputs1, inputs2 = [Input(0), Input(1, 1)], [Input(0, 1)]
+        wrong_dim = len(inputs1[0])
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected inputs to have dimension equal to {expected_dim}, but received input of "
+                f"dimension {wrong_dim}."
+            ),
+        ):
+            _ = emulator.correlation(inputs1, inputs2)
+
+        inputs1, inputs2 = [Input(0, 1)], [Input(1, 1), Input(0)]
+        wrong_dim = len(inputs2[1])
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected inputs to have dimension equal to {expected_dim}, but received input of "
+                f"dimension {wrong_dim}."
+            ),
+        ):
+            _ = emulator.correlation(inputs1, inputs2)
+
     def test_correlation_matrix_entries_given_by_kernels(self):
         """The calculation of correlations agrees with the pairwise kernel calculations
         for the kernel chosen for the underlying MOGP GaussianProcess."""
 
-        # Train an emulator with some hyperparameters and a specific kernel
-        emulator = MogpEmulator(kernel="Matern52")
-        emulator.fit([TrainingDatum(Input(1, 2), 1), TrainingDatum(Input(3, 4), 2)])
+        kernel_funcs = {
+            "Matern52": mogp.Kernel.Matern52().kernel_f,
+            "SquaredExponential": mogp.Kernel.SquaredExponential().kernel_f,
+            "ProductMat52": mogp.Kernel.ProductMat52().kernel_f,
+        }
 
-        corr_raw = emulator.fit_hyperparameters.to_mogp_gp_params().corr_raw
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        corr_raw = params.to_mogp_gp_params().corr_raw
 
-        def kernel_func(x1, x2):
-            return mogp.Kernel.Matern52().kernel_f(
-                np.array(list(x1)),
-                np.array(list(x2)),
-                corr_raw,
-            )[0, 0]
+        for kernel in kernel_funcs:
+            with self.subTest(kernel=kernel):
+                # Train an emulator with some hyperparameters and a specific kernel
+                emulator = MogpEmulator(kernel=kernel)
+                emulator.fit(self.training_data, hyperparameters=params)
 
-        inputs1 = [Input(1, 1), Input(2, 2), Input(3, 3)]
-        inputs2 = [Input(10, 10), Input(20, 20)]
+                kernel_f = kernel_funcs[kernel]
+                correlations = emulator.correlation(self.inputs3, self.inputs4)
+                for (i1, x1), (i2, x2) in zip(
+                    enumerate(self.inputs3), enumerate(self.inputs4)
+                ):
+                    self.assertEqualWithinTolerance(
+                        kernel_f(np.array(x1), np.array(x2), corr_raw)[0, 0],
+                        correlations[i1][i2],
+                    )
 
-        correlations = emulator.correlation(inputs1, inputs2)
-        for (i1, x1), (i2, x2) in zip(enumerate(inputs1), enumerate(inputs2)):
-            self.assertEqualWithinTolerance(kernel_func(x1, x2), correlations[i1][i2])
+    def test_correlation_default_kernel(self):
+        """If a kernel is not specified at MogpEmulator initialisation, then a
+        squared exponential kernel will be used."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        corr_raw = params.to_mogp_gp_params().corr_raw
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+
+        correlations = emulator.correlation(self.inputs3, self.inputs4)
+        for (i1, x1), (i2, x2) in zip(enumerate(self.inputs3), enumerate(self.inputs4)):
+            self.assertEqualWithinTolerance(
+                mogp.Kernel.SquaredExponential().kernel_f(
+                    np.array(x1), np.array(x2), corr_raw
+                )[0, 0],
+                correlations[i1][i2],
+            )
+
+    def test_correlation_depends_on_fit_correlations(self):
+        """The correlation calculation depends on the correlation length scales that the
+        GP is fit with, but not the process variance or nugget."""
+
+        corr = [1, 2]
+        process_var = 1
+        nugget = 1
+        x1, x2 = self.inputs3[0], self.inputs4[0]
+        gp = MogpEmulator()
+
+        # Check correlation differs when correlation length scales changed
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=[1, 2], process_var=process_var, nugget=nugget
+            ),
+        )
+        correlation1 = gp.correlation([x1], [x2])[0][0]
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=[10, 20], process_var=process_var, nugget=nugget
+            ),
+        )
+        correlation2 = gp.correlation([x1], [x2])[0][0]
+        self.assertNotEqual(correlation1, correlation2)
+
+        # Check correlation unchanged when only process variance changed
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=corr, process_var=1, nugget=nugget
+            ),
+        )
+        correlation1 = gp.correlation([x1], [x2])[0][0]
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=corr, process_var=2, nugget=nugget
+            ),
+        )
+        correlation2 = gp.correlation([x1], [x2])[0][0]
+        self.assertEqual(correlation1, correlation2)
+
+        # Check correlation unchanged when only nugget changed
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=corr, process_var=process_var, nugget=1
+            ),
+        )
+        correlation1 = gp.correlation([x1], [x2])[0][0]
+        gp.fit(
+            self.training_data,
+            hyperparameters=MogpHyperparameters(
+                corr_length_scales=corr, process_var=process_var, nugget=2
+            ),
+        )
+        correlation2 = gp.correlation([x1], [x2])[0][0]
+        self.assertEqual(correlation1, correlation2)
+
+    def test_covariance_matrix_empty_sequence_arg(self):
+        """An empty tuple is returned if the supplied input sequences is empty."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+
+        self.assertEqual(tuple(), emulator.covariance_matrix([]))
+
+    def test_covariance_matrix_not_trained(self):
+        """An empty tuple is returned if the GP has not been trained on data."""
+
+        emulator = MogpEmulator()
+        self.assertEqual(tuple(), emulator.covariance_matrix([Input(1)]))
+
+    def test_covariance_matrix_correlations_with_training_data(self):
+        """The covariance matrix is equal to the correlation between the supplied inputs
+        and the training data inputs."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+        inputs = [Input(0.1, 0.9), Input(0.2, 0.2)]
+        self.assertEqual(
+            emulator.correlation([d.input for d in self.training_data], inputs),
+            emulator.covariance_matrix(inputs),
+        )
+
+    def test_covariance_matrix_arg_validation(self):
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+
+        inputs = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'inputs' to be a sequence of Input objects, but received "
+                f"{type(inputs)} instead."
+            ),
+        ):
+            _ = emulator.covariance_matrix(inputs)
+
+        inputs = Input(1)
+        with self.assertRaisesRegex(
+            TypeError,
+            exact("Expected 'inputs' to only contain Input objects."),
+        ):
+            _ = emulator.covariance_matrix(inputs)
+
+    def test_covariance_matrix_incompatible_dimensions_error(self):
+        """A ValueError is raised if the dimensions of one of the inputs does not agree with
+        the number dimension of inputs used to train the GP."""
+
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data, hyperparameters=params)
+        expected_dim = len(self.training_data[0].input)
+
+        inputs = [Input(1, 1), Input(0)]
+        wrong_dim = len(inputs[1])
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected inputs to have dimension equal to {expected_dim}, but received input of "
+                f"dimension {wrong_dim}."
+            ),
+        ):
+            _ = emulator.covariance_matrix(inputs)
 
     def test_fit_raises_value_error_if_infinite_training_data_supplied(self):
         """A ValueError is raised if one attempts to fit the emulator to an infinite
@@ -183,9 +454,9 @@ class TestMogpEmulator(ExauqTestCase):
         """Test that fitting the emulator results in the underlying GP being fit
         with hyperparameter estimation."""
 
-        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(self.inputs2, self.targets2))
+        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(self.inputs_arr, self.targets_arr))
         emulator = MogpEmulator()
-        emulator.fit(TrainingDatum.list_from_arrays(self.inputs2, self.targets2))
+        emulator.fit(TrainingDatum.list_from_arrays(self.inputs_arr, self.targets_arr))
 
         # Note: need to use allclose because fitting is not deterministic.
         tolerance = 1e-5
@@ -213,11 +484,13 @@ class TestMogpEmulator(ExauqTestCase):
         and its training_data property is updated."""
 
         emulator = MogpEmulator()
-        training_data = tuple(TrainingDatum.list_from_arrays(self.inputs2, self.targets2))
+        training_data = tuple(
+            TrainingDatum.list_from_arrays(self.inputs_arr, self.targets_arr)
+        )
         emulator.fit(training_data)
 
-        self.assertEqualWithinTolerance(self.inputs2, emulator.gp.inputs)
-        self.assertEqualWithinTolerance(self.targets2, emulator.gp.targets)
+        self.assertEqualWithinTolerance(self.inputs_arr, emulator.gp.inputs)
+        self.assertEqualWithinTolerance(self.targets_arr, emulator.gp.targets)
         self.assertEqual(training_data, emulator.training_data)
 
     def test_fit_with_bounds_error(self):
@@ -243,7 +516,7 @@ class TestMogpEmulator(ExauqTestCase):
         """Test that fitting the emulator respects bounds on hyperparameters
         when these are supplied."""
 
-        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(self.inputs2, self.targets2))
+        gp = mogp.fit_GP_MAP(mogp.GaussianProcess(self.inputs_arr, self.targets_arr))
 
         # Compute bounds to apply, by creating small windows away from known
         # optimal values of the hyperparameters.
@@ -257,7 +530,7 @@ class TestMogpEmulator(ExauqTestCase):
 
         emulator = MogpEmulator()
         emulator.fit(
-            TrainingDatum.list_from_arrays(self.inputs2, self.targets2),
+            TrainingDatum.list_from_arrays(self.inputs_arr, self.targets_arr),
             hyperparameter_bounds=bounds,
         )
         actual_corr = emulator.gp.theta.corr
@@ -279,7 +552,7 @@ class TestMogpEmulator(ExauqTestCase):
         in estimation."""
 
         emulator = MogpEmulator()
-        training_data = TrainingDatum.list_from_arrays(self.inputs2, self.targets2)
+        training_data = TrainingDatum.list_from_arrays(self.inputs_arr, self.targets_arr)
         emulator.fit(training_data)
         corr = emulator.fit_hyperparameters.corr_length_scales
         cov = emulator.fit_hyperparameters.process_var
@@ -317,7 +590,9 @@ class TestMogpEmulator(ExauqTestCase):
         """Test that fitting ignores any inputs and targets supplied during
         initialisation of the emulator."""
 
-        emulator = MogpEmulator(inputs=self.inputs, targets=self.targets)
+        emulator = MogpEmulator(
+            inputs=np.array([[0, 0], [0.2, 0.1]]), targets=np.array([1, 2])
+        )
         emulator.fit([])
 
         self.assertEqual(0, emulator.gp.inputs.size)
@@ -338,7 +613,7 @@ class TestMogpEmulator(ExauqTestCase):
         self.assertEqual(tuple(), emulator.training_data)
 
         # Case where data has previously been fit
-        emulator.fit(TrainingDatum.list_from_arrays(self.inputs2, self.targets2))
+        emulator.fit(TrainingDatum.list_from_arrays(self.inputs_arr, self.targets_arr))
         expected_inputs = emulator.gp.inputs
         expected_targets = emulator.gp.targets
         expected_training_data = emulator.training_data

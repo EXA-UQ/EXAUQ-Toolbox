@@ -7,6 +7,7 @@ from typing import Literal
 
 import numpy as np
 
+from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     Input,
@@ -585,6 +586,26 @@ class TestAbstractGaussianProcess(ExauqTestCase):
             ),
         )
         self.assertEqual(float("inf"), emulator.nes_error(Input(0.4), 1e-5))
+
+    def test_covariance_matrix_correlations_with_training_data(self):
+        """The covariance matrix consists of the correlations of the supplied inputs
+        with the training data inputs for the GP."""
+
+        emulator = MogpEmulator()
+        training_inputs = [Input(0.2, 0.3), Input(0.4, 0.1), Input(0.6, 0.8)]
+        params = MogpHyperparameters(
+            corr_length_scales=[0.5, 0.5], process_var=1, nugget=None
+        )
+        emulator.fit(
+            [TrainingDatum(x, 1) for x in training_inputs],
+            hyperparameters=params,
+        )
+        inputs = [Input(0.2, 1), Input(0.8, -0.5)]
+
+        self.assertEqual(
+            emulator.correlation(training_inputs, inputs),
+            emulator.covariance_matrix(inputs),
+        )
 
 
 class TestGaussianProcessHyperparameters(ExauqTestCase):
