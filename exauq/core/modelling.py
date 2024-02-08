@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+import csv
 import dataclasses
 import functools
 import math
@@ -15,6 +16,7 @@ import numpy as np
 
 import exauq.utilities.validation as validation
 from exauq.core.numerics import equal_within_tolerance
+from exauq.utilities.csv_db import Path
 
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 
@@ -340,6 +342,100 @@ class TrainingDatum(object):
         return [
             cls(Input.from_array(input), output) for input, output in zip(inputs, outputs)
         ]
+
+    @classmethod
+    def read_from_csv(
+        cls, path: Path, output_col: int = -1, header: bool = False
+    ) -> tuple[TrainingDatum, ...]:
+        """Read simulator inputs and outputs from a csv file.
+
+        The data from the csv file is parsed into a sequence of TrainingDatum objects,
+        with one datum per (non-empty) row in the csv file. By default, the last column is
+        assumed to contain the simulator outputs, though an alternative can be specified
+        via the `output_col` keyword argument. The remaining columns are assumed to define
+        the coordinates of simulator inputs, in the same order in which they appear in the
+        csv file. If the csv file contains a header row then this should be specified so
+        that it can be skipped when reading.
+
+        While it is expected that the data in the csv will be rectangular (i.e. each row
+        contains the same number of columns), csv files with varying numbers of columns in
+        each row will be parsed, so long as the `output_col` is valid for each row. (Users
+        should take care in this case, as the various ``TrainingDatum`` constructed will
+        have simulator inputs of varying dimension.)
+
+        Parameters
+        ----------
+        path : str or os.PathLike
+            The path to a csv file.
+        output_col : int, optional
+            (Default: -1) The (0-based) index of the column that defines the simulator
+            outputs. Negative values count backwards from the end of the list of columns
+            (the default Python behaviour). The default value corresponds to the last
+            column in each row.
+        header : bool, optional
+            (Default: False) Whether the csv contains a header row that should be skipped.
+
+        Returns
+        -------
+        tuple[TrainingDatum, ...]
+            The training data read from the csv file.
+
+        Raises
+        ------
+        AssertionError
+            If the training data contains values that cannot be parsed as finite,
+            non-missing floats.
+        ValueError
+            If 'output_col' does not define a valid column index for all rows.
+        """
+        training_data = []
+        with open(path, mode="r", newline="") as csvfile:
+            reader = enumerate(csv.reader(csvfile))
+            if header:
+                # Skip header, or return empty tuple if file is empty
+                try:
+                    _ = next(reader)
+                except StopIteration:
+                    return tuple()
+
+            for i, row in ((i, row) for i, row in reader if len(row) > 0):
+                try:
+                    parsed_row = cls._parse_csv_row(row)
+                except AssertionError as e:
+                    raise AssertionError(f"Could not read data from {path}: {e}.")
+
+                try:
+                    output = parsed_row.pop(output_col)
+                    training_data.append(TrainingDatum(Input(*parsed_row), output))
+                except IndexError:
+                    raise ValueError(
+                        f"'output_col={output_col}' does not define a valid column index for "
+                        f"csv data with {len(row)} columns in row {i}."
+                    )
+                except ValueError:
+                    raise AssertionError(
+                        f"Could not read data from {path}: infinite or NaN values found."
+                    )
+
+        return tuple(training_data)
+
+    @classmethod
+    def _parse_csv_row(cls, row: Sequence[str]) -> list[float]:
+        try:
+            return list(map(float, row))
+        except ValueError:
+            bad_data = cls._find_first_non_float(row)
+            raise AssertionError(f"unable to parse value '{bad_data}' as a float")
+
+    @staticmethod
+    def _find_first_non_float(strings: Sequence[str]) -> Optional[str]:
+        for s in strings:
+            try:
+                _ = float(s)
+            except ValueError:
+                return s
+
+        return None
 
     def __str__(self) -> str:
         return f"({str(self.input)}, {str(self.output)})"

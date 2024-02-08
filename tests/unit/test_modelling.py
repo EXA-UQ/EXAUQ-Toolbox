@@ -1,9 +1,11 @@
 import copy
 import itertools
 import math
+import pathlib
+import tempfile
 import unittest
 from numbers import Real
-from typing import Literal
+from typing import Literal, Sequence
 
 import numpy as np
 
@@ -16,6 +18,7 @@ from exauq.core.modelling import (
     TrainingDatum,
 )
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
+from exauq.utilities.csv_db import Path
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
 from tests.utilities.utilities import (
     ExauqTestCase,
@@ -264,6 +267,23 @@ class TestInput(unittest.TestCase):
 
 
 class TestTrainingDatum(unittest.TestCase):
+    def setUp(self) -> None:
+        # Temp directory for holding csv file during a unit test run
+        self._dir = tempfile.TemporaryDirectory()
+        self.tmp_dir = self._dir.name
+        self.path = pathlib.Path(self.tmp_dir, "data.csv")
+
+    def tearDown(self) -> None:
+        self._dir.cleanup()
+
+    @staticmethod
+    def write_csv_data(path: Path, data: Sequence[Sequence[str]], mode="x"):
+        """Write data to a csv file."""
+
+        with open(path, mode=mode, newline="") as f:
+            for row in data:
+                f.write(",".join(map(str, row)) + "\n")
+
     def test_input_error(self):
         """Test that a TypeError is raised if the constructor arg 'input'
         is not an Input."""
@@ -347,6 +367,132 @@ class TestTrainingDatum(unittest.TestCase):
             TrainingDatum(Input(3.5, 9.87), 1.1),
         ]
         self.assertEqual(expected, TrainingDatum.list_from_arrays(inputs, outputs))
+
+    def test_read_from_csv_default_output_column(self):
+        """By default, the csv data is read into a sequence of training data where the
+        last column in the csv file defines the simulator outputs and the other columns
+        define simulator inputs."""
+
+        self.write_csv_data(self.path, [[1, 2, 3], [10, 20, 30]])
+        training_data = TrainingDatum.read_from_csv(self.path)
+        expected = (TrainingDatum(Input(1, 2), 3), TrainingDatum(Input(10, 20), 30))
+        self.assertEqual(expected, training_data)
+
+    def test_read_from_csv_output_column_specified(self):
+        """The column of the simulator outputs can be specified as a zero-based index.
+        The remaining columns are then interpreted as simulator inputs (in the order they
+        appear in the file)."""
+
+        self.write_csv_data(self.path, [[1, 2, 3], [10, 20, 30]])
+        training_data = TrainingDatum.read_from_csv(self.path, output_col=1)
+        expected = (TrainingDatum(Input(1, 3), 2), TrainingDatum(Input(10, 30), 20))
+        self.assertEqual(expected, training_data)
+
+    def test_read_from_csv_header_row_skipped(self):
+        """If the csv file contains a header row, then this is skipped when reading the
+        data."""
+
+        self.write_csv_data(self.path, [["x1", "x2", "y"], [1, 2, 3], [10, 20, 30]])
+        training_data = TrainingDatum.read_from_csv(self.path, header=True)
+        expected = (TrainingDatum(Input(1, 2), 3), TrainingDatum(Input(10, 20), 30))
+        self.assertEqual(expected, training_data)
+
+    def test_read_from_csv_empty_data(self):
+        """If the csv file does not contain any training data, then an empty tuple is
+        returned."""
+
+        # No header row case
+        self.write_csv_data(self.path, [[]])
+        training_data = TrainingDatum.read_from_csv(self.path)
+        self.assertEqual(tuple(), training_data)
+
+        # Header row case
+        self.write_csv_data(self.path, [["x", "y"], []], mode="w")
+        training_data = TrainingDatum.read_from_csv(self.path, header=True)
+        self.assertEqual(tuple(), training_data)
+
+        # Header row case with empty file
+        self.write_csv_data(self.path, [], mode="w")
+        training_data = TrainingDatum.read_from_csv(self.path, header=True)
+        self.assertEqual(tuple(), training_data)
+
+    def test_read_from_csv_cannot_parse_float_error(self):
+        """An AssertionError is raised if any of the read data cannot be parsed as a
+        float."""
+
+        # Bad simulator input
+        bad_data = "foo"
+        self.write_csv_data(self.path, [[1, 2, 3], [10, bad_data, 30]])
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(
+                f"Could not read data from {self.path}: unable to parse value '{bad_data}' as a float."
+            ),
+        ):
+            _ = TrainingDatum.read_from_csv(self.path)
+
+        # Bad simulator output
+        bad_data = ""
+        self.write_csv_data(self.path, [[1, 2, bad_data], [10, 20, 30]], mode="w")
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(
+                f"Could not read data from {self.path}: unable to parse value '{bad_data}' as a float."
+            ),
+        ):
+            _ = TrainingDatum.read_from_csv(self.path)
+
+    def test_read_from_csv_cannot_parse_inf_and_NaN_error(self):
+        """An AssertionError is raised if any of the data contains infinite or NaN
+        values."""
+
+        # Infinite value
+        self.write_csv_data(self.path, [[1, 2, 3], [10, "inf", 30]])
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(f"Could not read data from {self.path}: infinite or NaN values found."),
+        ):
+            _ = TrainingDatum.read_from_csv(self.path)
+
+        # NaN value
+        self.write_csv_data(self.path, [[1, 2, 3], [10, "NaN", 30]], mode="w")
+        with self.assertRaisesRegex(
+            AssertionError,
+            exact(f"Could not read data from {self.path}: infinite or NaN values found."),
+        ):
+            _ = TrainingDatum.read_from_csv(self.path)
+
+    def test_read_from_csv_bad_column_index_error(self):
+        """A ValueError is raised if an out-of-bounds column index is given, where the
+        index bounds are determined row-wise."""
+
+        # Square data case
+        data = [[1, 2, 3], [10, 20, 30]]
+        self.write_csv_data(self.path, data)
+        bad_row = 0
+        for output_col in [-4, 3]:
+            with self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"'output_col={output_col}' does not define a valid column index for "
+                    f"csv data with {len(data[bad_row])} columns in row {bad_row}."
+                ),
+            ):
+                _ = TrainingDatum.read_from_csv(self.path, output_col=output_col)
+
+        # Jagged shape case - row 1 the culprit
+        data = [[1, 2, 3], [10, 30]]
+        self.write_csv_data(self.path, data, mode="w")
+        output_col = 2
+        bad_row = 1
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"'output_col={output_col}' does not define a valid column index for "
+                f"csv data with {len(data[bad_row])} columns in row {bad_row}."
+            ),
+        ):
+            _ = TrainingDatum.read_from_csv(self.path, output_col=output_col)
 
 
 class TestPrediction(ExauqTestCase):
