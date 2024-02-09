@@ -505,11 +505,6 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
         self.pei_calculator._max_targets = 5.0
 
     def test_expected_improvement_zero_std(self):
-        # Mock the GP model's predict method to return a prediction with zero standard deviation
-        self.gp.predict = MagicMock(
-            return_value=MagicMock(estimate=6.0, variance=0.0, standard_deviation=0.0)
-        )
-
         input_point = Input(0.5, 0.5)
         ei = self.pei_calculator.expected_improvement(input_point)
 
