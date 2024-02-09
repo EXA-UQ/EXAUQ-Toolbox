@@ -529,10 +529,10 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
     def test_expected_improvement_negative_or_zero_estimate(self):
         # Mock predict method for scenario where prediction estimate is less than the max target
         self.gp.predict = MagicMock(
-            return_value=MagicMock(estimate=4.0, standard_deviation=1.0)
+            return_value=MagicMock(estimate=-1000.0, standard_deviation=1.0)
         )
 
-        input_point = Input(0.5, 0.5)
+        input_point = Input(0.6, 0.6)
         ei = self.pei_calculator.expected_improvement(input_point)
 
         # Expected improvement should be non-negative even if estimate is less than the max target
