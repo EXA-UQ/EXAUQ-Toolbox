@@ -541,7 +541,6 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
     def test_expected_improvement_accuracy(self):
         estimate = 6.0
         standard_deviation = 2.0
-        self.pei_calculator._max_targets = 5.0  # Current max target
 
         # Mock predict method
         self.gp.predict = MagicMock(
