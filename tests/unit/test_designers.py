@@ -6,6 +6,8 @@ import unittest
 import unittest.mock
 from unittest.mock import MagicMock
 
+from scipy.stats import norm
+
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
@@ -17,7 +19,6 @@ from exauq.core.designers import (
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import equal_within_tolerance
-from scipy.stats import norm
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -549,7 +550,7 @@ class TestPEICalculator(ExauqTestCase):
             )
         )
 
-        input_point = Input(0.5)
+        input_point = Input(0.6)
         ei = self.pei_calculator.expected_improvement(input_point)
 
         # Manual calculation
@@ -594,7 +595,7 @@ class TestPEICalculator(ExauqTestCase):
                     return_value=MagicMock(estimate=estimate, standard_deviation=std_dev)
                 )
 
-                input_point = Input(0.5)
+                input_point = Input(0.4)
                 ei = self.pei_calculator.expected_improvement(input_point)
                 self.assertGreater(
                     ei,
