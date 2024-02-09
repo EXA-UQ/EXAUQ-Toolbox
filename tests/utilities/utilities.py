@@ -29,6 +29,21 @@ class ExauqTestCase(unittest.TestCase):
         )
         return None
 
+    def assertNotEqualWithinTolerance(
+        self, x1, x2, rel_tol=FLOAT_TOLERANCE, abs_tol=FLOAT_TOLERANCE
+    ) -> None:
+        """Test for inequality using the `numerics.equal_within_tolerance` function.
+
+        Note that this does *not* check that the two arguments `x1` and `x2` have the same
+        type. So, for example, a list and a Numpy array containing the same real number
+        values will be considered equal."""
+
+        self.assertFalse(
+            equal_within_tolerance(x1, x2, rel_tol=rel_tol, abs_tol=abs_tol),
+            msg=f"assertEqualWithinTolerance: Values {x1} and {x2} equal within tolerance.",
+        )
+        return None
+
 
 def exact(string: str):
     """Turn a string into a regular expressions that defines an exact match on the
