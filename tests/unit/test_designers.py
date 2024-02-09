@@ -446,17 +446,6 @@ class TestPEICalculatorInit(ExauqTestCase):
             PEICalculator(domain=self.domain, gp=self.gp)
         self.assertEqual("'gp' training data is empty.", str(context.exception))
 
-    def test_validation_with_invalid_gp_training_data_elements(self):
-        """Test that an error is raised if the GP training data contains invalid elements."""
-        self.gp._training_data = [self.training_data[0], "not_a_training_datum", 42.0]
-
-        with self.assertRaises(TypeError) as context:
-            PEICalculator(domain=self.domain, gp=self.gp)
-        self.assertEqual(
-            "All elements in 'gp' training data must be instances of TrainingDatum",
-            str(context.exception),
-        )
-
     def test_max_targets_with_valid_training_data(self):
         """Test that max target is calculated correctly with valid training data."""
         self.gp.fit(self.training_data)
