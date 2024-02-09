@@ -574,7 +574,7 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
             )
         )
 
-        input_point = Input(0.5, 0.5)
+        input_point = Input(0.6, 0.6)
         ei = self.pei_calculator.expected_improvement(input_point)
 
         # EI should be positive due to uncertainty
