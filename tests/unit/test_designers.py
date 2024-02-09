@@ -490,20 +490,20 @@ class TestPEICalculatorInit(ExauqTestCase):
 
 class TestPEICalculatorExpectedImprovement(ExauqTestCase):
     def setUp(self):
-        self.domain = SimulatorDomain([(0, 1), (0, 1)])
+        self.domain = SimulatorDomain([(0, 1)])
         self.training_data = [
-            TrainingDatum(Input(0.1, 0.1), 1),
-            TrainingDatum(Input(0.3, 0.3), 2),
-            TrainingDatum(Input(0.5, 0.5), 3),
-            TrainingDatum(Input(0.7, 0.7), 4),
-            TrainingDatum(Input(0.9, 0.9), 5),
+            TrainingDatum(Input(0.1), 1),
+            TrainingDatum(Input(0.3), 2),
+            TrainingDatum(Input(0.5), 3),
+            TrainingDatum(Input(0.7), 4),
+            TrainingDatum(Input(0.9), 5),
         ]
         self.gp = MogpEmulator()
         self.gp.fit(training_data=self.training_data)
         self.pei_calculator = PEICalculator(self.domain, self.gp)
 
     def test_expected_improvement_zero_std(self):
-        input_point = Input(0.5, 0.5)
+        input_point = Input(0.5)
         ei = self.pei_calculator.expected_improvement(input_point)
 
         # Expected improvement should be zero due to zero standard deviation
@@ -517,7 +517,7 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
             return_value=MagicMock(estimate=6.0, standard_deviation=1.0)
         )
 
-        input_point = Input(0.6, 0.6)
+        input_point = Input(0.6)
         ei = self.pei_calculator.expected_improvement(input_point)
 
         # Expected improvement should be positive since the estimate is greater than the max target
@@ -533,7 +533,7 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
             return_value=MagicMock(estimate=-1000.0, standard_deviation=1.0)
         )
 
-        input_point = Input(0.6, 0.6)
+        input_point = Input(0.6)
         ei = self.pei_calculator.expected_improvement(input_point)
 
         # Expected improvement should be non-negative even if estimate is less than the max target
@@ -550,7 +550,7 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
             )
         )
 
-        input_point = Input(0.5, 0.5)
+        input_point = Input(0.5)
         ei = self.pei_calculator.expected_improvement(input_point)
 
         # Manual calculation
@@ -575,7 +575,7 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
             )
         )
 
-        input_point = Input(0.6, 0.6)
+        input_point = Input(0.6)
         ei = self.pei_calculator.expected_improvement(input_point)
 
         # EI should be positive due to uncertainty
@@ -591,7 +591,7 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
                     return_value=MagicMock(estimate=estimate, standard_deviation=std_dev)
                 )
 
-                input_point = Input(0.5, 0.5)
+                input_point = Input(0.5)
                 ei = self.pei_calculator.expected_improvement(input_point)
                 self.assertGreater(
                     ei,
