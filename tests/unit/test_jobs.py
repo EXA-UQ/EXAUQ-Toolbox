@@ -61,6 +61,16 @@ class TestJob(ExauqTestCase):
                     f"Should have been able to construct Job with job_id = {job_id}."
                 )
 
+    def test_immutable_attributes(self):
+        """A Job object's attributes are immutable."""
+
+        job = Job(id_=1, data=Input(0))
+        with self.assertRaises(AttributeError):
+            job.id = JobId(2)
+
+        with self.assertRaises(AttributeError):
+            job.data = Input(-1)
+
 
 if __name__ == "__main__":
     unittest.main()

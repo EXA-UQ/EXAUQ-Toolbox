@@ -33,5 +33,13 @@ class JobId:
 @dataclasses.dataclass(init=False)
 class Job:
     def __init__(self, id_: Union[JobId, str, int], data: Input) -> None:
-        self.id = JobId(id_)
-        self.data = data
+        self._id = JobId(id_)
+        self._data = data
+
+    @property
+    def id(self) -> JobId:
+        return self._id
+
+    @property
+    def data(self) -> Input:
+        return self._data
