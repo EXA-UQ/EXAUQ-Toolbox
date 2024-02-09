@@ -1,6 +1,7 @@
 import unittest
 
-from exauq.core.jobs import JobId
+from exauq.core.jobs import Job, JobId
+from exauq.core.modelling import Input
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -9,7 +10,7 @@ class TestJobId(ExauqTestCase):
         """A job ID can be created from a non-negative integer or a string consisting only
         of digits."""
 
-        for job_id in ["1", 99, "00001"]:
+        for job_id in ["1", 99, "00001", JobId(0)]:
             try:
                 _ = JobId(job_id)
             except Exception:
@@ -37,6 +38,20 @@ class TestJobId(ExauqTestCase):
 
         for job_id in ["1", 99, "00001"]:
             self.assertEqual(str(job_id), str(JobId(job_id)))
+
+
+class TestJob(ExauqTestCase):
+    def test_init_valid_ids(self):
+        """The ID of a job can be a JobId instance or an object from which a valid JobId
+        can be created."""
+
+        for job_id in [JobId(0), "1", 99, "00001"]:
+            try:
+                _ = Job(id_=job_id, data=Input(0))
+            except Exception:
+                self.fail(
+                    f"Should have been able to construct Job with job_id = {job_id}."
+                )
 
 
 if __name__ == "__main__":

@@ -1,5 +1,8 @@
+import dataclasses
 import re
 from typing import Union
+
+from exauq.core.modelling import Input
 
 
 class JobId:
@@ -22,3 +25,10 @@ class JobId:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self._job_id})"
+
+
+@dataclasses.dataclass(init=False)
+class Job:
+    def __init__(self, id_: Union[JobId, str, int], data: Input) -> None:
+        self.id = JobId(id_)
+        self.data = data
