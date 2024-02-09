@@ -39,6 +39,14 @@ class TestJobId(ExauqTestCase):
         for job_id in ["1", 99, "00001"]:
             self.assertEqual(str(job_id), str(JobId(job_id)))
 
+    def test_equality(self):
+        """Two JobId instances are equal if they have the same string representation.
+        A JobId is not equal to an object that is not also a JobId instance."""
+
+        self.assertEqual(JobId(0), JobId("0"))
+        self.assertNotEqual(JobId("1"), "1")
+        self.assertNotEqual(JobId(1), JobId("01"))
+
 
 class TestJob(ExauqTestCase):
     def test_init_valid_ids(self):

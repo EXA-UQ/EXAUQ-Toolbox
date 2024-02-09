@@ -26,6 +26,9 @@ class JobId:
     def __repr__(self):
         return f"{self.__class__.__name__}({self._job_id})"
 
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self._job_id == str(other)
+
 
 @dataclasses.dataclass(init=False)
 class Job:
