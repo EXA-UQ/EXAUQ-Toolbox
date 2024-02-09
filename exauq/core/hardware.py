@@ -1,9 +1,42 @@
 import getpass
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Optional
 
 from fabric import Config, Connection
 from paramiko.ssh_exception import AuthenticationException, SSHException
+
+
+class JobStatus(Enum):
+    """Represents the statuses of jobs that can arise when running jobs.
+
+    It is possible for multiple statuses hold at the same time. For example, a job
+    can both have been submitted (`SUBMITTED`) and also have been run and exited with
+    error (`FAILED`).
+    """
+
+    COMPLETED = "Completed"
+    """A job has run to completion on a remote machine without error. Has the value
+    'Completed'."""
+
+    FAILED = "Failed"
+    """A job has been run on a remote machine but has exited with an error. Has the
+    value 'Failed'."""
+
+    RUNNING = "Running"
+    """A job is running on a remote machine but has not yet finished. Has the value
+    'Running'."""
+
+    SUBMITTED = "Submitted"
+    """A job has been successfully sent to a remote machine. Has the value 'Submitted'."""
+
+    PENDING = "Pending"
+    """A job has been set up locally but has not yet been submitted to a remote
+    machine. Has the value 'Pending'."""
+
+    CANCELLED = "Cancelled"
+    """A job has been cancelled from a locally issued request or intervention. Has the
+    value 'Cancelled'."""
 
 
 class HardwareInterface(ABC):
@@ -29,6 +62,7 @@ class HardwareInterface(ABC):
     - cancel_job
     - wait_for_job
     """
+
     @abstractmethod
     def submit_job(self, job):
         pass
@@ -86,7 +120,7 @@ class SSHInterface(HardwareInterface, ABC):
         key_filename: Optional[str] = None,
         ssh_config_path: Optional[str] = None,
         use_ssh_agent: Optional[bool] = False,
-        max_attempts: int = 3
+        max_attempts: int = 3,
     ):
         self.max_attempts = max_attempts
 
@@ -142,9 +176,7 @@ class SSHInterface(HardwareInterface, ABC):
                 return
 
             except AuthenticationException:  # Catch the specific exception
-                if (
-                    attempt < self.max_attempts
-                ):  # Don't say this on the last attempt
+                if attempt < self.max_attempts:  # Don't say this on the last attempt
                     print("Failed to authenticate. Please try again.")
                 else:
                     print("Maximum number of attempts exceeded.")
