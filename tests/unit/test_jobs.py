@@ -61,6 +61,29 @@ class TestJob(ExauqTestCase):
                     f"Should have been able to construct Job with job_id = {job_id}."
                 )
 
+    def test_init_arg_validation(self):
+        """A ValueError is raised if the id does not define a valid JobId instance.
+        A TypeError is raised if the data is not an instance of Input."""
+
+        id_ = "a"
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected 'id_' to define a valid {JobId}, but received "
+                f"'{str(id_)}' instead."
+            ),
+        ):
+            _ = Job(id_=id_, data=Input(0))
+
+        data = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'data' to be of type {Input} but received {type(data)} instead."
+            ),
+        ):
+            _ = Job(id_=1, data=data)
+
     def test_immutable_attributes(self):
         """A Job object's attributes are immutable."""
 

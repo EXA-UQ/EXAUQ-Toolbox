@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import re
 from typing import Union
@@ -6,7 +8,7 @@ from exauq.core.modelling import Input
 
 
 class JobId:
-    def __init__(self, job_id: Union[str, int]):
+    def __init__(self, job_id: Union[str, int, JobId]):
         self._job_id = self._parse(job_id)
 
     @staticmethod
@@ -33,8 +35,25 @@ class JobId:
 @dataclasses.dataclass(init=False)
 class Job:
     def __init__(self, id_: Union[JobId, str, int], data: Input) -> None:
-        self._id = JobId(id_)
-        self._data = data
+        self._id = self._parse_id(id_)
+        self._data = self._validate_data(data)
+
+    @staticmethod
+    def _parse_id(id_) -> JobId:
+        try:
+            return JobId(id_)
+        except ValueError:
+            raise ValueError(
+                f"Expected 'id_' to define a valid {JobId}, but received '{str(id_)}' "
+                "instead."
+            )
+
+    @staticmethod
+    def _validate_data(data) -> Input:
+        if not isinstance(data, Input):
+            raise TypeError(
+                f"Expected 'data' to be of type {Input} but received {type(data)} instead."
+            )
 
     @property
     def id(self) -> JobId:
