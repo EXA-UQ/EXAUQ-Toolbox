@@ -8,6 +8,18 @@ from exauq.core.modelling import Input
 
 
 class JobId:
+    """A unique identifier for a job.
+
+    A job ID can only consist of digits. A string representation of the ID can be obtained
+    using the ``str`` function.
+
+    Parameters
+    ----------
+    job_id : Union[str, int, JobId]
+        A non-negative integer, or a string consisting only of digits, or another instance
+        of ``JobId``.
+    """
+
     def __init__(self, job_id: Union[str, int, JobId]):
         self._job_id = self._parse(job_id)
 
@@ -34,6 +46,24 @@ class JobId:
 
 @dataclasses.dataclass(init=False)
 class Job:
+    """A job consisting of input data for a simulator.
+
+    Parameters
+    ----------
+    id_ : Union[JobId, str, int]
+        The ID of the job. If a string or an integer is provided then it should define a
+        valid ``JobId`` instance.
+    data : Input
+        An input for a simulator.
+
+    Attributes
+    ----------
+    id : JobId
+        (Read-only) The ID of the job.
+    data : Input
+        (Read-only) The simulator input for the job.
+    """
+
     def __init__(self, id_: Union[JobId, str, int], data: Input) -> None:
         self._id = self._parse_id(id_)
         self._data = self._validate_data(data)
@@ -57,10 +87,12 @@ class Job:
 
     @property
     def id(self) -> JobId:
+        """(Read-only) The ID of the job."""
         return self._id
 
     @property
     def data(self) -> Input:
+        """(Read-only) The simulator input for the job."""
         return self._data
 
     def __repr__(self) -> str:
