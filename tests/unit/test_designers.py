@@ -420,7 +420,7 @@ class TestPEICalculator(ExauqTestCase):
 
     def test_init_with_valid_parameters(self):
         """Test initialisation with valid domain and gp parameters."""
-        self.gp.fit(self.training_data)
+        self.setUpFitDataOnly()
 
         try:
             calculator = PEICalculator(domain=self.domain, gp=self.gp)
@@ -430,7 +430,7 @@ class TestPEICalculator(ExauqTestCase):
 
     def test_init_with_invalid_domain_type(self):
         """Test initialisation with an invalid domain type and check the error message."""
-        self.gp.fit(self.training_data)
+        self.setUpFitDataOnly()
 
         with self.assertRaises(TypeError) as context:
             PEICalculator("not_a_domain_instance", self.gp)
@@ -456,9 +456,8 @@ class TestPEICalculator(ExauqTestCase):
 
     def test_max_targets_with_valid_training_data(self):
         """Test that max target is calculated correctly with valid training data."""
-        self.gp.fit(self.training_data)
-        calculator = PEICalculator(domain=self.domain, gp=self.gp)
-        self.assertEqual(calculator._max_targets, 5, "Max target should be 5")
+        self.setUpPEICalculator()
+        self.assertEqual(self.pei_calculator._max_targets, 5, "Max target should be 5")
 
     def test_max_targets_with_negative_values(self):
         """Test that max target is calculated correctly with negative target values."""
@@ -475,6 +474,8 @@ class TestPEICalculator(ExauqTestCase):
 
     def test_calculate_pseudopoints_calls_domain_method(self):
         """Test to ensure wrapping functionality `_calculate_pseudopoints` correctly integrates with SimulatorDomain."""
+        self.setUpFitDataOnly()
+
         domain_mock = MagicMock(spec=SimulatorDomain)
 
         expected_pseudopoints = [(Input(1.0),), (Input(2.0),)]
