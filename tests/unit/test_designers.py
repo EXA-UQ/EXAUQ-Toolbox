@@ -519,7 +519,7 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
             return_value=MagicMock(estimate=6.0, standard_deviation=1.0)
         )
 
-        input_point = Input(0.5, 0.5)
+        input_point = Input(0.6, 0.6)
         ei = self.pei_calculator.expected_improvement(input_point)
 
         # Expected improvement should be positive since the estimate is greater than the max target
