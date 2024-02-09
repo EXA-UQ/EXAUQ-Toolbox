@@ -411,6 +411,13 @@ class TestPEICalculator(ExauqTestCase):
         ]
         self.gp = MogpEmulator()
 
+    def setUpFitDataOnly(self):
+        self.gp.fit(self.training_data)
+
+    def setUpPEICalculator(self):
+        self.gp.fit(self.training_data)
+        self.pei_calculator = PEICalculator(self.domain, self.gp)
+
     def test_init_with_valid_parameters(self):
         """Test initialisation with valid domain and gp parameters."""
         self.gp.fit(self.training_data)
