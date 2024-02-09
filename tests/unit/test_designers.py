@@ -501,9 +501,6 @@ class TestPEICalculatorExpectedImprovement(ExauqTestCase):
         self.gp.fit(training_data=self.training_data)
         self.pei_calculator = PEICalculator(self.domain, self.gp)
 
-        # Mock the GP model's max target value for visibility
-        self.pei_calculator._max_targets = 5.0
-
     def test_expected_improvement_zero_std(self):
         input_point = Input(0.5, 0.5)
         ei = self.pei_calculator.expected_improvement(input_point)
