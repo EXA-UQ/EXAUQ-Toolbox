@@ -29,25 +29,26 @@ class HardwareInterface(ABC):
     - cancel_job
     - wait_for_job
     """
+
     @abstractmethod
     def submit_job(self, job):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def get_job_status(self, job_id):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def get_job_output(self, job_id):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def cancel_job(self, job_id):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def wait_for_job(self, job_id):
-        pass
+        raise NotImplementedError
 
 
 class SSHInterface(HardwareInterface, ABC):
@@ -86,7 +87,7 @@ class SSHInterface(HardwareInterface, ABC):
         key_filename: Optional[str] = None,
         ssh_config_path: Optional[str] = None,
         use_ssh_agent: Optional[bool] = False,
-        max_attempts: int = 3
+        max_attempts: int = 3,
     ):
         self.max_attempts = max_attempts
 
@@ -142,9 +143,7 @@ class SSHInterface(HardwareInterface, ABC):
                 return
 
             except AuthenticationException:  # Catch the specific exception
-                if (
-                    attempt < self.max_attempts
-                ):  # Don't say this on the last attempt
+                if attempt < self.max_attempts:  # Don't say this on the last attempt
                     print("Failed to authenticate. Please try again.")
                 else:
                     print("Maximum number of attempts exceeded.")
