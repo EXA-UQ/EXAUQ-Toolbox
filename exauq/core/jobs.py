@@ -24,7 +24,7 @@ class JobId:
         return self._job_id
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self._job_id})"
+        return f"{self.__class__.__name__}({repr(self._job_id)})"
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self._job_id == str(other)
@@ -43,3 +43,6 @@ class Job:
     @property
     def data(self) -> Input:
         return self._data
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(id_={repr(self.id)}, data={repr(self.data)})"
