@@ -84,6 +84,8 @@ class Job:
             raise TypeError(
                 f"Expected 'data' to be of type {Input} but received {type(data)} instead."
             )
+        else:
+            return data
 
     @property
     def id(self) -> JobId:

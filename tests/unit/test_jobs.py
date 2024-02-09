@@ -84,6 +84,15 @@ class TestJob(ExauqTestCase):
         ):
             _ = Job(id_=1, data=data)
 
+    def test_retrieve_id_and_data_from_properties(self):
+        """The supplied ID and input data can be retrieved from the properties."""
+
+        id_ = 1
+        data = Input(0)
+        job = Job(id_, data)
+        self.assertEqual(JobId(id_), job.id)
+        self.assertEqual(data, job.data)
+
     def test_immutable_attributes(self):
         """A Job object's attributes are immutable."""
 
