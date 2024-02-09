@@ -602,23 +602,8 @@ class TestPEICalculator(ExauqTestCase):
                     f"Expected improvement should increase with standard deviation, failed at std_dev={std_dev}.",
                 )
 
-
-class TestPEICalculatorRepulsion(ExauqTestCase):
-    def setUp(self):
-        self.domain = SimulatorDomain([(0, 1)])
-        self.training_data = [
-            TrainingDatum(Input(0.1), 1),
-            TrainingDatum(Input(0.3), 2),
-            TrainingDatum(Input(0.5), 3),
-            TrainingDatum(Input(0.7), 4),
-            TrainingDatum(Input(0.9), 5),
-        ]
-
-        self.gp = MogpEmulator()
-        self.gp.fit(training_data=self.training_data)
-        self.pei_calculator = PEICalculator(self.domain, self.gp)
-
     def test_repulsion_factor_zero_at_repulsion_points(self):
+        self.setUpPEICalculator()
         for repulsion_point in self.pei_calculator.repulsion_points:
             with self.subTest():
                 repulsion_factor = self.pei_calculator.repulsion(repulsion_point)
@@ -627,6 +612,7 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
                 )
 
     def test_positive_repulsion_factor_positive_for_non_repulsion_inputs(self):
+        self.setUpPEICalculator()
         for point in [0.2, 0.4, 0.6, 0.8]:
             with self.subTest():
                 repulsion_factor = self.pei_calculator.repulsion(Input(point))
@@ -660,6 +646,7 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
         self.assertEqual(expected, calculator.repulsion(x))
 
     def test_invalid_input(self):
+        self.setUpPEICalculator()
         with self.assertRaises(TypeError):
             self.pei_calculator.repulsion("invalid input")
 
