@@ -610,9 +610,7 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
             TrainingDatum(Input(0.7), 4),
             TrainingDatum(Input(0.9), 5),
         ]
-        self.pseudopoints = self.domain.calculate_pseudopoints(
-            [datum.input for datum in self.training_data]
-        )
+
         self.gp = MogpEmulator()
         self.gp.fit(training_data=self.training_data)
         self.pei_calculator = PEICalculator(self.domain, self.gp)
