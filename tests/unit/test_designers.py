@@ -624,6 +624,12 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
                     repulsion_factor, 0.0, msg="Repulsion Factor should be zero."
                 )
 
+    def test_positive_repulsion_factor_positive_for_non_repulsion_inputs(self):
+        for point in [0.2, 0.4, 0.6, 0.8]:
+            with self.subTest():
+                repulsion_factor = self.pei_calculator.repulsion(Input(point))
+                self.assertGreater(repulsion_factor, 0.0, msg="Repulsion Factor should be positive.")
+
     def test_repulsion_factor_formula(self):
         """Test that the repulsion factor is given by the product of terms
         (1 - correlation) for correlations between the new input and the repulsion
