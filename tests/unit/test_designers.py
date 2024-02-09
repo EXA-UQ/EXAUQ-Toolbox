@@ -6,8 +6,6 @@ import unittest
 import unittest.mock
 from unittest.mock import MagicMock
 
-from scipy.stats import norm
-
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
@@ -19,6 +17,7 @@ from exauq.core.designers import (
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
 from exauq.core.numerics import equal_within_tolerance
+from scipy.stats import norm
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -444,7 +443,9 @@ class TestPEICalculatorInit(ExauqTestCase):
         """Test that an error is raised if the GP training data is empty."""
         with self.assertRaises(ValueError) as context:
             PEICalculator(domain=self.domain, gp=self.gp)
-        self.assertEqual("Expected 'gp' to have nonempty training data.", str(context.exception))
+        self.assertEqual(
+            "Expected 'gp' to have nonempty training data.", str(context.exception)
+        )
 
     def test_max_targets_with_valid_training_data(self):
         """Test that max target is calculated correctly with valid training data."""
@@ -628,7 +629,9 @@ class TestPEICalculatorRepulsion(ExauqTestCase):
         for point in [0.2, 0.4, 0.6, 0.8]:
             with self.subTest():
                 repulsion_factor = self.pei_calculator.repulsion(Input(point))
-                self.assertGreater(repulsion_factor, 0.0, msg="Repulsion Factor should be positive.")
+                self.assertGreater(
+                    repulsion_factor, 0.0, msg="Repulsion Factor should be positive."
+                )
 
     def test_repulsion_factor_formula(self):
         """Test that the repulsion factor is given by the product of terms
