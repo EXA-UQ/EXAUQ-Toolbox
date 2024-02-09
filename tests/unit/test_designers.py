@@ -399,7 +399,7 @@ class TestComputeLooGp(ExauqTestCase):
         self.assertNotEqual(id(loo_gp.foo), id(gp.foo))
 
 
-class TestPEICalculatorInit(ExauqTestCase):
+class TestPEICalculator(ExauqTestCase):
     def setUp(self):
         self.domain = SimulatorDomain([(0, 1)])
         self.training_data = [
