@@ -334,7 +334,7 @@ class PEICalculator:
 
     def _validate_training_data(self) -> None:
         if not self._gp.training_data:
-            raise ValueError("'gp' training data is empty.")
+            raise ValueError("Expected 'gp' to have nonempty training data.")
 
         if not all(isinstance(datum, TrainingDatum) for datum in self._gp.training_data):
             raise TypeError(

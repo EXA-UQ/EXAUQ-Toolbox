@@ -444,7 +444,7 @@ class TestPEICalculatorInit(ExauqTestCase):
         """Test that an error is raised if the GP training data is empty."""
         with self.assertRaises(ValueError) as context:
             PEICalculator(domain=self.domain, gp=self.gp)
-        self.assertEqual("'gp' training data is empty.", str(context.exception))
+        self.assertEqual("Expected 'gp' to have nonempty training data.", str(context.exception))
 
     def test_max_targets_with_valid_training_data(self):
         """Test that max target is calculated correctly with valid training data."""
