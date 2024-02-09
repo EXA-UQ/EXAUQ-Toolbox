@@ -32,6 +32,11 @@ class TestJobId(ExauqTestCase):
                 ):
                     _ = JobId(job_id)
 
+    def test_string_method(self):
+        """A JobID instance can be converted to a string."""
+
+        for job_id in ["1", 99, "00001"]:
+            self.assertEqual(str(job_id), str(JobId(job_id)))
 
 
 if __name__ == "__main__":

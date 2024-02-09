@@ -17,3 +17,8 @@ class JobId:
                 f"but received '{str(job_id)}' instead."
             )
 
+    def __str__(self):
+        return self._job_id
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self._job_id})"
