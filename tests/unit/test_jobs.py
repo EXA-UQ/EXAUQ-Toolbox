@@ -103,6 +103,21 @@ class TestJob(ExauqTestCase):
         with self.assertRaises(AttributeError):
             job.data = Input(-1)
 
+    def test_equality(self):
+        """Two jobs are equally precisely when their IDs and input data are equal."""
+
+        self.assertEqual(Job(id_=1, data=Input(0)), Job(id_="1", data=Input(0)))
+
+        # Not another Job
+        self.assertNotEqual(Job(id_=1, data=Input(0)), (JobId(1), Input(0)))
+
+        # Different ID
+        self.assertNotEqual(Job(id_=2, data=Input(0)), Job(id_=1, data=Input(0)))
+
+        # Different data
+        self.assertNotEqual(Job(id_=1, data=Input(0)), Job(id_=1, data=Input(1)))
+        self.assertNotEqual(Job(id_=1, data=Input(0)), Job(id_=1, data=Input(0, 0)))
+
 
 if __name__ == "__main__":
     unittest.main()

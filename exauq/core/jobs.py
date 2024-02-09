@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import re
 from typing import Union
 
@@ -34,17 +33,16 @@ class JobId:
                 f"but received '{str(job_id)}' instead."
             )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._job_id
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({repr(self._job_id)})"
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return isinstance(other, self.__class__) and self._job_id == str(other)
 
 
-@dataclasses.dataclass(init=False)
 class Job:
     """A job consisting of input data for a simulator.
 
@@ -99,3 +97,10 @@ class Job:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id_={repr(self.id)}, data={repr(self.data)})"
+
+    def __eq__(self, other) -> bool:
+        return (
+            isinstance(other, self.__class__)
+            and self.id == other.id
+            and self.data == other.data
+        )
