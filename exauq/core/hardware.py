@@ -46,10 +46,6 @@ class HardwareInterface(ABC):
     def cancel_job(self, job_id):
         raise NotImplementedError
 
-    @abstractmethod
-    def wait_for_job(self, job_id):
-        raise NotImplementedError
-
 
 class SSHInterface(HardwareInterface, ABC):
     """
