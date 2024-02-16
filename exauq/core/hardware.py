@@ -6,6 +6,8 @@ from typing import Optional
 from fabric import Config, Connection
 from paramiko.ssh_exception import AuthenticationException, SSHException
 
+from exauq.core.jobs import Job, JobId
+
 
 class JobStatus(Enum):
     """Represents the statuses of jobs that can arise when running jobs.
@@ -60,23 +62,22 @@ class HardwareInterface(ABC):
     - get_job_status
     - get_job_output
     - cancel_job
-    - wait_for_job
     """
 
     @abstractmethod
-    def submit_job(self, job):
+    def submit_job(self, job: Job):
         raise NotImplementedError
 
     @abstractmethod
-    def get_job_status(self, job_id):
+    def get_job_status(self, job_id: JobId):
         raise NotImplementedError
 
     @abstractmethod
-    def get_job_output(self, job_id):
+    def get_job_output(self, job_id: JobId):
         raise NotImplementedError
 
     @abstractmethod
-    def cancel_job(self, job_id):
+    def cancel_job(self, job_id: JobId):
         raise NotImplementedError
 
 
