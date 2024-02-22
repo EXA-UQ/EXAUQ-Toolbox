@@ -211,7 +211,7 @@ class RemoteServerScript(SSHInterface):
         return (
             JobStatus.SUBMITTED
             if job_id in self._submitted_job_ids
-            else JobStatus.PENDING
+            else JobStatus.NOT_SUBMITTED
         )
 
     def get_job_output(self, job_id: JobId):
