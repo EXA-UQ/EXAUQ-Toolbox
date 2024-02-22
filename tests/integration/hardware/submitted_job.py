@@ -1,28 +1,7 @@
-import json
-import pathlib
-import sys
-from typing import Any
-
 from exauq.core.modelling import Input
 from exauq.sim_management.hardware import JobStatus, RemoteServerScript
 from exauq.sim_management.jobs import Job, JobId
-
-
-def get_ssh_config_path() -> str:
-    try:
-        return sys.argv[1]
-    except IndexError:
-        print(
-            f"{sys.argv[0]} error: No path to a ssh config file supplied.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-
-def read_ssh_config(path: str) -> dict[str, Any]:
-    with open(pathlib.Path(path), mode="r") as ssh_config_file:
-        return json.load(ssh_config_file)
-
+from tests.integration.hardware.utilities import get_ssh_config_path, read_ssh_config
 
 if __name__ == "__main__":
     config_path = get_ssh_config_path()
