@@ -1,7 +1,7 @@
 import unittest
 
-from exauq.sim_management.jobs import Job, JobId
 from exauq.core.modelling import Input
+from exauq.sim_management.jobs import Job, JobId
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -55,7 +55,7 @@ class TestJob(ExauqTestCase):
 
         for job_id in [JobId(0), "1", 99, "00001"]:
             try:
-                _ = Job(id_=job_id, data=Input(0))
+                _ = Job(id_=job_id, data=[Input(0)])
             except Exception:
                 self.fail(
                     f"Should have been able to construct Job with job_id = {job_id}."
@@ -63,7 +63,8 @@ class TestJob(ExauqTestCase):
 
     def test_init_arg_validation(self):
         """A ValueError is raised if the id does not define a valid JobId instance.
-        A TypeError is raised if the data is not an instance of Input."""
+        A TypeError is raised if the data is not a sequence.
+        A ValueError is raised if the data is not a sequence of Inputs."""
 
         id_ = "a"
         with self.assertRaisesRegex(
@@ -79,7 +80,16 @@ class TestJob(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'data' to be of type {Input} but received {type(data)} instead."
+                f"Expected 'data' to be a sequence of {Input} objects but received {type(data)} instead."
+            ),
+        ):
+            _ = Job(id_=1, data=data)
+
+        data = [Input(0), 2]
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected each object in 'data' to be a {Input} but found object of type {type(data[1])}."
             ),
         ):
             _ = Job(id_=1, data=data)
@@ -88,35 +98,45 @@ class TestJob(ExauqTestCase):
         """The supplied ID and input data can be retrieved from the properties."""
 
         id_ = 1
-        data = Input(0)
+        data = (Input(0),)
         job = Job(id_, data)
         self.assertEqual(JobId(id_), job.id)
-        self.assertEqual(data, job.data)
+
+    def test_retrieve_data_as_tuple(self):
+        """The supplied input data is retrieved as a tuple."""
+
+        id_ = 1
+        data = [Input(0), Input(1)]
+        job = Job(id_, data)
+        self.assertEqual(tuple(data), job.data)
 
     def test_immutable_attributes(self):
         """A Job object's attributes are immutable."""
 
-        job = Job(id_=1, data=Input(0))
+        job = Job(id_=1, data=[Input(0)])
         with self.assertRaises(AttributeError):
             job.id = JobId(2)
 
         with self.assertRaises(AttributeError):
-            job.data = Input(-1)
+            job.data = (Input(-1),)
 
     def test_equality(self):
-        """Two jobs are equally precisely when their IDs and input data are equal."""
+        """Two jobs are equal precisely when their IDs and input data are equal."""
 
-        self.assertEqual(Job(id_=1, data=Input(0)), Job(id_="1", data=Input(0)))
+        self.assertEqual(Job(id_=1, data=[Input(0)]), Job(id_="1", data=[Input(0)]))
 
         # Not another Job
-        self.assertNotEqual(Job(id_=1, data=Input(0)), (JobId(1), Input(0)))
+        self.assertNotEqual(Job(id_=1, data=[Input(0)]), (JobId(1), [Input(0)]))
 
         # Different ID
-        self.assertNotEqual(Job(id_=2, data=Input(0)), Job(id_=1, data=Input(0)))
+        self.assertNotEqual(Job(id_=2, data=[Input(0)]), Job(id_=1, data=[Input(0)]))
 
         # Different data
-        self.assertNotEqual(Job(id_=1, data=Input(0)), Job(id_=1, data=Input(1)))
-        self.assertNotEqual(Job(id_=1, data=Input(0)), Job(id_=1, data=Input(0, 0)))
+        self.assertNotEqual(Job(id_=1, data=[Input(0)]), Job(id_=1, data=[Input(1)]))
+        self.assertNotEqual(Job(id_=1, data=[Input(0)]), Job(id_=1, data=[Input(0, 0)]))
+        self.assertNotEqual(
+            Job(id_=1, data=[Input(0)]), Job(id_=1, data=[Input(0), Input(1)])
+        )
 
 
 if __name__ == "__main__":

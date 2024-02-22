@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from typing import Union
 
 from exauq.core.modelling import Input
@@ -51,18 +52,18 @@ class Job:
     id_ : Union[JobId, str, int]
         The ID of the job. If a string or an integer is provided then it should define a
         valid ``JobId`` instance.
-    data : Input
-        An input for a simulator.
+    data : sequence of Input
+        A batch of inputs for a simulator.
 
     Attributes
     ----------
     id : JobId
         (Read-only) The ID of the job.
-    data : Input
-        (Read-only) The simulator input for the job.
+    data : tuple[Input]
+        (Read-only) The simulator inputs for the job.
     """
 
-    def __init__(self, id_: Union[JobId, str, int], data: Input) -> None:
+    def __init__(self, id_: Union[JobId, str, int], data: Sequence[Input]) -> None:
         self._id = self._parse_id(id_)
         self._data = self._validate_data(data)
 
@@ -77,13 +78,19 @@ class Job:
             )
 
     @staticmethod
-    def _validate_data(data) -> Input:
-        if not isinstance(data, Input):
+    def _validate_data(data) -> tuple[Input]:
+        if not isinstance(data, Sequence):
             raise TypeError(
-                f"Expected 'data' to be of type {Input} but received {type(data)} instead."
+                f"Expected 'data' to be a sequence of {Input} objects but received "
+                f"{type(data)} instead."
+            )
+        elif bad_elements := [x for x in data if not isinstance(x, Input)]:
+            raise ValueError(
+                f"Expected each object in 'data' to be a {Input} but found object of type "
+                f"{type(bad_elements[0])}."
             )
         else:
-            return data
+            return tuple(data)
 
     @property
     def id(self) -> JobId:
@@ -91,8 +98,8 @@ class Job:
         return self._id
 
     @property
-    def data(self) -> Input:
-        """(Read-only) The simulator input for the job."""
+    def data(self) -> tuple[Input]:
+        """(Read-only) The simulator inputs for the job."""
         return self._data
 
     def __repr__(self) -> str:
