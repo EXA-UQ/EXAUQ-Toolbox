@@ -1,13 +1,15 @@
 import csv
 import os
+from abc import ABC, abstractmethod
 from numbers import Real
 from threading import Lock, Thread
 from time import sleep
 from typing import Any, Optional
 
-from exauq.sim_management.hardware import HardwareInterface
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.core.types import FilePath
+from exauq.sim_management.hardware import HardwareInterface, JobStatus
+from exauq.sim_management.jobs import Job
 from exauq.utilities.csv_db import CsvDB, Record
 from exauq.utilities.validation import check_file_path
 
@@ -441,3 +443,12 @@ class JobManager(object):
                 sleep(self._polling_interval)
         with self._lock:
             self._running = False
+
+
+class JobStrategy(ABC):
+    @abstractmethod
+    def handle(self, job: Job, job_manager: JobManager):
+        raise NotImplementedError
+
+    def update_status(self, job: Job, job_manager: JobManager, new_status: JobStatus):
+        raise NotImplementedError
