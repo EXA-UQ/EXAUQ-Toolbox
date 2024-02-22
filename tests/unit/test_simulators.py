@@ -7,7 +7,7 @@ from numbers import Real
 from typing import Type
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.core.simulators import SimulationsLog, SimulationsLogLookupError, Simulator
+from exauq.sim_management.simulators import SimulationsLog, SimulationsLogLookupError, Simulator
 from exauq.core.types import FilePath
 from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
 from tests.utilities.utilities import exact
@@ -23,9 +23,9 @@ def make_fake_simulator(
     """
 
     with unittest.mock.patch(
-        "exauq.core.simulators.SimulationsLog",
+        "exauq.sim_management.simulators.SimulationsLog",
         new=make_fake_simulations_log_class(simulations),
-    ), unittest.mock.patch("exauq.core.simulators.JobManager", new=DumbJobManager):
+    ), unittest.mock.patch("exauq.sim_management.simulators.JobManager", new=DumbJobManager):
         return Simulator(
             SimulatorDomain([(-10, 10)]), DumbHardwareInterface(), simulations_log
         )
@@ -121,7 +121,7 @@ class TestSimulator(unittest.TestCase):
         records of previous simulations."""
 
         with unittest.mock.patch(
-            "exauq.core.simulators.SimulationsLog",
+            "exauq.sim_management.simulators.SimulationsLog",
             new=make_fake_simulations_log_class(tuple()),
         ):
             # Unix
@@ -141,7 +141,7 @@ class TestSimulator(unittest.TestCase):
         """Test that a new log file with name 'simulations.csv' is created in the
         working directory as the default."""
 
-        with unittest.mock.patch("exauq.core.simulators.SimulationsLog") as mock:
+        with unittest.mock.patch("exauq.sim_management.simulators.SimulationsLog") as mock:
             _ = Simulator(self.simulator_domain, self.hardware_interface)
             mock.assert_called_once_with("simulations.csv", self.simulator_domain.dim)
 

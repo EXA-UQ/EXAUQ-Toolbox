@@ -9,7 +9,7 @@ import time
 from numbers import Real
 from typing import Optional, Union
 
-from exauq.core.hardware import HardwareInterface
+from exauq.sim_management.hardware import HardwareInterface
 from exauq.core.modelling import Input
 
 WORKSPACE = pathlib.Path("./simulator_workspace")
