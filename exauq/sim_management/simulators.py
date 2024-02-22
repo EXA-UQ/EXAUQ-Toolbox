@@ -452,3 +452,51 @@ class JobStrategy(ABC):
 
     def update_status(self, job: Job, job_manager: JobManager, new_status: JobStatus):
         raise NotImplementedError
+
+
+class CompletedJobStrategy(JobStrategy):
+    def handle(self, job: Job, job_manager: JobManager):
+        pass
+
+    def update_status(self, job: Job, job_manager: JobManager, new_status: JobStatus):
+        pass
+
+
+class FailedJobStrategy(JobStrategy):
+    def handle(self, job: Job, job_manager: JobManager):
+        pass
+
+    def update_status(self, job: Job, job_manager: JobManager, new_status: JobStatus):
+        pass
+
+
+class RunningJobStrategy(JobStrategy):
+    def handle(self, job: Job, job_manager: JobManager):
+        pass
+
+    def update_status(self, job: Job, job_manager: JobManager, new_status: JobStatus):
+        pass
+
+
+class SubmittedJobStrategy(JobStrategy):
+    def handle(self, job: Job, job_manager: JobManager):
+        pass
+
+    def update_status(self, job: Job, job_manager: JobManager, new_status: JobStatus):
+        pass
+
+
+class NotSubmittedJobStrategy(JobStrategy):
+    def handle(self, job: Job, job_manager: JobManager):
+        pass
+
+    def update_status(self, job: Job, job_manager: JobManager, new_status: JobStatus):
+        pass
+
+
+class CancelledJobStrategy(JobStrategy):
+    def handle(self, job: Job, job_manager: JobManager):
+        pass
+
+    def update_status(self, job: Job, job_manager: JobManager, new_status: JobStatus):
+        pass
