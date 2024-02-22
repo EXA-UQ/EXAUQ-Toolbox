@@ -418,7 +418,7 @@ class JobManager(object):
         self._monitor([job_id])
 
     @staticmethod
-    def _init_job_strategies(self) -> dict:
+    def _init_job_strategies() -> dict:
         strategies = {
             JobStatus.COMPLETED: CompletedJobStrategy(),
             JobStatus.FAILED: FailedJobStrategy(),
@@ -458,6 +458,14 @@ class JobManager(object):
                 sleep(self._polling_interval)
         with self._lock:
             self._running = False
+
+    @property
+    def interface(self):
+        return self._interface
+
+    @property
+    def simulations_log(self):
+        return self._simulations_log
 
 
 class JobStrategy(ABC):
