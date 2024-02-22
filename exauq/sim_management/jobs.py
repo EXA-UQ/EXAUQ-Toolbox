@@ -43,6 +43,9 @@ class JobId:
     def __eq__(self, other) -> bool:
         return isinstance(other, self.__class__) and self._job_id == str(other)
 
+    def __hash__(self):
+        return hash(self._job_id)
+
 
 class Job:
     """A job consisting of input data for a simulator.

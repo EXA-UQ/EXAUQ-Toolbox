@@ -47,6 +47,14 @@ class TestJobId(ExauqTestCase):
         self.assertNotEqual(JobId("1"), "1")
         self.assertNotEqual(JobId(1), JobId("01"))
 
+    def test_hashable(self):
+        """JobId objects are hashable."""
+
+        try:
+            _ = {JobId(1)}
+        except TypeError:
+            self.fail("Expected object to be hashable")
+
 
 class TestJob(ExauqTestCase):
     def test_init_valid_ids(self):
