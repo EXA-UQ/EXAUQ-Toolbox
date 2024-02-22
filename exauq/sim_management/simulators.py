@@ -394,6 +394,8 @@ class JobManager(object):
         self._lock = Lock()
         self._thread = None
 
+        self._job_strategies = self._init_job_strategies()
+
         self._monitor(self._simulations_log.get_pending_jobs())
         if wait_for_pending and self._thread is not None:
             self._thread.join()
@@ -414,6 +416,19 @@ class JobManager(object):
             self._simulations_log.add_new_record(x, job_id)
 
         self._monitor([job_id])
+
+    @staticmethod
+    def _init_job_strategies(self) -> dict:
+        strategies = {
+            JobStatus.COMPLETED: CompletedJobStrategy(),
+            JobStatus.FAILED: FailedJobStrategy(),
+            JobStatus.RUNNING: RunningJobStrategy(),
+            JobStatus.SUBMITTED: SubmittedJobStrategy(),
+            JobStatus.PENDING: NotSubmittedJobStrategy(),
+            JobStatus.CANCELLED: CancelledJobStrategy(),
+        }
+
+        return strategies
 
     def _monitor(self, job_ids: list):
         """Start monitoring the given job IDs."""
