@@ -6,7 +6,7 @@ from typing import Optional
 from fabric import Config, Connection
 from paramiko.ssh_exception import AuthenticationException, SSHException
 
-from exauq.core.jobs import Job, JobId
+from exauq.sim_management.jobs import Job, JobId
 
 
 class JobStatus(Enum):
@@ -187,3 +187,35 @@ class SSHInterface(HardwareInterface, ABC):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._conn.close()
+
+
+class RemoteServerScript(SSHInterface):
+    def __init__(
+        self,
+        user: str,
+        host: str,
+        key_filename: Optional[str] = None,
+        ssh_config_path: Optional[str] = None,
+        use_ssh_agent: Optional[bool] = False,
+        max_attempts: int = 3,
+    ):
+        super().__init__(
+            user, host, key_filename, ssh_config_path, use_ssh_agent, max_attempts
+        )
+        self._submitted_job_ids = []
+
+    def submit_job(self, job: Job):
+        self._submitted_job_ids.append(job.id)
+
+    def get_job_status(self, job_id: JobId):
+        return (
+            JobStatus.SUBMITTED
+            if job_id in self._submitted_job_ids
+            else JobStatus.PENDING
+        )
+
+    def get_job_output(self, job_id: JobId):
+        pass
+
+    def cancel_job(self, job_id: JobId):
+        pass
