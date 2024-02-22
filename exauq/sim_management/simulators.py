@@ -479,7 +479,8 @@ class JobStrategy(ABC):
 
 class CompletedJobStrategy(JobStrategy):
     def handle(self, job: Job, job_manager: JobManager):
-        pass
+        result = job_manager.interface.get_job_output(job.id)
+        job_manager.simulations_log.insert_result(str(job.id), result)
 
     def update_status(self, job: Job, job_manager: JobManager, new_status: JobStatus):
         pass
