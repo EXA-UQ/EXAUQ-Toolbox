@@ -470,9 +470,10 @@ class JobManager(object):
         return self._simulations_log
 
     def handle_job(self, job: Job, status: JobStatus):
-        strategy = self._job_strategies.get(status)
-        if strategy:
-            strategy.handle_job(job, self)
+        if status:
+            strategy = self._job_strategies.get(status)
+            if strategy:
+                strategy.handle(job, self)
 
 
 class JobStrategy(ABC):
