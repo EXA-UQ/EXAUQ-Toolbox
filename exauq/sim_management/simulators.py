@@ -425,7 +425,7 @@ class JobManager(object):
             JobStatus.FAILED: FailedJobStrategy(),
             JobStatus.RUNNING: RunningJobStrategy(),
             JobStatus.SUBMITTED: SubmittedJobStrategy(),
-            JobStatus.PENDING: NotSubmittedJobStrategy(),
+            JobStatus.NOT_SUBMITTED: NotSubmittedJobStrategy(),
             JobStatus.CANCELLED: CancelledJobStrategy(),
         }
 
