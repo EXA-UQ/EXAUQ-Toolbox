@@ -194,6 +194,10 @@ class RemoteServerScript(SSHInterface):
         self,
         user: str,
         host: str,
+        program: str,
+        script_path: str,
+        config_path: str,
+        stdout_path: str,
         key_filename: Optional[str] = None,
         ssh_config_path: Optional[str] = None,
         use_ssh_agent: Optional[bool] = False,
@@ -202,19 +206,26 @@ class RemoteServerScript(SSHInterface):
         super().__init__(
             user, host, key_filename, ssh_config_path, use_ssh_agent, max_attempts
         )
-        self._submitted_job_ids = []
+        self._program = program
+        self._script_path = script_path
+        self._config_path = config_path
+        self._stdout_path = stdout_path
+        self._job_statuses = dict()
 
-    def submit_job(self, job: Job):
-        self._submitted_job_ids.append(job.id)
+    def submit_job(self, job: Job) -> None:
+        _ = self._conn.run(
+            f"nohup {self._program} {self._script_path} {self._config_path} >> {self._stdout_path} 2>&1 &"
+        )
+        self._job_statuses[job.id] = JobStatus.SUBMITTED
 
-    def get_job_status(self, job_id: JobId):
+    def get_job_status(self, job_id: JobId) -> JobStatus:
         return (
-            JobStatus.SUBMITTED
-            if job_id in self._submitted_job_ids
+            self._job_statuses[job_id]
+            if job_id in self._job_statuses
             else JobStatus.NOT_SUBMITTED
         )
 
-    def get_job_output(self, job_id: JobId):
+    def get_job_output(self, job_id: JobId) -> float:
         pass
 
     def cancel_job(self, job_id: JobId):
