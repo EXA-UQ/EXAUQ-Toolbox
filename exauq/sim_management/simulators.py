@@ -394,6 +394,8 @@ class JobManager(object):
         self._lock = Lock()
         self._thread = None
 
+        self._id_generator = JobIDGenerator()
+
         self._job_strategies = self._init_job_strategies()
 
         self._monitor(self._simulations_log.get_pending_jobs())
@@ -409,11 +411,11 @@ class JobManager(object):
         is recorded in the log file, with blank job ID.
         """
 
-        job_id = None
+        job = Job(self._id_generator.generate_id(), x)
         try:
-            job_id = self._interface.submit_job(x)
+            self._interface.submit_job(job)
         finally:
-            self._simulations_log.add_new_record(x, job_id)
+            self._simulations_log.add_new_record(x, str(job.id))
 
         self._monitor([job_id])
 
