@@ -390,7 +390,6 @@ class JobManager(object):
         self._interface = interface
         self._polling_interval = polling_interval
         self._jobs = []
-        self._running = False
         self._lock = Lock()
         self._thread = None
 
@@ -437,29 +436,21 @@ class JobManager(object):
 
         with self._lock:
             self._jobs.extend(jobs)
-        if not self._running and self._jobs:
+        if self._thread is None or not self._thread.is_alive():
             self._thread = Thread(target=self._monitor_jobs)
             self._thread.start()
 
     def _monitor_jobs(self):
         """Continuously monitor the status of jobs and handle their completion."""
 
-        with self._lock:
-            self._running = True
         while self._jobs:
             with self._lock:
                 jobs = self._jobs[:]
             for job in jobs:
                 status = self._interface.get_job_status(job.id)
-                if status:
-                    result = self._interface.get_job_output(job.id)
-                    self._simulations_log.insert_result(str(job.id), result)
-                    with self._lock:
-                        self._jobs.remove(job)
+                self.handle_job(job, status)
             if self._jobs:
                 sleep(self._polling_interval)
-        with self._lock:
-            self._running = False
 
     @property
     def interface(self):
