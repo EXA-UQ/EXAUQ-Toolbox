@@ -417,7 +417,7 @@ class JobManager(object):
         finally:
             self._simulations_log.add_new_record(x, str(job.id))
 
-        self._monitor([job_id])
+        self._monitor([job])
 
     @staticmethod
     def _init_job_strategies() -> dict:
@@ -432,11 +432,11 @@ class JobManager(object):
 
         return strategies
 
-    def _monitor(self, job_ids: list):
+    def _monitor(self, jobs: list[Job]):
         """Start monitoring the given job IDs."""
 
         with self._lock:
-            self._jobs.extend(job_ids)
+            self._jobs.extend(jobs)
         if not self._running and self._jobs:
             self._thread = Thread(target=self._monitor_jobs)
             self._thread.start()
@@ -448,14 +448,14 @@ class JobManager(object):
             self._running = True
         while self._jobs:
             with self._lock:
-                job_ids = self._jobs[:]
-            for job_id in job_ids:
-                status = self._interface.get_job_status(job_id)
-                if status:  # Job complete
-                    result = self._interface.get_job_output(job_id)
-                    self._simulations_log.insert_result(job_id, result)
+                jobs = self._jobs[:]
+            for job in jobs:
+                status = self._interface.get_job_status(job.id)
+                if status:
+                    result = self._interface.get_job_output(job.id)
+                    self._simulations_log.insert_result(str(job.id), result)
                     with self._lock:
-                        self._jobs.remove(job_id)
+                        self._jobs.remove(job)
             if self._jobs:
                 sleep(self._polling_interval)
         with self._lock:
