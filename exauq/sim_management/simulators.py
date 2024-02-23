@@ -469,6 +469,10 @@ class JobManager(object):
     def simulations_log(self):
         return self._simulations_log
 
+    def remove_job(self, job: Job):
+        with self._lock:
+            self._jobs.remove(job)
+
     def handle_job(self, job: Job, status: JobStatus):
         if status:
             strategy = self._job_strategies.get(status)
@@ -486,6 +490,7 @@ class CompletedJobStrategy(JobStrategy):
     def handle(self, job: Job, job_manager: JobManager):
         result = job_manager.interface.get_job_output(job.id)
         job_manager.simulations_log.insert_result(str(job.id), result)
+        job_manager.remove_job(job)
 
 
 class FailedJobStrategy(JobStrategy):
