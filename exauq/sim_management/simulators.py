@@ -3,13 +3,13 @@ import os
 from abc import ABC, abstractmethod
 from numbers import Real
 from threading import Lock, Thread
-from time import sleep
+from time import sleep, time
 from typing import Any, Optional
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.core.types import FilePath
 from exauq.sim_management.hardware import HardwareInterface, JobStatus
-from exauq.sim_management.jobs import Job
+from exauq.sim_management.jobs import Job, JobId
 from exauq.utilities.csv_db import CsvDB, Record
 from exauq.utilities.validation import check_file_path
 
@@ -508,3 +508,75 @@ class NotSubmittedJobStrategy(JobStrategy):
 class CancelledJobStrategy(JobStrategy):
     def handle(self, job: Job, job_manager: JobManager):
         pass
+
+
+class JobIDGenerator:
+    """
+    A generator for unique job IDs, encapsulated within a JobId object, based on the
+    current time in milliseconds and a counter.
+
+    This class ensures thread-safe generation of unique job IDs by combining the
+    current timestamp in milliseconds with a counter that increments for each ID
+    generated within the same millisecond. If the timestamp changes, the counter
+    is reset. The uniqueness of each ID is maintained even in high concurrency
+    scenarios.
+
+    Methods
+    -------
+    generate_id() -> JobId
+        Generates a unique JobId object representing the job ID.
+
+    Examples
+    --------
+    >>> id_generator = JobIDGenerator()
+    >>> job_id = id_generator.generate_id()
+    >>> print(job_id)
+    JobId('1589409675023001')
+    """
+
+    def __init__(self):
+        """
+        Initialises the JobIDGenerator with a new lock, sets the counter to 0, and
+        the last timestamp to None.
+        """
+        self.lock = Lock()
+        self.counter = 0
+        self.last_timestamp = None
+
+    def generate_id(self) -> 'JobId':
+        """
+        Generates a unique job ID encapsulated within a JobId object, based on the
+        current timestamp and an internal counter.
+
+        This method is thread-safe. It generates IDs by concatenating the current
+        timestamp in milliseconds with a counter value. The counter increments with
+        each call within the same millisecond and resets when the timestamp changes,
+        ensuring each generated ID is unique.
+
+        Returns
+        -------
+        JobId
+            A JobId object encapsulating a unique job ID, consisting only of digits.
+            The ID combines the current timestamp in milliseconds with a counter
+            to ensure uniqueness.
+
+        Examples
+        --------
+        >>> id_generator = JobIDGenerator()
+        >>> job_id = id_generator.generate_id()
+        >>> print(job_id)
+        JobId('1589409675023001')
+        """
+        with self.lock:
+            timestamp = int(time() * 1000)
+
+            if timestamp == self.last_timestamp:
+                self.counter += 1
+            else:
+                self.counter = 0
+                self.last_timestamp = timestamp
+
+            unique_id = f"{timestamp}{self.counter:03d}"
+
+            return JobId(unique_id)
+
