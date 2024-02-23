@@ -30,9 +30,9 @@ class JobStatus(Enum):
     SUBMITTED = "Submitted"
     """A job has been successfully sent to a remote machine. Has the value 'Submitted'."""
 
-    PENDING = "Pending"
+    NOT_SUBMITTED = "Not submitted"
     """A job has been set up locally but has not yet been submitted to a remote
-    machine. Has the value 'Pending'."""
+    machine. Has the value 'Not submitted'."""
 
     CANCELLED = "Cancelled"
     """A job has been cancelled from a locally issued request or intervention. Has the
