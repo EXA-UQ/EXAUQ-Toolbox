@@ -16,7 +16,7 @@ if __name__ == "__main__":
     hardware = make_remote_server_script(ssh_config, remote_script_config)
 
     # Create a job to submit
-    job = Job(id_=JobId(1), data=[Input(1, 2, 3)])
+    job = Job(id_=JobId(1), data=Input(1, 2, 3))
 
     # First check that the job is NOT_SUBMITTED before submitting
     assert hardware.get_job_status(job.id) == JobStatus.NOT_SUBMITTED
