@@ -34,6 +34,7 @@ def make_remote_server_script(
         program=remote_script_config["program"],
         script_path=remote_script_config["script_path"],
         config_path=remote_script_config["config_path"],
+        script_output_path=remote_script_config["script_output_path"],
         stdout_path=remote_script_config["stdout_path"],
         key_filename=ssh_config["key_filename"],
         ssh_config_path=ssh_config["ssh_config_path"],

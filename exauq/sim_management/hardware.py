@@ -199,6 +199,7 @@ class RemoteServerScript(SSHInterface):
         program: str,
         script_path: str,
         config_path: str,
+        script_output_path: str,
         stdout_path: str,
         key_filename: Optional[str] = None,
         ssh_config_path: Optional[str] = None,
@@ -211,6 +212,7 @@ class RemoteServerScript(SSHInterface):
         self._program = program
         self._script_path = script_path
         self._config_path = config_path
+        self._script_output_path = script_output_path
         self._stdout_path = stdout_path
         self._job_log = dict()
 
@@ -233,6 +235,8 @@ class RemoteServerScript(SSHInterface):
             "remote_id": remote_id,
             "pid": remote_id_components["pid"],
             "start_time": remote_id_components["start_time"],
+            "script_output_path": self._script_output_path,
+            "output": None,
         }
         return None
 
@@ -268,28 +272,62 @@ class RemoteServerScript(SSHInterface):
         return str(res.stdout).strip()
 
     def get_job_status(self, job_id: JobId) -> JobStatus:
-        if job_id not in self._job_log:
+        if not self._job_has_been_submitted(job_id):
             return JobStatus.NOT_SUBMITTED
         else:
             self._update_status_from_remote(job_id)
             return self._job_log[job_id]["status"]
 
+    def _job_has_been_submitted(self, job_id: JobId) -> bool:
+        """Whether a job with the given ID has been submitted."""
+
+        return job_id in self._job_log
+
     def _update_status_from_remote(self, job_id: str) -> None:
         """Update the status of a job based on the remote status of the corresponding
         process."""
 
-        pid = self._job_log[job_id]["pid"]
-        process_identifier_command = self._make_process_identifier_command(pid)
-        process_identifier = self._run_remote_command(process_identifier_command)
-        if self._job_log[job_id]["remote_id"] == process_identifier:
+        if self._remote_job_is_running(job_id):
             self._job_log[job_id]["status"] = JobStatus.RUNNING
         else:
-            pass
+            output = self.get_job_output(job_id)
+            if output is not None:
+                self._job_log[job_id]["status"] = JobStatus.COMPLETED
 
         return None
 
-    def get_job_output(self, job_id: JobId) -> float:
-        pass
+    def _retrieve_output(self, remote_path: str) -> Optional[float]:
+        """Get the output of a simulation from the remote server."""
+
+        with io.BytesIO() as buffer:
+            try:
+                _ = self._conn.get(remote_path, local=buffer)
+            except FileNotFoundError:
+                return None
+
+            contents = buffer.getvalue().decode(encoding="utf-8")
+
+        return float(contents.strip())
+
+    def _remote_job_is_running(self, job_id) -> bool:
+        """Whether the remote process of a given job is running."""
+
+        pid = self._job_log[job_id]["pid"]
+        process_identifier_command = self._make_process_identifier_command(pid)
+        process_identifier = self._run_remote_command(process_identifier_command)
+        return self._job_log[job_id]["remote_id"] == process_identifier
+
+    def get_job_output(self, job_id: JobId) -> Optional[float]:
+        if not self._job_has_been_submitted(job_id):
+            return None
+
+        elif self._job_log[job_id]["output"] is not None:
+            return self._job_log[job_id]["output"]
+
+        else:
+            output_path = self._job_log[job_id]["script_output_path"]
+            self._job_log[job_id]["output"] = self._retrieve_output(output_path)
+            return self._job_log[job_id]["output"]
 
     def cancel_job(self, job_id: JobId):
         pass
