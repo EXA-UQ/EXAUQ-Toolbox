@@ -224,10 +224,8 @@ class RemoteServerScript(SSHInterface):
         )
 
         # TODO: use mktemp remotely?
-        script_dir = os.path.dirname(self._script_path)
-        wrapper_script_path = self._put_wrapper_script_on_remote(
-            wrapper_script, script_dir
-        )
+        wrapper_script_path = os.path.dirname(self._script_path) + "/job_wrapper.sh"
+        self._make_text_file_on_remote(wrapper_script, wrapper_script_path)
         remote_id = self._run_remote_command(f"bash {wrapper_script_path}")
         remote_id_components = self._parse_process_identifier(remote_id)
         self._job_log[job.id] = {
@@ -254,13 +252,14 @@ class RemoteServerScript(SSHInterface):
         user, pid, start_time = process_identifier.split(",")
         return {"user": user, "pid": pid, "start_time": start_time}
 
-    def _put_wrapper_script_on_remote(self, wrapper_script: str, target_dir: str) -> str:
-        wrapper_script_path = target_dir + "/job_wrapper.sh"
-        self._conn.put(
-            io.StringIO(wrapper_script),
-            remote=wrapper_script_path,
+    def _make_text_file_on_remote(self, file_contents: str, target_path: str) -> str:
+        """Make a text file on the remote machine with a given string as contents."""
+
+        _ = self._conn.put(
+            io.StringIO(file_contents),
+            remote=target_path,
         )
-        return wrapper_script_path
+        return None
 
     def _run_remote_command(self, command: str) -> str:
         """Run a shell command and return the standard output."""
