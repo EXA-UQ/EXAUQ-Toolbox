@@ -1,4 +1,6 @@
 import getpass
+import io
+import os
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Optional
@@ -210,20 +212,82 @@ class RemoteServerScript(SSHInterface):
         self._script_path = script_path
         self._config_path = config_path
         self._stdout_path = stdout_path
-        self._job_statuses = dict()
+        self._job_log = dict()
 
     def submit_job(self, job: Job) -> None:
-        _ = self._conn.run(
-            f"nohup {self._program} {self._script_path} {self._config_path} >> {self._stdout_path} 2>&1 &"
+        wrapper_script = "\n".join(
+            [
+                f"{self._program} {self._script_path} {self._config_path} >> {self._stdout_path} 2>&1 &",
+                "job_pid=$!",
+                self._make_process_identifier_command("${job_pid}"),
+            ]
         )
-        self._job_statuses[job.id] = JobStatus.SUBMITTED
+
+        # TODO: use mktemp remotely?
+        script_dir = os.path.dirname(self._script_path)
+        wrapper_script_path = self._put_wrapper_script_on_remote(
+            wrapper_script, script_dir
+        )
+        remote_id = self._run_remote_command(f"bash {wrapper_script_path}")
+        remote_id_components = self._parse_process_identifier(remote_id)
+        self._job_log[job.id] = {
+            "status": JobStatus.SUBMITTED,
+            "remote_id": remote_id,
+            "pid": remote_id_components["pid"],
+            "start_time": remote_id_components["start_time"],
+        }
+        return None
+
+    def _make_process_identifier_command(self, pid: str) -> str:
+        """Make a shell command for getting a string that uniquely identifies a remote
+        process."""
+
+        return f'echo "$(ps -p {pid} -o user=),$(ps -p {pid} -o pid=),$(ps -p {pid} -o lstart=)"'
+
+    def _parse_process_identifier(self, process_identifier: str) -> dict[str, str]:
+        """Extract the user, process ID and start time of a process.
+
+        The `process_identifier` should be as output by the command made by the
+        `_make_process_identifier_command` method.
+        """
+
+        user, pid, start_time = process_identifier.split(",")
+        return {"user": user, "pid": pid, "start_time": start_time}
+
+    def _put_wrapper_script_on_remote(self, wrapper_script: str, target_dir: str) -> str:
+        wrapper_script_path = target_dir + "/job_wrapper.sh"
+        self._conn.put(
+            io.StringIO(wrapper_script),
+            remote=wrapper_script_path,
+        )
+        return wrapper_script_path
+
+    def _run_remote_command(self, command: str) -> str:
+        """Run a shell command and return the standard output."""
+
+        res = self._conn.run(command, hide=True)
+        return str(res.stdout).strip()
 
     def get_job_status(self, job_id: JobId) -> JobStatus:
-        return (
-            self._job_statuses[job_id]
-            if job_id in self._job_statuses
-            else JobStatus.NOT_SUBMITTED
-        )
+        if job_id not in self._job_log:
+            return JobStatus.NOT_SUBMITTED
+        else:
+            self._update_status_from_remote(job_id)
+            return self._job_log[job_id]["status"]
+
+    def _update_status_from_remote(self, job_id: str) -> None:
+        """Update the status of a job based on the remote status of the corresponding
+        process."""
+
+        pid = self._job_log[job_id]["pid"]
+        process_identifier_command = self._make_process_identifier_command(pid)
+        process_identifier = self._run_remote_command(process_identifier_command)
+        if self._job_log[job_id]["remote_id"] == process_identifier:
+            self._job_log[job_id]["status"] = JobStatus.RUNNING
+        else:
+            pass
+
+        return None
 
     def get_job_output(self, job_id: JobId) -> float:
         pass
