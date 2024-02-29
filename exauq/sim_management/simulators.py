@@ -801,6 +801,21 @@ class RunningJobStrategy(JobStrategy):
 
 
 class SubmittedJobStrategy(JobStrategy):
+    """
+    Strategy for handling jobs that have been submitted.
+
+    Upon handling, this strategy updates the job's status in the simulations log to SUBMITTED
+    and initiates monitoring of the job. This ensures that once a job is submitted, its
+    status is accurately recorded, and the job is actively monitored for completion or failure.
+
+    Parameters
+    ----------
+    job : Job
+        The job that has been submitted for execution.
+    job_manager : JobManager
+        The manager overseeing the job's lifecycle, responsible for its submission, monitoring, and logging.
+    """
+
     def handle(self, job: Job, job_manager: JobManager):
         job_manager.monitor([job])
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.SUBMITTED)
