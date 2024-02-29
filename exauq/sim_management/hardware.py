@@ -194,6 +194,56 @@ class SSHInterface(HardwareInterface, ABC):
 
 
 class RemoteServerScript(SSHInterface):
+    """Interface for running a simulation script on a remote server over SSH.
+
+    This interface is designed to invoke simulation code on a remote server with the
+    following command:
+
+    ```
+    <program> <script_path> path/to/config.json
+    ```
+
+    Here, ``<program>`` is a program such as `bash`, `python`, `Rscript`, etc. The script
+    is expected to take a single JSON config file as input. This config file consists of a
+    single object with keys "input_file" and "output_file", which give paths to an
+    input csv file for the simulator and an output file for the simulator to write its
+    output to.
+
+    Objects of this class will take care of creating the necessary JSON config file and
+    input file from a `Job`, uploading these to a remote directory specific to the job.
+    This directory is also where the output of the simulator script is written to, along
+    with a file capturing standard output and standard error from running the script.
+
+    If `key_filename` and `ssh_config_path` are not provided and `use_ssh_agent` is
+    ``False`` then a prompt for a password from standard input will be issued each time a
+    connection is made to the server.
+
+    Parameters
+    ----------
+    user : str
+        The username to authenticate with the SSH server.
+    host : str
+        The hostname or IP address of the SSH server.
+    program : str
+        The program to run on the server.
+    script_path : str
+        The path to the script on the server to run with `program`.
+    key_filename : str, optional
+        (Default: None) The path to an SSH private key file to authenticate with the SSH
+        server. The key file must be unencrypted.
+    ssh_config_path : str, optional
+        (Default: None) The path to an SSH configuration file.
+    use_ssh_agent : bool, optional
+        (Default: False) If ``True``, use a running SSH agent for authentication.
+    max_attempts : int, optional
+        (Default: 3) The number of authentication attempts allowed.
+
+    Raises
+    ------
+    ValueError
+        If more than one method of authentication is provided.
+    """
+
     def __init__(
         self,
         user: str,
@@ -216,6 +266,32 @@ class RemoteServerScript(SSHInterface):
         self._job_log = dict()
 
     def submit_job(self, job: Job) -> None:
+        """Submit a job for the simulation code.
+
+        Upon submission, a new subdirectory of the remote workspace directory supplied
+        at this object's initialisation will be created for the job, using the job's ID
+        as the directory name. A JSON config file for the script will be created and
+        uploaded to this directory, along with a simulator input csv file containing the
+        data from the job. The content of the JSON config file will have the following
+        form:
+
+        ```
+        {"input_file": "path/to/job_dir/input.csv", "output_file": "path/to/job_dir/output.txt"}
+        ```
+
+        Finally, a simple shell script wrapping the main command for running the simulator
+        will be uploaded: this is what gets run to start the job on the server.
+
+        Parameters
+        ----------
+        job : Job
+            A job containing the data to run the simulation code with.
+
+        Raises
+        ------
+        HardwareInterfaceFailure
+            If there were problems connecting to the server or executing commands on it.
+        """
         job_remote_dir = self._remote_workspace_dir + f"/{job.id}"
         self._make_directory_on_remote(job_remote_dir)
         script_input_path = self._make_job_input_file(job.data, job_remote_dir)
@@ -249,14 +325,16 @@ class RemoteServerScript(SSHInterface):
         return None
 
     def _make_job_config_file(self, config: dict[str, str], job_remote_dir: str) -> str:
-        """Make a simulation script input configuration file on the remote, returning the
-        path to the config file."""
+        """Make a simulation script input JSON configuration file on the server and
+        return the path to this file."""
 
         config_file_path = job_remote_dir + "/config.json"
         self._make_text_file_on_remote(json.dumps(config), config_file_path)
         return config_file_path
 
     def _make_job_input_file(self, data: Sequence, job_remote_dir: str) -> str:
+        """Make a csv file on the server containing input data for the simulation code."""
+
         input_file_path = job_remote_dir + "/input.csv"
         data_str = ",".join(map(str, data)) + "\n"
         self._make_text_file_on_remote(data_str, input_file_path)
@@ -269,17 +347,18 @@ class RemoteServerScript(SSHInterface):
         return f'echo "$(ps -p {pid} -o user=),$(ps -p {pid} -o pid=),$(ps -p {pid} -o lstart=)"'
 
     def _parse_process_identifier(self, process_identifier: str) -> dict[str, str]:
-        """Extract the user, process ID and start time of a process.
+        """Extract the user, process ID and start time of a process from a process
+        identifier.
 
-        The `process_identifier` should be as output by the command made by the
-        `_make_process_identifier_command` method.
+        The `process_identifier` should be a comma-delimited string of the form
+        '<user>,<pid>,<start_time>'.
         """
 
         user, pid, start_time = process_identifier.split(",")
         return {"user": user, "pid": pid, "start_time": start_time}
 
     def _make_directory_on_remote(self, path: str) -> None:
-        """Make a directory on the remote machine at the given path."""
+        """Make a directory at the given path on the remote machine."""
         try:
             _ = self._run_remote_command(f"mkdir {path}")
         except Exception as e:
@@ -304,12 +383,39 @@ class RemoteServerScript(SSHInterface):
         return None
 
     def _run_remote_command(self, command: str) -> str:
-        """Run a shell command and return the standard output."""
+        """Run a shell command and return the resulting contents of standard output.
+
+        The contents of standard output is stripped of leading/trailing whitespace before
+        returning."""
 
         res = self._conn.run(command, hide=True)
         return str(res.stdout).strip()
 
     def get_job_status(self, job_id: JobId) -> JobStatus:
+        """Get the status of a job with given job ID.
+
+        Any jobs that have not been submitted with `submit_job` will return a status of
+        `JobStatus.NOT_SUBMITTED`.
+
+        A job that has successfully been started on the server will have a status of
+        `JobStatus.RUNNING` (which, in this case, is equivalent to `JobStatus.SUBMITTED`).
+        The status will remain as `JobStatus.RUNNING` until the corresponding remote
+        process has stopped, in which case the status of the job will be
+        `JobStatus.COMPLETED` if an output file from the simulator has been created or
+        `JobStatus.FAILED` if not. (In particular, not that the exit code of the
+        simulator script is not taken into account when determining whether a job has
+        finished successfully or not.)
+
+        Parameters
+        ----------
+        job_id : JobId
+            The ID of the job to check the status of.
+
+        Returns
+        -------
+        JobStatus
+            The status of the job.
+        """
         if not self._job_has_been_submitted(job_id):
             return JobStatus.NOT_SUBMITTED
         else:
@@ -322,8 +428,8 @@ class RemoteServerScript(SSHInterface):
         return job_id in self._job_log
 
     def _update_status_from_remote(self, job_id: str) -> None:
-        """Update the status of a job based on the remote status of the corresponding
-        process."""
+        """Update the status of a job based on the status of the corresponding process on
+        the server."""
 
         if self._remote_job_is_running(job_id):
             self._job_log[job_id]["status"] = JobStatus.RUNNING
@@ -336,7 +442,44 @@ class RemoteServerScript(SSHInterface):
 
         return None
 
-    # TODO: move to below get_job_output
+    def _remote_job_is_running(self, job_id) -> bool:
+        """Whether the remote process of a given job is running."""
+
+        pid = self._job_log[job_id]["pid"]
+        process_identifier_command = self._make_process_identifier_command(pid)
+        process_identifier = self._run_remote_command(process_identifier_command)
+        return self._job_log[job_id]["remote_id"] == process_identifier
+
+    def get_job_output(self, job_id: JobId) -> Optional[float]:
+        """Get the simulator output for a job with the given ID.
+
+        This is read from the contents of the simulator output file for the job, located
+        in the job's remote directory. It is expected that the contents of this output
+        file will be a single floating point number.
+
+        Parameters
+        ----------
+        job_id : JobId
+            The ID of the job to get the simulator output for.
+
+        Returns
+        -------
+        Optional[float]
+            The output of the simulator, if the job has completed successfully, or else
+            ``None``.
+        """
+        if not self._job_has_been_submitted(job_id):
+            return None
+
+        elif self._job_log[job_id]["output"] is not None:
+            return self._job_log[job_id]["output"]
+
+        else:
+            output_path = self._job_log[job_id]["script_output_path"]
+            self._job_log[job_id]["output"] = self._retrieve_output(output_path)
+            return self._job_log[job_id]["output"]
+
+    # TODO: add further error handling in the try-except
     def _retrieve_output(self, remote_path: str) -> Optional[float]:
         """Get the output of a simulation from the remote server."""
 
@@ -351,35 +494,31 @@ class RemoteServerScript(SSHInterface):
         # TODO: raise custom exception if cannot cast to float?
         return float(contents.strip())
 
-    def _remote_job_is_running(self, job_id) -> bool:
-        """Whether the remote process of a given job is running."""
-
-        pid = self._job_log[job_id]["pid"]
-        process_identifier_command = self._make_process_identifier_command(pid)
-        process_identifier = self._run_remote_command(process_identifier_command)
-        return self._job_log[job_id]["remote_id"] == process_identifier
-
-    def get_job_output(self, job_id: JobId) -> Optional[float]:
-        if not self._job_has_been_submitted(job_id):
-            return None
-
-        elif self._job_log[job_id]["output"] is not None:
-            return self._job_log[job_id]["output"]
-
-        else:
-            output_path = self._job_log[job_id]["script_output_path"]
-            self._job_log[job_id]["output"] = self._retrieve_output(output_path)
-            return self._job_log[job_id]["output"]
-
     def cancel_job(self, job_id: JobId):
         pass
 
     def delete_remote_job_dir(self, job_id: JobId) -> None:
-        """Delete the remote directory corresponding to a given job ID."""
+        """Delete the remote directory corresponding to a given job ID.
+
+        This will recursively delete all the contents of the directory, invoking
+        ``rm -r`` on it.
+
+        Parameters
+        ----------
+        job_id : JobId
+            The ID of the job whose remote directory should be deleted.
+
+        Raises
+        ------
+        ValueError
+            If the supplied job ID has not been submitted since this object was initialised.
+        HardwareInterfaceFailure
+            If there were problems connecting to the server or deleting the directory.
+        """
 
         if job_id not in self._job_log:
             raise ValueError(
-                f"Job ID {job_id} not found in this objects's record of jobs."
+                f"Job ID {job_id} not submitted since initialisation of this object."
             )
         else:
             job_remote_dir = self._job_log[job_id]["job_remote_dir"]
