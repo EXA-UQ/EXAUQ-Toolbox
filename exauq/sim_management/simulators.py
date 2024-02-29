@@ -94,7 +94,7 @@ class Simulator(AbstractSimulator):
         return SimulationsLog(simulations_log, input_dim)
 
     @property
-    def previous_simulations(self) -> Simulation:
+    def previous_simulations(self) -> tuple[Simulation]:
         """
         (Read-only) A tuple of simulations that have been previously submitted for
         computation. In the case where an `Input` has been submitted for evaluation but
