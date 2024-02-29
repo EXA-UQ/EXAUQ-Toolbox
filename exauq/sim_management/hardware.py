@@ -210,9 +210,11 @@ class RemoteServerScript(SSHInterface):
     output to.
 
     Objects of this class will take care of creating the necessary JSON config file and
-    input file from a `Job`, uploading these to a remote directory specific to the job.
-    This directory is also where the output of the simulator script is written to, along
-    with a file capturing standard output and standard error from running the script.
+    input file from a `Job`, uploading these to a job-specific subdirectory of a remote
+    'workspace' directory. This job-specific directory is also where the output of the
+    simulator script is written to, along with a file capturing standard output and
+    standard error from running the script. Note that any required intermiary directories
+    are created on the server.
 
     If `key_filename` and `ssh_config_path` are not provided and `use_ssh_agent` is
     ``False`` then a prompt for a password from standard input will be issued each time a
@@ -228,6 +230,11 @@ class RemoteServerScript(SSHInterface):
         The program to run on the server.
     script_path : str
         The path to the script on the server to run with `program`.
+    remote_workspace_dir : str, optional
+        (Default: None) A remote path a directory where job-specific subdirectories should
+        be created. Relative paths will be relative to the default working directory
+        for a new SSH session (usually the user's home directory). If ``None`` then the
+        directory containing the script in `script_path` will be used.
     key_filename : str, optional
         (Default: None) The path to an SSH private key file to authenticate with the SSH
         server. The key file must be unencrypted.
@@ -250,6 +257,7 @@ class RemoteServerScript(SSHInterface):
         host: str,
         program: str,
         script_path: str,
+        remote_workspace_dir: Optional[str] = None,
         key_filename: Optional[str] = None,
         ssh_config_path: Optional[str] = None,
         use_ssh_agent: Optional[bool] = False,
@@ -262,7 +270,11 @@ class RemoteServerScript(SSHInterface):
         self._host = host
         self._program = program
         self._script_path = script_path
-        self._remote_workspace_dir = os.path.dirname(self._script_path)
+        self._remote_workspace_dir = (
+            remote_workspace_dir
+            if remote_workspace_dir is not None
+            else os.path.dirname(self._script_path)
+        )
         self._job_log = dict()
 
     def submit_job(self, job: Job) -> None:
@@ -290,7 +302,8 @@ class RemoteServerScript(SSHInterface):
         Raises
         ------
         HardwareInterfaceFailure
-            If there were problems connecting to the server or executing commands on it.
+            If there were problems connecting to the server, making files / directories on
+            the server or other such server-related problems.
         """
         job_remote_dir = self._remote_workspace_dir + f"/{job.id}"
         self._make_directory_on_remote(job_remote_dir)
@@ -358,9 +371,12 @@ class RemoteServerScript(SSHInterface):
         return {"user": user, "pid": pid, "start_time": start_time}
 
     def _make_directory_on_remote(self, path: str) -> None:
-        """Make a directory at the given path on the remote machine."""
+        """Make a directory at the given path on the remote machine.
+
+        Will recursively create intermediary directories as required.
+        """
         try:
-            _ = self._run_remote_command(f"mkdir {path}")
+            _ = self._run_remote_command(f"mkdir -p {path}")
         except Exception as e:
             raise HardwareInterfaceFailureError(
                 f"Could not make directory {path} for {self._user}@{self._host}: {e}"

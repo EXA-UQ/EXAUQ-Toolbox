@@ -33,6 +33,7 @@ def make_remote_server_script(
         host=ssh_config["host"],
         program=remote_script_config["program"],
         script_path=remote_script_config["script_path"],
+        remote_workspace_dir=remote_script_config["remote_workspace_dir"],
         key_filename=ssh_config["key_filename"],
         ssh_config_path=ssh_config["ssh_config_path"],
         use_ssh_agent=ssh_config["use_ssh_agent"],
