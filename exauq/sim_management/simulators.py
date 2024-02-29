@@ -381,6 +381,39 @@ class SimulationsLog(object):
             )
 
     def update_job_status(self, job_id: str, new_status: JobStatus) -> None:
+        """
+        Updates the status of a job in the simulations log.
+
+        This method updates the job status for a given job ID in the simulation log database.
+        It ensures thread safety by locking the operation. If the job ID does not exist or
+        multiple entries are found for the job ID, it raises a `SimulationsLogLookupError`.
+
+        Parameters
+        ----------
+        job_id : str
+            The unique identifier of the job whose status is to be updated.
+        new_status : JobStatus
+            The new status to be assigned to the job. This must be an instance of the `JobStatus` enum.
+
+        Raises
+        ------
+        SimulationsLogLookupError
+            If no job with the given ID exists, or if multiple jobs with the same ID are found in the log.
+
+        Examples
+        --------
+        Suppose we have a job with ID '12345' that we want to mark as completed. We would call the method as follows:
+
+        >>> update_job_status('12345', JobStatus.COMPLETED)
+
+        If the job ID '12345' does not exist in the log, or if there are multiple entries for '12345',
+        a `SimulationsLogLookupError` will be raised.
+
+        Notes
+        -----
+        This method is thread-safe and can be called concurrently from multiple threads without causing
+        data corruption or race conditions.
+        """
         with self._lock:
             matched_records = self._simulations_db.query(
                 lambda x: self._get_job_id(x) == job_id
