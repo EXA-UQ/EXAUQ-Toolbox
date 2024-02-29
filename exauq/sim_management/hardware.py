@@ -503,7 +503,9 @@ class RemoteServerScript(SSHInterface):
             output_path = self._job_log[job_id]["script_output_path"]
             output = self._retrieve_output(output_path)
             try:
-                self._job_log[job_id]["output"] = float(output)
+                self._job_log[job_id]["output"] = (
+                    float(output) if output is not None else output
+                )
             except ValueError:
                 raise SimulatorOutputParsingError(
                     f"Could not parse simulator output {output} for job ID {job_id} as a "
