@@ -779,6 +779,22 @@ class FailedJobStrategy(JobStrategy):
 
 
 class RunningJobStrategy(JobStrategy):
+    """
+    Strategy for handling jobs that are currently running.
+
+    This strategy checks if a job's status is not already marked as RUNNING in the
+    simulations log. If not, it updates the job's status to RUNNING. This ensures
+    the job's current state is accurately reflected in the simulations log without
+    unnecessarily updating the status of jobs already marked as running.
+
+    Parameters
+    ----------
+    job : Job
+        The job that is currently executing.
+    job_manager : JobManager
+        The manager responsible for the job's lifecycle, including monitoring and logging.
+    """
+
     def handle(self, job: Job, job_manager: JobManager):
         if job_manager.simulations_log.get_job_status(str(job.id)) != JobStatus.RUNNING:
             job_manager.simulations_log.update_job_status(str(job.id), JobStatus.RUNNING)
