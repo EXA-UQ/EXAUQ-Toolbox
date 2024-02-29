@@ -422,7 +422,7 @@ class SimulationsLog(object):
 
             if num_matched_records != 1:
                 msg = (
-                    (f"Could not update status of job {job_id}: " "no such job exists.")
+                    f"Could not update status of job {job_id}: no such job exists."
                     if num_matched_records == 0
                     else (
                         f"Could not update status of job {job_id}: "
@@ -484,7 +484,7 @@ class SimulationsLog(object):
             num_matched_records = len(matched_records)
             if num_matched_records != 1:
                 msg = (
-                    (f"Could not retrieve status of job {job_id}: " "no such job exists.")
+                    f"Could not retrieve status of job {job_id}: no such job exists."
                     if num_matched_records == 0
                     else (
                         f"Could not retrieve status of job {job_id}: "
