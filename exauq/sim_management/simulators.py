@@ -435,6 +435,48 @@ class SimulationsLog(object):
             self._simulations_db.update(self._job_id_key, job_id, new_record)
 
     def get_job_status(self, job_id: str) -> JobStatus:
+        """
+        Retrieves the current status of a specified job from the simulations log.
+
+        This method queries the simulations log database for a job with the given ID and
+        returns its current status. It is thread-safe, ensuring consistent reads even when
+        accessed concurrently from multiple threads. If the job ID does not exist in the
+        database or if there are duplicate entries for the job ID, it raises an exception.
+
+        Parameters
+        ----------
+        job_id : str
+            The unique identifier of the job whose status is to be retrieved.
+
+        Returns
+        -------
+        JobStatus
+            The current status of the job as an instance of the `JobStatus` enum.
+
+        Raises
+        ------
+        SimulationsLogLookupError
+            If no job with the given ID exists in the log, or if multiple jobs with the
+            same ID are found, indicating a data integrity issue.
+        ValueError
+            If the job status retrieved from the log does not correspond to any known
+            `JobStatus` enum value, indicating potential corruption or misconfiguration
+            in the job status values stored in the log.
+
+        Examples
+        --------
+        >>> get_job_status('12345')
+        JobStatus.RUNNING
+
+        This example returns the `JobStatus.RUNNING` enum, indicating that the job with
+        ID '12345' is currently running.
+
+        Notes
+        -----
+        This method is particularly useful for monitoring the progress of jobs and
+        handling them based on their current state. It enforces data integrity by
+        ensuring that each job ID is unique and correctly mapped to a valid job status.
+        """
         with self._lock:
             matched_records = self._simulations_db.query(
                 lambda x: self._get_job_id(x) == job_id
