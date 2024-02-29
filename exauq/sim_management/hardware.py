@@ -34,6 +34,9 @@ class JobStatus(Enum):
     """A job has been set up locally but has not yet been submitted to a remote
     machine. Has the value 'Not submitted'."""
 
+    FAILED_SUBMIT = "Failed submit"
+    """A job has been set up locally however submission to remote machine failed."""
+
     CANCELLED = "Cancelled"
     """A job has been cancelled from a locally issued request or intervention. Has the
     value 'Cancelled'."""
