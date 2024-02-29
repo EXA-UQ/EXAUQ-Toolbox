@@ -463,7 +463,7 @@ class JobManager(object):
 
         self._job_strategies = self._init_job_strategies()
 
-        self._monitor(self._simulations_log.get_pending_jobs())
+        self.monitor(self._simulations_log.get_pending_jobs())
         if wait_for_pending and self._thread is not None:
             self._thread.join()
 
@@ -482,7 +482,7 @@ class JobManager(object):
         finally:
             self._simulations_log.add_new_record(x, str(job.id))
 
-        self._monitor([job])
+        self.monitor([job])
 
     @staticmethod
     def _init_job_strategies() -> dict:
@@ -497,8 +497,8 @@ class JobManager(object):
 
         return strategies
 
-    def _monitor(self, jobs: list[Job]):
-        """Start monitoring the given job IDs."""
+    def monitor(self, jobs: list[Job]):
+        """Start monitoring the given jobs."""
 
         with self._lock:
             self._jobs.extend(jobs)
