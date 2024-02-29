@@ -668,6 +668,8 @@ class JobManager:
 
     @property
     def simulations_log(self):
+        """Provides read-only access to the simulations log object for job recording and retrieval."""
+
         return self._simulations_log
 
     def remove_job(self, job: Job):
