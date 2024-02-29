@@ -538,7 +538,9 @@ class RemoteServerScript(SSHInterface):
         """Delete the remote directory corresponding to a given job ID.
 
         This will recursively delete all the contents of the directory, invoking
-        ``rm -r`` on it.
+        ``rm -r`` on it. Only jobs that have been submitted during the lifetime of this
+        object and have finished or been cancelled can have their remote directories
+        deleted.
 
         Parameters
         ----------
@@ -548,14 +550,22 @@ class RemoteServerScript(SSHInterface):
         Raises
         ------
         ValueError
-            If the supplied job ID has not been submitted since this object was initialised.
+            If the supplied job ID has not been submitted since this object was
+            initialised, or if the job is still running.
         HardwareInterfaceFailure
             If there were problems connecting to the server or deleting the directory.
         """
 
-        if job_id not in self._job_log:
+        job_status = self.get_job_status(job_id)
+        if job_status == JobStatus.NOT_SUBMITTED:
             raise ValueError(
                 f"Job ID {job_id} not submitted since initialisation of this object."
+            )
+
+        elif job_status == JobStatus.RUNNING:
+            raise ValueError(
+                f"Cannot delete directory {self._job_log[job_id]['job_remote_dir']} for "
+                f"job ID {job_id}: job is currently running."
             )
         else:
             job_remote_dir = self._job_log[job_id]["job_remote_dir"]
