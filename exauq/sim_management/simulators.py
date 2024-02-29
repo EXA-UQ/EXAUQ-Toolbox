@@ -157,6 +157,7 @@ class SimulationsLog(object):
 
     def __init__(self, file: FilePath, input_dim: int):
         self._input_dim = self._validate_input_dim(input_dim)
+        self._lock = Lock()
         self._job_id_key = "Job_ID"
         self._output_key = "Output"
         self._job_status_key = "Job_Status"
