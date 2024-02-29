@@ -331,9 +331,12 @@ class RemoteServerScript(SSHInterface):
             output = self.get_job_output(job_id)
             if output is not None:
                 self._job_log[job_id]["status"] = JobStatus.COMPLETED
+            else:
+                self._job_log[job_id]["status"] = JobStatus.FAILED
 
         return None
 
+    # TODO: move to below get_job_output
     def _retrieve_output(self, remote_path: str) -> Optional[float]:
         """Get the output of a simulation from the remote server."""
 
