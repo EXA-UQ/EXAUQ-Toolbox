@@ -362,7 +362,7 @@ class RemoteServerScript(SSHInterface):
         try:
             _ = self._run_remote_command(f"mkdir {path}")
         except Exception as e:
-            raise HardwareInterfaceFailure(
+            raise HardwareInterfaceFailureError(
                 f"Could not make directory {path} for {self._user}@{self._host}: {e}"
             )
         return None
@@ -376,7 +376,7 @@ class RemoteServerScript(SSHInterface):
                 remote=target_path,
             )
         except Exception as e:
-            raise HardwareInterfaceFailure(
+            raise HardwareInterfaceFailureError(
                 f"Could not create text file at {target_path} for "
                 f"{self._user}@{self._host}: {e}"
             )
@@ -467,6 +467,15 @@ class RemoteServerScript(SSHInterface):
         Optional[float]
             The output of the simulator, if the job has completed successfully, or else
             ``None``.
+
+        Raises
+        ------
+        HardwareInterfaceFailure
+            If there were problems connecting to the server or retrieving the simulator
+            output.
+        SimulatorOutputParsingError
+            If the output of the simulator cannot be parsed as a single floating point
+            number.
         """
         if not self._job_has_been_submitted(job_id):
             return None
@@ -476,11 +485,17 @@ class RemoteServerScript(SSHInterface):
 
         else:
             output_path = self._job_log[job_id]["script_output_path"]
-            self._job_log[job_id]["output"] = self._retrieve_output(output_path)
+            output = self._retrieve_output(output_path)
+            try:
+                self._job_log[job_id]["output"] = float(output)
+            except ValueError:
+                raise SimulatorOutputParsingError(
+                    f"Could not parse simulator output {output} for job ID {job_id} as a "
+                    "float."
+                )
             return self._job_log[job_id]["output"]
 
-    # TODO: add further error handling in the try-except
-    def _retrieve_output(self, remote_path: str) -> Optional[float]:
+    def _retrieve_output(self, remote_path: str) -> Optional[str]:
         """Get the output of a simulation from the remote server."""
 
         with io.BytesIO() as buffer:
@@ -488,11 +503,15 @@ class RemoteServerScript(SSHInterface):
                 _ = self._conn.get(remote_path, local=buffer)
             except FileNotFoundError:
                 return None
+            except Exception as e:
+                raise HardwareInterfaceFailureError(
+                    f"Could not retrieve output of script {self._script_path} from file "
+                    f"{remote_path}: {e}"
+                )
 
             contents = buffer.getvalue().decode(encoding="utf-8")
 
-        # TODO: raise custom exception if cannot cast to float?
-        return float(contents.strip())
+        return contents.strip()
 
     def cancel_job(self, job_id: JobId):
         pass
@@ -526,7 +545,7 @@ class RemoteServerScript(SSHInterface):
             try:
                 _ = self._run_remote_command(deletion_cmd)
             except Exception as e:
-                raise HardwareInterfaceFailure(
+                raise HardwareInterfaceFailureError(
                     f"Could not delete remote folder {job_remote_dir} for "
                     f"{self._user}@{self._host}: {e} "
                 )
@@ -534,8 +553,15 @@ class RemoteServerScript(SSHInterface):
             return None
 
 
-class HardwareInterfaceFailure(Exception):
+class HardwareInterfaceFailureError(Exception):
     """Raised when an error was encounted when running a command or communicating with a
     machine."""
+
+    pass
+
+
+class SimulatorOutputParsingError(Exception):
+    """Raised when the output from a simulator cannot be parsed as a floating point
+    number."""
 
     pass
