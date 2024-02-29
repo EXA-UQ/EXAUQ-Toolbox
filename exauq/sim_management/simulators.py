@@ -958,7 +958,9 @@ class JobIDGenerator:
         with self.lock:
             while True:
                 now = datetime.now()
-                timestamp_str = now.strftime("%Y%m%d%H%M%S%f")[:-3]  # Convert to 'YYYYMMDDHHMMSSfff'
+                timestamp_str = now.strftime("%Y%m%d%H%M%S%f")[
+                    :-3
+                ]  # Convert to 'YYYYMMDDHHMMSSfff'
 
                 if self.last_timestamp == timestamp_str:
                     sleep(0.001)  # Sleep for 1 millisecond to ensure uniqueness
@@ -968,4 +970,3 @@ class JobIDGenerator:
                     break
 
             return JobId(timestamp_str)
-
