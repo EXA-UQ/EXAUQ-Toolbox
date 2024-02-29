@@ -497,7 +497,6 @@ class SimulationsLog(object):
 
             for status in JobStatus:
                 if status.value == status_str:
-                    print(job_id, status)
                     return status
 
             raise ValueError(f"{status_str} is not a valid JobStatus.")
