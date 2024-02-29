@@ -262,7 +262,12 @@ class SimulationsLog(object):
         y = float(output) if output else None
         return x, y
 
-    def add_new_record(self, x: Input, job_id: Optional[str] = None) -> None:
+    def add_new_record(
+        self,
+        x: Input,
+        job_id: Optional[str] = None,
+        job_status: JobStatus = JobStatus.NOT_SUBMITTED,
+    ) -> None:
         """Record a new simulation job in the log file.
 
         Parameters
@@ -274,18 +279,21 @@ class SimulationsLog(object):
             If ``None`` then no job ID will be recorded alongside the input `x` in the
             simulations log file.
         """
-        if len(x) != self._input_dim:
-            raise ValueError(
-                f"Expected input 'x' to have {self._input_dim} coordinates, but got "
-                f"{len(x)} instead."
-            )
+        with self._lock:
+            if len(x) != self._input_dim:
+                raise ValueError(
+                    f"Expected input 'x' to have {self._input_dim} coordinates, but got "
+                    f"{len(x)} instead."
+                )
 
-        record = {h: "" for h in self._log_file_header}
-        record.update(dict(zip(self._input_keys, x)))
-        if job_id is not None:
-            record.update({self._job_id_key: job_id})
+            record = {h: "" for h in self._log_file_header}
+            record.update(dict(zip(self._input_keys, x)))
+            if job_id is not None:
+                record.update({self._job_id_key: job_id})
 
-        self._simulations_db.create(record)
+            record.update(({self._job_status_key: job_status.value}))
+
+            self._simulations_db.create(record)
 
     def insert_result(self, job_id: str, result: Real) -> None:
         """Insert the output of a simulation into a job record in the simulations log
