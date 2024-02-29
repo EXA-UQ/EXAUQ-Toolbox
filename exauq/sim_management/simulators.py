@@ -577,7 +577,8 @@ class NotSubmittedJobStrategy(JobStrategy):
 
 class CancelledJobStrategy(JobStrategy):
     def handle(self, job: Job, job_manager: JobManager):
-        pass
+        job_manager.simulations_log.update_job_status(str(job.id), JobStatus.CANCELLED)
+        job_manager.remove_job(job)
 
 
 class JobIDGenerator:
