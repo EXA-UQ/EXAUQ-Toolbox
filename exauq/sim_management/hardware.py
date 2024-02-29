@@ -307,6 +307,7 @@ class RemoteServerScript(SSHInterface):
 
             contents = buffer.getvalue().decode(encoding="utf-8")
 
+        # TODO: raise custom exception if cannot cast to float?
         return float(contents.strip())
 
     def _remote_job_is_running(self, job_id) -> bool:
