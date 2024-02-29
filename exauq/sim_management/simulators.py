@@ -566,7 +566,8 @@ class RunningJobStrategy(JobStrategy):
 
 class SubmittedJobStrategy(JobStrategy):
     def handle(self, job: Job, job_manager: JobManager):
-        pass
+        job_manager.monitor([job])
+        job_manager.simulations_log.update_job_status(str(job.id), JobStatus.SUBMITTED)
 
 
 class NotSubmittedJobStrategy(JobStrategy):
