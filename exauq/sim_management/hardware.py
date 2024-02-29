@@ -294,6 +294,10 @@ class RemoteServerScript(SSHInterface):
         Finally, a simple shell script wrapping the main command for running the simulator
         will be uploaded: this is what gets run to start the job on the server.
 
+        If a job with the same ID has already been submitted in the lifetime of this
+        object, then an error will be raised. This avoids the potential for overwriting
+        data associated with a job.
+
         Parameters
         ----------
         job : Job
@@ -301,10 +305,20 @@ class RemoteServerScript(SSHInterface):
 
         Raises
         ------
+        ValueError
+            If a job with the same ID has already been submitted in the lifetime of this
+            object.
         HardwareInterfaceFailure
             If there were problems connecting to the server, making files / directories on
             the server or other such server-related problems.
         """
+
+        if self._job_has_been_submitted(job.id):
+            raise ValueError(
+                f"Cannnot submit job with ID {job.id}: a job with the same ID has already "
+                f"been submitted."
+            )
+
         job_remote_dir = self._remote_workspace_dir + f"/{job.id}"
         self._make_directory_on_remote(job_remote_dir)
         script_input_path = self._make_job_input_file(job.data, job_remote_dir)
