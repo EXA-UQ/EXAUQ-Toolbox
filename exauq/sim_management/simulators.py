@@ -510,13 +510,14 @@ class JobManager(object):
         """Continuously monitor the status of jobs and handle their completion."""
 
         while self._jobs:
+            sleep(self._polling_interval)
             with self._lock:
                 jobs = self._jobs[:]
             for job in jobs:
                 status = self._interface.get_job_status(job.id)
                 self.handle_job(job, status)
-            if self._jobs:
-                sleep(self._polling_interval)
+            # if self._jobs:
+            #     sleep(self._polling_interval)
 
     @property
     def interface(self):
