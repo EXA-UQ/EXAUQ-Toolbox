@@ -483,12 +483,7 @@ class JobManager(object):
         """
 
         job = Job(self._id_generator.generate_id(), x)
-        try:
-            self._interface.submit_job(job)
-        finally:
-            self._simulations_log.add_new_record(x, str(job.id))
-
-        self.monitor([job])
+        self.handle_job(job, JobStatus.NOT_SUBMITTED)
 
     @staticmethod
     def _init_job_strategies() -> dict:
