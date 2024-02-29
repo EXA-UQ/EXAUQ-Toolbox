@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 from exauq.core.modelling import Input
@@ -31,7 +32,9 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         assert hardware.get_job_status(job.id) == JobStatus.RUNNING
     finally:
         # Clean up remote job directory
+        time.sleep(2)  # wait for job to complete
         hardware.delete_remote_job_dir(job.id)
+        pass
 
 
 if __name__ == "__main__":

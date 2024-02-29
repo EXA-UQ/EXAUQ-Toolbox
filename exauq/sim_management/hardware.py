@@ -1,7 +1,9 @@
 import getpass
 import io
+import json
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from enum import Enum
 from typing import Optional
 
@@ -198,9 +200,6 @@ class RemoteServerScript(SSHInterface):
         host: str,
         program: str,
         script_path: str,
-        config_path: str,
-        script_output_path: str,
-        stdout_path: str,
         key_filename: Optional[str] = None,
         ssh_config_path: Optional[str] = None,
         use_ssh_agent: Optional[bool] = False,
@@ -214,24 +213,27 @@ class RemoteServerScript(SSHInterface):
         self._program = program
         self._script_path = script_path
         self._remote_workspace_dir = os.path.dirname(self._script_path)
-        self._config_path = config_path
-        self._script_output_path = script_output_path
-        self._stdout_path = stdout_path
         self._job_log = dict()
 
     def submit_job(self, job: Job) -> None:
+        job_remote_dir = self._remote_workspace_dir + f"/{job.id}"
+        self._make_directory_on_remote(job_remote_dir)
+        script_input_path = self._make_job_input_file(job.data, job_remote_dir)
+        script_config = {
+            "input_file": script_input_path,
+            "output_file": job_remote_dir + "/output.txt",
+        }
+        config_path = self._make_job_config_file(script_config, job_remote_dir)
+        stdout_path = job_remote_dir + f"/{os.path.basename(self._script_path)}.out"
         wrapper_script = "\n".join(
             [
-                f"{self._program} {self._script_path} {self._config_path} >> {self._stdout_path} 2>&1 &",
+                f"{self._program} {self._script_path} {config_path} >> {stdout_path} 2>&1 &",
                 "job_pid=$!",
                 self._make_process_identifier_command("${job_pid}"),
             ]
         )
 
-        # TODO: use mktemp remotely?
-        job_remote_dir = self._remote_workspace_dir + f"/{job.id}"
         wrapper_script_path = job_remote_dir + "/job_wrapper.sh"
-        self._make_directory_on_remote(job_remote_dir)
         self._make_text_file_on_remote(wrapper_script, wrapper_script_path)
         remote_id = self._run_remote_command(f"bash {wrapper_script_path}")
         remote_id_components = self._parse_process_identifier(remote_id)
@@ -241,10 +243,24 @@ class RemoteServerScript(SSHInterface):
             "pid": remote_id_components["pid"],
             "start_time": remote_id_components["start_time"],
             "job_remote_dir": job_remote_dir,
-            "script_output_path": self._script_output_path,
+            "script_output_path": script_config["output_file"],
             "output": None,
         }
         return None
+
+    def _make_job_config_file(self, config: dict[str, str], job_remote_dir: str) -> str:
+        """Make a simulation script input configuration file on the remote, returning the
+        path to the config file."""
+
+        config_file_path = job_remote_dir + "/config.json"
+        self._make_text_file_on_remote(json.dumps(config), config_file_path)
+        return config_file_path
+
+    def _make_job_input_file(self, data: Sequence, job_remote_dir: str) -> str:
+        input_file_path = job_remote_dir + "/input.csv"
+        data_str = ",".join(map(str, data)) + "\n"
+        self._make_text_file_on_remote(data_str, input_file_path)
+        return input_file_path
 
     def _make_process_identifier_command(self, pid: str) -> str:
         """Make a shell command for getting a string that uniquely identifies a remote
@@ -275,10 +291,16 @@ class RemoteServerScript(SSHInterface):
     def _make_text_file_on_remote(self, file_contents: str, target_path: str) -> str:
         """Make a text file on the remote machine with a given string as contents."""
 
-        _ = self._conn.put(
-            io.StringIO(file_contents),
-            remote=target_path,
-        )
+        try:
+            _ = self._conn.put(
+                io.StringIO(file_contents),
+                remote=target_path,
+            )
+        except Exception as e:
+            raise HardwareInterfaceFailure(
+                f"Could not create text file at {target_path} for "
+                f"{self._user}@{self._host}: {e}"
+            )
         return None
 
     def _run_remote_command(self, command: str) -> str:

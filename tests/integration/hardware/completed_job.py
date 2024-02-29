@@ -42,6 +42,7 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
     finally:
         # Clean up remote job directory
         hardware.delete_remote_job_dir(job.id)
+        pass
 
 
 if __name__ == "__main__":
