@@ -338,7 +338,7 @@ class SimulationsLog(object):
             new_record = matched_records[0] | {self._output_key: result}
             self._simulations_db.update(self._job_id_key, job_id, new_record)
 
-    def get_pending_jobs(self) -> tuple[str]:
+    def get_pending_jobs(self) -> list[Job]:
         """Return the IDs of all submitted jobs which don't have results.
 
         A job is considered to have been submitted if the corresponding record in the
@@ -353,7 +353,10 @@ class SimulationsLog(object):
         pending_records = self._simulations_db.query(
             lambda x: self._get_job_id(x) != "" and self._get_output(x) == ""
         )
-        return tuple(self._get_job_id(record) for record in pending_records)
+        return [
+            Job(self._get_job_id(record), self._extract_simulation(record)[0])
+            for record in pending_records
+        ]
 
     def get_unsubmitted_inputs(self) -> tuple[Input]:
         """Get all simulator inputs that have not been submitted as jobs.
