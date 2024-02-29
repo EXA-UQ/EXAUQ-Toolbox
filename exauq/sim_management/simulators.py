@@ -668,6 +668,24 @@ class JobManager:
         return self._simulations_log
 
     def remove_job(self, job: Job):
+        """
+        Removes a job from the internal list of jobs being monitored.
+
+        This method ensures thread-safe removal of a job from the monitoring list,
+        allowing for dynamic management of the jobs currently under monitoring by
+        the JobManager.
+
+        Parameters
+        ----------
+        job : Job
+            The job instance to be removed from monitoring.
+
+        Examples
+        --------
+        >>> job_manager.remove_job(job)
+
+        This will remove the specified `job` from the JobManager's internal list, ceasing its monitoring.
+        """
         with self._lock:
             self._jobs.remove(job)
 
