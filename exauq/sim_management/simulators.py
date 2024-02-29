@@ -695,6 +695,8 @@ class JobManager:
             self._jobs.remove(job)
 
     def _handle_job(self, job: Job, status: JobStatus):
+        """Delegates handling of a job to the appropriate strategy based on its status."""
+
         if status:
             strategy = self._job_strategies.get(status)
             if strategy:
