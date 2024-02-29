@@ -554,7 +554,8 @@ class CompletedJobStrategy(JobStrategy):
 
 class FailedJobStrategy(JobStrategy):
     def handle(self, job: Job, job_manager: JobManager):
-        pass
+        job_manager.simulations_log.update_job_status(str(job.id), JobStatus.FAILED)
+        job_manager.remove_job(job)
 
 
 class RunningJobStrategy(JobStrategy):
