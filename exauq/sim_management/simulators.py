@@ -281,6 +281,9 @@ class SimulationsLog(object):
             (Default: ``None``) The ID for the job of evaluating the simulator at `x`.
             If ``None`` then no job ID will be recorded alongside the input `x` in the
             simulations log file.
+        job_status: JobStatus
+            (Default: ``NOT_SUBMITTED``) The status of the job to be recorded alongside
+            the input `x`.
         """
         with self._lock:
             if len(x) != self._input_dim:
