@@ -584,69 +584,67 @@ class CancelledJobStrategy(JobStrategy):
 class JobIDGenerator:
     """
     A generator for unique job IDs, encapsulated within a JobId object, based on the
-    current time in milliseconds and a counter.
+    current datetime down to the millisecond. This class provides a thread-safe
+    mechanism to generate unique job IDs by ensuring that each ID corresponds to a
+    unique point in time, formatted as 'YYYYMMDDHHMMSSfff', where 'fff' represents
+    milliseconds.
 
-    This class ensures thread-safe generation of unique job IDs by combining the
-    current timestamp in milliseconds with a counter that increments for each ID
-    generated within the same millisecond. If the timestamp changes, the counter
-    is reset. The uniqueness of each ID is maintained even in high concurrency
-    scenarios.
+    In scenarios where multiple IDs are requested within the same millisecond, this
+    generator will wait until the next millisecond to generate a new ID, ensuring
+    the uniqueness of each ID without relying on additional counters.
 
     Methods
     -------
-    generate_id() -> JobId
-        Generates a unique JobId object representing the job ID.
+    generate_id() -> JobId:
+        Generates a unique JobId object representing the job ID, formatted as
+        'YYYYMMDDHHMMSSfff', ensuring that each generated ID is unique to the
+        millisecond.
 
     Examples
     --------
     >>> id_generator = JobIDGenerator()
     >>> job_id = id_generator.generate_id()
     >>> print(job_id)
-    JobId('1589409675023001')
+    JobId('20240101123001005')
     """
 
     def __init__(self):
         """
-        Initialises the JobIDGenerator with a new lock, sets the counter to 0, and
-        the last timestamp to None.
+        Initializes the JobIDGenerator, preparing it for generating unique job IDs.
         """
         self.lock = Lock()
-        self.counter = 0
         self.last_timestamp = None
 
     def generate_id(self) -> JobId:
         """
-        Generates a unique job ID encapsulated within a JobId object, based on the
-        current timestamp and an internal counter.
-
-        This method is thread-safe. It generates IDs by concatenating the current
-        timestamp in milliseconds with a counter value. The counter increments with
-        each call within the same millisecond and resets when the timestamp changes,
-        ensuring each generated ID is unique.
+        Generates a unique job ID based on the current datetime down to the millisecond.
+        If a request for a new ID occurs within the same millisecond as the previous ID,
+        the method waits until the next millisecond to ensure uniqueness.
 
         Returns
         -------
         JobId
-            A JobId object encapsulating a unique job ID, consisting only of digits.
-            The ID combines the current timestamp in milliseconds with a counter
-            to ensure uniqueness.
+            A JobId object encapsulating a unique job ID, formatted as 'YYYYMMDDHHMMSSfff',
+            ensuring uniqueness to the millisecond.
 
         Examples
         --------
         >>> id_generator = JobIDGenerator()
         >>> job_id = id_generator.generate_id()
         >>> print(job_id)
-        JobId('1589409675023001')
+        JobId('20240101123001005')
         """
         with self.lock:
-            timestamp = int(time() * 1000)
+            while True:
+                now = datetime.now()
+                timestamp_str = now.strftime("%Y%m%d%H%M%S%f")[:-3]  # Convert to 'YYYYMMDDHHMMSSfff'
 
-            if timestamp == self.last_timestamp:
-                self.counter += 1
-            else:
-                self.counter = 0
-                self.last_timestamp = timestamp
+                if self.last_timestamp == timestamp_str:
+                    sleep(0.001)  # Sleep for 1 millisecond to ensure uniqueness
+                    continue
+                else:
+                    self.last_timestamp = timestamp_str
+                    break
 
-            unique_id = f"{timestamp}{self.counter:03d}"
+            return JobId(timestamp_str)
 
-            return JobId(unique_id)
