@@ -245,10 +245,11 @@ class SimulationsLog(object):
             A tuple of ``(x, y)`` pairs, where ``x`` is an `Input` and ``y`` is the
             simulation output, or ``None`` if this hasn't yet been computed.
         """
-
-        return tuple(
-            self._extract_simulation(record) for record in self._simulations_db.query()
-        )
+        with self._lock:
+            return tuple(
+                self._extract_simulation(record)
+                for record in self._simulations_db.query()
+            )
 
     def _extract_simulation(self, record: dict[str, str]) -> Simulation:
         """Extract a pair of simulator inputs and outputs from a dictionary record read
@@ -365,13 +366,13 @@ class SimulationsLog(object):
         tuple[Input]
             The inputs that have not been submitted as jobs.
         """
-
-        unsubmitted_records = self._simulations_db.query(
-            lambda x: self._get_job_id(x) == ""
-        )
-        return tuple(
-            self._extract_simulation(record)[0] for record in unsubmitted_records
-        )
+        with self._lock:
+            unsubmitted_records = self._simulations_db.query(
+                lambda x: self._get_job_id(x) == ""
+            )
+            return tuple(
+                self._extract_simulation(record)[0] for record in unsubmitted_records
+            )
 
     def update_job_status(self, job_id: str, new_status: JobStatus) -> None:
         with self._lock:
