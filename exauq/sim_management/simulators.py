@@ -349,7 +349,7 @@ class SimulationsLog(object):
 
         Returns
         -------
-        tuple[str]
+        list[str]
             The IDs of all jobs that have been submitted but don't have a result recorded.
         """
 
