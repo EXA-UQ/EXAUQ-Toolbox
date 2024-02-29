@@ -697,9 +697,41 @@ class JobManager:
 
 
 class JobStrategy(ABC):
+    """
+    Defines a template for job handling strategies in the simulation job management system.
+
+    This abstract base class outlines the required interface for all job handling strategies.
+    Concrete implementations of this class will define specific actions to be taken based
+    on the job's current status.
+
+    Methods
+    -------
+    handle(job: Job, job_manager: JobManager)
+        Executes the strategy's actions for a given job within the context of the provided job manager.
+    """
+
     @abstractmethod
     def handle(self, job: Job, job_manager: JobManager):
-        raise NotImplementedError
+        """
+        Handle a job according to the strategy's specific actions.
+
+        This method should be implemented by subclasses to define how a job should be
+        processed, based on its status or other criteria. It may involve submitting the job,
+        updating its status, or performing cleanup actions.
+
+        Parameters
+        ----------
+        job : Job
+            The job to be handled, which contains the necessary information for processing.
+        job_manager : JobManager
+            The job manager instance, providing context and access to job management functionalities.
+
+        Raises
+        ------
+        NotImplementedError
+            If the subclass does not implement this method.
+        """
+        raise NotImplementedError("Subclasses must implement this method.")
 
 
 class CompletedJobStrategy(JobStrategy):
