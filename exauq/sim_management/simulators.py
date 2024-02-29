@@ -371,6 +371,53 @@ class SimulationsLog(object):
             self._extract_simulation(record)[0] for record in unsubmitted_records
         )
 
+    def update_job_status(self, job_id: str, new_status: JobStatus) -> None:
+        with self._lock:
+            matched_records = self._simulations_db.query(
+                lambda x: self._get_job_id(x) == job_id
+            )
+            num_matched_records = len(matched_records)
+
+            if num_matched_records != 1:
+                msg = (
+                    (f"Could not update status of job {job_id}: " "no such job exists.")
+                    if num_matched_records == 0
+                    else (
+                        f"Could not update status of job {job_id}: "
+                        "multiple records with this ID found."
+                    )
+                )
+                raise SimulationsLogLookupError(msg)
+
+            new_record = matched_records[0] | {self._job_status_key: new_status.value}
+            self._simulations_db.update(self._job_id_key, job_id, new_record)
+
+    def get_job_status(self, job_id: str) -> JobStatus:
+        with self._lock:
+            matched_records = self._simulations_db.query(
+                lambda x: self._get_job_id(x) == job_id
+            )
+            num_matched_records = len(matched_records)
+            if num_matched_records != 1:
+                msg = (
+                    (f"Could not retrieve status of job {job_id}: " "no such job exists.")
+                    if num_matched_records == 0
+                    else (
+                        f"Could not retrieve status of job {job_id}: "
+                        "multiple records with this ID found."
+                    )
+                )
+                raise SimulationsLogLookupError(msg)
+
+            status_str = self._get_job_status(matched_records[0])
+
+            for status in JobStatus:
+                if status.value == status_str:
+                    print(job_id, status)
+                    return status
+
+            raise ValueError(f"{status_str} is not a valid JobStatus.")
+
 
 class SimulationsLogLookupError(Exception):
     """Raised when a simulations log does not contain a particular record."""
