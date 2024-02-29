@@ -509,24 +509,52 @@ class SimulationsLogLookupError(Exception):
     pass
 
 
-class JobManager(object):
+class JobManager:
     """
-    Manages and monitors simulation jobs.
+    Orchestrates the submission, monitoring, and status management of simulation jobs
+    within a simulation environment. Utilizes a specified hardware interface for job
+    execution and interacts with a simulations log for recording job activities.
 
-    The `JobManager` class handles the submission and monitoring of simulation jobs
-    through the given hardware interface. It ensures that the results of completed
-    jobs are logged and provides functionality to handle pending jobs.
+    This manager supports dynamic job status updates, retry strategies for submission
+    failures, and employs a strategy pattern for handling different job statuses, making
+    the system adaptable to various simulation requirements and hardware interfaces.
 
     Parameters
     ----------
     simulations_log : SimulationsLog
-        The log object where simulations are recorded.
+        An object responsible for logging and retrieving simulation job records,
+        including job inputs, outputs, IDs, and statuses.
     interface : HardwareInterface
-        The hardware interface to interact with the simulation hardware.
+        An abstract interface to the hardware or simulation environment where jobs
+        are executed. Must implement job submission, status checking, and output retrieval.
     polling_interval : int, optional
-        The interval in seconds at which the job status is polled. Default is 10.
+        Time interval, in seconds, for polling job statuses during monitoring. Defaults to 10 seconds.
     wait_for_pending : bool, optional
-        If True, waits for pending jobs to complete during initialization. Default is True.
+        Specifies whether the manager should wait for all pending jobs to reach a
+        conclusive status (e.g., COMPLETED or FAILED) upon initialization. Defaults to True.
+
+    Methods
+    -------
+    submit(x: Input)
+        Submits a new job based on the provided simulation input. Handles initial job
+        logging and status setting to NOT_SUBMITTED.
+    monitor(jobs: list[Job])
+        Initiates or continues monitoring of job statuses in a separate background thread.
+
+    Raises
+    ------
+    SimulationsLogLookupError
+        If operations on the simulations log encounter inconsistencies, such as
+        missing records or duplicate job IDs.
+
+    Examples
+    --------
+    >>> job_manager = JobManager(simulations_log, hardware_interface)
+    >>> input_data = Input(0.0, 1.0)
+    >>> job_manager.submit(input_data)
+
+    The job manager will handle the submission, monitor the job's progress, and update
+    its status accordingly in the simulations log.
     """
 
     def __init__(
