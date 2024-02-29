@@ -758,6 +758,21 @@ class CompletedJobStrategy(JobStrategy):
 
 
 class FailedJobStrategy(JobStrategy):
+    """
+    Strategy for handling jobs that have failed during execution.
+
+    This strategy updates the job's status in the simulations log to FAILED and
+    removes the job from the JobManager's list of active jobs. It encapsulates the
+    actions to be taken when a job does not complete successfully.
+
+    Parameters
+    ----------
+    job : Job
+        The job that has failed.
+    job_manager : JobManager
+        The manager overseeing the job's lifecycle and responsible for its monitoring and logging.
+    """
+
     def handle(self, job: Job, job_manager: JobManager):
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.FAILED)
         job_manager.remove_job(job)
