@@ -614,7 +614,7 @@ class JobIDGenerator:
         self.counter = 0
         self.last_timestamp = None
 
-    def generate_id(self) -> 'JobId':
+    def generate_id(self) -> JobId:
         """
         Generates a unique job ID encapsulated within a JobId object, based on the
         current timestamp and an internal counter.
@@ -650,4 +650,3 @@ class JobIDGenerator:
             unique_id = f"{timestamp}{self.counter:03d}"
 
             return JobId(unique_id)
-
