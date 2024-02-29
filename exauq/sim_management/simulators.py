@@ -822,6 +822,27 @@ class SubmittedJobStrategy(JobStrategy):
 
 
 class NotSubmittedJobStrategy(JobStrategy):
+    """
+    Strategy for handling jobs that have not yet been submitted.
+
+    This strategy attempts to submit the job up to a specified number of retries with
+    exponential backoff and jitter to manage temporary issues like network congestion
+    or service unavailability. If submission fails after all retries, the job's status
+    is updated to FAILED_SUBMIT in the simulations log.
+
+    Parameters
+    ----------
+    job : Job
+        The job to be submitted.
+    job_manager : JobManager
+        The manager responsible for job submission, monitoring, and logging.
+
+    Notes
+    -----
+    This strategy uses exponential backoff to increase the delay between each retry attempt,
+    and jitter to avoid thundering herd problems.
+    """
+
     def handle(self, job: Job, job_manager: JobManager):
         retry_attempts = 0
         max_retries = 5
