@@ -560,7 +560,8 @@ class FailedJobStrategy(JobStrategy):
 
 class RunningJobStrategy(JobStrategy):
     def handle(self, job: Job, job_manager: JobManager):
-        pass
+        if job_manager.simulations_log.get_job_status(str(job.id)) != JobStatus.RUNNING:
+            job_manager.simulations_log.update_job_status(str(job.id), JobStatus.RUNNING)
 
 
 class SubmittedJobStrategy(JobStrategy):
