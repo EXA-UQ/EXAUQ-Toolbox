@@ -880,6 +880,23 @@ class NotSubmittedJobStrategy(JobStrategy):
 
 
 class CancelledJobStrategy(JobStrategy):
+    """
+    Strategy for handling jobs that have been cancelled.
+
+    Once a job is identified as cancelled, this strategy updates the job's status
+    in the simulations log to CANCELLED and removes it from the list of jobs currently
+    being monitored by the JobManager. This action signifies that no further processing
+    is required or expected for the job.
+
+    Parameters
+    ----------
+    job : Job
+        The job that has been cancelled.
+    job_manager : JobManager
+        The manager overseeing the job's lifecycle, including its submission, monitoring,
+        and status updates.
+    """
+
     def handle(self, job: Job, job_manager: JobManager):
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.CANCELLED)
         job_manager.remove_job(job)
