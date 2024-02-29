@@ -312,27 +312,28 @@ class SimulationsLog(object):
             If there isn't a unique simulations log record having job ID `job_id`.
         """
 
-        matched_records = self._simulations_db.query(
-            lambda x: self._get_job_id(x) == job_id
-        )
-        num_matched_records = len(matched_records)
-
-        if num_matched_records != 1:
-            msg = (
-                (
-                    f"Could not add output to simulation with job ID = {job_id}: "
-                    "no such simulation exists."
-                )
-                if num_matched_records == 0
-                else (
-                    f"Could not add output to simulation with job ID = {job_id}: "
-                    "multiple records with this ID found."
-                )
+        with self._lock:
+            matched_records = self._simulations_db.query(
+                lambda x: self._get_job_id(x) == job_id
             )
-            raise SimulationsLogLookupError(msg)
+            num_matched_records = len(matched_records)
 
-        new_record = matched_records[0] | {self._output_key: result}
-        self._simulations_db.update(self._job_id_key, job_id, new_record)
+            if num_matched_records != 1:
+                msg = (
+                    (
+                        f"Could not add output to simulation with job ID = {job_id}: "
+                        "no such simulation exists."
+                    )
+                    if num_matched_records == 0
+                    else (
+                        f"Could not add output to simulation with job ID = {job_id}: "
+                        "multiple records with this ID found."
+                    )
+                )
+                raise SimulationsLogLookupError(msg)
+
+            new_record = matched_records[0] | {self._output_key: result}
+            self._simulations_db.update(self._job_id_key, job_id, new_record)
 
     def get_pending_jobs(self) -> tuple[str]:
         """Return the IDs of all submitted jobs which don't have results.
