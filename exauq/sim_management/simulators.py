@@ -662,6 +662,8 @@ class JobManager:
 
     @property
     def interface(self):
+        """Provides read-only access to the hardware interface used for job execution."""
+
         return self._interface
 
     @property
