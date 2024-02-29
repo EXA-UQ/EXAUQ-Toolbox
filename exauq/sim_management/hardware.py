@@ -209,8 +209,11 @@ class RemoteServerScript(SSHInterface):
         super().__init__(
             user, host, key_filename, ssh_config_path, use_ssh_agent, max_attempts
         )
+        self._user = user
+        self._host = host
         self._program = program
         self._script_path = script_path
+        self._remote_workspace_dir = os.path.dirname(self._script_path)
         self._config_path = config_path
         self._script_output_path = script_output_path
         self._stdout_path = stdout_path
@@ -226,7 +229,9 @@ class RemoteServerScript(SSHInterface):
         )
 
         # TODO: use mktemp remotely?
-        wrapper_script_path = os.path.dirname(self._script_path) + "/job_wrapper.sh"
+        job_remote_dir = self._remote_workspace_dir + f"/{job.id}"
+        wrapper_script_path = job_remote_dir + "/job_wrapper.sh"
+        self._make_directory_on_remote(job_remote_dir)
         self._make_text_file_on_remote(wrapper_script, wrapper_script_path)
         remote_id = self._run_remote_command(f"bash {wrapper_script_path}")
         remote_id_components = self._parse_process_identifier(remote_id)
@@ -235,6 +240,7 @@ class RemoteServerScript(SSHInterface):
             "remote_id": remote_id,
             "pid": remote_id_components["pid"],
             "start_time": remote_id_components["start_time"],
+            "job_remote_dir": job_remote_dir,
             "script_output_path": self._script_output_path,
             "output": None,
         }
@@ -255,6 +261,16 @@ class RemoteServerScript(SSHInterface):
 
         user, pid, start_time = process_identifier.split(",")
         return {"user": user, "pid": pid, "start_time": start_time}
+
+    def _make_directory_on_remote(self, path: str) -> None:
+        """Make a directory on the remote machine at the given path."""
+        try:
+            _ = self._run_remote_command(f"mkdir {path}")
+        except Exception as e:
+            raise HardwareInterfaceFailure(
+                f"Could not make directory {path} for {self._user}@{self._host}: {e}"
+            )
+        return None
 
     def _make_text_file_on_remote(self, file_contents: str, target_path: str) -> str:
         """Make a text file on the remote machine with a given string as contents."""
@@ -332,3 +348,30 @@ class RemoteServerScript(SSHInterface):
 
     def cancel_job(self, job_id: JobId):
         pass
+
+    def delete_remote_job_dir(self, job_id: JobId) -> None:
+        """Delete the remote directory corresponding to a given job ID."""
+
+        if job_id not in self._job_log:
+            raise ValueError(
+                f"Job ID {job_id} not found in this objects's record of jobs."
+            )
+        else:
+            job_remote_dir = self._job_log[job_id]["job_remote_dir"]
+            deletion_cmd = f"rm -r {job_remote_dir}"
+            try:
+                _ = self._run_remote_command(deletion_cmd)
+            except Exception as e:
+                raise HardwareInterfaceFailure(
+                    f"Could not delete remote folder {job_remote_dir} for "
+                    f"{self._user}@{self._host}: {e} "
+                )
+
+            return None
+
+
+class HardwareInterfaceFailure(Exception):
+    """Raised when an error was encounted when running a command or communicating with a
+    machine."""
+
+    pass
