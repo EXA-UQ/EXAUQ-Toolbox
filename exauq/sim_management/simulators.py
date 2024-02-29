@@ -578,7 +578,39 @@ class SubmittedJobStrategy(JobStrategy):
 
 class NotSubmittedJobStrategy(JobStrategy):
     def handle(self, job: Job, job_manager: JobManager):
-        pass
+        retry_attempts = 0
+        max_retries = 5
+        initial_delay = 1
+        max_delay = 32
+
+        job_manager.simulations_log.add_new_record(job.data, str(job.id))
+
+        while retry_attempts < max_retries:
+            try:
+                job_manager.interface.submit_job(job)
+                job_manager.simulations_log.update_job_status(
+                    str(job.id), JobStatus.SUBMITTED
+                )
+                job_manager.monitor([job])
+                break
+            except Exception as e:
+                retry_attempts += 1
+                delay = min(
+                    initial_delay * (2**retry_attempts), max_delay
+                )  # Exponential backoff
+                jitter = random.uniform(0, 0.1 * delay)
+                print(
+                    f"Failed to submit job {job.id}: {e}. Retrying in {delay + jitter:.2f} seconds..."
+                )
+                sleep(delay + jitter)
+
+                if retry_attempts == max_retries:
+                    print(
+                        f"Max retry attempts reached for job {job.id}. Marking as FAILED_SUBMIT."
+                    )
+                    job_manager.simulations_log.update_job_status(
+                        str(job.id), JobStatus.FAILED_SUBMIT
+                    )
 
 
 class CancelledJobStrategy(JobStrategy):
