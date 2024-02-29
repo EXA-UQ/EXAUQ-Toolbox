@@ -735,6 +735,21 @@ class JobStrategy(ABC):
 
 
 class CompletedJobStrategy(JobStrategy):
+    """
+    Implements the strategy for handling jobs that have completed execution.
+
+    Upon invocation, this strategy retrieves the job's output from the simulation
+    environment, updates the job's record in the simulations log to reflect its
+    completion, and then removes the job from the JobManager's monitoring list.
+
+    Parameters
+    ----------
+    job : Job
+        The job that has completed its execution.
+    job_manager : JobManager
+        The manager responsible for overseeing the job's lifecycle.
+    """
+
     def handle(self, job: Job, job_manager: JobManager):
         result = job_manager.interface.get_job_output(job.id)
         job_manager.simulations_log.insert_result(str(job.id), result)
