@@ -618,7 +618,29 @@ class JobManager:
         return strategies
 
     def monitor(self, jobs: list[Job]):
-        """Start monitoring the given jobs."""
+        """
+        Initiates or resumes monitoring of the specified jobs for status updates.
+
+        Adds the provided list of jobs to the monitoring queue and starts or restarts
+        the monitoring thread if it's not currently active. This ensures that all jobs
+        are continuously monitored for status changes until they are completed or fail.
+
+        Parameters
+        ----------
+        jobs : list[Job]
+            A list of Job objects to be monitored.
+
+        Note
+        ----
+        This method is thread-safe and ensures that multiple calls to monitor jobs
+        concurrently will not interfere with each other or duplicate monitoring efforts.
+
+        Example
+        -------
+        >>> job_manager.monitor([job1, job2])
+
+        Adds `job1` and `job2` to the monitoring queue and starts monitoring their statuses.
+        """
 
         with self._lock:
             self._jobs.extend(jobs)
