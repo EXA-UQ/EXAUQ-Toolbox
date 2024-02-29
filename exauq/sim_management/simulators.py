@@ -580,12 +580,25 @@ class JobManager:
             self._thread.join()
 
     def submit(self, x: Input):
-        """Submit a new simulation job.
+        """
+        Initialises a new simulation job, logs it with a NOT_SUBMITTED status, and then
+        passes it to the job handling strategies for submission.
 
-        If the job gets submitted without error, then the simulations log file will
-        have a record of the corresponding simulator input along with a job ID.
-        Conversely, if there is an error in submitting the job then only the input
-        is recorded in the log file, with blank job ID.
+        This method generates a unique ID for the job and records it in the simulations log.
+        The job, marked as NOT_SUBMITTED, is then handed over to the appropriate job handling
+        strategy, which is responsible for submitting the job to the simulation hardware.
+
+        Parameters
+        ----------
+        x : Input
+            The input data for the simulation job.
+
+        Examples
+        --------
+        >>> job_manager.submit(Input(0.0, 1.0))
+
+        Creates a job with the given parameters, logs it, and schedules it for submission
+        through the job handling strategies.
         """
 
         job = Job(self._id_generator.generate_id(), x)
