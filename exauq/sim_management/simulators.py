@@ -602,7 +602,7 @@ class JobManager:
         """
 
         job = Job(self._id_generator.generate_id(), x)
-        self.handle_job(job, JobStatus.NOT_SUBMITTED)
+        self._handle_job(job, JobStatus.NOT_SUBMITTED)
 
     @staticmethod
     def _init_job_strategies() -> dict:
@@ -635,7 +635,7 @@ class JobManager:
                 jobs = self._jobs[:]
             for job in jobs:
                 status = self._interface.get_job_status(job.id)
-                self.handle_job(job, status)
+                self._handle_job(job, status)
 
     @property
     def interface(self):
@@ -649,7 +649,7 @@ class JobManager:
         with self._lock:
             self._jobs.remove(job)
 
-    def handle_job(self, job: Job, status: JobStatus):
+    def _handle_job(self, job: Job, status: JobStatus):
         if status:
             strategy = self._job_strategies.get(status)
             if strategy:
