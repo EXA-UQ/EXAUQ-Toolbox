@@ -605,6 +605,8 @@ class JobManager:
 
     @staticmethod
     def _init_job_strategies() -> dict:
+        """Initialises and returns a dictionary of job status to their corresponding handling strategies."""
+
         strategies = {
             JobStatus.COMPLETED: CompletedJobStrategy(),
             JobStatus.FAILED: FailedJobStrategy(),
