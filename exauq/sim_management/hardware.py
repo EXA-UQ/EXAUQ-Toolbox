@@ -231,7 +231,7 @@ class UnixServerScriptInterface(SSHInterface):
         The program to run on the server.
     script_path : exauq.sim_management.types.PathLike
         The path to the script on the Unix server to run with `program`.
-    remote_workspace_dir : exauq.sim_management.types.PathLike, optional
+    workspace_dir : exauq.sim_management.types.PathLike, optional
         (Default: None) A path to a directory on the Unix server where job-specific
         subdirectories should be created. Relative paths will be relative to the default
         working directory for a new SSH session (usually the user's home directory). If
@@ -258,7 +258,7 @@ class UnixServerScriptInterface(SSHInterface):
         host: str,
         program: str,
         script_path: PathLike,
-        remote_workspace_dir: Optional[PathLike] = None,
+        workspace_dir: Optional[PathLike] = None,
         key_filename: Optional[str] = None,
         ssh_config_path: Optional[str] = None,
         use_ssh_agent: Optional[bool] = False,
@@ -271,9 +271,9 @@ class UnixServerScriptInterface(SSHInterface):
         self._host = host
         self._program = program
         self._script_path = pathlib.PurePosixPath(script_path)
-        self._remote_workspace_dir = (
-            pathlib.PurePosixPath(remote_workspace_dir)
-            if remote_workspace_dir is not None
+        self._workspace_dir = (
+            pathlib.PurePosixPath(workspace_dir)
+            if workspace_dir is not None
             else self._script_path.parent
         )
         self._job_log = dict()
@@ -322,11 +322,11 @@ class UnixServerScriptInterface(SSHInterface):
             )
 
         # Make workspace directory
-        self._make_directory_on_remote(self._remote_workspace_dir, make_parents=True)
+        self._make_directory_on_remote(self._workspace_dir, make_parents=True)
 
         # Make job-specific remote workspace directory (will raise error if directory
         # already exists)
-        job_remote_dir = self._remote_workspace_dir / str(job.id)
+        job_remote_dir = self._workspace_dir / str(job.id)
         self._make_directory_on_remote(job_remote_dir)
 
         # Put simulator input data onto server
