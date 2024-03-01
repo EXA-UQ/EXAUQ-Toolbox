@@ -193,8 +193,8 @@ class SSHInterface(HardwareInterface, ABC):
         self._conn.close()
 
 
-class RemoteServerScript(SSHInterface):
-    """Interface for running a simulation script on a remote server over SSH.
+class UnixServerScriptInterface(SSHInterface):
+    """Interface for running a simulation script on a Unix server over SSH.
 
     This interface is designed to invoke simulation code on a remote server with the
     following command:

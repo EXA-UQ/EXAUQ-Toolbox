@@ -3,7 +3,7 @@ import pathlib
 import sys
 from typing import Any
 
-from exauq.sim_management.hardware import RemoteServerScript
+from exauq.sim_management.hardware import UnixServerScriptInterface
 
 
 def get_command_line_args() -> str:
@@ -25,10 +25,10 @@ def read_json_config(path: str) -> dict[str, Any]:
         return json.load(ssh_config_file)
 
 
-def make_remote_server_script(
+def make_unix_server_script_interface(
     ssh_config: dict[str, Any], remote_script_config: dict[str, Any]
 ):
-    return RemoteServerScript(
+    return UnixServerScriptInterface(
         user=ssh_config["user"],
         host=ssh_config["host"],
         program=remote_script_config["program"],

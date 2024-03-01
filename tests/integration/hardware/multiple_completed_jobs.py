@@ -6,14 +6,14 @@ from exauq.sim_management.hardware import JobStatus
 from exauq.sim_management.jobs import Job, JobId
 from tests.integration.hardware.utilities import (
     get_command_line_args,
-    make_remote_server_script,
+    make_unix_server_script_interface,
     read_json_config,
 )
 
 
 def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> None:
     # Create interface to remote server where we can run a script
-    hardware = make_remote_server_script(ssh_config, remote_script_config)
+    hardware = make_unix_server_script_interface(ssh_config, remote_script_config)
 
     # Create jobs to submit
     jobs = [
