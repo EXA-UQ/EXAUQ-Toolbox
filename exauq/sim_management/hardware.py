@@ -296,8 +296,9 @@ class UnixServerScriptInterface(SSHInterface):
         will be uploaded: this is what gets run to start the job on the server.
 
         If a job with the same ID has already been submitted in the lifetime of this
-        object, then an error will be raised. This avoids the potential for overwriting
-        data associated with a job.
+        object, or if the target directory for the job's files already exists on the
+        server, then an error will be raised. This guards against overwriting data
+        associated with a pre-existing job.
 
         Parameters
         ----------
@@ -320,7 +321,11 @@ class UnixServerScriptInterface(SSHInterface):
                 f"been submitted."
             )
 
-        # Make job-specific remote workspace directory
+        # Make workspace directory
+        self._make_directory_on_remote(self._remote_workspace_dir, make_parents=True)
+
+        # Make job-specific remote workspace directory (will raise error if directory
+        # already exists)
         job_remote_dir = self._remote_workspace_dir / str(job.id)
         self._make_directory_on_remote(job_remote_dir)
 
@@ -402,13 +407,21 @@ class UnixServerScriptInterface(SSHInterface):
         user, pid, start_time = process_identifier.split(",")
         return {"user": user, "pid": pid, "start_time": start_time}
 
-    def _make_directory_on_remote(self, path: Union[str, pathlib.PurePosixPath]) -> None:
+    def _make_directory_on_remote(
+        self, path: Union[str, pathlib.PurePosixPath], make_parents: bool = False
+    ) -> None:
         """Make a directory at the given path on the remote machine.
 
-        Will recursively create intermediary directories as required.
+        If `make_parents` is ``True`` then intermediary directories will be created as
+        required (by calling ``mkdir`` with the ``-p`` option). If the directory already
+        exists and `make_parents` is ``False`` then an error will be thrown.
         """
+
+        mkdir_command = (
+            f"mkdir {path}" if not make_parents else f"[ -d {path} ] || mkdir -p {path}"
+        )
         try:
-            _ = self._run_remote_command(f"mkdir -p {path}")
+            _ = self._run_remote_command(mkdir_command)
         except Exception as e:
             raise HardwareInterfaceFailureError(
                 f"Could not make directory {path} for {self._user}@{self._host}: {e}"
