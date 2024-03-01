@@ -100,9 +100,9 @@ class SSHInterface(HardwareInterface, ABC):
         The username to authenticate with the SSH server.
     host : str
         The hostname or IP address of the SSH server.
-    key_filename : str, optional
+    key_filename : exauq.sim_management.types.PathLike, optional
         The path to the SSH private key file to authenticate with the SSH server.
-    ssh_config_path : str, optional
+    ssh_config_path : exauq.sim_management.types.PathLike, optional
         The path to the SSH configuration file.
     use_ssh_agent : bool, optional
         If ``True``, use SSH agent for authentication. Defaults to ``False``.
@@ -119,8 +119,8 @@ class SSHInterface(HardwareInterface, ABC):
         self,
         user: str,
         host: str,
-        key_filename: Optional[str] = None,
-        ssh_config_path: Optional[str] = None,
+        key_filename: Optional[PathLike] = None,
+        ssh_config_path: Optional[PathLike] = None,
         use_ssh_agent: Optional[bool] = False,
         max_attempts: int = 3,
     ):
@@ -144,10 +144,10 @@ class SSHInterface(HardwareInterface, ABC):
 
         if key_filename is not None:
             self._conn = Connection(
-                f"{user}@{host}", connect_kwargs={"key_filename": key_filename}
+                f"{user}@{host}", connect_kwargs={"key_filename": str(key_filename)}
             )
         elif ssh_config_path is not None:
-            ssh_config = Config(overrides={"ssh_config_path": ssh_config_path})
+            ssh_config = Config(overrides={"ssh_config_path": str(ssh_config_path)})
             self._conn = Connection(host, config=ssh_config)
         elif use_ssh_agent:
             self._conn = Connection(f"{user}@{host}")
@@ -236,10 +236,10 @@ class UnixServerScriptInterface(SSHInterface):
         subdirectories should be created. Relative paths will be relative to the default
         working directory for a new SSH session (usually the user's home directory). If
         ``None`` then the directory containing the script in `script_path` will be used.
-    key_filename : str, optional
+    key_filename : exauq.sim_management.types.PathLike, optional
         (Default: None) The path to an SSH private key file to authenticate with the SSH
         server. The key file must be unencrypted.
-    ssh_config_path : str, optional
+    ssh_config_path : exauq.sim_management.types.PathLike, optional
         (Default: None) The path to an SSH configuration file.
     use_ssh_agent : bool, optional
         (Default: False) If ``True``, use a running SSH agent for authentication.
@@ -259,8 +259,8 @@ class UnixServerScriptInterface(SSHInterface):
         program: str,
         script_path: PathLike,
         workspace_dir: Optional[PathLike] = None,
-        key_filename: Optional[str] = None,
-        ssh_config_path: Optional[str] = None,
+        key_filename: Optional[PathLike] = None,
+        ssh_config_path: Optional[PathLike] = None,
         use_ssh_agent: Optional[bool] = False,
         max_attempts: int = 3,
     ):
