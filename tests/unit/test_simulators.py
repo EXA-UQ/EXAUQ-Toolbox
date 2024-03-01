@@ -132,11 +132,9 @@ class TestSimulator(unittest.TestCase):
         ):
             # Unix
             _ = Simulator(self.simulator_domain, self.hardware_interface, r"a/b/c")
-            _ = Simulator(self.simulator_domain, self.hardware_interface, rb"a/b/c")
 
             # Windows
             _ = Simulator(self.simulator_domain, self.hardware_interface, r"a\b\c")
-            _ = Simulator(self.simulator_domain, self.hardware_interface, rb"a\b\c")
 
             # Platform independent
             _ = Simulator(

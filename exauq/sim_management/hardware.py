@@ -11,7 +11,7 @@ from fabric import Config, Connection
 from paramiko.ssh_exception import AuthenticationException, SSHException
 
 from exauq.sim_management.jobs import Job, JobId
-from exauq.sim_management.types import PathLike
+from exauq.sim_management.types import FilePath
 
 
 class JobStatus(Enum):
@@ -100,9 +100,9 @@ class SSHInterface(HardwareInterface, ABC):
         The username to authenticate with the SSH server.
     host : str
         The hostname or IP address of the SSH server.
-    key_filename : exauq.sim_management.types.PathLike, optional
+    key_filename : exauq.sim_management.types.FilePath, optional
         The path to the SSH private key file to authenticate with the SSH server.
-    ssh_config_path : exauq.sim_management.types.PathLike, optional
+    ssh_config_path : exauq.sim_management.types.FilePath, optional
         The path to the SSH configuration file.
     use_ssh_agent : bool, optional
         If ``True``, use SSH agent for authentication. Defaults to ``False``.
@@ -119,8 +119,8 @@ class SSHInterface(HardwareInterface, ABC):
         self,
         user: str,
         host: str,
-        key_filename: Optional[PathLike] = None,
-        ssh_config_path: Optional[PathLike] = None,
+        key_filename: Optional[FilePath] = None,
+        ssh_config_path: Optional[FilePath] = None,
         use_ssh_agent: Optional[bool] = False,
         max_attempts: int = 3,
     ):
@@ -229,17 +229,17 @@ class UnixServerScriptInterface(SSHInterface):
         The hostname or IP address of the SSH server.
     program : str
         The program to run on the server.
-    script_path : exauq.sim_management.types.PathLike
+    script_path : exauq.sim_management.types.FilePath
         The path to the script on the Unix server to run with `program`.
-    workspace_dir : exauq.sim_management.types.PathLike, optional
+    workspace_dir : exauq.sim_management.types.FilePath, optional
         (Default: None) A path to a directory on the Unix server where job-specific
         subdirectories should be created. Relative paths will be relative to the default
         working directory for a new SSH session (usually the user's home directory). If
         ``None`` then the directory containing the script in `script_path` will be used.
-    key_filename : exauq.sim_management.types.PathLike, optional
+    key_filename : exauq.sim_management.types.FilePath, optional
         (Default: None) The path to an SSH private key file to authenticate with the SSH
         server. The key file must be unencrypted.
-    ssh_config_path : exauq.sim_management.types.PathLike, optional
+    ssh_config_path : exauq.sim_management.types.FilePath, optional
         (Default: None) The path to an SSH configuration file.
     use_ssh_agent : bool, optional
         (Default: False) If ``True``, use a running SSH agent for authentication.
@@ -257,10 +257,10 @@ class UnixServerScriptInterface(SSHInterface):
         user: str,
         host: str,
         program: str,
-        script_path: PathLike,
-        workspace_dir: Optional[PathLike] = None,
-        key_filename: Optional[PathLike] = None,
-        ssh_config_path: Optional[PathLike] = None,
+        script_path: FilePath,
+        workspace_dir: Optional[FilePath] = None,
+        key_filename: Optional[FilePath] = None,
+        ssh_config_path: Optional[FilePath] = None,
         use_ssh_agent: Optional[bool] = False,
         max_attempts: int = 3,
     ):
