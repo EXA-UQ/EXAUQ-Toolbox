@@ -1,15 +1,16 @@
 import getpass
 import io
 import json
-import os
+import pathlib
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 from fabric import Config, Connection
 from paramiko.ssh_exception import AuthenticationException, SSHException
 
+from exauq.core.types import PathLike
 from exauq.sim_management.jobs import Job, JobId
 
 
@@ -228,9 +229,9 @@ class UnixServerScriptInterface(SSHInterface):
         The hostname or IP address of the SSH server.
     program : str
         The program to run on the server.
-    script_path : str
+    script_path : exauq.core.types.PathLike
         The path to the script on the server to run with `program`.
-    remote_workspace_dir : str, optional
+    remote_workspace_dir : exauq.core.types.PathLike, optional
         (Default: None) A remote path a directory where job-specific subdirectories should
         be created. Relative paths will be relative to the default working directory
         for a new SSH session (usually the user's home directory). If ``None`` then the
@@ -256,8 +257,8 @@ class UnixServerScriptInterface(SSHInterface):
         user: str,
         host: str,
         program: str,
-        script_path: str,
-        remote_workspace_dir: Optional[str] = None,
+        script_path: PathLike,
+        remote_workspace_dir: Optional[PathLike] = None,
         key_filename: Optional[str] = None,
         ssh_config_path: Optional[str] = None,
         use_ssh_agent: Optional[bool] = False,
@@ -269,11 +270,11 @@ class UnixServerScriptInterface(SSHInterface):
         self._user = user
         self._host = host
         self._program = program
-        self._script_path = script_path
+        self._script_path = pathlib.PurePosixPath(script_path)
         self._remote_workspace_dir = (
-            remote_workspace_dir
+            pathlib.PurePosixPath(remote_workspace_dir)
             if remote_workspace_dir is not None
-            else os.path.dirname(self._script_path)
+            else self._script_path.parent
         )
         self._job_log = dict()
 
@@ -319,15 +320,24 @@ class UnixServerScriptInterface(SSHInterface):
                 f"been submitted."
             )
 
-        job_remote_dir = self._remote_workspace_dir + f"/{job.id}"
+        # Make job-specific remote workspace directory
+        job_remote_dir = self._remote_workspace_dir / str(job.id)
         self._make_directory_on_remote(job_remote_dir)
+
+        # Put simulator input data onto server
         script_input_path = self._make_job_input_file(job.data, job_remote_dir)
+
+        # Make script input config and put onto onto server
         script_config = {
-            "input_file": script_input_path,
-            "output_file": job_remote_dir + "/output.txt",
+            "input_file": str(script_input_path),
+            "output_file": str(job_remote_dir / "output.txt"),
         }
         config_path = self._make_job_config_file(script_config, job_remote_dir)
-        stdout_path = job_remote_dir + f"/{os.path.basename(self._script_path)}.out"
+
+        # Make path for script stdout & stderr
+        stdout_path = job_remote_dir / f"{self._script_path.name}.out"
+
+        # Create wrapper script and put onto server
         wrapper_script = "\n".join(
             [
                 f"{self._program} {self._script_path} {config_path} >> {stdout_path} 2>&1 &",
@@ -335,10 +345,13 @@ class UnixServerScriptInterface(SSHInterface):
                 self._make_process_identifier_command("${job_pid}"),
             ]
         )
-
-        wrapper_script_path = job_remote_dir + "/job_wrapper.sh"
+        wrapper_script_path = job_remote_dir / "job_wrapper.sh"
         self._make_text_file_on_remote(wrapper_script, wrapper_script_path)
+
+        # Get server-side identifier for the job
         remote_id = self._run_remote_command(f"bash {wrapper_script_path}")
+
+        # Record details of the job in the log
         remote_id_components = self._parse_process_identifier(remote_id)
         self._job_log[job.id] = {
             "status": JobStatus.SUBMITTED,
@@ -349,20 +362,25 @@ class UnixServerScriptInterface(SSHInterface):
             "script_output_path": script_config["output_file"],
             "output": None,
         }
+
         return None
 
-    def _make_job_config_file(self, config: dict[str, str], job_remote_dir: str) -> str:
+    def _make_job_config_file(
+        self, config: dict[str, str], job_remote_dir: Union[str, pathlib.PurePosixPath]
+    ) -> pathlib.PurePosixPath:
         """Make a simulation script input JSON configuration file on the server and
         return the path to this file."""
 
-        config_file_path = job_remote_dir + "/config.json"
+        config_file_path = pathlib.PurePosixPath(job_remote_dir, "config.json")
         self._make_text_file_on_remote(json.dumps(config), config_file_path)
         return config_file_path
 
-    def _make_job_input_file(self, data: Sequence, job_remote_dir: str) -> str:
+    def _make_job_input_file(
+        self, data: Sequence, job_remote_dir: Union[str, pathlib.PurePosixPath]
+    ) -> pathlib.PurePosixPath:
         """Make a csv file on the server containing input data for the simulation code."""
 
-        input_file_path = job_remote_dir + "/input.csv"
+        input_file_path = pathlib.PurePosixPath(job_remote_dir, "input.csv")
         data_str = ",".join(map(str, data)) + "\n"
         self._make_text_file_on_remote(data_str, input_file_path)
         return input_file_path
@@ -384,7 +402,7 @@ class UnixServerScriptInterface(SSHInterface):
         user, pid, start_time = process_identifier.split(",")
         return {"user": user, "pid": pid, "start_time": start_time}
 
-    def _make_directory_on_remote(self, path: str) -> None:
+    def _make_directory_on_remote(self, path: Union[str, pathlib.PurePosixPath]) -> None:
         """Make a directory at the given path on the remote machine.
 
         Will recursively create intermediary directories as required.
@@ -397,13 +415,15 @@ class UnixServerScriptInterface(SSHInterface):
             )
         return None
 
-    def _make_text_file_on_remote(self, file_contents: str, target_path: str) -> str:
+    def _make_text_file_on_remote(
+        self, file_contents: str, target_path: Union[str, pathlib.PurePosixPath]
+    ) -> None:
         """Make a text file on the remote machine with a given string as contents."""
 
         try:
             _ = self._conn.put(
                 io.StringIO(file_contents),
-                remote=target_path,
+                remote=str(target_path),
             )
         except Exception as e:
             raise HardwareInterfaceFailureError(
@@ -527,12 +547,14 @@ class UnixServerScriptInterface(SSHInterface):
                 )
             return self._job_log[job_id]["output"]
 
-    def _retrieve_output(self, remote_path: str) -> Optional[str]:
+    def _retrieve_output(
+        self, remote_path: Union[str, pathlib.PurePosixPath]
+    ) -> Optional[str]:
         """Get the output of a simulation from the remote server."""
 
         with io.BytesIO() as buffer:
             try:
-                _ = self._conn.get(remote_path, local=buffer)
+                _ = self._conn.get(str(remote_path), local=buffer)
             except FileNotFoundError:
                 return None
             except Exception as e:
