@@ -5,9 +5,9 @@ from threading import Lock, Thread
 from time import sleep
 from typing import Any, Optional
 
-from exauq.sim_management.hardware import HardwareInterface
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
-from exauq.core.types import FilePath
+from exauq.sim_management.hardware import HardwareInterface
+from exauq.sim_management.types import FilePath
 from exauq.utilities.csv_db import CsvDB, Record
 from exauq.utilities.validation import check_file_path
 

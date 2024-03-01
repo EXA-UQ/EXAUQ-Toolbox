@@ -10,8 +10,8 @@ from typing import Optional, Union
 from fabric import Config, Connection
 from paramiko.ssh_exception import AuthenticationException, SSHException
 
-from exauq.core.types import PathLike
 from exauq.sim_management.jobs import Job, JobId
+from exauq.sim_management.types import PathLike
 
 
 class JobStatus(Enum):
@@ -229,13 +229,13 @@ class UnixServerScriptInterface(SSHInterface):
         The hostname or IP address of the SSH server.
     program : str
         The program to run on the server.
-    script_path : exauq.core.types.PathLike
-        The path to the script on the server to run with `program`.
-    remote_workspace_dir : exauq.core.types.PathLike, optional
-        (Default: None) A remote path a directory where job-specific subdirectories should
-        be created. Relative paths will be relative to the default working directory
-        for a new SSH session (usually the user's home directory). If ``None`` then the
-        directory containing the script in `script_path` will be used.
+    script_path : exauq.sim_management.types.PathLike
+        The path to the script on the Unix server to run with `program`.
+    remote_workspace_dir : exauq.sim_management.types.PathLike, optional
+        (Default: None) A path to a directory on the Unix server where job-specific
+        subdirectories should be created. Relative paths will be relative to the default
+        working directory for a new SSH session (usually the user's home directory). If
+        ``None`` then the directory containing the script in `script_path` will be used.
     key_filename : str, optional
         (Default: None) The path to an SSH private key file to authenticate with the SSH
         server. The key file must be unencrypted.
