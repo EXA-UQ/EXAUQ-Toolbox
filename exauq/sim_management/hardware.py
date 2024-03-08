@@ -361,13 +361,21 @@ class UnixServerScriptInterface(SSHInterface):
                 f"Could not start job with id {job.id} on {self._user}@{self._host}: {e}"
             )
 
+        # Get process ID and start time from remote ID
+        try:
+            _, pid, start_time = self._parse_process_identifier(remote_id)
+        except ValueError:
+            raise HardwareInterfaceFailureError(
+                f"Could not determine process information from remote identifier "
+                f"{remote_id} for job with id {job.id}."
+            ) from None
+
         # Record details of the job in the log
-        remote_id_components = self._parse_process_identifier(remote_id)
         self._job_log[job.id] = {
             "status": JobStatus.SUBMITTED,
             "remote_id": remote_id,
-            "pid": remote_id_components["pid"],
-            "start_time": remote_id_components["start_time"],
+            "pid": pid,
+            "start_time": start_time,
             "job_remote_dir": job_remote_dir,
             "script_output_path": script_config["output_file"],
             "output": None,
@@ -401,7 +409,7 @@ class UnixServerScriptInterface(SSHInterface):
 
         return f'echo "$(ps -p {pid} -o user=),$(ps -p {pid} -o pid=),$(ps -p {pid} -o lstart=)"'
 
-    def _parse_process_identifier(self, process_identifier: str) -> dict[str, str]:
+    def _parse_process_identifier(self, process_identifier: str) -> tuple[str, str, str]:
         """Extract the user, process ID and start time of a process from a process
         identifier.
 
@@ -409,8 +417,14 @@ class UnixServerScriptInterface(SSHInterface):
         '<user>,<pid>,<start_time>'.
         """
 
-        user, pid, start_time = process_identifier.split(",")
-        return {"user": user, "pid": pid, "start_time": start_time}
+        components = process_identifier.split(",")
+        if len(components) != 3 or any(c.strip() == "" for c in components):
+            raise ValueError(
+                f"Could not parse process identifier {process_identifier} for user, pid "
+                "and start time."
+            ) from None
+
+        return tuple(components)
 
     def _make_directory_on_remote(
         self, path: Union[str, pathlib.PurePosixPath], make_parents: bool = False
