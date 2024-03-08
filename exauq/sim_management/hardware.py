@@ -353,8 +353,13 @@ class UnixServerScriptInterface(SSHInterface):
         wrapper_script_path = job_remote_dir / "job_wrapper.sh"
         self._make_text_file_on_remote(wrapper_script, wrapper_script_path)
 
-        # Get server-side identifier for the job
-        remote_id = self._run_remote_command(f"bash {wrapper_script_path}")
+        # Start job and get server-side identifier for the job
+        try:
+            remote_id = self._run_remote_command(f"bash {wrapper_script_path}")
+        except Exception as e:
+            raise HardwareInterfaceFailureError(
+                f"Could not start job with id {job.id} on {self._user}@{self._host}: {e}"
+            )
 
         # Record details of the job in the log
         remote_id_components = self._parse_process_identifier(remote_id)
