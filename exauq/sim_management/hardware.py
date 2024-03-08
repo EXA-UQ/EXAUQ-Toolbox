@@ -332,7 +332,7 @@ class UnixServerScriptInterface(SSHInterface):
         # Put simulator input data onto server
         script_input_path = self._make_job_input_file(job.data, job_remote_dir)
 
-        # Make script input config and put onto onto server
+        # Make script input config and put onto server
         script_config = {
             "input_file": str(script_input_path),
             "output_file": str(job_remote_dir / "output.txt"),
@@ -490,7 +490,7 @@ class UnixServerScriptInterface(SSHInterface):
 
         return job_id in self._job_log
 
-    def _update_status_from_remote(self, job_id: str) -> None:
+    def _update_status_from_remote(self, job_id: JobId) -> None:
         """Update the status of a job based on the status of the corresponding process on
         the server."""
 
@@ -505,7 +505,7 @@ class UnixServerScriptInterface(SSHInterface):
 
         return None
 
-    def _remote_job_is_running(self, job_id) -> bool:
+    def _remote_job_is_running(self, job_id: JobId) -> bool:
         """Whether the remote process of a given job is running."""
 
         pid = self._job_log[job_id]["pid"]
