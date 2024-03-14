@@ -719,8 +719,9 @@ class JobStrategy(ABC):
         Executes the strategy's actions for a given job within the context of the provided job manager.
     """
 
+    @staticmethod
     @abstractmethod
-    def handle(self, job: Job, job_manager: JobManager):
+    def handle(job: Job, job_manager: JobManager):
         """
         Handle a job according to the strategy's specific actions.
 
@@ -759,7 +760,8 @@ class CompletedJobStrategy(JobStrategy):
         The manager responsible for overseeing the job's lifecycle.
     """
 
-    def handle(self, job: Job, job_manager: JobManager):
+    @staticmethod
+    def handle(job: Job, job_manager: JobManager):
         result = job_manager.interface.get_job_output(job.id)
         job_manager.simulations_log.insert_result(str(job.id), result)
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.COMPLETED)
@@ -782,7 +784,8 @@ class FailedJobStrategy(JobStrategy):
         The manager overseeing the job's lifecycle and responsible for its monitoring and logging.
     """
 
-    def handle(self, job: Job, job_manager: JobManager):
+    @staticmethod
+    def handle(job: Job, job_manager: JobManager):
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.FAILED)
         job_manager.remove_job(job)
 
@@ -804,7 +807,8 @@ class RunningJobStrategy(JobStrategy):
         The manager responsible for the job's lifecycle, including monitoring and logging.
     """
 
-    def handle(self, job: Job, job_manager: JobManager):
+    @staticmethod
+    def handle(job: Job, job_manager: JobManager):
         if job_manager.simulations_log.get_job_status(str(job.id)) != JobStatus.RUNNING:
             job_manager.simulations_log.update_job_status(str(job.id), JobStatus.RUNNING)
 
@@ -825,7 +829,8 @@ class SubmittedJobStrategy(JobStrategy):
         The manager overseeing the job's lifecycle, responsible for its submission, monitoring, and logging.
     """
 
-    def handle(self, job: Job, job_manager: JobManager):
+    @staticmethod
+    def handle(job: Job, job_manager: JobManager):
         job_manager.monitor([job])
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.SUBMITTED)
 
@@ -852,7 +857,8 @@ class NotSubmittedJobStrategy(JobStrategy):
     and jitter to avoid thundering herd problems.
     """
 
-    def handle(self, job: Job, job_manager: JobManager):
+    @staticmethod
+    def handle(job: Job, job_manager: JobManager):
         retry_attempts = 0
         max_retries = 5
         initial_delay = 1
@@ -906,7 +912,8 @@ class CancelledJobStrategy(JobStrategy):
         and status updates.
     """
 
-    def handle(self, job: Job, job_manager: JobManager):
+    @staticmethod
+    def handle(job: Job, job_manager: JobManager):
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.CANCELLED)
         job_manager.remove_job(job)
 
