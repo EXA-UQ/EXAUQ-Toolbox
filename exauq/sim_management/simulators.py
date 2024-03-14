@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from numbers import Real
 from threading import Lock, Thread
-from time import sleep, time
+from time import sleep
 from typing import Any, Optional
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
