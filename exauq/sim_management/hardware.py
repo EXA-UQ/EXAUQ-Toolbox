@@ -327,7 +327,7 @@ class UnixServerScriptInterface(SSHInterface):
         # Make job-specific remote workspace directory (will raise error if directory
         # already exists)
         job_remote_dir = self._workspace_dir / str(job.id)
-        self._make_directory_on_remote(job_remote_dir)
+        # self._make_directory_on_remote(job_remote_dir)  # TODO: reinstate this line
 
         # Put simulator input data onto server
         script_input_path = self._make_job_input_file(job.data, job_remote_dir)
@@ -337,46 +337,37 @@ class UnixServerScriptInterface(SSHInterface):
             "input_file": str(script_input_path),
             "output_file": str(job_remote_dir / "output.txt"),
         }
-        config_path = self._make_job_config_file(script_config, job_remote_dir)
-
-        # Make path for script stdout & stderr
-        stdout_path = job_remote_dir / f"{self._script_path.name}.out"
 
         # Create wrapper script and put onto server
-        wrapper_script = "\n".join(
-            [
-                f"{self._program} {self._script_path} {config_path} >> {stdout_path} 2>&1 &",
-                "job_pid=$!",
-                self._make_process_identifier_command("${job_pid}"),
-            ]
-        )
-        wrapper_script_path = job_remote_dir / "job_wrapper.sh"
-        self._make_text_file_on_remote(wrapper_script, wrapper_script_path)
+        # TODO: create new wrapper script
+
+        # config_path = self._make_job_config_file(script_config, job_remote_dir)
+        # stdout_path = job_remote_dir / f"{self._script_path.name}.out"
+        # wrapper_script = "\n".join(
+        #     [
+        #         f"{self._program} {self._script_path} {config_path} >> {stdout_path} 2>&1 &",
+        #         "job_pid=$!",
+        #         self._make_process_identifier_command("${job_pid}"),
+        #     ]
+        # )
+        wrapper_script_path = job_remote_dir / "new_job_wrapper.sh"
+
+        # TODO: reinstate this with new script
+        # self._make_text_file_on_remote(wrapper_script, wrapper_script_path)
 
         # Start job and get server-side identifier for the job
         try:
-            remote_id = self._run_remote_command(f"bash {wrapper_script_path}")
+            _ = self._run_remote_command(f"bash {wrapper_script_path} start")
         except Exception as e:
             raise HardwareInterfaceFailureError(
                 f"Could not start job with id {job.id} on {self._user}@{self._host}: {e}"
             )
 
-        # Get process ID and start time from remote ID
-        try:
-            _, pid, start_time = self._parse_process_identifier(remote_id)
-        except ValueError:
-            raise HardwareInterfaceFailureError(
-                f"Could not determine process information from remote identifier "
-                f"{remote_id} for job with id {job.id}."
-            ) from None
-
         # Record details of the job in the log
         self._job_log[job.id] = {
             "status": JobStatus.SUBMITTED,
-            "remote_id": remote_id,
-            "pid": pid,
-            "start_time": start_time,
             "job_remote_dir": job_remote_dir,
+            "job_manager": wrapper_script_path,
             "script_output_path": script_config["output_file"],
             "output": None,
         }
@@ -500,8 +491,10 @@ class UnixServerScriptInterface(SSHInterface):
         """
         if not self._job_has_been_submitted(job_id):
             return JobStatus.NOT_SUBMITTED
-        else:
+        elif self._job_log[job_id]["status"] in {JobStatus.RUNNING, JobStatus.SUBMITTED}:
             self._update_status_from_remote(job_id)
+            return self._job_log[job_id]["status"]
+        else:
             return self._job_log[job_id]["status"]
 
     def _job_has_been_submitted(self, job_id: JobId) -> bool:
@@ -513,24 +506,24 @@ class UnixServerScriptInterface(SSHInterface):
         """Update the status of a job based on the status of the corresponding process on
         the server."""
 
-        if self._remote_job_is_running(job_id):
+        status = self._run_remote_command(
+            f"bash {self._job_log[job_id]['job_manager']} status"
+        )
+        if status == "RUNNING":
             self._job_log[job_id]["status"] = JobStatus.RUNNING
+        elif status == "COMPLETED":
+            self._job_log[job_id]["status"] = JobStatus.COMPLETED
+        elif status == "STOPPED":
+            self._job_log[job_id]["status"] = JobStatus.CANCELLED
         else:
-            output = self.get_job_output(job_id)
-            if output is not None:
-                self._job_log[job_id]["status"] = JobStatus.COMPLETED
-            else:
-                self._job_log[job_id]["status"] = JobStatus.FAILED
+            self._job_log[job_id]["status"] = JobStatus.FAILED
 
         return None
 
     def _remote_job_is_running(self, job_id: JobId) -> bool:
         """Whether the remote process of a given job is running."""
 
-        pid = self._job_log[job_id]["pid"]
-        process_identifier_command = self._make_process_identifier_command(pid)
-        process_identifier = self._run_remote_command(process_identifier_command)
-        return self._job_log[job_id]["remote_id"] == process_identifier
+        return self.get_job_status(job_id) == JobStatus.RUNNING
 
     def get_job_output(self, job_id: JobId) -> Optional[float]:
         """Get the simulator output for a job with the given ID.
@@ -565,7 +558,7 @@ class UnixServerScriptInterface(SSHInterface):
         elif self._job_log[job_id]["output"] is not None:
             return self._job_log[job_id]["output"]
 
-        else:
+        elif self.get_job_status(job_id) == JobStatus.COMPLETED:
             output_path = self._job_log[job_id]["script_output_path"]
             output = self._retrieve_output(output_path)
             try:
@@ -578,6 +571,8 @@ class UnixServerScriptInterface(SSHInterface):
                     "float."
                 )
             return self._job_log[job_id]["output"]
+        else:
+            return None
 
     def _retrieve_output(
         self, remote_path: Union[str, pathlib.PurePosixPath]
@@ -600,7 +595,24 @@ class UnixServerScriptInterface(SSHInterface):
         return contents.strip()
 
     def cancel_job(self, job_id: JobId):
-        pass
+        """Cancel the job with a given job ID.
+
+        If not running (i.e. has completed, has failed or has been cancelled) then
+        this method will return without error.
+        """
+        if self.get_job_status(job_id) == JobStatus.RUNNING:
+            try:
+                self._run_remote_command(
+                    f"bash {self._job_log[job_id]['job_manager']} stop"
+                )
+                self._job_log[job_id]["status"] = JobStatus.CANCELLED
+            except Exception as e:
+                raise HardwareInterfaceFailureError(
+                    f"Could not cancel job with id {job_id}: {e}"
+                )
+            return None
+        else:
+            return None
 
     def delete_remote_job_dir(self, job_id: JobId) -> None:
         """Delete the remote directory corresponding to a given job ID.
