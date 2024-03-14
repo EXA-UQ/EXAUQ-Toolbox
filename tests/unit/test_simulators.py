@@ -7,9 +7,13 @@ from numbers import Real
 from typing import Type
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.sim_management.hardware import JobStatus
-from exauq.sim_management.simulators import SimulationsLog, SimulationsLogLookupError, Simulator
 from exauq.core.types import FilePath
+from exauq.sim_management.hardware import JobStatus
+from exauq.sim_management.simulators import (
+    SimulationsLog,
+    SimulationsLogLookupError,
+    Simulator,
+)
 from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
 from tests.utilities.utilities import exact
 
@@ -26,7 +30,9 @@ def make_fake_simulator(
     with unittest.mock.patch(
         "exauq.sim_management.simulators.SimulationsLog",
         new=make_fake_simulations_log_class(simulations),
-    ), unittest.mock.patch("exauq.sim_management.simulators.JobManager", new=DumbJobManager):
+    ), unittest.mock.patch(
+        "exauq.sim_management.simulators.JobManager", new=DumbJobManager
+    ):
         return Simulator(
             SimulatorDomain([(-10, 10)]), DumbHardwareInterface(), simulations_log
         )
@@ -142,7 +148,9 @@ class TestSimulator(unittest.TestCase):
         """Test that a new log file with name 'simulations.csv' is created in the
         working directory as the default."""
 
-        with unittest.mock.patch("exauq.sim_management.simulators.SimulationsLog") as mock:
+        with unittest.mock.patch(
+            "exauq.sim_management.simulators.SimulationsLog"
+        ) as mock:
             _ = Simulator(self.simulator_domain, self.hardware_interface)
             mock.assert_called_once_with("simulations.csv", self.simulator_domain.dim)
 
@@ -172,9 +180,7 @@ class TestSimulator(unittest.TestCase):
             with self.subTest(x=x):
                 with self.assertRaisesRegex(
                     TypeError,
-                    exact(
-                        f"Argument 'x' must be of type Input, but received {type(x)}."
-                    ),
+                    exact(f"Argument 'x' must be of type Input, but received {type(x)}."),
                 ):
                     self.empty_simulator.compute(x)
 
@@ -287,9 +293,7 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that a new simulator log file at a given path is created upon object
         initialisation, on a POSIX-based system."""
 
-        _ = SimulationsLog(
-            str(pathlib.PurePosixPath(self.simulations_file)), input_dim=3
-        )
+        _ = SimulationsLog(str(pathlib.PurePosixPath(self.simulations_file)), input_dim=3)
         self.assertTrue(self.simulations_file.exists())
 
     def test_initialise_new_log_file_not_opened_if_exists(self):
@@ -364,7 +368,9 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that a log file is parsed correctly irrespective of the order of input
         and output columns."""
 
-        self.simulations_file.write_text("Input_2,Job_Status,Job_ID,Output,Input_1\n1,Completed,0,2,10\n")
+        self.simulations_file.write_text(
+            "Input_2,Job_Status,Job_ID,Output,Input_1\n1,Completed,0,2,10\n"
+        )
         log = SimulationsLog(self.simulations_file, input_dim=2)
         expected = ((Input(10, 1), 2),)
         self.assertEqual(expected, log.get_simulations())
