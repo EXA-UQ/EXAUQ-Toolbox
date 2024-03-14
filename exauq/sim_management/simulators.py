@@ -227,9 +227,10 @@ class SimulationsLog(object):
         """Get the simulator output from a database record, as a string."""
         return record[self._output_key]
 
-    def _get_job_status(self, record: Record) -> str:
+    def _get_job_status(self, record: Record) -> JobStatus:
         """Get the status of a job from a database record"""
-        return record[self._job_status_key]
+        status_str = record[self._job_status_key]
+        return JobStatus(status_str)
 
     def get_simulations(self) -> tuple[Simulation]:
         """
