@@ -948,8 +948,8 @@ class JobIDGenerator:
         """
         Initializes the JobIDGenerator, preparing it for generating unique job IDs.
         """
-        self.lock = Lock()
-        self.last_timestamp = None
+        self._lock = Lock()
+        self._last_timestamp = None
 
     def generate_id(self) -> JobId:
         """
@@ -970,18 +970,18 @@ class JobIDGenerator:
         >>> print(job_id)
         JobId('20240101123001005')
         """
-        with self.lock:
+        with self._lock:
             while True:
                 now = datetime.now()
                 timestamp_str = now.strftime("%Y%m%d%H%M%S%f")[
                     :-3
                 ]  # Convert to 'YYYYMMDDHHMMSSfff'
 
-                if self.last_timestamp == timestamp_str:
+                if self._last_timestamp == timestamp_str:
                     sleep(0.001)  # Sleep for 1 millisecond to ensure uniqueness
                     continue
                 else:
-                    self.last_timestamp = timestamp_str
+                    self._last_timestamp = timestamp_str
                     break
 
             return JobId(timestamp_str)
