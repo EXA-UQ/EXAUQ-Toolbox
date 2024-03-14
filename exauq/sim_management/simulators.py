@@ -356,9 +356,15 @@ class SimulationsLog(object):
             The Jobs that are in a pending state.
         """
         with self._lock:
-            pending_statuses = {JobStatus.RUNNING, JobStatus.SUBMITTED, JobStatus.NOT_SUBMITTED, JobStatus.FAILED_SUBMIT}
+            pending_statuses = {
+                JobStatus.RUNNING,
+                JobStatus.SUBMITTED,
+                JobStatus.NOT_SUBMITTED,
+                JobStatus.FAILED_SUBMIT,
+            }
             pending_records = self._simulations_db.query(
-                lambda x: self._get_job_id(x) != "" and self._get_job_status(x) in pending_statuses
+                lambda x: self._get_job_id(x) != ""
+                and self._get_job_status(x) in pending_statuses
             )
             return tuple(
                 Job(self._get_job_id(record), self._extract_simulation(record)[0])
@@ -462,10 +468,6 @@ class SimulationsLog(object):
         SimulationsLogLookupError
             If no job with the given ID exists in the log, or if multiple jobs with the
             same ID are found, indicating a data integrity issue.
-        ValueError
-            If the job status retrieved from the log does not correspond to any known
-            `JobStatus` enum value, indicating potential corruption or misconfiguration
-            in the job status values stored in the log.
 
         Examples
         --------
