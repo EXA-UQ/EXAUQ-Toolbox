@@ -422,12 +422,6 @@ class SimulationsLog(object):
         JobStatus
             The current status of the job as an instance of the `JobStatus` enum.
 
-        Raises
-        ------
-        SimulationsLogLookupError
-            If no job with the given ID exists in the log, or if multiple jobs with the
-            same ID are found, indicating a data integrity issue.
-
         Examples
         --------
         >>> get_job_status('12345')
@@ -445,22 +439,9 @@ class SimulationsLog(object):
         job_id_str = str(job_id)
 
         with self._lock:
-            matched_records = self._simulations_db.query(
-                lambda x: self._get_job_id(x) == job_id_str
-            )
-            num_matched_records = len(matched_records)
-            if num_matched_records != 1:
-                msg = (
-                    f"Could not retrieve status of job {job_id_str}: no such job exists."
-                    if num_matched_records == 0
-                    else (
-                        f"Could not retrieve status of job {job_id_str}: "
-                        "multiple records with this ID found."
-                    )
-                )
-                raise SimulationsLogLookupError(msg)
+            record = self._simulations_db.retrieve(self._job_id_key, job_id_str)
 
-            return self._get_job_status(matched_records[0])
+            return self._get_job_status(record)
 
 
 class SimulationsLogLookupError(Exception):
