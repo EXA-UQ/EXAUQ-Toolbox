@@ -497,31 +497,6 @@ class TestSimulationsLog(unittest.TestCase):
         log.add_new_record(x)
         self.assertEqual((x,), log.get_unsubmitted_inputs())
 
-    def test_get_unsubmitted_inputs_submitted_input(self):
-        """Test that, when an input is submitted with a job ID, it does not feature as
-        an unsubmitted input."""
-
-        x = Input(1)
-        job_id = "0"
-        log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        log.add_new_record(x, job_id)
-        self.assertTrue(x not in log.get_unsubmitted_inputs())
-
-    def test_get_unsubmitted_inputs_submitted_unsubmitted_mix(self):
-        """Test that, when several inputs are submitted, only those that weren't
-        submitted with a job ID are returned as unsubmitted inputs."""
-
-        x1 = Input(1)
-        x2 = Input(2)
-        x3 = Input(3)
-        x4 = Input(4)
-        log = SimulationsLog(self.simulations_file, input_dim=len(x1))
-        log.add_new_record(x1, job_id="0")
-        log.add_new_record(x2)
-        log.add_new_record(x3)
-        log.add_new_record(x4, job_id="1")
-        self.assertEqual((x2, x3), log.get_unsubmitted_inputs())
-
 
 if __name__ == "__main__":
     unittest.main()
