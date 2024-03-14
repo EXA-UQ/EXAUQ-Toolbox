@@ -374,8 +374,8 @@ class SimulationsLog(object):
     def get_unsubmitted_inputs(self) -> tuple[Input]:
         """Get all simulator inputs that have not been submitted as jobs.
 
-        This is defined to be the collection of inputs in the log file that do not have a
-        corresponding job ID.
+        Identifies inputs that are marked as 'NOT_SUBMITTED' in the simulation database,
+        signaling they have not been dispatched for execution.
 
         Returns
         -------
@@ -384,7 +384,7 @@ class SimulationsLog(object):
         """
         with self._lock:
             unsubmitted_records = self._simulations_db.query(
-                lambda x: self._get_job_id(x) == ""
+                lambda x: self._get_job_status(x) == JobStatus.NOT_SUBMITTED
             )
             return tuple(
                 self._extract_simulation(record)[0] for record in unsubmitted_records
