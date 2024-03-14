@@ -2,6 +2,8 @@ import getpass
 import io
 import json
 import pathlib
+import string
+import textwrap
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from enum import Enum
@@ -194,6 +196,10 @@ class SSHInterface(HardwareInterface, ABC):
         self._conn.close()
 
 
+class Template(string.Template):
+    delimiter = "#PY_"
+
+
 class UnixServerScriptInterface(SSHInterface):
     """Interface for running a simulation script on a Unix server over SSH.
 
@@ -327,7 +333,7 @@ class UnixServerScriptInterface(SSHInterface):
         # Make job-specific remote workspace directory (will raise error if directory
         # already exists)
         job_remote_dir = self._workspace_dir / str(job.id)
-        # self._make_directory_on_remote(job_remote_dir)  # TODO: reinstate this line
+        self._make_directory_on_remote(job_remote_dir)
 
         # Put simulator input data onto server
         script_input_path = self._make_job_input_file(job.data, job_remote_dir)
@@ -338,26 +344,21 @@ class UnixServerScriptInterface(SSHInterface):
             "output_file": str(job_remote_dir / "output.txt"),
         }
 
-        # Create wrapper script and put onto server
-        # TODO: create new wrapper script
-
-        # config_path = self._make_job_config_file(script_config, job_remote_dir)
-        # stdout_path = job_remote_dir / f"{self._script_path.name}.out"
-        # wrapper_script = "\n".join(
-        #     [
-        #         f"{self._program} {self._script_path} {config_path} >> {stdout_path} 2>&1 &",
-        #         "job_pid=$!",
-        #         self._make_process_identifier_command("${job_pid}"),
-        #     ]
-        # )
-        wrapper_script_path = job_remote_dir / "new_job_wrapper.sh"
-
-        # TODO: reinstate this with new script
-        # self._make_text_file_on_remote(wrapper_script, wrapper_script_path)
+        # Create manager script and put onto server
+        config_path = self._make_job_config_file(script_config, job_remote_dir)
+        stdout_path = job_remote_dir / f"{self._script_path.name}.out"
+        manager_script = self._make_manager_script(
+            job_remote_dir,
+            config_path,
+            stdout_path,
+            script_config["output_file"],
+        )
+        manager_script_path = job_remote_dir / "exauq_manager.sh"
+        self._make_text_file_on_remote(manager_script, manager_script_path)
 
         # Start job and get server-side identifier for the job
         try:
-            _ = self._run_remote_command(f"bash {wrapper_script_path} start")
+            _ = self._run_remote_command(f"bash {manager_script_path} start")
         except Exception as e:
             raise HardwareInterfaceFailureError(
                 f"Could not start job with id {job.id} on {self._user}@{self._host}: {e}"
@@ -367,7 +368,7 @@ class UnixServerScriptInterface(SSHInterface):
         self._job_log[job.id] = {
             "status": JobStatus.SUBMITTED,
             "job_remote_dir": job_remote_dir,
-            "job_manager": wrapper_script_path,
+            "job_manager": manager_script_path,
             "script_output_path": script_config["output_file"],
             "output": None,
         }
@@ -393,6 +394,179 @@ class UnixServerScriptInterface(SSHInterface):
         data_str = ",".join(map(str, data)) + "\n"
         self._make_text_file_on_remote(data_str, input_file_path)
         return input_file_path
+
+    def _make_manager_script(
+        self,
+        job_remote_dir: Union[str, pathlib.PurePosixPath],
+        config_path: Union[str, pathlib.PurePosixPath],
+        stdout_path: Union[str, pathlib.PurePosixPath],
+        output_path: Union[str, pathlib.PurePosixPath],
+    ) -> str:
+        template_str = r"""
+        #!/bin/bash
+
+        # This script provides an interface for working with processes -- a kind of
+        # very basic 'job' manager (where 'job' means a process and collection of
+        # subprocesses, not a 'job' as would be worked with using e.g. the jobs program.)
+        #
+        # Arg 1: One of: start, status, stop.
+
+        job_dir=#PY_JOB_DIR
+        program=#PY_PROGRAM
+        script=#PY_SCRIPT
+        script_input=#PY_CONFIG_PATH
+        script_stout_sterr=#PY_STDOUT_PATH
+        script_output=#PY_OUTPUT_PATH
+        pid_file="${job_dir}/PID"
+        jobid_file="${job_dir}/JOBID"
+        stopped_flag_file="${job_dir}/STOPPED"
+        completed_flag_file="${job_dir}/COMPLETED"
+        failed_flag_file="${job_dir}/FAILED"
+
+        FAILED_JOBID=",,"
+
+        # Print an error message and exit with nonzero status.
+        # Arg 1: String containing details of the error.
+        error() {
+            echo -e "${0}: error: ${1}" >&2
+            exit 1
+        }
+
+        # Check that the current shell is set up in the required way for this script.
+        check_system() {
+            if ! [[ "$SHELL" =~ /bash$ ]]
+            then
+                error "must be running in a Bash shell"
+            elif ! which pkill > /dev/null 2>&1
+            then
+                error "required command 'pkill' not available on system"
+            fi
+        }
+
+        # Run a job in the background and capture the PID of the process
+        run_job() {
+            $program $script $script_input > $script_stout_sterr 2>&1 &
+            echo $! | tr -d '[:space:]' > $pid_file
+        }
+
+        # Get a unique identifier for a process, utilising the PID, start time (long
+        # format) and user.
+        # Arg1: a pid
+        get_process_identifier() {
+            echo "$(ps -p "${1}" -o user=),$(ps -p "${1}" -o pid=),$(ps -p "${1}" -o lstart=)"
+        }
+
+        NOT_SUBMITTED="NOT_SUBMITTED"
+        RUNNING="RUNNING"
+        STOPPED="STOPPED"
+        COMPLETED="COMPLETED"
+        FAILED="FAILED"
+
+        record() {
+            case $1 in
+            "$STOPPED")
+                touch $stopped_flag_file;;
+            "$COMPLETED")
+                touch $completed_flag_file;;
+            "$FAILED")
+                touch $failed_flag_file;;
+            *)
+                error "in function record: unsupported arg '${1}'";;
+        esac
+        }
+
+        # Start the job and capture an ID for it.
+        start_job() {
+            run_job
+            job_pid=$(cat $pid_file)
+            jobid=$(get_process_identifier "${job_pid}")
+
+            # If identifier is empty this implies the process is no-longer running,
+            # which almost certainly suggests there was an error.
+            if [ "$jobid" = "$FAILED_JOBID" ] && [ ! -e "$script_output" ]
+            then
+                record $FAILED
+                error "script failed to run:\n$(cat ${script_stout_sterr})"
+            fi
+            echo "$jobid" > $jobid_file
+        }
+
+
+        # Get the status of a job
+        get_status() {
+            if [ ! -e $pid_file ]
+            then
+                echo $NOT_SUBMITTED
+            elif [ -e $stopped_flag_file ]
+            then
+                echo $STOPPED
+            elif [ -e $completed_flag_file ]
+            then
+                echo $COMPLETED
+            elif [ -e $failed_flag_file ] || [ ! -e $jobid_file ]
+            then
+                echo $FAILED
+            else
+                # If here then the job was last known to be running
+                job_id=$(cat $jobid_file)
+                job_pid=$(cat $pid_file)
+                current_id=$(get_process_identifier "${job_pid}")
+                if [ ! "$job_id" = "$FAILED_JOBID" ] && [ "$job_id" = "$current_id" ]
+                then
+                    echo $RUNNING
+                elif [ -e $script_output ]
+                then
+                    # For a job to be completed, it must not be running and have an
+                    # output file.
+                    record $COMPLETED
+                    echo $COMPLETED
+                else
+                    record $FAILED
+                    echo $FAILED
+                fi
+            fi
+        }
+
+        # Stop (cancel) a job by killing its process and subprocesses.
+        stop_job() {
+            status=$(get_status)
+            if [ "$status" = "$RUNNING" ]
+            then
+                # xargs pkill --parent < $pid_file
+                if xargs pkill --parent < $pid_file
+                then
+                    record $STOPPED
+                fi
+            fi
+        }
+
+        # Dispatch on command line arg
+        check_system
+        case $1 in
+        start)
+            start_job;;
+        stop)
+            stop_job;;
+        status)
+            get_status;;
+        *)
+            error "unsupported arg '${1}'";;
+        esac
+
+        """
+
+        template_str = template_str[1:]  # remove leading newline character
+        template = Template(textwrap.dedent(template_str))
+        return template.substitute(
+            {
+                "JOB_DIR": str(job_remote_dir),
+                "PROGRAM": self._program,
+                "SCRIPT": str(self._script_path),
+                "CONFIG_PATH": str(config_path),
+                "STDOUT_PATH": str(stdout_path),
+                "OUTPUT_PATH": str(output_path),
+            }
+        )
 
     def _make_process_identifier_command(self, pid: str) -> str:
         """Make a shell command for getting a string that uniquely identifies a remote
