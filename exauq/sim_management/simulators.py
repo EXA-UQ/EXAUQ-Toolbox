@@ -390,7 +390,7 @@ class SimulationsLog(object):
                 self._extract_simulation(record)[0] for record in unsubmitted_records
             )
 
-    def update_job_status(self, job_id: str, new_status: JobStatus) -> None:
+    def update_job_status(self, job_id: Union[str, JobId], new_status: JobStatus) -> None:
         """
         Updates the status of a job in the simulations log.
 
@@ -400,7 +400,7 @@ class SimulationsLog(object):
 
         Parameters
         ----------
-        job_id : str
+        job_id : Union[str, JobId]
             The unique identifier of the job whose status is to be updated.
         new_status : JobStatus
             The new status to be assigned to the job. This must be an instance of the `JobStatus` enum.
@@ -424,25 +424,27 @@ class SimulationsLog(object):
         This method is thread-safe and can be called concurrently from multiple threads without causing
         data corruption or race conditions.
         """
+        job_id_str = str(job_id)
+
         with self._lock:
             matched_records = self._simulations_db.query(
-                lambda x: self._get_job_id(x) == job_id
+                lambda x: self._get_job_id(x) == job_id_str
             )
             num_matched_records = len(matched_records)
 
             if num_matched_records != 1:
                 msg = (
-                    f"Could not update status of job {job_id}: no such job exists."
+                    f"Could not update status of job {job_id_str}: no such job exists."
                     if num_matched_records == 0
                     else (
-                        f"Could not update status of job {job_id}: "
+                        f"Could not update status of job {job_id_str}: "
                         "multiple records with this ID found."
                     )
                 )
                 raise SimulationsLogLookupError(msg)
 
             new_record = matched_records[0] | {self._job_status_key: new_status.value}
-            self._simulations_db.update(self._job_id_key, job_id, new_record)
+            self._simulations_db.update(self._job_id_key, job_id_str, new_record)
 
     def get_job_status(self, job_id: str) -> JobStatus:
         """
