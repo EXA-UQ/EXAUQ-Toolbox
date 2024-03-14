@@ -6,7 +6,7 @@ from datetime import datetime
 from numbers import Real
 from threading import Lock, Thread
 from time import sleep
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.core.types import FilePath
@@ -301,7 +301,7 @@ class SimulationsLog(object):
 
             self._simulations_db.create(record)
 
-    def insert_result(self, job_id: str, result: Real) -> None:
+    def insert_result(self, job_id: Union[str, JobId], result: Real) -> None:
         """Insert the output of a simulation into a job record in the simulations log
         file.
 
@@ -318,6 +318,8 @@ class SimulationsLog(object):
             If there isn't a unique simulations log record having job ID `job_id`.
         """
 
+        job_id_str = str(job_id)
+
         with self._lock:
             matched_records = self._simulations_db.query(
                 lambda x: self._get_job_id(x) == job_id
@@ -327,19 +329,19 @@ class SimulationsLog(object):
             if num_matched_records != 1:
                 msg = (
                     (
-                        f"Could not add output to simulation with job ID = {job_id}: "
+                        f"Could not add output to simulation with job ID = {job_id_str}: "
                         "no such simulation exists."
                     )
                     if num_matched_records == 0
                     else (
-                        f"Could not add output to simulation with job ID = {job_id}: "
+                        f"Could not add output to simulation with job ID = {job_id_str}: "
                         "multiple records with this ID found."
                     )
                 )
                 raise SimulationsLogLookupError(msg)
 
             new_record = matched_records[0] | {self._output_key: result}
-            self._simulations_db.update(self._job_id_key, job_id, new_record)
+            self._simulations_db.update(self._job_id_key, job_id_str, new_record)
 
     def get_pending_jobs(self) -> list[Job]:
         """Return the IDs of all submitted jobs which don't have results.
