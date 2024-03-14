@@ -407,8 +407,15 @@ class SimulationsLog(object):
 
         with self._lock:
             record = self._simulations_db.retrieve(self._job_id_key, job_id_str)
-            new_record = record | {self._job_status_key: new_status.value}
-            self._simulations_db.update(self._job_id_key, job_id_str, new_record)
+            if record:
+                new_record = record | {self._job_status_key: new_status.value}
+                self._simulations_db.update(self._job_id_key, job_id_str, new_record)
+            else:
+                msg = (
+                        f"Could not update status of simulation with job ID = {job_id_str}: "
+                        "no such simulation exists."
+                    )
+                raise SimulationsLogLookupError(msg)
 
     def get_job_status(self, job_id: Union[str, JobId]) -> JobStatus:
         """
