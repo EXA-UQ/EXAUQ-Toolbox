@@ -466,17 +466,20 @@ class TestSimulationsLog(unittest.TestCase):
         output."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
-        for x, job_id, y in (
-            (Input(1), "1", 10.1),
-            (Input(2), "2", None),
-            (Input(3), "3", None),
-            (Input(4), None, None),
+        for x, job_id, y, status in (
+            (Input(1), "1", 10.1, JobStatus.COMPLETED),
+            (Input(2), "2", None, JobStatus.RUNNING),
+            (Input(3), "3", None, JobStatus.FAILED_SUBMIT),
+            (Input(4), None, None, JobStatus.FAILED),
         ):
-            log.add_new_record(x, job_id)
+            log.add_new_record(x, job_id, status)
             if job_id is not None:
                 log.insert_result(job_id, y)
 
-        self.assertEqual(("2", "3"), log.get_pending_jobs())
+        pending_jobs = log.get_pending_jobs()
+
+        pending_job_ids = tuple(str(job.id) for job in pending_jobs)
+        self.assertEqual(("2", "3"), pending_job_ids)
 
     def test_get_unsubmitted_inputs_no_inputs(self):
         """Test that an empty tuple is returned if no inputs have been submitted to the
