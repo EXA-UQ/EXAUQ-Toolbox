@@ -163,12 +163,12 @@ class SimulationsLog(object):
         self._job_id_key = "Job_ID"
         self._output_key = "Output"
         self._job_status_key = "Job_Status"
-        self._input_keys = list(f"Input_{i}" for i in range(1, self._input_dim + 1))
-        self._log_file_header = self._input_keys + [
+        self._input_keys = tuple(f"Input_{i}" for i in range(1, self._input_dim + 1))
+        self._log_file_header = self._input_keys + (
             self._output_key,
             self._job_id_key,
             self._job_status_key,
-        ]
+        )
         self._log_file = self._initialise_log_file(file)
         self._simulations_db = self._make_db(self._log_file, self._log_file_header)
 
@@ -210,7 +210,7 @@ class SimulationsLog(object):
         return input_dim
 
     @staticmethod
-    def _make_db(log_file: FilePath, fields: list[str]) -> CsvDB:
+    def _make_db(log_file: FilePath, fields: tuple[str]) -> CsvDB:
         """Make the underlying database used to store details of simulation jobs."""
 
         if isinstance(log_file, bytes):
