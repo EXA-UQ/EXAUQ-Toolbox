@@ -700,10 +700,9 @@ class JobManager:
     def _handle_job(self, job: Job, status: JobStatus):
         """Delegates handling of a job to the appropriate strategy based on its status."""
 
-        if status:
-            strategy = self._job_strategies.get(status)
-            if strategy:
-                strategy.handle(job, self)
+        strategy = self._job_strategies.get(status)
+        if strategy:
+            strategy.handle(job, self)
 
 
 class JobStrategy(ABC):
