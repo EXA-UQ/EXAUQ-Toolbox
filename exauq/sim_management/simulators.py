@@ -318,8 +318,15 @@ class SimulationsLog(object):
 
         with self._lock:
             record = self._simulations_db.retrieve(self._job_id_key, job_id_str)
-            new_record = record | {self._output_key: result}
-            self._simulations_db.update(self._job_id_key, job_id_str, new_record)
+            if record:
+                new_record = record | {self._output_key: result}
+                self._simulations_db.update(self._job_id_key, job_id_str, new_record)
+            else:
+                msg = (
+                        f"Could not add output to simulation with job ID = {job_id_str}: "
+                        "no such simulation exists."
+                    )
+                raise SimulationsLogLookupError(msg)
 
     def get_pending_jobs(self) -> tuple[Job]:
         """Return all submitted jobs which don't have results but are in specific states.
