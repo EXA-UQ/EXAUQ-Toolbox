@@ -634,7 +634,7 @@ class JobManager:
         jobs : list[Job]
             A list of Job objects to be monitored.
 
-        Note
+        Notes
         ----
         This method is thread-safe and ensures that multiple calls to monitor jobs
         concurrently will not interfere with each other or duplicate monitoring efforts.
