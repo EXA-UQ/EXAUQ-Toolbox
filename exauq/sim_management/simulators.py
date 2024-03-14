@@ -308,40 +308,17 @@ class SimulationsLog(object):
 
         Parameters
         ----------
-        job_id : str
+        job_id : Union[str, JobId]
             The ID of the job that the `result` should be added to.
         result : Real
             The output of a simulation.
-
-        Raises
-        ------
-        SimulationsLogLookupError
-            If there isn't a unique simulations log record having job ID `job_id`.
         """
 
         job_id_str = str(job_id)
 
         with self._lock:
-            matched_records = self._simulations_db.query(
-                lambda x: self._get_job_id(x) == job_id
-            )
-            num_matched_records = len(matched_records)
-
-            if num_matched_records != 1:
-                msg = (
-                    (
-                        f"Could not add output to simulation with job ID = {job_id_str}: "
-                        "no such simulation exists."
-                    )
-                    if num_matched_records == 0
-                    else (
-                        f"Could not add output to simulation with job ID = {job_id_str}: "
-                        "multiple records with this ID found."
-                    )
-                )
-                raise SimulationsLogLookupError(msg)
-
-            new_record = matched_records[0] | {self._output_key: result}
+            record = self._simulations_db.retrieve(self._job_id_key, job_id_str)
+            new_record = record | {self._output_key: result}
             self._simulations_db.update(self._job_id_key, job_id_str, new_record)
 
     def get_pending_jobs(self) -> tuple[Job]:
