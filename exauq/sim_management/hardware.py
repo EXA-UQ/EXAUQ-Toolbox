@@ -196,7 +196,18 @@ class SSHInterface(HardwareInterface, ABC):
         self._conn.close()
 
 
-class Template(string.Template):
+class _Template(string.Template):
+    """Subclass of ``string.Template`` that changes the default delimiter.
+
+    Text that begins with '#PY_' will be replaced when applying text substitution.
+
+    Examples
+    --------
+
+    >>> _Template("something=#PY_FOO").substitute({"FOO": "foo"})
+    "something=foo"
+    """
+
     delimiter = "#PY_"
 
 
@@ -556,7 +567,7 @@ class UnixServerScriptInterface(SSHInterface):
         """
 
         template_str = template_str[1:]  # remove leading newline character
-        template = Template(textwrap.dedent(template_str))
+        template = _Template(textwrap.dedent(template_str))
         return template.substitute(
             {
                 "JOB_DIR": str(job_remote_dir),
