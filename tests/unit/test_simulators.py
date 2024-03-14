@@ -7,6 +7,7 @@ from numbers import Real
 from typing import Type
 
 from exauq.core.modelling import Input, SimulatorDomain
+from exauq.sim_management.hardware import JobStatus
 from exauq.sim_management.simulators import SimulationsLog, SimulationsLogLookupError, Simulator
 from exauq.core.types import FilePath
 from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
@@ -452,10 +453,10 @@ class TestSimulationsLog(unittest.TestCase):
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
 
-        log.add_new_record(Input(1), job_id="1")
+        log.add_new_record(Input(1), job_id="1", job_status=JobStatus.COMPLETED)
         log.insert_result(job_id="1", result=10.1)
 
-        log.add_new_record(Input(2), job_id="2")
+        log.add_new_record(Input(2), job_id="2", job_status=JobStatus.COMPLETED)
         log.insert_result(job_id="2", result=20.2)
 
         self.assertEqual(tuple(), log.get_pending_jobs())
