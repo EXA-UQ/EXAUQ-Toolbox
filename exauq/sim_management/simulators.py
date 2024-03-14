@@ -529,7 +529,7 @@ class JobManager:
         including job inputs, outputs, IDs, and statuses.
     interface : HardwareInterface
         An abstract interface to the hardware or simulation environment where jobs
-        are executed. Must implement job submission, status checking, and output retrieval.
+        are executed.
     polling_interval : int, optional
         Time interval, in seconds, for polling job statuses during monitoring. Defaults to 10 seconds.
     wait_for_pending : bool, optional
