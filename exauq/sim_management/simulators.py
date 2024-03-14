@@ -345,24 +345,25 @@ class SimulationsLog(object):
             self._simulations_db.update(self._job_id_key, job_id_str, new_record)
 
     def get_pending_jobs(self) -> tuple[Job]:
-        """Return all submitted jobs which don't have results.
+        """Return all submitted jobs which don't have results but are in specific states.
 
-        A job is considered to have been submitted if the corresponding record in the
-        simulations log contains a job ID.
+        A job is considered pending if its ID is not empty and it is in one of the following
+        states: RUNNING, SUBMITTED, NOT_SUBMITTED, or FAILED_SUBMIT.
 
         Returns
         -------
-        tuple[str]
-            The Jobs that have been submitted but don't have a result recorded.
+        tuple[Job]
+            The Jobs that are in a pending state.
         """
-
-        pending_records = self._simulations_db.query(
-            lambda x: self._get_job_id(x) != "" and self._get_output(x) == ""
-        )
-        return tuple(
-            Job(self._get_job_id(record), self._extract_simulation(record)[0])
-            for record in pending_records
-        )
+        with self._lock:
+            pending_statuses = {JobStatus.RUNNING, JobStatus.SUBMITTED, JobStatus.NOT_SUBMITTED, JobStatus.FAILED_SUBMIT}
+            pending_records = self._simulations_db.query(
+                lambda x: self._get_job_id(x) != "" and self._get_job_status(x) in pending_statuses
+            )
+            return tuple(
+                Job(self._get_job_id(record), self._extract_simulation(record)[0])
+                for record in pending_records
+            )
 
     def get_unsubmitted_inputs(self) -> tuple[Input]:
         """Get all simulator inputs that have not been submitted as jobs.
