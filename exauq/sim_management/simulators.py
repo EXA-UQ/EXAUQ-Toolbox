@@ -496,13 +496,7 @@ class SimulationsLog(object):
                 )
                 raise SimulationsLogLookupError(msg)
 
-            status_str = self._get_job_status(matched_records[0])
-
-            for status in JobStatus:
-                if status.value == status_str:
-                    return status
-
-            raise ValueError(f"{status_str} is not a valid JobStatus.")
+            return self._get_job_status(matched_records[0])
 
 
 class SimulationsLogLookupError(Exception):
