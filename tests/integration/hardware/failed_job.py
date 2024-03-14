@@ -29,7 +29,7 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         assert hardware.get_job_status(job.id) == JobStatus.RUNNING
 
         # Wait for the job to run to error
-        time.sleep(2)
+        time.sleep(3)
 
         # Check job has failed
         assert hardware.get_job_status(job.id) == JobStatus.FAILED

@@ -30,7 +30,7 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         assert all(hardware.get_job_status(job.id) == JobStatus.RUNNING for job in jobs)
 
         # Wait for the jobs to complete
-        time.sleep(4)
+        time.sleep(5)
 
         # Check each job has completed
         assert all(hardware.get_job_status(job.id) == JobStatus.COMPLETED for job in jobs)

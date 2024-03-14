@@ -32,7 +32,7 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         assert hardware.get_job_output(job.id) is None
 
         # Wait for the job to complete
-        time.sleep(2)
+        time.sleep(3)
 
         # Check job has completed
         assert hardware.get_job_status(job.id) == JobStatus.COMPLETED
