@@ -446,7 +446,7 @@ class SimulationsLog(object):
             new_record = matched_records[0] | {self._job_status_key: new_status.value}
             self._simulations_db.update(self._job_id_key, job_id_str, new_record)
 
-    def get_job_status(self, job_id: str) -> JobStatus:
+    def get_job_status(self, job_id: Union[str, JobId]) -> JobStatus:
         """
         Retrieves the current status of a specified job from the simulations log.
 
@@ -457,7 +457,7 @@ class SimulationsLog(object):
 
         Parameters
         ----------
-        job_id : str
+        job_id : Union[str, JobId]
             The unique identifier of the job whose status is to be retrieved.
 
         Returns
@@ -485,17 +485,19 @@ class SimulationsLog(object):
         handling them based on their current state. It enforces data integrity by
         ensuring that each job ID is unique and correctly mapped to a valid job status.
         """
+        job_id_str = str(job_id)
+
         with self._lock:
             matched_records = self._simulations_db.query(
-                lambda x: self._get_job_id(x) == job_id
+                lambda x: self._get_job_id(x) == job_id_str
             )
             num_matched_records = len(matched_records)
             if num_matched_records != 1:
                 msg = (
-                    f"Could not retrieve status of job {job_id}: no such job exists."
+                    f"Could not retrieve status of job {job_id_str}: no such job exists."
                     if num_matched_records == 0
                     else (
-                        f"Could not retrieve status of job {job_id}: "
+                        f"Could not retrieve status of job {job_id_str}: "
                         "multiple records with this ID found."
                     )
                 )
