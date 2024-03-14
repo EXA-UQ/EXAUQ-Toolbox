@@ -296,7 +296,7 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that an existing simulator log file is not opened for writing upon
         initialisation."""
 
-        self.simulations_file.write_text("Input_1,Output,Job_ID\n")
+        self.simulations_file.write_text("Input_1,Output,Job_ID,Job_Status\n")
         self.simulations_file.touch(mode=0o400)  # read-only
         try:
             _ = SimulationsLog(self.simulations_file, input_dim=1)
