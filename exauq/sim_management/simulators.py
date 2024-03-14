@@ -525,8 +525,7 @@ class JobManager:
     Parameters
     ----------
     simulations_log : SimulationsLog
-        An object responsible for logging and retrieving simulation job records,
-        including job inputs, outputs, IDs, and statuses.
+        A log for recording and retrieving details of simulation jobs.
     interface : HardwareInterface
         An abstract interface to the hardware or simulation environment where jobs
         are executed.
