@@ -312,6 +312,11 @@ class SimulationsLog(object):
             The ID of the job that the `result` should be added to.
         result : Real
             The output of a simulation.
+
+        Raises
+        ------
+        SimulationsLogLookupError
+            If there isn't a log record having job ID `job_id`.
         """
 
         job_id_str = str(job_id)
@@ -389,6 +394,11 @@ class SimulationsLog(object):
         new_status : JobStatus
             The new status to be assigned to the job. This must be an instance of the `JobStatus` enum.
 
+        Raises
+        ------
+        SimulationsLogLookupError
+            If there isn't a log record having job ID `job_id`.
+
         Examples
         --------
         Suppose we have a job with ID '12345' that we want to mark as completed. We would call the method as follows:
@@ -435,6 +445,11 @@ class SimulationsLog(object):
         -------
         JobStatus
             The current status of the job as an instance of the `JobStatus` enum.
+
+        Raises
+        ------
+        SimulationsLogLookupError
+            If there isn't a log record having job ID `job_id`.
 
         Examples
         --------
