@@ -839,10 +839,9 @@ class NotSubmittedJobStrategy(JobStrategy):
     """
     Strategy for handling jobs that have not yet been submitted.
 
-    This strategy attempts to submit the job up to a specified number of retries with
+    This strategy attempts to submit the job with up to 5 retries, using
     exponential backoff and jitter to manage temporary issues like network congestion
-    or service unavailability. If submission fails after all retries, the job's status
-    is updated to FAILED_SUBMIT in the simulations log.
+    or service unavailability. If submission fails after all retries, the job's status.
 
     Parameters
     ----------
