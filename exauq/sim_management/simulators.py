@@ -454,8 +454,14 @@ class SimulationsLog(object):
 
         with self._lock:
             record = self._simulations_db.retrieve(self._job_id_key, job_id_str)
-
-            return self._get_job_status(record)
+            if record:
+                return self._get_job_status(record)
+            else:
+                msg = (
+                    f"Could not retrieve status of simulation with job ID = {job_id_str}: "
+                    "no such simulation exists."
+                )
+                raise SimulationsLogLookupError(msg)
 
 
 class SimulationsLogLookupError(Exception):
