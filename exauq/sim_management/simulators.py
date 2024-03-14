@@ -382,11 +382,6 @@ class SimulationsLog(object):
         new_status : JobStatus
             The new status to be assigned to the job. This must be an instance of the `JobStatus` enum.
 
-        Raises
-        ------
-        SimulationsLogLookupError
-            If no job with the given ID exists, or if multiple jobs with the same ID are found in the log.
-
         Examples
         --------
         Suppose we have a job with ID '12345' that we want to mark as completed. We would call the method as follows:
@@ -404,23 +399,8 @@ class SimulationsLog(object):
         job_id_str = str(job_id)
 
         with self._lock:
-            matched_records = self._simulations_db.query(
-                lambda x: self._get_job_id(x) == job_id_str
-            )
-            num_matched_records = len(matched_records)
-
-            if num_matched_records != 1:
-                msg = (
-                    f"Could not update status of job {job_id_str}: no such job exists."
-                    if num_matched_records == 0
-                    else (
-                        f"Could not update status of job {job_id_str}: "
-                        "multiple records with this ID found."
-                    )
-                )
-                raise SimulationsLogLookupError(msg)
-
-            new_record = matched_records[0] | {self._job_status_key: new_status.value}
+            record = self._simulations_db.retrieve(self._job_id_key, job_id_str)
+            new_record = record | {self._job_status_key: new_status.value}
             self._simulations_db.update(self._job_id_key, job_id_str, new_record)
 
     def get_job_status(self, job_id: Union[str, JobId]) -> JobStatus:
