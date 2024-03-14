@@ -364,7 +364,7 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that a log file is parsed correctly irrespective of the order of input
         and output columns."""
 
-        self.simulations_file.write_text("Input_2,Job_ID,Output,Input_1\n1,0,2,10\n")
+        self.simulations_file.write_text("Input_2,Job_Status,Job_ID,Output,Input_1\n1,Completed,0,2,10\n")
         log = SimulationsLog(self.simulations_file, input_dim=2)
         expected = ((Input(10, 1), 2),)
         self.assertEqual(expected, log.get_simulations())
