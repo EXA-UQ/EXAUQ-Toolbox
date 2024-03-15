@@ -444,8 +444,8 @@ class TestSimulationsLog(unittest.TestCase):
 
         x = Input(1)
         log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        log.add_new_record(x)
-        log.add_new_record(x)
+        log.add_new_record(x, "1111")
+        log.add_new_record(x, "2222")
         self.assertEqual(((x, None), (x, None)), log.get_simulations())
 
     def test_insert_result_missing_job_id_error(self):
