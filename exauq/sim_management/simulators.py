@@ -269,36 +269,55 @@ class SimulationsLog(object):
     def add_new_record(
         self,
         x: Input,
-        job_id: Optional[str] = None,
+        job_id: Union[str, JobId, int],
         job_status: JobStatus = JobStatus.NOT_SUBMITTED,
     ) -> None:
-        """Record a new simulation job in the log file.
+        """
+        Record a new simulation job in the log file.
+
+        This method adds a new record for a simulation job with a given input,
+        job ID, and job status. It ensures that the job ID is unique and not None,
+        and that the input dimension matches the expected dimension.
 
         Parameters
         ----------
         x : Input
             An input for the simulator to evaluate.
-        job_id: str, Optional
-            (Default: ``None``) The ID for the job of evaluating the simulator at `x`.
-            If ``None`` then no job ID will be recorded alongside the input `x` in the
-            simulations log file.
-        job_status: JobStatus
-            (Default: ``NOT_SUBMITTED``) The status of the job to be recorded alongside
-            the input `x`.
+        job_id : Union[str, JobId, int]
+            The ID for the job of evaluating the simulator at `x`. Must be unique and not None.
+        job_status : JobStatus, optional
+            The status of the job to be recorded alongside the input `x`.
+            Defaults to JobStatus.NOT_SUBMITTED.
+
+        Raises
+        ------
+        ValueError
+            - If `job_id` is None.
+            - If the input `x` does not have the expected number of coordinates.
+            - If the `job_id` is already in use.
+
         """
         with self._lock:
+            if job_id is None:
+                raise ValueError("job_id cannot be None.")
+
             if len(x) != self._input_dim:
                 raise ValueError(
                     f"Expected input 'x' to have {self._input_dim} coordinates, but got "
                     f"{len(x)} instead."
                 )
 
-            record = {h: "" for h in self._log_file_header}
-            record.update(dict(zip(self._input_keys, x)))
-            if job_id is not None:
-                record.update({self._job_id_key: job_id})
+            existing_record = self._simulations_db.retrieve(self._job_id_key, str(job_id))
+            if existing_record:
+                raise ValueError(f"The job_id '{job_id}' is already in use.")
 
-            record.update(({self._job_status_key: job_status.value}))
+            record = {h: "" for h in self._log_file_header}
+            record = {
+                **record,
+                **dict(zip(self._input_keys, x)),
+                self._job_id_key: str(job_id),
+                self._job_status_key: job_status.value,
+            }
 
             self._simulations_db.create(record)
 
