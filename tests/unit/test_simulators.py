@@ -406,7 +406,9 @@ class TestSimulationsLog(unittest.TestCase):
         log = SimulationsLog(self.simulations_file, input_dim=1)
         log.add_new_record(Input(1), "1")
 
-        with self.assertRaisesRegex(ValueError, exact(f"The job_id '1' is already in use.")):
+        with self.assertRaisesRegex(
+            ValueError, exact(f"The job_id '1' is already in use.")
+        ):
             log.add_new_record(Input(1), "1")
 
     def test_add_new_record_job_id_different_data_types(self):
