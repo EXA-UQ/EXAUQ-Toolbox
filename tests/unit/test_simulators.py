@@ -523,13 +523,14 @@ class TestSimulationsLog(unittest.TestCase):
         self.assertEqual(tuple(), log.get_unsubmitted_inputs())
 
     def test_get_unsubmitted_inputs_unsubmitted_input(self):
-        """Test that, when an input is submitted with no job ID, it features as an
-        unsubmitted input."""
+        """Test that, when an input is submitted, it features as an unsubmitted input."""
 
-        x = Input(1)
-        log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        log.add_new_record(x, "1")
-        self.assertEqual((x,), log.get_unsubmitted_inputs())
+        x1 = Input(1)
+        x2 = Input(2)
+        log = SimulationsLog(self.simulations_file, input_dim=len(x1))
+        log.add_new_record(x1, "1")
+        log.add_new_record(x2, "2")
+        self.assertEqual((x1, x2), log.get_unsubmitted_inputs())
 
 
 if __name__ == "__main__":
