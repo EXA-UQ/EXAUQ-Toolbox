@@ -476,7 +476,7 @@ class TestSimulationsLog(unittest.TestCase):
 
     def test_get_pending_jobs_empty_when_all_completed(self):
         """Test that an empty tuple is returned if all jobs in the simulations
-        log file have a simulator output."""
+        log file have a non-pending JobStatus such as COMPLETED, FAILED, CANCELLED."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
 
@@ -485,6 +485,10 @@ class TestSimulationsLog(unittest.TestCase):
 
         log.add_new_record(Input(2), job_id="2", job_status=JobStatus.COMPLETED)
         log.insert_result(job_id="2", result=20.2)
+
+        log.add_new_record(Input(3), job_id="3", job_status=JobStatus.FAILED)
+
+        log.add_new_record(Input(4), job_id="4", job_status=JobStatus.CANCELLED)
 
         self.assertEqual(tuple(), log.get_pending_jobs())
 
