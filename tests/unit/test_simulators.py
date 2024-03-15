@@ -541,7 +541,7 @@ class TestSimulationsLog(unittest.TestCase):
 
         x = Input(1)
         log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        log.add_new_record(x)
+        log.add_new_record(x, "1")
         self.assertEqual((x,), log.get_unsubmitted_inputs())
 
 
