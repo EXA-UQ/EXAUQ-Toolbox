@@ -526,7 +526,7 @@ class TestSimulationsLog(unittest.TestCase):
         pending_jobs = log.get_pending_jobs()
 
         pending_job_ids = tuple(str(job.id) for job in pending_jobs)
-        self.assertEqual(("2", "3"), pending_job_ids)
+        self.assertEqual(("2", "3", "5", "6"), pending_job_ids)
 
     def test_get_unsubmitted_inputs_no_inputs(self):
         """Test that an empty tuple is returned if no inputs have been submitted to the
