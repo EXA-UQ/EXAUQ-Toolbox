@@ -9,6 +9,7 @@ from typing import Type
 from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.types import FilePath
 from exauq.sim_management.hardware import JobStatus
+from exauq.sim_management.jobs import JobId
 from exauq.sim_management.simulators import (
     SimulationsLog,
     SimulationsLogLookupError,
@@ -390,7 +391,43 @@ class TestSimulationsLog(unittest.TestCase):
                     f"but got {len(x)} instead."
                 ),
             ):
-                log.add_new_record(x)
+                log.add_new_record(x, "1234")
+
+    def test_add_new_record_id_none_error(self):
+        """Test that a ValueError is raised if the supplied job id is `None`."""
+
+        log = SimulationsLog(self.simulations_file, input_dim=1)
+        with self.assertRaisesRegex(ValueError, exact("job_id cannot be None.")):
+            log.add_new_record(Input(1), None)
+
+    def test_add_new_record_duplicate_id_error(self):
+        """Test that a ValueError is raised if a record has same job id as supplied."""
+
+        log = SimulationsLog(self.simulations_file, input_dim=1)
+        log.add_new_record(Input(1), "1")
+
+        with self.assertRaisesRegex(ValueError, exact(f"The job_id '1' is already in use.")):
+            log.add_new_record(Input(1), "1")
+
+    def test_add_new_record_job_id_different_data_types(self):
+        """Test adding new records with job IDs of different data types."""
+
+        log = SimulationsLog(self.simulations_file, 1)
+
+        test_cases = [
+            ("123", "String type should be accepted."),
+            (456, "Integer type should be accepted."),
+            (JobId("789"), "Custom JobId type should be accepted."),
+        ]
+
+        for job_id, message in test_cases:
+            with self.subTest(job_id=job_id):
+                try:
+                    log.add_new_record(Input(1), job_id, JobStatus.NOT_SUBMITTED)
+                except ValueError as e:
+                    self.fail(f"{message} Failed with ValueError: {e}")
+                except TypeError as e:
+                    self.fail(f"{message} Failed with TypeError: {e}")
 
     def test_add_new_record_single_input(self):
         """Test that, when a record for a given input is added, the corresponding
