@@ -435,7 +435,7 @@ class TestSimulationsLog(unittest.TestCase):
 
         x = Input(1)
         log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        log.add_new_record(x)
+        log.add_new_record(x, "1234")
         self.assertEqual(((x, None),), log.get_simulations())
 
     def test_add_new_record_multiple_records_same_input(self):
