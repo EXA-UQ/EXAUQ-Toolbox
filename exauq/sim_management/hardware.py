@@ -295,8 +295,8 @@ class UnixServerScriptInterface(SSHInterface):
         self._job_log = dict()
 
     @property
-    def workspace_dir(self):
-        return self._workspace_dir
+    def workspace_dir(self) -> Optional[str]:
+        return str(self._workspace_dir) if self._workspace_dir is not None else None
 
     def submit_job(self, job: Job) -> None:
         """Submit a job for the simulation code.
@@ -392,8 +392,16 @@ class UnixServerScriptInterface(SSHInterface):
 
     def _make_workspace_dir(self):
         if self.workspace_dir is None:
-            self._workspace_dir = self._script_path.parent
-            self._make_directory_on_remote(self._workspace_dir, make_parents=True)
+            try:
+                workspace_dir_str = self._run_remote_command(
+                    f"mktemp -d -p {self._script_path.parent} exauqXXXXX"
+                )
+                self._workspace_dir = pathlib.PurePosixPath(workspace_dir_str)
+            except Exception as e:
+                raise HardwareInterfaceFailureError(
+                    f"Could not create workspace directory in {self._script_path.parent} "
+                    f"for {self._user}@{self._host}: {e}"
+                )
             self._workpace_dir_created = True
             return None
         else:
@@ -814,6 +822,19 @@ class UnixServerScriptInterface(SSHInterface):
         else:
             return None
 
+    def delete_workspace(self) -> None:
+        if self._workpace_dir_created:
+            try:
+                _ = self._run_remote_command(f"rm -r {self.workspace_dir}")
+            except Exception as e:
+                raise HardwareInterfaceFailureError(
+                    f"Could not delete workspace directory {self.workspace_dir} for "
+                    f"{self._user}@{self._host}: {e}"
+                )
+            return None
+        else:
+            return None
+
     def delete_remote_job_dir(self, job_id: JobId) -> None:
         """Delete the remote directory corresponding to a given job ID.
 
@@ -855,7 +876,7 @@ class UnixServerScriptInterface(SSHInterface):
             except Exception as e:
                 raise HardwareInterfaceFailureError(
                     f"Could not delete remote folder {job_remote_dir} for "
-                    f"{self._user}@{self._host}: {e} "
+                    f"{self._user}@{self._host}: {e}"
                 )
 
             return None

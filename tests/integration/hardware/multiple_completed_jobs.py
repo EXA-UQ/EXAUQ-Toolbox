@@ -43,9 +43,8 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
             hardware.get_job_output(job.id) == float(sum(job.data)) for job in jobs
         )
     finally:
-        # Clean up remote job directories
-        for job in jobs:
-            hardware.delete_remote_job_dir(job.id)
+        # Clean up workspace
+        hardware.delete_workspace()
         pass
 
 

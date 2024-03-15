@@ -44,9 +44,9 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         # Try getting output
         assert hardware.get_job_output(job.id) is None
     finally:
-        # Clean up remote job directory
+        # Clean up workspace
         time.sleep(3)  # wait for job to complete
-        hardware.delete_remote_job_dir(job.id)
+        hardware.delete_workspace()
         pass
 
 
