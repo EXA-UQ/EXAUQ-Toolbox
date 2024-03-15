@@ -353,10 +353,10 @@ class SimulationsLog(object):
                 raise SimulationsLogLookupError(msg)
 
     def get_pending_jobs(self) -> tuple[Job]:
-        """Return all submitted jobs which don't have results but are in specific states.
+        """Return all jobs which don't have results and are in non-terminal states.
 
-        A job is considered pending if its ID is not empty and it is in one of the following
-        states: RUNNING, SUBMITTED, NOT_SUBMITTED, or FAILED_SUBMIT.
+        A job is considered pending if it is in one of the following states:
+        RUNNING, SUBMITTED, NOT_SUBMITTED, or FAILED_SUBMIT.
 
         Returns
         -------
@@ -371,8 +371,7 @@ class SimulationsLog(object):
                 JobStatus.FAILED_SUBMIT,
             }
             pending_records = self._simulations_db.query(
-                lambda x: self._get_job_id(x) != ""
-                and self._get_job_status(x) in pending_statuses
+                lambda x: self._get_job_status(x) in pending_statuses
             )
             return tuple(
                 Job(self._get_job_id(record), self._extract_simulation(record)[0])
