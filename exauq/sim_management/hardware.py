@@ -298,7 +298,7 @@ class UnixServerScriptInterface(SSHInterface):
     def workspace_dir(self) -> Optional[str]:
         return str(self._workspace_dir) if self._workspace_dir is not None else None
 
-    def submit_job(self, job: Job) -> None:
+    def submit_job(self, job: Job, resubmit: bool = False) -> None:
         """Submit a job for the simulation code.
 
         Upon submission, a new subdirectory of the remote workspace directory supplied
@@ -335,7 +335,20 @@ class UnixServerScriptInterface(SSHInterface):
             the server or other such server-related problems.
         """
 
-        if self._job_has_been_submitted(job.id):
+        if resubmit:
+            if (status := self.get_job_status(job.id)) not in {
+                JobStatus.SUBMITTED,
+                JobStatus.RUNNING,
+            }:
+                self.delete_remote_job_dir(job.id)
+                del self._job_log[job.id]
+            else:
+                raise ValueError(
+                    f"Cannot resubmit job with ID {job.id} as job status is '{status.value}'. "
+                    "(Cancel the job before resubmitting.)"
+                )
+
+        elif self._job_has_been_submitted(job.id):
             raise ValueError(
                 f"Cannnot submit job with ID {job.id}: a job with the same ID has already "
                 f"been submitted."
@@ -630,9 +643,10 @@ class UnixServerScriptInterface(SSHInterface):
     ) -> None:
         """Make a directory at the given path on the remote machine.
 
-        If `make_parents` is ``True`` then intermediary directories will be created as
-        required (by calling ``mkdir`` with the ``-p`` option). If the directory already
-        exists and `make_parents` is ``False`` then an error will be thrown.
+        If the directory already exists, then this will be left untouched without error if
+        `make_parents` is ``True``, whereas an error will be raised if `make_parents` is
+        ``False``. If `make_parents` is ``True`` then intermediary directories will be
+        created as required (by calling ``mkdir`` with the ``-p`` option).
         """
 
         mkdir_command = (
