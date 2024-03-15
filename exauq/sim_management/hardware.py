@@ -289,11 +289,14 @@ class UnixServerScriptInterface(SSHInterface):
         self._program = program
         self._script_path = pathlib.PurePosixPath(script_path)
         self._workspace_dir = (
-            pathlib.PurePosixPath(workspace_dir)
-            if workspace_dir is not None
-            else self._script_path.parent
+            pathlib.PurePosixPath(workspace_dir) if workspace_dir is not None else None
         )
+        self._workpace_dir_created = False
         self._job_log = dict()
+
+    @property
+    def workspace_dir(self):
+        return self._workspace_dir
 
     def submit_job(self, job: Job) -> None:
         """Submit a job for the simulation code.
@@ -338,8 +341,9 @@ class UnixServerScriptInterface(SSHInterface):
                 f"been submitted."
             )
 
-        # Make workspace directory
-        self._make_directory_on_remote(self._workspace_dir, make_parents=True)
+        # Make workspace directory, if required
+        if not self._workpace_dir_created:
+            self._make_workspace_dir()
 
         # Make job-specific remote workspace directory (will raise error if directory
         # already exists)
@@ -385,6 +389,17 @@ class UnixServerScriptInterface(SSHInterface):
         }
 
         return None
+
+    def _make_workspace_dir(self):
+        if self.workspace_dir is None:
+            self._workspace_dir = self._script_path.parent
+            self._make_directory_on_remote(self._workspace_dir, make_parents=True)
+            self._workpace_dir_created = True
+            return None
+        else:
+            self._make_directory_on_remote(self._workspace_dir, make_parents=True)
+            self._workpace_dir_created = True
+            return None
 
     def _make_job_config_file(
         self, config: dict[str, str], job_remote_dir: Union[str, pathlib.PurePosixPath]
@@ -483,7 +498,7 @@ class UnixServerScriptInterface(SSHInterface):
                 touch $failed_flag_file;;
             *)
                 error "in function record: unsupported arg '${1}'";;
-        esac
+            esac
         }
 
         # Start the job and capture an ID for it.

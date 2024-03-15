@@ -25,6 +25,9 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         # Submit the job
         hardware.submit_job(job)
 
+        # Check workspace directory is not None
+        assert hardware.workspace_dir is not None
+
         # Confirm that job status of job is RUNNING.
         # Note that the RemoteServerScript class sets the job running upon submission by
         # design, so there is effectively no distinction between SUBMITTED and RUNNING in

@@ -26,6 +26,9 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         for job in jobs:
             hardware.submit_job(job)
 
+        # Check workspace directory is not None
+        assert hardware.workspace_dir is not None
+
         # Confirm that job status of each job is RUNNING.
         assert all(hardware.get_job_status(job.id) == JobStatus.RUNNING for job in jobs)
 
