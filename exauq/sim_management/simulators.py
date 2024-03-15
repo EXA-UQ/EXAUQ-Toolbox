@@ -451,7 +451,7 @@ class SimulationsLog(object):
         This method queries the simulations log database for a job with the given ID and
         returns its current status. It is thread-safe, ensuring consistent reads even when
         accessed concurrently from multiple threads. If the job ID does not exist in the
-        database or if there are duplicate entries for the job ID, it raises an exception.
+        database it raises an exception.
 
         Parameters
         ----------
