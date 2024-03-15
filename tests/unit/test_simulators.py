@@ -512,9 +512,12 @@ class TestSimulationsLog(unittest.TestCase):
         log = SimulationsLog(self.simulations_file, input_dim=1)
         for x, job_id, y, status in (
             (Input(1), "1", 10.1, JobStatus.COMPLETED),
-            (Input(2), "2", None, JobStatus.RUNNING),
-            (Input(3), "3", None, JobStatus.FAILED_SUBMIT),
-            (Input(4), None, None, JobStatus.FAILED),
+            (Input(2), "2", None, JobStatus.SUBMITTED),
+            (Input(3), "3", None, JobStatus.NOT_SUBMITTED),
+            (Input(4), "4", None, JobStatus.CANCELLED),
+            (Input(5), "5", None, JobStatus.RUNNING),
+            (Input(6), "6", None, JobStatus.FAILED_SUBMIT),
+            (Input(7), "7", None, JobStatus.FAILED),
         ):
             log.add_new_record(x, job_id, status)
             if job_id is not None:
