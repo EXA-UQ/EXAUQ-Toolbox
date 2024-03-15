@@ -848,14 +848,6 @@ class NotSubmittedJobStrategy(JobStrategy):
                 break
             except Exception as e:
                 retry_attempts += 1
-                delay = min(
-                    initial_delay * (2**retry_attempts), max_delay
-                )  # Exponential backoff
-                jitter = random.uniform(0, 0.1 * delay)
-                print(
-                    f"Failed to submit job {job.id}: {e}. Retrying in {delay + jitter:.2f} seconds..."
-                )
-                sleep(delay + jitter)
 
                 if retry_attempts == max_retries:
                     print(
@@ -864,6 +856,16 @@ class NotSubmittedJobStrategy(JobStrategy):
                     job_manager.simulations_log.update_job_status(
                         str(job.id), JobStatus.FAILED_SUBMIT
                     )
+                    break
+
+                delay = min(
+                    initial_delay * (2**retry_attempts), max_delay
+                )  # Exponential backoff
+                jitter = random.uniform(0, 0.1 * delay)
+                print(
+                    f"Failed to submit job {job.id}: {e}. Retrying in {delay + jitter:.2f} seconds..."
+                )
+                sleep(delay + jitter)
 
 
 class CancelledJobStrategy(JobStrategy):
