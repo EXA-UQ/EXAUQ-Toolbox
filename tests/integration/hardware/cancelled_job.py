@@ -28,9 +28,8 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         # Check workspace directory is not None
         assert hardware.workspace_dir is not None
 
-        # Confirm that job status of job is RUNNING.
+        # Confirm that status of job is RUNNING.
         assert hardware.get_job_status(job.id) == JobStatus.RUNNING
-        # time.sleep(5)
 
         # Cancel the job
         hardware.cancel_job(job.id)
