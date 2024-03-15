@@ -360,7 +360,7 @@ class TestSimulationsLog(unittest.TestCase):
         log.add_new_record(x2, job_id="2")
 
         x3 = Input(3, 3)
-        log.add_new_record(x3)
+        log.add_new_record(x3, job_id="3")
 
         expected = ((x1, 10), (x2, None), (x3, None))
         self.assertEqual(expected, log.get_simulations())
