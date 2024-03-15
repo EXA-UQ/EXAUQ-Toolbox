@@ -467,25 +467,6 @@ class TestSimulationsLog(unittest.TestCase):
         ):
             log.insert_result(job_id, 10)
 
-    @unittest.skip("Not sure if this is still valid?")
-    def test_insert_result_multiple_job_id_error(self):
-        """Test that a SimulationsLogLookupError is raised if there are multiple
-        records with the same job ID when trying to insert a simulator output."""
-
-        x = Input(1)
-        log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        job_id = "0"
-        log.add_new_record(x, job_id)
-        log.add_new_record(x, job_id)
-        with self.assertRaisesRegex(
-            SimulationsLogLookupError,
-            exact(
-                f"Could not add output to simulation with job ID = {job_id}: "
-                "multiple records with this ID found."
-            ),
-        ):
-            log.insert_result(job_id, 10)
-
     def test_get_pending_jobs_empty_log_file(self):
         """Test that an empty tuple of pending jobs is returned if there are no
         records in the simulations log file."""
