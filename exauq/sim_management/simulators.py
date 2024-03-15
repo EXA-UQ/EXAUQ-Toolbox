@@ -402,8 +402,8 @@ class SimulationsLog(object):
         Updates the status of a job in the simulations log.
 
         This method updates the job status for a given job ID in the simulation log database.
-        It ensures thread safety by locking the operation. If the job ID does not exist or
-        multiple entries are found for the job ID, it raises a `SimulationsLogLookupError`.
+        It ensures thread safety by locking the operation. If the job ID does not exist it
+        raises a `SimulationsLogLookupError`.
 
         Parameters
         ----------
@@ -423,8 +423,7 @@ class SimulationsLog(object):
 
         >>> update_job_status('12345', JobStatus.COMPLETED)
 
-        If the job ID '12345' does not exist in the log, or if there are multiple entries for '12345',
-        a `SimulationsLogLookupError` will be raised.
+        If the job ID '12345' does not exist in the log, a `SimulationsLogLookupError` will be raised.
 
         Notes
         -----
