@@ -493,8 +493,8 @@ class TestSimulationsLog(unittest.TestCase):
         self.assertEqual(tuple(), log.get_pending_jobs())
 
     def test_get_pending_jobs_selects_correct_jobs(self):
-        """Test that the jobs selected are those that have a Job ID but not an
-        output."""
+        """Test that the jobs selected are those that have a valid pending JobState:
+        SUBMITTED, NOT_SUBMITTED, RUNNING, FAILED_SUBMIT."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
         for x, job_id, y, status in (
