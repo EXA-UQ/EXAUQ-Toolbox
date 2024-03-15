@@ -328,9 +328,9 @@ class SimulationsLog(object):
                 self._simulations_db.update(self._job_id_key, job_id_str, new_record)
             else:
                 msg = (
-                        f"Could not add output to simulation with job ID = {job_id_str}: "
-                        "no such simulation exists."
-                    )
+                    f"Could not add output to simulation with job ID = {job_id_str}: "
+                    "no such simulation exists."
+                )
                 raise SimulationsLogLookupError(msg)
 
     def get_pending_jobs(self) -> tuple[Job]:
@@ -422,9 +422,9 @@ class SimulationsLog(object):
                 self._simulations_db.update(self._job_id_key, job_id_str, new_record)
             else:
                 msg = (
-                        f"Could not update status of simulation with job ID = {job_id_str}: "
-                        "no such simulation exists."
-                    )
+                    f"Could not update status of simulation with job ID = {job_id_str}: "
+                    "no such simulation exists."
+                )
                 raise SimulationsLogLookupError(msg)
 
     def get_job_status(self, job_id: Union[str, JobId]) -> JobStatus:
