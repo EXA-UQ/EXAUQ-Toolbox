@@ -268,6 +268,8 @@ class UnixServerScriptInterface(SSHInterface):
         If more than one method of authentication is provided.
     """
 
+    manager_script_name = "exauq_manager.sh"
+
     def __init__(
         self,
         user: str,
@@ -287,20 +289,63 @@ class UnixServerScriptInterface(SSHInterface):
         self._host = host
         self._program = program
         self._script_path = pathlib.PurePosixPath(script_path)
+        self._workpace_dir_created = self._remote_dir_exists(workspace_dir)
         self._workspace_dir = (
             pathlib.PurePosixPath(workspace_dir) if workspace_dir is not None else None
         )
-        self._workpace_dir_created = False
         self._job_log = self._initialise_job_log()
 
+    def _remote_dir_exists(self, path: Union[str, pathlib.PurePosixPath, None]) -> bool:
+        if path is None:
+            return False
+        else:
+            flag = "EXISTS"
+            try:
+                result = self._run_remote_command(
+                    f"if [ -d {path} ]; then echo {flag}; fi"
+                )
+            except Exception as e:
+                raise HardwareInterfaceFailureError(
+                    f"Could not establish existence of workspace directory {self.workspace_dir} "
+                    f"for {self._user}@{self._host}: {e}"
+                )
+            return flag == result
+
     def _initialise_job_log(self) -> dict[str, dict[str, Any]]:
-        return dict()
+        if not self._workpace_dir_created:
+            return dict()
+        else:
+            # Check whether there are any jobs already submitted
+            job_ids = self._fetch_remote_job_ids()
+
+            return {
+                job_id: self._make_job_settings(job_id, status=JobStatus.SUBMITTED)
+                for job_id in job_ids
+            }
+
+    def _fetch_remote_job_ids(self) -> tuple[JobId, ...]:
+        # List paths to job manager scripts in directories directly below the workspace
+        # directory
+        cmd = f"cd {self.workspace_dir} && find . | grep -G '^\\./[^/]*/{self.manager_script_name}$'"
+        try:
+            job_manager_paths_str = self._run_remote_command(cmd)
+        except Exception as e:
+            raise HardwareInterfaceFailureError(
+                f"Could not fetch job IDs from workspace directory {self.workspace_dir} "
+                f"for {self._user}@{self._host}: {e}"
+            )
+
+        # Extract the job IDs as names of directories containing the job manager scripts
+        job_manager_paths = [
+            pathlib.PurePosixPath(path) for path in job_manager_paths_str.split("\n")
+        ]
+        return tuple(JobId(path.parent.name) for path in job_manager_paths)
 
     def _make_job_settings(
         self, job_id: JobId, status: JobStatus = JobStatus.NOT_SUBMITTED
     ) -> dict[str, Any]:
         job_remote_dir = self._workspace_dir / str(job_id)
-        job_manager_path = job_remote_dir / "exauq_manager.sh"
+        job_manager_path = job_remote_dir / self.manager_script_name
         input_data_path = pathlib.PurePosixPath(job_remote_dir, "input.csv")
         script_output_path = str(job_remote_dir / "output.txt")
         script_config_path = pathlib.PurePosixPath(job_remote_dir, "config.json")
