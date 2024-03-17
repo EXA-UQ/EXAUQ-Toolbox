@@ -336,6 +336,8 @@ class UnixServerScriptInterface(SSHInterface):
         """
 
         if resubmit:
+            # Clear the artifacts from the remote side, as long as the job is not running
+            # or marked as submitted.
             if (status := self.get_job_status(job.id)) not in {
                 JobStatus.SUBMITTED,
                 JobStatus.RUNNING,
