@@ -287,6 +287,7 @@ class UnixServerScriptInterface(SSHInterface):
         )
         self._user = user
         self._host = host
+        self._user_at_host = f"{self._user}@{self._host}"
         self._program = program
         self._script_path = pathlib.PurePosixPath(script_path)
         self._workpace_dir_created = self._remote_dir_exists(workspace_dir)
@@ -307,7 +308,7 @@ class UnixServerScriptInterface(SSHInterface):
             except Exception as e:
                 raise HardwareInterfaceFailureError(
                     f"Could not establish existence of workspace directory {self.workspace_dir} "
-                    f"for {self._user}@{self._host}: {e}"
+                    f"for {self._user_at_host}: {e}"
                 )
             return flag == result
 
@@ -332,7 +333,7 @@ class UnixServerScriptInterface(SSHInterface):
         except Exception as e:
             raise HardwareInterfaceFailureError(
                 f"Could not fetch job IDs from workspace directory {self.workspace_dir} "
-                f"for {self._user}@{self._host}: {e}"
+                f"for {self._user_at_host}: {e}"
             )
 
         # Extract the job IDs as names of directories containing the job manager scripts
@@ -461,7 +462,7 @@ class UnixServerScriptInterface(SSHInterface):
             _ = self._run_remote_command(f"bash {job_settings['job_manager']} start")
         except Exception as e:
             raise HardwareInterfaceFailureError(
-                f"Could not start job with id {job.id} on {self._user}@{self._host}: {e}"
+                f"Could not start job with id {job.id} on {self._user_at_host}: {e}"
             )
 
         # Mark job as submitted and store settings in job log
@@ -480,7 +481,7 @@ class UnixServerScriptInterface(SSHInterface):
             except Exception as e:
                 raise HardwareInterfaceFailureError(
                     f"Could not create workspace directory in {self._script_path.parent} "
-                    f"for {self._user}@{self._host}: {e}"
+                    f"for {self._user_at_host}: {e}"
                 )
             self._workpace_dir_created = True
             return None
@@ -680,7 +681,7 @@ class UnixServerScriptInterface(SSHInterface):
             _ = self._run_remote_command(mkdir_command)
         except Exception as e:
             raise HardwareInterfaceFailureError(
-                f"Could not make directory {path} for {self._user}@{self._host}: {e}"
+                f"Could not make directory {path} for {self._user_at_host}: {e}"
             )
         return None
 
@@ -697,7 +698,7 @@ class UnixServerScriptInterface(SSHInterface):
         except Exception as e:
             raise HardwareInterfaceFailureError(
                 f"Could not create text file at {target_path} for "
-                f"{self._user}@{self._host}: {e}"
+                f"{self._user_at_host}: {e}"
             )
         return None
 
@@ -867,7 +868,7 @@ class UnixServerScriptInterface(SSHInterface):
             except Exception as e:
                 raise HardwareInterfaceFailureError(
                     f"Could not delete workspace directory {self.workspace_dir} for "
-                    f"{self._user}@{self._host}: {e}"
+                    f"{self._user_at_host}: {e}"
                 )
             return None
         else:
@@ -914,7 +915,7 @@ class UnixServerScriptInterface(SSHInterface):
             except Exception as e:
                 raise HardwareInterfaceFailureError(
                     f"Could not delete remote folder {job_remote_dir} for "
-                    f"{self._user}@{self._host}: {e}"
+                    f"{self._user_at_host}: {e}"
                 )
 
             return None
