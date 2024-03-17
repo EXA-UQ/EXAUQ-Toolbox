@@ -617,29 +617,6 @@ class UnixServerScriptInterface(SSHInterface):
             }
         )
 
-    def _make_process_identifier_command(self, pid: str) -> str:
-        """Make a shell command for getting a string that uniquely identifies a remote
-        process."""
-
-        return f'echo "$(ps -p {pid} -o user=),$(ps -p {pid} -o pid=),$(ps -p {pid} -o lstart=)"'
-
-    def _parse_process_identifier(self, process_identifier: str) -> tuple[str, str, str]:
-        """Extract the user, process ID and start time of a process from a process
-        identifier.
-
-        The `process_identifier` should be a comma-delimited string of the form
-        '<user>,<pid>,<start_time>'.
-        """
-
-        components = process_identifier.split(",")
-        if len(components) != 3 or any(c.strip() == "" for c in components):
-            raise ValueError(
-                f"Could not parse process identifier {process_identifier} for user, pid "
-                "and start time."
-            ) from None
-
-        return tuple(components)
-
     def _make_directory_on_remote(
         self, path: Union[str, pathlib.PurePosixPath], make_parents: bool = False
     ) -> None:
