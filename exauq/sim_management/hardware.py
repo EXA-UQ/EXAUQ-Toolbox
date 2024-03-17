@@ -5,9 +5,8 @@ import pathlib
 import string
 import textwrap
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
 from enum import Enum
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from fabric import Config, Connection
 from paramiko.ssh_exception import AuthenticationException, SSHException
@@ -292,7 +291,30 @@ class UnixServerScriptInterface(SSHInterface):
             pathlib.PurePosixPath(workspace_dir) if workspace_dir is not None else None
         )
         self._workpace_dir_created = False
-        self._job_log = dict()
+        self._job_log = self._initialise_job_log()
+
+    def _initialise_job_log(self) -> dict[str, dict[str, Any]]:
+        return dict()
+
+    def _make_job_settings(
+        self, job_id: JobId, status: JobStatus = JobStatus.NOT_SUBMITTED
+    ) -> dict[str, Any]:
+        job_remote_dir = self._workspace_dir / str(job_id)
+        job_manager_path = job_remote_dir / "exauq_manager.sh"
+        input_data_path = pathlib.PurePosixPath(job_remote_dir, "input.csv")
+        script_output_path = str(job_remote_dir / "output.txt")
+        script_config_path = pathlib.PurePosixPath(job_remote_dir, "config.json")
+        script_stdout_path = job_remote_dir / f"{self._script_path.name}.out"
+        return {
+            "status": status,
+            "job_remote_dir": job_remote_dir,
+            "job_manager": job_manager_path,
+            "input_data_path": input_data_path,
+            "script_output_path": script_output_path,
+            "script_config_path": script_config_path,
+            "script_stdout_path": script_stdout_path,
+            "output": None,
+        }
 
     @property
     def workspace_dir(self) -> Optional[str]:
@@ -360,48 +382,46 @@ class UnixServerScriptInterface(SSHInterface):
         if not self._workpace_dir_created:
             self._make_workspace_dir()
 
+        # Create the settings for the new job
+        job_settings = self._make_job_settings(job.id)
+
         # Make job-specific remote workspace directory (will raise error if directory
         # already exists)
-        job_remote_dir = self._workspace_dir / str(job.id)
-        self._make_directory_on_remote(job_remote_dir)
+        self._make_directory_on_remote(job_settings["job_remote_dir"])
 
         # Put simulator input data onto server
-        script_input_path = self._make_job_input_file(job.data, job_remote_dir)
+        data_str = ",".join(map(str, job.data)) + "\n"
+        self._make_text_file_on_remote(data_str, job_settings["input_data_path"])
 
         # Make script input config and put onto server
         script_config = {
-            "input_file": str(script_input_path),
-            "output_file": str(job_remote_dir / "output.txt"),
+            "input_file": str(job_settings["input_data_path"]),
+            "output_file": str(job_settings["script_output_path"]),
         }
+        self._make_text_file_on_remote(
+            json.dumps(script_config), job_settings["script_config_path"]
+        )
 
         # Create manager script and put onto server
-        config_path = self._make_job_config_file(script_config, job_remote_dir)
-        stdout_path = job_remote_dir / f"{self._script_path.name}.out"
         manager_script = self._make_manager_script(
-            job_remote_dir,
-            config_path,
-            stdout_path,
-            script_config["output_file"],
+            job_settings["job_remote_dir"],
+            job_settings["script_config_path"],
+            job_settings["script_stdout_path"],
+            job_settings["script_output_path"],
         )
-        manager_script_path = job_remote_dir / "exauq_manager.sh"
-        self._make_text_file_on_remote(manager_script, manager_script_path)
+        self._make_text_file_on_remote(manager_script, job_settings["job_manager"])
 
-        # Start job and get server-side identifier for the job
+        # Start job
         try:
-            _ = self._run_remote_command(f"bash {manager_script_path} start")
+            _ = self._run_remote_command(f"bash {job_settings['job_manager']} start")
         except Exception as e:
             raise HardwareInterfaceFailureError(
                 f"Could not start job with id {job.id} on {self._user}@{self._host}: {e}"
             )
 
-        # Record details of the job in the log
-        self._job_log[job.id] = {
-            "status": JobStatus.SUBMITTED,
-            "job_remote_dir": job_remote_dir,
-            "job_manager": manager_script_path,
-            "script_output_path": script_config["output_file"],
-            "output": None,
-        }
+        # Mark job as submitted and store settings in job log
+        job_settings["status"] = JobStatus.SUBMITTED
+        self._job_log[job.id] = job_settings
 
         return None
 
@@ -423,26 +443,6 @@ class UnixServerScriptInterface(SSHInterface):
             self._make_directory_on_remote(self._workspace_dir, make_parents=True)
             self._workpace_dir_created = True
             return None
-
-    def _make_job_config_file(
-        self, config: dict[str, str], job_remote_dir: Union[str, pathlib.PurePosixPath]
-    ) -> pathlib.PurePosixPath:
-        """Make a simulation script input JSON configuration file on the server and
-        return the path to this file."""
-
-        config_file_path = pathlib.PurePosixPath(job_remote_dir, "config.json")
-        self._make_text_file_on_remote(json.dumps(config), config_file_path)
-        return config_file_path
-
-    def _make_job_input_file(
-        self, data: Sequence, job_remote_dir: Union[str, pathlib.PurePosixPath]
-    ) -> pathlib.PurePosixPath:
-        """Make a csv file on the server containing input data for the simulation code."""
-
-        input_file_path = pathlib.PurePosixPath(job_remote_dir, "input.csv")
-        data_str = ",".join(map(str, data)) + "\n"
-        self._make_text_file_on_remote(data_str, input_file_path)
-        return input_file_path
 
     def _make_manager_script(
         self,
