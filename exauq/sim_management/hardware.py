@@ -327,7 +327,7 @@ class UnixServerScriptInterface(SSHInterface):
     def _fetch_remote_job_ids(self) -> tuple[JobId, ...]:
         # List paths to job manager scripts in directories directly below the workspace
         # directory
-        cmd = f"cd {self.workspace_dir} && find . | grep -G '^\\./[^/]*/{self.manager_script_name}$'"
+        cmd = f"cd {self.workspace_dir} && find . | grep -G '^\\./[0-9]*/{self.manager_script_name}$'"
         try:
             job_manager_paths_str = self._run_remote_command(cmd)
         except Exception as e:
