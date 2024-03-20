@@ -210,6 +210,8 @@ class _Template(string.Template):
     delimiter = "#PY_"
 
 
+# TODO: update class docstring e.g. for HardwareInterfaceFailureError raise, workspace_dir
+#       attribute, etc.
 class UnixServerScriptInterface(SSHInterface):
     """Interface for running a simulation script on a Unix server over SSH.
 
@@ -297,6 +299,8 @@ class UnixServerScriptInterface(SSHInterface):
         self._job_log = self._initialise_job_log()
 
     def _remote_dir_exists(self, path: Union[str, pathlib.PurePosixPath, None]) -> bool:
+        """Whether a directory at the given path exists on the server."""
+
         if path is None:
             return False
         else:
@@ -313,6 +317,9 @@ class UnixServerScriptInterface(SSHInterface):
             return flag == result
 
     def _initialise_job_log(self) -> dict[str, dict[str, Any]]:
+        """Populate the job log with details of existing jobs that have been submitted to
+        the server."""
+
         if not self._workpace_dir_created:
             return dict()
         else:
@@ -325,6 +332,11 @@ class UnixServerScriptInterface(SSHInterface):
             }
 
     def _fetch_remote_job_ids(self) -> tuple[JobId, ...]:
+        """Get IDs of jobs that have been submitted to the server.
+
+        Gathers the names of directories directly below the workspace directory that
+        have integer names and contain a manager script.
+        """
         # List paths to job manager scripts in directories directly below the workspace
         # directory
         cmd = f"cd {self.workspace_dir} && find . | grep -G '^\\./[0-9]*/{self.manager_script_name}$'"
@@ -345,6 +357,11 @@ class UnixServerScriptInterface(SSHInterface):
     def _make_job_settings(
         self, job_id: JobId, status: JobStatus = JobStatus.NOT_SUBMITTED
     ) -> dict[str, Any]:
+        """Make settings for specifying a job on the server.
+
+        It is expected that the resulting dict will constitute an entry in the job log.
+        """
+
         job_remote_dir = self._workspace_dir / str(job_id)
         job_manager_path = job_remote_dir / self.manager_script_name
         input_data_path = pathlib.PurePosixPath(job_remote_dir, "input.csv")
@@ -364,8 +381,12 @@ class UnixServerScriptInterface(SSHInterface):
 
     @property
     def workspace_dir(self) -> Optional[str]:
+        """(Read-only) The directory within which details of jobs are recorded, or None
+        if this is unknown."""
+
         return str(self._workspace_dir) if self._workspace_dir is not None else None
 
+    # TODO: update docstring with details of resubmit option
     def submit_job(self, job: Job, resubmit: bool = False) -> None:
         """Submit a job for the simulation code.
 
@@ -383,10 +404,9 @@ class UnixServerScriptInterface(SSHInterface):
         Finally, a simple shell script wrapping the main command for running the simulator
         will be uploaded: this is what gets run to start the job on the server.
 
-        If a job with the same ID has already been submitted in the lifetime of this
-        object, or if the target directory for the job's files already exists on the
-        server, then an error will be raised. This guards against overwriting data
-        associated with a pre-existing job.
+        If a job with the same ID has already been submitted to the server, or if the
+        target directory for the job's files already exists on the server, then an error
+        will be raised.
 
         Parameters
         ----------
@@ -472,6 +492,14 @@ class UnixServerScriptInterface(SSHInterface):
         return None
 
     def _make_workspace_dir(self):
+        """Make the workspace directory.
+
+        If the path to a directory was provided explicitly during object initialisation,
+        then create that directory on the server. Otherwise, create a default directory
+        alongside the simulator script. The name of the directory will be of the form
+        'exauqXXXXX' where 'XXXXX' is a uniquely generated string of characters created
+        via the ``mktemp`` command on Unix systems."""
+
         if self.workspace_dir is None:
             try:
                 workspace_dir_str = self._run_remote_command(
@@ -497,6 +525,10 @@ class UnixServerScriptInterface(SSHInterface):
         stdout_path: Union[str, pathlib.PurePosixPath],
         output_path: Union[str, pathlib.PurePosixPath],
     ) -> str:
+        """Create the text for the server-side job management Bash program."""
+
+        # TODO: add check for mktemp command in check_system()
+        # TODO: modify main script invocation to touch COMPLETED file when completed
         template_str = r"""
         #!/bin/bash
 
@@ -711,6 +743,7 @@ class UnixServerScriptInterface(SSHInterface):
         res = self._conn.run(command, hide=True)
         return str(res.stdout).strip()
 
+    # TODO: review docstring to check it's consistent with implementation
     def get_job_status(self, job_id: JobId) -> JobStatus:
         """Get the status of a job with given job ID.
 
@@ -841,6 +874,7 @@ class UnixServerScriptInterface(SSHInterface):
 
         return contents.strip()
 
+    # TODO: finish docstring
     def cancel_job(self, job_id: JobId):
         """Cancel the job with a given job ID.
 
@@ -861,6 +895,7 @@ class UnixServerScriptInterface(SSHInterface):
         else:
             return None
 
+    # TODO: add docstring
     def delete_workspace(self) -> None:
         if self._workpace_dir_created:
             try:
@@ -874,6 +909,8 @@ class UnixServerScriptInterface(SSHInterface):
         else:
             return None
 
+    # TODO: update docstring (no longer only deletes jobs created in the lifetime of this
+    #       instance)
     def delete_remote_job_dir(self, job_id: JobId) -> None:
         """Delete the remote directory corresponding to a given job ID.
 
