@@ -935,6 +935,7 @@ class UnixServerScriptInterface(SSHInterface):
 
         job_status = self.get_job_status(job_id)
         if job_status == JobStatus.NOT_SUBMITTED:
+            # TODO: change error message (no longer just since initialisation of object)
             raise ValueError(
                 f"Job ID {job_id} not submitted since initialisation of this object."
             )
