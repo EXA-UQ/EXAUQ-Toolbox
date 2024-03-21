@@ -9,9 +9,9 @@ from time import sleep
 from typing import Any, Optional, Union
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
-from exauq.core.types import FilePath
 from exauq.sim_management.hardware import HardwareInterface, JobStatus
 from exauq.sim_management.jobs import Job, JobId
+from exauq.sim_management.types import FilePath
 from exauq.utilities.csv_db import CsvDB, Record
 from exauq.utilities.validation import check_file_path
 
