@@ -42,7 +42,7 @@ class Simulator(AbstractSimulator):
     interface : HardwareInterface
         An implementation of the ``HardwareInterface`` base class, providing the interface
         to a computer that the simulation code runs on.
-    simulations_log_file : str or bytes or os.PathLike, optional
+    simulations_log_file : exauq.sim_management.types.FilePath, optional
         (Default: ``simulations.csv``) A path to the simulation log file. The default
         will work with a file called ``simulations.csv`` in the current working directory
         for the calling Python process.
@@ -151,7 +151,7 @@ class SimulationsLog(object):
 
     Parameters
     ----------
-    file : str, bytes or path-like
+    file : exauq.sim_management.types.FilePath
         A path to the underlying log file containing details of simulations.
     input_dim : int
         The number of coordinates needed to define an input to the simultor.

@@ -1,10 +1,17 @@
 import getpass
+import io
+import json
+import pathlib
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
 from fabric import Config, Connection
 from paramiko.ssh_exception import AuthenticationException, SSHException
+
+from exauq.sim_management.jobs import Job, JobId
+from exauq.sim_management.types import FilePath
 
 
 class JobStatus(Enum):
@@ -64,28 +71,23 @@ class HardwareInterface(ABC):
     - get_job_status
     - get_job_output
     - cancel_job
-    - wait_for_job
     """
 
     @abstractmethod
-    def submit_job(self, job):
-        pass
+    def submit_job(self, job: Job):
+        raise NotImplementedError
 
     @abstractmethod
-    def get_job_status(self, job_id):
-        pass
+    def get_job_status(self, job_id: JobId):
+        raise NotImplementedError
 
     @abstractmethod
-    def get_job_output(self, job_id):
-        pass
+    def get_job_output(self, job_id: JobId):
+        raise NotImplementedError
 
     @abstractmethod
-    def cancel_job(self, job_id):
-        pass
-
-    @abstractmethod
-    def wait_for_job(self, job_id):
-        pass
+    def cancel_job(self, job_id: JobId):
+        raise NotImplementedError
 
 
 class SSHInterface(HardwareInterface, ABC):
@@ -102,9 +104,9 @@ class SSHInterface(HardwareInterface, ABC):
         The username to authenticate with the SSH server.
     host : str
         The hostname or IP address of the SSH server.
-    key_filename : str, optional
+    key_filename : exauq.sim_management.types.FilePath, optional
         The path to the SSH private key file to authenticate with the SSH server.
-    ssh_config_path : str, optional
+    ssh_config_path : exauq.sim_management.types.FilePath, optional
         The path to the SSH configuration file.
     use_ssh_agent : bool, optional
         If ``True``, use SSH agent for authentication. Defaults to ``False``.
@@ -121,8 +123,8 @@ class SSHInterface(HardwareInterface, ABC):
         self,
         user: str,
         host: str,
-        key_filename: Optional[str] = None,
-        ssh_config_path: Optional[str] = None,
+        key_filename: Optional[FilePath] = None,
+        ssh_config_path: Optional[FilePath] = None,
         use_ssh_agent: Optional[bool] = False,
         max_attempts: int = 3,
     ):
@@ -146,10 +148,10 @@ class SSHInterface(HardwareInterface, ABC):
 
         if key_filename is not None:
             self._conn = Connection(
-                f"{user}@{host}", connect_kwargs={"key_filename": key_filename}
+                f"{user}@{host}", connect_kwargs={"key_filename": str(key_filename)}
             )
         elif ssh_config_path is not None:
-            ssh_config = Config(overrides={"ssh_config_path": ssh_config_path})
+            ssh_config = Config(overrides={"ssh_config_path": str(ssh_config_path)})
             self._conn = Connection(host, config=ssh_config)
         elif use_ssh_agent:
             self._conn = Connection(f"{user}@{host}")
@@ -194,3 +196,472 @@ class SSHInterface(HardwareInterface, ABC):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._conn.close()
+
+
+class UnixServerScriptInterface(SSHInterface):
+    """Interface for running a simulation script on a Unix server over SSH.
+
+    This interface is designed to invoke simulation code on a remote server with the
+    following command:
+
+    ```
+    <program> <script_path> path/to/config.json
+    ```
+
+    Here, ``<program>`` is a program such as `bash`, `python`, `Rscript`, etc. The script
+    is expected to take a single JSON config file as input. This config file consists of a
+    single object with keys "input_file" and "output_file", which give paths to an
+    input csv file for the simulator and an output file for the simulator to write its
+    output to.
+
+    Objects of this class will take care of creating the necessary JSON config file and
+    input file from a `Job`, uploading these to a job-specific subdirectory of a remote
+    'workspace' directory. This job-specific directory is also where the output of the
+    simulator script is written to, along with a file capturing standard output and
+    standard error from running the script. Note that any required intermiary directories
+    are created on the server.
+
+    If `key_filename` and `ssh_config_path` are not provided and `use_ssh_agent` is
+    ``False`` then a prompt for a password from standard input will be issued each time a
+    connection is made to the server.
+
+    Parameters
+    ----------
+    user : str
+        The username to authenticate with the SSH server.
+    host : str
+        The hostname or IP address of the SSH server.
+    program : str
+        The program to run on the server.
+    script_path : exauq.sim_management.types.FilePath
+        The path to the script on the Unix server to run with `program`.
+    workspace_dir : exauq.sim_management.types.FilePath, optional
+        (Default: None) A path to a directory on the Unix server where job-specific
+        subdirectories should be created. Relative paths will be relative to the default
+        working directory for a new SSH session (usually the user's home directory). If
+        ``None`` then the directory containing the script in `script_path` will be used.
+    key_filename : exauq.sim_management.types.FilePath, optional
+        (Default: None) The path to an SSH private key file to authenticate with the SSH
+        server. The key file must be unencrypted.
+    ssh_config_path : exauq.sim_management.types.FilePath, optional
+        (Default: None) The path to an SSH configuration file.
+    use_ssh_agent : bool, optional
+        (Default: False) If ``True``, use a running SSH agent for authentication.
+    max_attempts : int, optional
+        (Default: 3) The number of authentication attempts allowed.
+
+    Raises
+    ------
+    ValueError
+        If more than one method of authentication is provided.
+    """
+
+    def __init__(
+        self,
+        user: str,
+        host: str,
+        program: str,
+        script_path: FilePath,
+        workspace_dir: Optional[FilePath] = None,
+        key_filename: Optional[FilePath] = None,
+        ssh_config_path: Optional[FilePath] = None,
+        use_ssh_agent: Optional[bool] = False,
+        max_attempts: int = 3,
+    ):
+        super().__init__(
+            user, host, key_filename, ssh_config_path, use_ssh_agent, max_attempts
+        )
+        self._user = user
+        self._host = host
+        self._program = program
+        self._script_path = pathlib.PurePosixPath(script_path)
+        self._workspace_dir = (
+            pathlib.PurePosixPath(workspace_dir)
+            if workspace_dir is not None
+            else self._script_path.parent
+        )
+        self._job_log = dict()
+
+    def submit_job(self, job: Job) -> None:
+        """Submit a job for the simulation code.
+
+        Upon submission, a new subdirectory of the remote workspace directory supplied
+        at this object's initialisation will be created for the job, using the job's ID
+        as the directory name. A JSON config file for the script will be created and
+        uploaded to this directory, along with a simulator input csv file containing the
+        data from the job. The content of the JSON config file will have the following
+        form:
+
+        ```
+        {"input_file": "path/to/job_dir/input.csv", "output_file": "path/to/job_dir/output.txt"}
+        ```
+
+        Finally, a simple shell script wrapping the main command for running the simulator
+        will be uploaded: this is what gets run to start the job on the server.
+
+        If a job with the same ID has already been submitted in the lifetime of this
+        object, or if the target directory for the job's files already exists on the
+        server, then an error will be raised. This guards against overwriting data
+        associated with a pre-existing job.
+
+        Parameters
+        ----------
+        job : Job
+            A job containing the data to run the simulation code with.
+
+        Raises
+        ------
+        ValueError
+            If a job with the same ID has already been submitted in the lifetime of this
+            object.
+        HardwareInterfaceFailure
+            If there were problems connecting to the server, making files / directories on
+            the server or other such server-related problems.
+        """
+
+        if self._job_has_been_submitted(job.id):
+            raise ValueError(
+                f"Cannnot submit job with ID {job.id}: a job with the same ID has already "
+                f"been submitted."
+            )
+
+        # Make workspace directory
+        self._make_directory_on_remote(self._workspace_dir, make_parents=True)
+
+        # Make job-specific remote workspace directory (will raise error if directory
+        # already exists)
+        job_remote_dir = self._workspace_dir / str(job.id)
+        self._make_directory_on_remote(job_remote_dir)
+
+        # Put simulator input data onto server
+        script_input_path = self._make_job_input_file(job.data, job_remote_dir)
+
+        # Make script input config and put onto server
+        script_config = {
+            "input_file": str(script_input_path),
+            "output_file": str(job_remote_dir / "output.txt"),
+        }
+        config_path = self._make_job_config_file(script_config, job_remote_dir)
+
+        # Make path for script stdout & stderr
+        stdout_path = job_remote_dir / f"{self._script_path.name}.out"
+
+        # Create wrapper script and put onto server
+        wrapper_script = "\n".join(
+            [
+                f"{self._program} {self._script_path} {config_path} >> {stdout_path} 2>&1 &",
+                "job_pid=$!",
+                self._make_process_identifier_command("${job_pid}"),
+            ]
+        )
+        wrapper_script_path = job_remote_dir / "job_wrapper.sh"
+        self._make_text_file_on_remote(wrapper_script, wrapper_script_path)
+
+        # Start job and get server-side identifier for the job
+        try:
+            remote_id = self._run_remote_command(f"bash {wrapper_script_path}")
+        except Exception as e:
+            raise HardwareInterfaceFailureError(
+                f"Could not start job with id {job.id} on {self._user}@{self._host}: {e}"
+            )
+
+        # Get process ID and start time from remote ID
+        try:
+            _, pid, start_time = self._parse_process_identifier(remote_id)
+        except ValueError:
+            raise HardwareInterfaceFailureError(
+                f"Could not determine process information from remote identifier "
+                f"{remote_id} for job with id {job.id}."
+            ) from None
+
+        # Record details of the job in the log
+        self._job_log[job.id] = {
+            "status": JobStatus.SUBMITTED,
+            "remote_id": remote_id,
+            "pid": pid,
+            "start_time": start_time,
+            "job_remote_dir": job_remote_dir,
+            "script_output_path": script_config["output_file"],
+            "output": None,
+        }
+
+        return None
+
+    def _make_job_config_file(
+        self, config: dict[str, str], job_remote_dir: Union[str, pathlib.PurePosixPath]
+    ) -> pathlib.PurePosixPath:
+        """Make a simulation script input JSON configuration file on the server and
+        return the path to this file."""
+
+        config_file_path = pathlib.PurePosixPath(job_remote_dir, "config.json")
+        self._make_text_file_on_remote(json.dumps(config), config_file_path)
+        return config_file_path
+
+    def _make_job_input_file(
+        self, data: Sequence, job_remote_dir: Union[str, pathlib.PurePosixPath]
+    ) -> pathlib.PurePosixPath:
+        """Make a csv file on the server containing input data for the simulation code."""
+
+        input_file_path = pathlib.PurePosixPath(job_remote_dir, "input.csv")
+        data_str = ",".join(map(str, data)) + "\n"
+        self._make_text_file_on_remote(data_str, input_file_path)
+        return input_file_path
+
+    def _make_process_identifier_command(self, pid: str) -> str:
+        """Make a shell command for getting a string that uniquely identifies a remote
+        process."""
+
+        return f'echo "$(ps -p {pid} -o user=),$(ps -p {pid} -o pid=),$(ps -p {pid} -o lstart=)"'
+
+    def _parse_process_identifier(self, process_identifier: str) -> tuple[str, str, str]:
+        """Extract the user, process ID and start time of a process from a process
+        identifier.
+
+        The `process_identifier` should be a comma-delimited string of the form
+        '<user>,<pid>,<start_time>'.
+        """
+
+        components = process_identifier.split(",")
+        if len(components) != 3 or any(c.strip() == "" for c in components):
+            raise ValueError(
+                f"Could not parse process identifier {process_identifier} for user, pid "
+                "and start time."
+            ) from None
+
+        return tuple(components)
+
+    def _make_directory_on_remote(
+        self, path: Union[str, pathlib.PurePosixPath], make_parents: bool = False
+    ) -> None:
+        """Make a directory at the given path on the remote machine.
+
+        If `make_parents` is ``True`` then intermediary directories will be created as
+        required (by calling ``mkdir`` with the ``-p`` option). If the directory already
+        exists and `make_parents` is ``False`` then an error will be thrown.
+        """
+
+        mkdir_command = (
+            f"mkdir {path}" if not make_parents else f"[ -d {path} ] || mkdir -p {path}"
+        )
+        try:
+            _ = self._run_remote_command(mkdir_command)
+        except Exception as e:
+            raise HardwareInterfaceFailureError(
+                f"Could not make directory {path} for {self._user}@{self._host}: {e}"
+            )
+        return None
+
+    def _make_text_file_on_remote(
+        self, file_contents: str, target_path: Union[str, pathlib.PurePosixPath]
+    ) -> None:
+        """Make a text file on the remote machine with a given string as contents."""
+
+        try:
+            _ = self._conn.put(
+                io.StringIO(file_contents),
+                remote=str(target_path),
+            )
+        except Exception as e:
+            raise HardwareInterfaceFailureError(
+                f"Could not create text file at {target_path} for "
+                f"{self._user}@{self._host}: {e}"
+            )
+        return None
+
+    def _run_remote_command(self, command: str) -> str:
+        """Run a shell command and return the resulting contents of standard output.
+
+        The contents of standard output is stripped of leading/trailing whitespace before
+        returning."""
+
+        res = self._conn.run(command, hide=True)
+        return str(res.stdout).strip()
+
+    def get_job_status(self, job_id: JobId) -> JobStatus:
+        """Get the status of a job with given job ID.
+
+        Any jobs that have not been submitted with `submit_job` will return a status of
+        `JobStatus.NOT_SUBMITTED`.
+
+        A job that has successfully been started on the server will have a status of
+        `JobStatus.RUNNING` (which, in this case, is equivalent to `JobStatus.SUBMITTED`).
+        The status will remain as `JobStatus.RUNNING` until the corresponding remote
+        process has stopped, in which case the status of the job will be
+        `JobStatus.COMPLETED` if an output file from the simulator has been created or
+        `JobStatus.FAILED` if not. (In particular, not that the exit code of the
+        simulator script is not taken into account when determining whether a job has
+        finished successfully or not.)
+
+        Parameters
+        ----------
+        job_id : JobId
+            The ID of the job to check the status of.
+
+        Returns
+        -------
+        JobStatus
+            The status of the job.
+        """
+        if not self._job_has_been_submitted(job_id):
+            return JobStatus.NOT_SUBMITTED
+        else:
+            self._update_status_from_remote(job_id)
+            return self._job_log[job_id]["status"]
+
+    def _job_has_been_submitted(self, job_id: JobId) -> bool:
+        """Whether a job with the given ID has been submitted."""
+
+        return job_id in self._job_log
+
+    def _update_status_from_remote(self, job_id: JobId) -> None:
+        """Update the status of a job based on the status of the corresponding process on
+        the server."""
+
+        if self._remote_job_is_running(job_id):
+            self._job_log[job_id]["status"] = JobStatus.RUNNING
+        else:
+            output = self.get_job_output(job_id)
+            if output is not None:
+                self._job_log[job_id]["status"] = JobStatus.COMPLETED
+            else:
+                self._job_log[job_id]["status"] = JobStatus.FAILED
+
+        return None
+
+    def _remote_job_is_running(self, job_id: JobId) -> bool:
+        """Whether the remote process of a given job is running."""
+
+        pid = self._job_log[job_id]["pid"]
+        process_identifier_command = self._make_process_identifier_command(pid)
+        process_identifier = self._run_remote_command(process_identifier_command)
+        return self._job_log[job_id]["remote_id"] == process_identifier
+
+    def get_job_output(self, job_id: JobId) -> Optional[float]:
+        """Get the simulator output for a job with the given ID.
+
+        This is read from the contents of the simulator output file for the job, located
+        in the job's remote directory. It is expected that the contents of this output
+        file will be a single floating point number.
+
+        Parameters
+        ----------
+        job_id : JobId
+            The ID of the job to get the simulator output for.
+
+        Returns
+        -------
+        Optional[float]
+            The output of the simulator, if the job has completed successfully, or else
+            ``None``.
+
+        Raises
+        ------
+        HardwareInterfaceFailure
+            If there were problems connecting to the server or retrieving the simulator
+            output.
+        SimulatorOutputParsingError
+            If the output of the simulator cannot be parsed as a single floating point
+            number.
+        """
+        if not self._job_has_been_submitted(job_id):
+            return None
+
+        elif self._job_log[job_id]["output"] is not None:
+            return self._job_log[job_id]["output"]
+
+        else:
+            output_path = self._job_log[job_id]["script_output_path"]
+            output = self._retrieve_output(output_path)
+            try:
+                self._job_log[job_id]["output"] = (
+                    float(output) if output is not None else output
+                )
+            except ValueError:
+                raise SimulatorOutputParsingError(
+                    f"Could not parse simulator output {output} for job ID {job_id} as a "
+                    "float."
+                )
+            return self._job_log[job_id]["output"]
+
+    def _retrieve_output(
+        self, remote_path: Union[str, pathlib.PurePosixPath]
+    ) -> Optional[str]:
+        """Get the output of a simulation from the remote server."""
+
+        with io.BytesIO() as buffer:
+            try:
+                _ = self._conn.get(str(remote_path), local=buffer)
+            except FileNotFoundError:
+                return None
+            except Exception as e:
+                raise HardwareInterfaceFailureError(
+                    f"Could not retrieve output of script {self._script_path} from file "
+                    f"{remote_path}: {e}"
+                )
+
+            contents = buffer.getvalue().decode(encoding="utf-8")
+
+        return contents.strip()
+
+    def cancel_job(self, job_id: JobId):
+        pass
+
+    def delete_remote_job_dir(self, job_id: JobId) -> None:
+        """Delete the remote directory corresponding to a given job ID.
+
+        This will recursively delete all the contents of the directory, invoking
+        ``rm -r`` on it. Only jobs that have been submitted during the lifetime of this
+        object and have finished or been cancelled can have their remote directories
+        deleted.
+
+        Parameters
+        ----------
+        job_id : JobId
+            The ID of the job whose remote directory should be deleted.
+
+        Raises
+        ------
+        ValueError
+            If the supplied job ID has not been submitted since this object was
+            initialised, or if the job is still running.
+        HardwareInterfaceFailure
+            If there were problems connecting to the server or deleting the directory.
+        """
+
+        job_status = self.get_job_status(job_id)
+        if job_status == JobStatus.NOT_SUBMITTED:
+            raise ValueError(
+                f"Job ID {job_id} not submitted since initialisation of this object."
+            )
+
+        elif job_status == JobStatus.RUNNING:
+            raise ValueError(
+                f"Cannot delete directory {self._job_log[job_id]['job_remote_dir']} for "
+                f"job ID {job_id}: job is currently running."
+            )
+        else:
+            job_remote_dir = self._job_log[job_id]["job_remote_dir"]
+            deletion_cmd = f"rm -r {job_remote_dir}"
+            try:
+                _ = self._run_remote_command(deletion_cmd)
+            except Exception as e:
+                raise HardwareInterfaceFailureError(
+                    f"Could not delete remote folder {job_remote_dir} for "
+                    f"{self._user}@{self._host}: {e} "
+                )
+
+            return None
+
+
+class HardwareInterfaceFailureError(Exception):
+    """Raised when an error was encounted when running a command or communicating with a
+    machine."""
+
+    pass
+
+
+class SimulatorOutputParsingError(Exception):
+    """Raised when the output from a simulator cannot be parsed as a floating point
+    number."""
+
+    pass
