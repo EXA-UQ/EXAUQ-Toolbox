@@ -7,7 +7,6 @@ from numbers import Real
 from typing import Type
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.core.types import FilePath
 from exauq.sim_management.hardware import JobStatus
 from exauq.sim_management.jobs import JobId
 from exauq.sim_management.simulators import (
@@ -15,6 +14,7 @@ from exauq.sim_management.simulators import (
     SimulationsLogLookupError,
     Simulator,
 )
+from exauq.sim_management.types import FilePath
 from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
 from tests.utilities.utilities import exact
 
