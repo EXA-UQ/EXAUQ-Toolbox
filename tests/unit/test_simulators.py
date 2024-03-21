@@ -510,8 +510,6 @@ class TestSimulationsLog(unittest.TestCase):
             (Input(7), "7", None, JobStatus.FAILED),
         ):
             log.add_new_record(x, job_id, status)
-            if job_id is not None:
-                log.insert_result(job_id, y)
 
         pending_jobs = log.get_pending_jobs()
 
