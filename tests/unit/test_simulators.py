@@ -476,7 +476,7 @@ class TestSimulationsLog(unittest.TestCase):
 
     def test_get_pending_jobs_empty_when_all_completed(self):
         """Test that an empty tuple is returned if all jobs in the simulations
-        log file have a non-pending JobStatus such as COMPLETED, FAILED, CANCELLED."""
+        log file have a non-pending JobStatus i.e. one of COMPLETED, FAILED, CANCELLED."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
 
