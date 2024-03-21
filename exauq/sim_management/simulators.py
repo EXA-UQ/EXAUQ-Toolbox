@@ -292,7 +292,7 @@ class SimulationsLog(object):
         Raises
         ------
         ValueError
-            - If `job_id` is None.
+            - If `job_id` does not consist solely of digits or is None.
             - If the input `x` does not have the expected number of coordinates.
             - If the `job_id` is already in use.
 
