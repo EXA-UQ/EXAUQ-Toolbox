@@ -298,7 +298,7 @@ class SimulationsLog(object):
 
         """
         with self._lock:
-            job_id = JobID(job_id)
+            job_id = JobId(job_id)
 
             if len(x) != self._input_dim:
                 raise ValueError(
