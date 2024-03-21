@@ -284,7 +284,7 @@ class SimulationsLog(object):
         x : Input
             An input for the simulator to evaluate.
         job_id : Union[str, JobId, int]
-            The ID for the job of evaluating the simulator at `x`. Must be unique and not None.
+            The ID for the job of evaluating the simulator at `x`. Must consist only of digits and cannot be None.
         job_status : JobStatus, optional
             The status of the job to be recorded alongside the input `x`.
             Defaults to JobStatus.NOT_SUBMITTED.
