@@ -393,12 +393,15 @@ class TestSimulationsLog(unittest.TestCase):
             ):
                 log.add_new_record(x, "1234")
 
-    def test_add_new_record_id_none_error(self):
-        """Test that a ValueError is raised if the supplied job id is `None`."""
+    def test_add_new_record_id_invalid_job_id_error(self):
+        """Test that a ValueError is raised if the supplied job id does not define a
+        numeric string."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
-        with self.assertRaisesRegex(ValueError, exact("job_id cannot be None.")):
-            log.add_new_record(Input(1), None)
+        for job_id in [None, -1, "a1"]:
+            with self.subTest(job_id=job_id):
+                with self.assertRaises(ValueError):
+                    log.add_new_record(Input(1), job_id)
 
     def test_add_new_record_duplicate_id_error(self):
         """Test that a ValueError is raised if a record has same job id as supplied."""
