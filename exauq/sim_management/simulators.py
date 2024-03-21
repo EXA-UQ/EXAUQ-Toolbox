@@ -298,8 +298,7 @@ class SimulationsLog(object):
 
         """
         with self._lock:
-            if job_id is None:
-                raise ValueError("job_id cannot be None.")
+            job_id = JobID(job_id)
 
             if len(x) != self._input_dim:
                 raise ValueError(
