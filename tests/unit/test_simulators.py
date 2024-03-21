@@ -453,6 +453,16 @@ class TestSimulationsLog(unittest.TestCase):
         log.add_new_record(x, "2222")
         self.assertEqual(((x, None), (x, None)), log.get_simulations())
 
+    def test_add_new_record_default_status(self):
+        """Test that, when a new record is created, it is labelled as NOT_SUBMITTED by default."""
+
+        x1 = Input(1)
+        x2 = Input(2)
+        log = SimulationsLog(self.simulations_file, input_dim=len(x1))
+        log.add_new_record(x1, "1")
+        log.add_new_record(x2, "2")
+        self.assertEqual((x1, x2), log.get_unsubmitted_inputs())
+
     def test_insert_result_missing_job_id_error(self):
         """Test that a SimulationsLogLookupError is raised if one attempts to add an
         output with a job ID that doesn't exist in the simulations log file."""
@@ -522,16 +532,6 @@ class TestSimulationsLog(unittest.TestCase):
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
         self.assertEqual(tuple(), log.get_unsubmitted_inputs())
-
-    def test_get_unsubmitted_inputs_unsubmitted_input(self):
-        """Test that, when an input is submitted, it features as an unsubmitted input."""
-
-        x1 = Input(1)
-        x2 = Input(2)
-        log = SimulationsLog(self.simulations_file, input_dim=len(x1))
-        log.add_new_record(x1, "1")
-        log.add_new_record(x2, "2")
-        self.assertEqual((x1, x2), log.get_unsubmitted_inputs())
 
 
 if __name__ == "__main__":
