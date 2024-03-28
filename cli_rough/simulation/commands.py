@@ -8,11 +8,10 @@ from typing import Optional
 
 import click
 
+from cli_rough.utils.state_management import save_state_to_file
 from exauq.core.modelling import SimulatorDomain
 from exauq.sim_management.hardware import HardwareInterface, SSHInterface
 from exauq.sim_management.simulators import Simulator
-
-from cli.utils.state_management import save_state_to_file
 
 
 def get_additional_params(cls, base_params):
@@ -147,7 +146,7 @@ def init_ssh_interface(
 @click.pass_context
 def init_simulator(ctx, log_file):
     """Initialise the Simulator with the specified domain and interface."""
-    domain = ctx.obj['simulator_domain']
+    domain = ctx.obj["simulator_domain"]
     interface = ctx.obj["interface"]
 
     missing_components = []
