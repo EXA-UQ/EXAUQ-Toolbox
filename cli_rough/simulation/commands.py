@@ -1,16 +1,12 @@
-import importlib
 import inspect
 import os
 import sys
 from importlib import import_module
 from pathlib import Path
-from typing import Optional
 
 import click
 
-from cli_rough.utils.state_management import save_state_to_file
-from exauq.core.modelling import SimulatorDomain
-from exauq.sim_management.hardware import HardwareInterface, SSHInterface
+from exauq.sim_management.hardware import SSHInterface
 from exauq.sim_management.simulators import Simulator
 
 

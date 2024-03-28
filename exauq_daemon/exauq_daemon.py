@@ -1,16 +1,15 @@
-import daemon
-import lockfile
 import os
 
+import daemon
 from daemon import pidfile
 from daemon_service import start_service
 
 
 def run_daemon():
     # Define the path for the PID file to prevent multiple instances
-    pid_file_path = '/tmp/exauq_daemon.pid'
+    pid_file_path = "/tmp/exauq_daemon.pid"
     # Define the path for your Unix domain socket or other IPC mechanisms
-    socket_path = '/tmp/exauq_daemon.sock'
+    socket_path = "/tmp/exauq_daemon.sock"
 
     # Ensure the socket file does not exist before starting
     try:
@@ -26,12 +25,12 @@ def run_daemon():
         pidfile=pidfile.TimeoutPIDLockFile(pid_file_path),
     )
 
-    log_directory = os.path.expanduser('~/exauq_logs/')
+    log_directory = os.path.expanduser("~/exauq_logs/")
     if not os.path.exists(log_directory):
         os.makedirs(log_directory, exist_ok=True)
 
-    context.stdout = open(os.path.join(log_directory, 'exauq_daemon_stdout.log'), 'w+')
-    context.stderr = open(os.path.join(log_directory, 'exauq_daemon_stderr.log'), 'w+')
+    context.stdout = open(os.path.join(log_directory, "exauq_daemon_stdout.log"), "w+")
+    context.stderr = open(os.path.join(log_directory, "exauq_daemon_stderr.log"), "w+")
 
     with context:
         start_service(socket_path)

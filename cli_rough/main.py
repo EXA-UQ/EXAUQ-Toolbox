@@ -1,9 +1,7 @@
-import pickle
-
 import click
 
 from cli_rough.simulation.commands import simulation_group
-from cli_rough.utils.state_management import load_state_from_file, save_state_to_file
+from cli_rough.utils.state_management import load_state_from_file
 from exauq.core.modelling import SimulatorDomain
 
 
