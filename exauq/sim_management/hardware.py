@@ -210,8 +210,6 @@ class _Template(string.Template):
     delimiter = "#PY_"
 
 
-# TODO: update class docstring e.g. for HardwareInterfaceFailureError raise, workspace_dir
-#       attribute, etc.
 class UnixServerScriptInterface(SSHInterface):
     """Interface for running a simulation script on a Unix server over SSH.
 
@@ -235,6 +233,14 @@ class UnixServerScriptInterface(SSHInterface):
     standard error from running the script. Note that any required intermiary directories
     are created on the server.
 
+    The remote workspace directory can be specified as part of initialisation. If a a
+    pre-existing directory is supplied, then the details of any existing jobs already
+    recorded in the workspace directory will be retrieved and cached. If a workspace
+    directory is not specified, then a new directory will be created alongside the main
+    simulation script with name'exauqXXXXX' where 'XXXXX' is a uniquely generated string
+    of characters created via the ``mktemp`` command on Unix systems.
+
+
     If `key_filename` and `ssh_config_path` are not provided and `use_ssh_agent` is
     ``False`` then a prompt for a password from standard input will be issued each time a
     connection is made to the server.
@@ -253,7 +259,8 @@ class UnixServerScriptInterface(SSHInterface):
         (Default: None) A path to a directory on the Unix server where job-specific
         subdirectories should be created. Relative paths will be relative to the default
         working directory for a new SSH session (usually the user's home directory). If
-        ``None`` then the directory containing the script in `script_path` will be used.
+        ``None`` then a new directory will be created alongside the script defined by
+        `script_path`.
     key_filename : exauq.sim_management.types.FilePath, optional
         (Default: None) The path to an SSH private key file to authenticate with the SSH
         server. The key file must be unencrypted.
@@ -264,10 +271,19 @@ class UnixServerScriptInterface(SSHInterface):
     max_attempts : int, optional
         (Default: 3) The number of authentication attempts allowed.
 
+    Attributes
+    ----------
+    workspace_dir : str, optional
+        (Read-only) The directory within which details of jobs are recorded, or None
+        if this is unknown at the time of calling.
+
     Raises
     ------
     ValueError
         If more than one method of authentication is provided.
+    HardwareInterfaceFailureError:
+        If there were problems connecting to the server, establishing the existence of
+        the workspace directory, or other such server-related issues.
     """
 
     manager_script_name = "exauq_manager.sh"
@@ -382,42 +398,49 @@ class UnixServerScriptInterface(SSHInterface):
     @property
     def workspace_dir(self) -> Optional[str]:
         """(Read-only) The directory within which details of jobs are recorded, or None
-        if this is unknown."""
+        if this is unknown at the time of calling (e.g. because it hasn't been created
+        yet)."""
 
         return str(self._workspace_dir) if self._workspace_dir is not None else None
 
-    # TODO: update docstring with details of resubmit option
     def submit_job(self, job: Job, resubmit: bool = False) -> None:
         """Submit a job for the simulation code.
 
-        Upon submission, a new subdirectory of the remote workspace directory supplied
-        at this object's initialisation will be created for the job, using the job's ID
-        as the directory name. A JSON config file for the script will be created and
-        uploaded to this directory, along with a simulator input csv file containing the
-        data from the job. The content of the JSON config file will have the following
-        form:
+        Upon submission, a new subdirectory of the remote workspace directory is created
+        for the job, using the job's ID as the directory name. (The workspace directory
+        will be created as well if it doesn't already exist.) A JSON config file for the
+        script is uploaded to this directory, along with a simulator input csv file
+        containing the data from the job. The content of the JSON config file has the
+        following form:
 
         ```
         {"input_file": "path/to/job_dir/input.csv", "output_file": "path/to/job_dir/output.txt"}
         ```
 
-        Finally, a simple shell script wrapping the main command for running the simulator
-        will be uploaded: this is what gets run to start the job on the server.
+        A Bash script is also uploaded to the job's directory, which is responsible for
+        managing the job; it is through this script that the job can be started, cancelled
+        or its status retrieved.
 
-        If a job with the same ID has already been submitted to the server, or if the
-        target directory for the job's files already exists on the server, then an error
-        will be raised.
+        If a job with the same ID has already been submitted to the server and `resubmit`
+        is ``False``, then an error will be raised. Only jobs that have completed, be it
+        successfully or ending in failure, or that have been cancelled, may be
+        resubmitted. In this case, calling with `resubmit` set to ``True`` will delete any
+        existing remote-side data for the corresponding job directory and then submit the
+        supplied `job`.
 
         Parameters
         ----------
         job : Job
             A job containing the data to run the simulation code with.
+        resubmit : bool
+            (Default: False) Whether the job is being resubmitted, i.e. whether to delete
+            any existing remote-side data for job before submission.
 
         Raises
         ------
         ValueError
-            If a job with the same ID has already been submitted in the lifetime of this
-            object.
+            If a job with the same ID has already been submitted and ``resubmit = False``,
+            or if ``resubmit = True`` and a job with the same ID has not completed.
         HardwareInterfaceFailure
             If there were problems connecting to the server, making files / directories on
             the server or other such server-related problems.
@@ -492,7 +515,7 @@ class UnixServerScriptInterface(SSHInterface):
         return None
 
     def _make_workspace_dir(self):
-        """Make the workspace directory.
+        """Make the server-side workspace directory.
 
         If the path to a directory was provided explicitly during object initialisation,
         then create that directory on the server. Otherwise, create a default directory
@@ -743,7 +766,6 @@ class UnixServerScriptInterface(SSHInterface):
         res = self._conn.run(command, hide=True)
         return str(res.stdout).strip()
 
-    # TODO: review docstring to check it's consistent with implementation
     def get_job_status(self, job_id: JobId) -> JobStatus:
         """Get the status of a job with given job ID.
 
@@ -753,11 +775,16 @@ class UnixServerScriptInterface(SSHInterface):
         A job that has successfully been started on the server will have a status of
         `JobStatus.RUNNING` (which, in this case, is equivalent to `JobStatus.SUBMITTED`).
         The status will remain as `JobStatus.RUNNING` until the corresponding remote
-        process has stopped, in which case the status of the job will be
-        `JobStatus.COMPLETED` if an output file from the simulator has been created or
-        `JobStatus.FAILED` if not. (In particular, not that the exit code of the
-        simulator script is not taken into account when determining whether a job has
-        finished successfully or not.)
+        process has stopped, at which point the status is determined as follows:
+
+        * If an output file from the simulator has been created, then the status is
+          ``JobStatus.COMPLETED``.
+        * If the job was cancelled before completion, then the status is
+          ``JobStatus.CANCELLED`.
+        * If the job was not cancelled but no output file was created, then the status
+          is `JobStatus.FAILED`. In particular, note that the exit code of the
+          simulator script is not taken into account when determining whether a job has
+          finished successfully or not.
 
         Parameters
         ----------
@@ -768,6 +795,12 @@ class UnixServerScriptInterface(SSHInterface):
         -------
         JobStatus
             The status of the job.
+
+        Raises
+        ------
+        HardwareInterfaceFailure
+            If there were problems connecting to the server or retrieving the status of
+            the job.
         """
         if not self._job_has_been_submitted(job_id):
             return JobStatus.NOT_SUBMITTED
@@ -874,12 +907,24 @@ class UnixServerScriptInterface(SSHInterface):
 
         return contents.strip()
 
-    # TODO: finish docstring
-    def cancel_job(self, job_id: JobId):
+    def cancel_job(self, job_id: JobId) -> None:
         """Cancel the job with a given job ID.
 
-        If not running (i.e. has completed, has failed or has been cancelled) then
-        this method will return without error.
+        Cancelling a job involves terminating the server-side simulator script process
+        (and any subprocesses) associated with the job. If the job is not running (i.e.
+        has completed, has failed or has already been cancelled) then this method will
+        return without error.
+
+        Parameters
+        ----------
+        job_id : JobId
+            The ID of the job to cancel.
+
+        Raises
+        ------
+        HardwareInterfaceFailureError
+            If there were problems connecting to the server or otherwise cancelling the
+            job.
         """
         if self.get_job_status(job_id) == JobStatus.RUNNING:
             try:
@@ -895,8 +940,20 @@ class UnixServerScriptInterface(SSHInterface):
         else:
             return None
 
-    # TODO: add docstring
     def delete_workspace(self) -> None:
+        """Delete the entire workspace directory associated with this instance.
+
+        This will delete ``self.workspace_dir``, if it has been created on the server.
+
+        Warning: this is an 'unsafe' deletion: it does not wait for any outstanding jobs
+        to complete. This could result in server-side errors for any simulations that are
+        still running when the workspace directory is deleted.
+
+        Raises
+        ------
+        HardwareInterfaceFailureError
+            If there were problems connecting to the server or deleting the directory.
+        """
         if self._workpace_dir_created:
             try:
                 _ = self._run_remote_command(f"rm -r {self.workspace_dir}")
@@ -909,15 +966,12 @@ class UnixServerScriptInterface(SSHInterface):
         else:
             return None
 
-    # TODO: update docstring (no longer only deletes jobs created in the lifetime of this
-    #       instance)
     def delete_remote_job_dir(self, job_id: JobId) -> None:
         """Delete the remote directory corresponding to a given job ID.
 
         This will recursively delete all the contents of the directory, invoking
-        ``rm -r`` on it. Only jobs that have been submitted during the lifetime of this
-        object and have finished or been cancelled can have their remote directories
-        deleted.
+        ``rm -r`` on it. Only sumbitted jobs that aren't currently running can have their
+        remote directories deleted.
 
         Parameters
         ----------
@@ -927,17 +981,15 @@ class UnixServerScriptInterface(SSHInterface):
         Raises
         ------
         ValueError
-            If the supplied job ID has not been submitted since this object was
-            initialised, or if the job is still running.
+            If the supplied job ID has not been submitted, or if the job is still running.
         HardwareInterfaceFailure
             If there were problems connecting to the server or deleting the directory.
         """
 
         job_status = self.get_job_status(job_id)
         if job_status == JobStatus.NOT_SUBMITTED:
-            # TODO: change error message (no longer just since initialisation of object)
             raise ValueError(
-                f"Job ID {job_id} not submitted since initialisation of this object."
+                f"Cannot delete directory for job ID {job_id}: job has not been submitted."
             )
 
         elif job_status == JobStatus.RUNNING:
