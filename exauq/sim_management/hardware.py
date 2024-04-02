@@ -590,12 +590,15 @@ class UnixServerScriptInterface(SSHInterface):
             elif ! which pkill > /dev/null 2>&1
             then
                 error "required command 'pkill' not available on system"
+            elif ! which mktemp > /dev/null 2>&1
+            then
+                error "required command 'mktemp' not available on system"
             fi
         }
 
         # Run a job in the background and capture the PID of the process
         run_job() {
-            $program $script $script_input > $script_stout_sterr 2>&1 &
+            $program $script $script_input > $script_stout_sterr 2>&1 && if [ -e $script_output ]; then touch $completed_flag_file; fi &
             echo $! | tr -d '[:space:]' > $pid_file
         }
 
@@ -682,7 +685,6 @@ class UnixServerScriptInterface(SSHInterface):
             status=$(get_status)
             if [ "$status" = "$RUNNING" ]
             then
-                # xargs pkill --parent < $pid_file
                 if xargs pkill --parent < $pid_file
                 then
                     record $STOPPED
