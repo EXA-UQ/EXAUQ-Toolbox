@@ -25,11 +25,14 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         # Submit the job
         hardware.submit_job(job)
 
+        # Check workspace directory is not None
+        assert hardware.workspace_dir is not None
+
         # Confirm that job status of job is RUNNING.
         assert hardware.get_job_status(job.id) == JobStatus.RUNNING
 
         # Wait for the job to run to error
-        time.sleep(2)
+        time.sleep(3)
 
         # Check job has failed
         assert hardware.get_job_status(job.id) == JobStatus.FAILED
@@ -37,8 +40,8 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         # Check expected output value
         assert hardware.get_job_output(job.id) is None
     finally:
-        # Clean up remote job directory
-        hardware.delete_remote_job_dir(job.id)
+        # Clean up workspace
+        hardware.delete_workspace()
         pass
 
 
