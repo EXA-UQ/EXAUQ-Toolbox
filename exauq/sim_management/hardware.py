@@ -287,6 +287,7 @@ class UnixServerScriptInterface(SSHInterface):
     """
 
     manager_script_name = "exauq_manager.sh"
+    runner_script_name = "runner.sh"
 
     def __init__(
         self,
@@ -384,6 +385,7 @@ class UnixServerScriptInterface(SSHInterface):
 
         job_remote_dir = self._workspace_dir / str(job_id)
         job_manager_path = job_remote_dir / self.manager_script_name
+        runner_path = job_remote_dir / self.runner_script_name
         input_data_path = pathlib.PurePosixPath(job_remote_dir, "input.csv")
         script_output_path = str(job_remote_dir / "output.txt")
         script_config_path = pathlib.PurePosixPath(job_remote_dir, "config.json")
@@ -391,6 +393,7 @@ class UnixServerScriptInterface(SSHInterface):
         return {
             "status": status,
             "job_remote_dir": job_remote_dir,
+            "runner": runner_path,
             "job_manager": job_manager_path,
             "input_data_path": input_data_path,
             "script_output_path": script_output_path,
@@ -495,13 +498,19 @@ class UnixServerScriptInterface(SSHInterface):
             json.dumps(script_config), job_settings["script_config_path"]
         )
 
-        # Create manager script and put onto server
-        manager_script = self._make_manager_script(
+        # Create runner script and manager script and put onto server
+        runner_script = self._make_runner_script(
             job_settings["job_remote_dir"],
             job_settings["script_config_path"],
+            job_settings["script_output_path"],
+        )
+        manager_script = self._make_manager_script(
+            job_settings["job_remote_dir"],
+            job_settings["runner"],
             job_settings["script_stdout_path"],
             job_settings["script_output_path"],
         )
+        self._make_text_file_on_remote(runner_script, job_settings["runner"])
         self._make_text_file_on_remote(manager_script, job_settings["job_manager"])
 
         # Start job
@@ -545,10 +554,38 @@ class UnixServerScriptInterface(SSHInterface):
             self._workpace_dir_created = True
             return None
 
-    def _make_manager_script(
+    def _make_runner_script(
         self,
         job_remote_dir: Union[str, pathlib.PurePosixPath],
         config_path: Union[str, pathlib.PurePosixPath],
+        output_path: Union[str, pathlib.PurePosixPath],
+    ) -> str:
+        """Create the text for a script that runs the simulation script."""
+        template_str = r"""
+        #!/bin/bash
+
+        # Run script and create new COMPLETED flag file upon successful execution and
+        # presence of output file.
+        #PY_PROGRAM #PY_SCRIPT #PY_CONFIG_PATH && if [ -e #PY_OUTPUT_PATH ]; then touch #PY_JOB_DIR/COMPLETED; fi
+
+        """
+
+        template_str = template_str[1:]  # remove leading newline character
+        template = _Template(textwrap.dedent(template_str))
+        return template.substitute(
+            {
+                "JOB_DIR": str(job_remote_dir),
+                "SCRIPT": str(self._script_path),
+                "PROGRAM": str(self._program),
+                "CONFIG_PATH": str(config_path),
+                "OUTPUT_PATH": str(output_path),
+            }
+        )
+
+    def _make_manager_script(
+        self,
+        job_remote_dir: Union[str, pathlib.PurePosixPath],
+        runner_path: Union[str, pathlib.PurePosixPath],
         stdout_path: Union[str, pathlib.PurePosixPath],
         output_path: Union[str, pathlib.PurePosixPath],
     ) -> str:
@@ -564,12 +601,11 @@ class UnixServerScriptInterface(SSHInterface):
         # Arg 1: One of: start, status, stop.
 
         job_dir=#PY_JOB_DIR
-        program=#PY_PROGRAM
-        script=#PY_SCRIPT
-        script_input=#PY_CONFIG_PATH
+        runner=#PY_RUNNER
         script_stout_sterr=#PY_STDOUT_PATH
         script_output=#PY_OUTPUT_PATH
         pid_file="${job_dir}/PID"
+        pgid_file="${job_dir}/PGID"
         jobid_file="${job_dir}/JOBID"
         stopped_flag_file="${job_dir}/STOPPED"
         completed_flag_file="${job_dir}/COMPLETED"
@@ -600,8 +636,10 @@ class UnixServerScriptInterface(SSHInterface):
 
         # Run a job in the background and capture the PID of the process
         run_job() {
-            $program $script $script_input > $script_stout_sterr 2>&1 && if [ -e $script_output ]; then touch $completed_flag_file; fi &
-            echo $! | tr -d '[:space:]' > $pid_file
+            nohup /bin/bash "$runner" >& "$script_stout_sterr" < /dev/null &
+            runner_pid=$!
+            echo $runner_pid | tr -d '[:space:]' > $pid_file
+            ps -p $runner_pid -o pgid= | tr -d '[:space:]' > $pgid_file
         }
 
         # Get a unique identifier for a process, utilising the PID, start time (long
@@ -669,7 +707,7 @@ class UnixServerScriptInterface(SSHInterface):
                 if [ ! "$job_id" = "$FAILED_JOBID" ] && [ "$job_id" = "$current_id" ]
                 then
                     echo $RUNNING
-                elif [ -e $script_output ]
+                elif [ -e "$script_output" ]
                 then
                     # For a job to be completed, it must not be running and have an
                     # output file.
@@ -682,12 +720,12 @@ class UnixServerScriptInterface(SSHInterface):
             fi
         }
 
-        # Stop (cancel) a job by killing its process and subprocesses.
+        # Stop (cancel) a job by killing all processes within its group.
         stop_job() {
             status=$(get_status)
             if [ "$status" = "$RUNNING" ]
             then
-                if xargs pkill --parent < $pid_file
+                if xargs pkill -g < $pgid_file
                 then
                     record $STOPPED
                 fi
@@ -714,9 +752,7 @@ class UnixServerScriptInterface(SSHInterface):
         return template.substitute(
             {
                 "JOB_DIR": str(job_remote_dir),
-                "PROGRAM": self._program,
-                "SCRIPT": str(self._script_path),
-                "CONFIG_PATH": str(config_path),
+                "RUNNER": str(runner_path),
                 "STDOUT_PATH": str(stdout_path),
                 "OUTPUT_PATH": str(output_path),
             }
