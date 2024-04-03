@@ -25,15 +25,25 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         # Submit the job
         hardware.submit_job(job)
 
+        # Check workspace directory is not None
+        assert hardware.workspace_dir is not None
+
         # Confirm that job status of job is RUNNING.
         # Note that the RemoteServerScript class sets the job running upon submission by
         # design, so there is effectively no distinction between SUBMITTED and RUNNING in
         # this case.
         assert hardware.get_job_status(job.id) == JobStatus.RUNNING
+
+        # Check that we cannot resubmit the job
+        try:
+            hardware.submit_job(job, resubmit=True)
+            assert False, "Resubmission of job should have raised a ValueError."
+        except ValueError:
+            pass
     finally:
-        # Clean up remote job directory
-        time.sleep(2)  # wait for job to complete
-        hardware.delete_remote_job_dir(job.id)
+        # Clean up remote workspace directory
+        time.sleep(3)  # wait for job to complete
+        hardware.delete_workspace()
         pass
 
 

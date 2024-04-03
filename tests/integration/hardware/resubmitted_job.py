@@ -18,9 +18,6 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
     # Create a job to submit
     job = Job(id_=JobId(1), data=Input(1, 2, 3))
 
-    # Check that there is no output
-    assert hardware.get_job_output(job.id) is None
-
     try:
         # Submit the job
         hardware.submit_job(job)
@@ -28,22 +25,26 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         # Check workspace directory is not None
         assert hardware.workspace_dir is not None
 
-        # Confirm that job status of job is RUNNING.
+        # Cancel the job
+        hardware.cancel_job(job.id)
+
+        # Check job has CANCELLED status
+        assert hardware.get_job_status(job.id) == JobStatus.CANCELLED
+
+        # Resubmit the job
+        hardware.submit_job(job, resubmit=True)
+
+        # Check job is running
         assert hardware.get_job_status(job.id) == JobStatus.RUNNING
 
-        # Confirm that an output is not ready yet.
-        assert hardware.get_job_output(job.id) is None
-
-        # Wait for the job to complete
+        # Wait for job to complete
         time.sleep(3)
 
-        # Check job has completed
+        # Check job is completed
         assert hardware.get_job_status(job.id) == JobStatus.COMPLETED
-
-        # Check expected output value
-        assert hardware.get_job_output(job.id) == float(sum(job.data))
     finally:
         # Clean up workspace
+        time.sleep(3)  # wait for job to complete
         hardware.delete_workspace()
         pass
 

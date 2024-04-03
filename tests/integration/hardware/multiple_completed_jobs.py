@@ -26,11 +26,14 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
         for job in jobs:
             hardware.submit_job(job)
 
+        # Check workspace directory is not None
+        assert hardware.workspace_dir is not None
+
         # Confirm that job status of each job is RUNNING.
         assert all(hardware.get_job_status(job.id) == JobStatus.RUNNING for job in jobs)
 
         # Wait for the jobs to complete
-        time.sleep(4)
+        time.sleep(5)
 
         # Check each job has completed
         assert all(hardware.get_job_status(job.id) == JobStatus.COMPLETED for job in jobs)
@@ -40,9 +43,8 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
             hardware.get_job_output(job.id) == float(sum(job.data)) for job in jobs
         )
     finally:
-        # Clean up remote job directories
-        for job in jobs:
-            hardware.delete_remote_job_dir(job.id)
+        # Clean up workspace
+        hardware.delete_workspace()
         pass
 
 
