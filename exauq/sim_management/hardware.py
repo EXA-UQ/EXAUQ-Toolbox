@@ -355,7 +355,8 @@ class UnixServerScriptInterface(SSHInterface):
         """
         # List paths to job manager scripts in directories directly below the workspace
         # directory
-        cmd = f"cd {self.workspace_dir} && find . | grep -G '^\\./[0-9]*/{self.manager_script_name}$'"
+        no_job_ids_flag = "NO_JOBIDS"
+        cmd = f"cd {self.workspace_dir} && find . | grep -G '^\\./[0-9]*/{self.manager_script_name}$' || echo {no_job_ids_flag}"
         try:
             job_manager_paths_str = self._run_remote_command(cmd)
         except Exception as e:
@@ -364,11 +365,14 @@ class UnixServerScriptInterface(SSHInterface):
                 f"for {self._user_at_host}: {e}"
             )
 
-        # Extract the job IDs as names of directories containing the job manager scripts
-        job_manager_paths = [
-            pathlib.PurePosixPath(path) for path in job_manager_paths_str.split("\n")
-        ]
-        return tuple(JobId(path.parent.name) for path in job_manager_paths)
+        if not job_manager_paths_str == no_job_ids_flag:
+            # Extract the job IDs as names of directories containing the job manager scripts
+            job_manager_paths = [
+                pathlib.PurePosixPath(path) for path in job_manager_paths_str.split("\n")
+            ]
+            return tuple(JobId(path.parent.name) for path in job_manager_paths)
+        else:
+            return tuple()
 
     def _make_job_settings(
         self, job_id: JobId, status: JobStatus = JobStatus.NOT_SUBMITTED
@@ -550,8 +554,6 @@ class UnixServerScriptInterface(SSHInterface):
     ) -> str:
         """Create the text for the server-side job management Bash program."""
 
-        # TODO: add check for mktemp command in check_system()
-        # TODO: modify main script invocation to touch COMPLETED file when completed
         template_str = r"""
         #!/bin/bash
 
