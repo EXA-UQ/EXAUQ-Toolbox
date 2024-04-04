@@ -1,5 +1,64 @@
 # exauq cli example usage
 
+## Workspaces
+
+We assume users may have multiple projects for which they want to use the `exauq` tool
+to manage simulator jobs. Data that needs to persist between `exauq` sessions should be
+stored in a `exauq`-bespoke 'workspace' folder, one for each project. This
+workspace folder should live alongside other scripts, analysis etc. that the user has
+written for the given project. By default, it will be called `.exauq`, though the user
+can specify a different name (or even path) if they desire. It is expected that the user
+won't go poking around in the workspace folder ordinarily.
+
+The workspace folder contains:
+
+- Details about the hardware interface (e.g. kind of interface, IP address, username,...).
+  This is so the user doesn't have to re-enter these details when starting a new session,
+  once these details have been initially written.
+
+- The simulations log.
+
+Interaction with workspace directories works as follows:
+
+- If no workspace directory exists, then the command:
+  
+  ```bash
+  # Create default .exauq directory in cwd
+  $ exauq
+
+  # Create bespoke directory
+  $ exauq path/to/my-workspace
+  ```
+  
+  will create a new workspace directory and walk the user through initialisation.
+
+- If a workspace directory exists, then `exauq` will look for the default in the cwd or
+  use the one provided by the user. Upon finding it, it reads in the data stored there
+  and allows the user to pick up where they left off.
+
+  ```bash
+  # Will use .exauq in cwd
+  $ exauq
+
+  # Use bespoke workspace dir
+  $ exauq path/to/my-workspace
+  ```
+
+## Command format
+
+Prompt is:
+```
+(exauq)
+```
+
+Within the app, commands issued according to the template:
+
+```
+(exauq) COMMAND [OPTIONS] ARGS
+```
+
+## Job submission
+
 Submit a new design point for simulator evaluation
 
 ```
@@ -25,6 +84,8 @@ JOBID   BATCHID     INPUT
 (exauq)
 ```
 
+## Job status check
+
 Check the status of a job using the job ID
 ```
 (exauq) status 99
@@ -46,6 +107,8 @@ JOBID   BATCHID     STATUS
 
 (exauq)
 ```
+
+## Output retrieval
 
 Retrieve the output for a single job (if available). Give full precision of output.
 ```
@@ -96,6 +159,8 @@ JOBID,X1,X2,X3,Y
 102,0.1236775,5.5333678,-1.300864,
 103,1.1236732,2.03321115,-0.3254656,3.141592654
 ```
+
+## Other convenience features for job management
 
 Get status of **all** terminal jobs that haven't completed successfully
 
