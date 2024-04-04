@@ -2,10 +2,11 @@ import argparse
 import sys
 from collections.abc import Sequence
 from io import TextIOWrapper
-from numbers import Real
 from typing import Union
 
 import cmd2
+
+from exauq.app.app import App
 
 
 class ParsingError(Exception):
@@ -20,20 +21,6 @@ class ParsingError(Exception):
 
 class ExecutionError(Exception):
     """Raised when errors arise from the running of the application."""
-
-
-class App:
-    def __init__(self):
-        pass
-
-    def submit(self, inputs: Sequence[Sequence[Real]]) -> dict[str, tuple[float, ...]]:
-        return {str(n): tuple(map(float, x)) for n, x in enumerate(inputs)}
-
-    def status(self) -> dict[str, int]:
-        return {"9999": 1}
-
-    def result(self) -> dict[str, int]:
-        return {"9999": 1}
 
 
 class CLI(cmd2.Cmd):
