@@ -26,18 +26,18 @@ class App:
     def __init__(self):
         pass
 
-    def submit(self, inputs: Sequence[Sequence[Real]]) -> str:
-        return f"** Submitted {inputs}. **"
+    def submit(self, inputs: Sequence[Sequence[Real]]) -> dict[str, tuple[float, ...]]:
+        return {str(n): tuple(map(float, x)) for n, x in enumerate(inputs)}
 
-    def status(self) -> str:
-        return "** Shows status of some jobs. **"
+    def status(self) -> dict[str, int]:
+        return {"9999": 1}
 
-    def result(self) -> str:
-        return "** Gets the result of jobs. **"
+    def result(self) -> dict[str, int]:
+        return {"9999": 1}
 
 
-class Cmd2AppWrapper(cmd2.Cmd):
-    """The exauq command line application for managing jobs."""
+class CLI(cmd2.Cmd):
+    """The command line interface to the exauq application."""
 
     submit_parser = cmd2.Cmd2ArgumentParser()
     submit_parser.add_argument(
@@ -72,29 +72,35 @@ class Cmd2AppWrapper(cmd2.Cmd):
         else:
             return []
 
+    def _render_submissions(self, submissions: dict[str, tuple[float, ...]]) -> str:
+        return f"** Rendering of submissions {submissions}. **"
+
     @cmd2.with_argparser(submit_parser)
     def do_submit(self, args) -> None:
         """Submit a job to the simulator."""
 
         try:
             inputs = self._parse_inputs(args.inputs) + self._parse_inputs(args.file)
-            self.poutput(self.app.submit(inputs))
+            submissions = self.app.submit(inputs)
+            self.poutput(self._render_submissions(submissions))
         except ParsingError as e:
             self.perror(str(e))
 
     def do_status(self, args) -> None:
         """Get the status of simulation jobs."""
 
-        self.poutput(self.app.status())
+        _ = self.app.status()
+        self.poutput("** Rendering of statuses. **")
 
     def do_result(self, args) -> None:
         """Retrieve the result of simulation jobs"""
 
-        self.poutput(self.app.result())
+        _ = self.app.result()
+        self.poutput("** Rendering of results. **")
 
 
 def main():
-    app = Cmd2AppWrapper()
+    app = CLI()
     sys.exit(app.cmdloop())
 
 
