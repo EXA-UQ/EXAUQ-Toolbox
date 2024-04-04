@@ -23,7 +23,7 @@ class ExecutionError(Exception):
     """Raised when errors arise from the running of the application."""
 
 
-class CLI(cmd2.Cmd):
+class Cli(cmd2.Cmd):
     """The command line interface to the exauq application."""
 
     submit_parser = cmd2.Cmd2ArgumentParser()
@@ -40,9 +40,9 @@ class CLI(cmd2.Cmd):
         help="A path to a csv file containing inputs to submit to the simulator.",
     )
 
-    def __init__(self):
+    def __init__(self, app: App):
         super().__init__()
-        self.app = App()
+        self._app = app
         self.prompt = "(exauq)> "
 
     def _parse_inputs(
@@ -68,7 +68,7 @@ class CLI(cmd2.Cmd):
 
         try:
             inputs = self._parse_inputs(args.inputs) + self._parse_inputs(args.file)
-            submissions = self.app.submit(inputs)
+            submissions = self._app.submit(inputs)
             self.poutput(self._render_submissions(submissions))
         except ParsingError as e:
             self.perror(str(e))
@@ -76,19 +76,19 @@ class CLI(cmd2.Cmd):
     def do_status(self, args) -> None:
         """Get the status of simulation jobs."""
 
-        _ = self.app.status()
+        _ = self._app.status()
         self.poutput("** Rendering of statuses. **")
 
     def do_result(self, args) -> None:
         """Retrieve the result of simulation jobs"""
 
-        _ = self.app.result()
+        _ = self._app.result()
         self.poutput("** Rendering of results. **")
 
 
 def main():
-    app = CLI()
-    sys.exit(app.cmdloop())
+    cli = Cli(App())
+    sys.exit(cli.cmdloop())
 
 
 if __name__ == "__main__":
