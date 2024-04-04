@@ -30,6 +30,12 @@ class Cmd2AppWrapper(cmd2.Cmd):
         type=str,
         help="The inputs to submit to the simulator.",
     )
+    submit_parser.add_argument(
+        "-f",
+        "--file",
+        type=argparse.FileType(mode="r"),
+        help="A path to a csv file containing inputs to submit to the simulator.",
+    )
 
     def __init__(self):
         super().__init__()
@@ -40,11 +46,20 @@ class Cmd2AppWrapper(cmd2.Cmd):
     def do_submit(self, args) -> None:
         """Submit a job to the simulator."""
 
+        inputs = []
         try:
-            inputs = tuple(tuple(map(float, x.split(","))) for x in args.inputs)
+            if args.inputs:
+                inputs.extend(tuple(map(float, x.split(","))) for x in args.inputs)
+            if args.file:
+                inputs.extend(
+                    tuple(map(float, x.split(","))) for x in args.file.readlines()
+                )
             self.poutput(self.app.submit(inputs))
         except ValueError as e:
             self.perror(f"Could not parse inputs: {e}")
+        finally:
+            if args.file:
+                args.file.close()
 
     def do_status(self, args) -> None:
         """Get the status of simulation jobs."""
