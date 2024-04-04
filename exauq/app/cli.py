@@ -1,9 +1,25 @@
 import argparse
 import sys
 from collections.abc import Sequence
+from io import TextIOWrapper
 from numbers import Real
+from typing import Union
 
 import cmd2
+
+
+class ParsingError(Exception):
+    """Raised when errors arise from parsing command line arguments."""
+
+    def __init__(self, e: Union[str, Exception]):
+        self._base_msg = str(e)
+
+    def __str__(self):
+        return f"Error parsing args: {self._base_msg}"
+
+
+class ExecutionError(Exception):
+    """Raised when errors arise from the running of the application."""
 
 
 class App:
@@ -42,24 +58,29 @@ class Cmd2AppWrapper(cmd2.Cmd):
         self.app = App()
         self.prompt = "(exauq)> "
 
+    def _parse_inputs(
+        self, inputs: Union[Sequence[str], TextIOWrapper]
+    ) -> list[tuple[float, ...]]:
+        if inputs:
+            try:
+                return [tuple(map(float, x.split(","))) for x in inputs]
+            except ValueError as e:
+                raise ParsingError(e)
+            finally:
+                if isinstance(inputs, TextIOWrapper):
+                    inputs.close()
+        else:
+            return []
+
     @cmd2.with_argparser(submit_parser)
     def do_submit(self, args) -> None:
         """Submit a job to the simulator."""
 
-        inputs = []
         try:
-            if args.inputs:
-                inputs.extend(tuple(map(float, x.split(","))) for x in args.inputs)
-            if args.file:
-                inputs.extend(
-                    tuple(map(float, x.split(","))) for x in args.file.readlines()
-                )
+            inputs = self._parse_inputs(args.inputs) + self._parse_inputs(args.file)
             self.poutput(self.app.submit(inputs))
-        except ValueError as e:
-            self.perror(f"Could not parse inputs: {e}")
-        finally:
-            if args.file:
-                args.file.close()
+        except ParsingError as e:
+            self.perror(str(e))
 
     def do_status(self, args) -> None:
         """Get the status of simulation jobs."""
