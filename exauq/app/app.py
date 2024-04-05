@@ -1,9 +1,10 @@
 from collections.abc import Sequence
 from numbers import Real
+from typing import Any, Union
 
 from exauq.core.modelling import Input
-from exauq.sim_management.hardware import HardwareInterface
-from exauq.sim_management.jobs import Job
+from exauq.sim_management.hardware import HardwareInterface, JobStatus
+from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.simulators import JobManager, SimulationsLog
 from exauq.sim_management.types import FilePath
 
@@ -33,10 +34,17 @@ class App:
 
         return tuple(submitted_jobs)
 
-    # TODO: Return type just for illustration, not necessarily final API
-    def status(self) -> dict[str, int]:
-        return {"9999": 1}
+    def get_jobs(
+        self,
+        jobs: Sequence[Union[str, JobId]] = None,
+        statuses: Sequence[JobStatus] = None,
+    ) -> list[dict[str, Any]]:
 
-    # TODO: Return type just for illustration, not necessarily final API
-    def result(self) -> dict[str, int]:
-        return {"9999": 1}
+        return [
+            {
+                "job_id": JobId("123"),
+                "status": JobStatus.COMPLETED,
+                "input": (0.1, 0.2),
+                "output": 1.2,
+            }
+        ]
