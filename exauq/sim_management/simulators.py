@@ -570,30 +570,40 @@ class JobManager:
         if wait_for_pending and self._thread is not None:
             self._thread.join()
 
-    def submit(self, x: Input):
+    def submit(self, x: Input) -> Job:
         """
-        Initialises a new simulation job, logs it with a NOT_SUBMITTED status, and then
-        passes it to the job handling strategies for submission.
+        Submits a new simulation job. This method creates a job with a unique ID,
+        logs it with a NOT_SUBMITTED status, and schedules it for submission through the appropriate
+        job handling strategy.
 
-        This method generates a unique ID for the job and records it in the simulations log.
-        The job, marked as NOT_SUBMITTED, is then handed over to the appropriate job handling
-        strategy, which is responsible for submitting the job to the simulation hardware.
+        Upon initialisation, the job is assigned a unique ID and recorded in the simulations log with a
+        NOT_SUBMITTED status. It is then passed to a job handling strategy, which is tasked with
+        submitting the job to the simulation hardware. The method returns the Job instance, allowing for
+        further interaction or querying of its status.
 
         Parameters
         ----------
         x : Input
             The input data for the simulation job.
 
+        Returns
+        -------
+        Job
+            The initialised and logged Job object.
+
         Examples
         --------
-        >>> job_manager.submit(Input(0.0, 1.0))
+        >>> job = job_manager.submit(Input(0.0, 1.0))
+        >>> print(job.id)
 
-        Creates a job with the given parameters, logs it, and schedules it for submission
-        through the job handling strategies.
+        This example demonstrates creating a job with the specified input parameters, logging it, and
+        obtaining its unique ID. The job is prepared for submission through the job handling strategies.
         """
 
         job = Job(self._id_generator.generate_id(), x)
         self._handle_job(job, JobStatus.NOT_SUBMITTED)
+
+        return job
 
     @staticmethod
     def _init_job_strategies() -> dict:
