@@ -26,9 +26,12 @@ class App:
             wait_for_pending=False,
         )
 
-    # TODO: Return type just for illustration, not necessarily final API
-    def submit(self, inputs: Sequence[Sequence[Real]]) -> dict[str, tuple[float, ...]]:
-        return {str(n): tuple(map(float, x)) for n, x in enumerate(inputs)}
+    def submit(self, inputs: Sequence[Sequence[Real]]) -> tuple[Job]:
+        submitted_jobs = []
+        for inp in inputs:
+            submitted_jobs.append(self._job_manager.submit(Input(*inp)))
+
+        return tuple(submitted_jobs)
 
     # TODO: Return type just for illustration, not necessarily final API
     def status(self) -> dict[str, int]:
