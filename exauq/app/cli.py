@@ -7,6 +7,7 @@ from typing import Union
 import cmd2
 
 from exauq.app.app import App
+from exauq.sim_management.jobs import Job
 
 
 class ParsingError(Exception):
@@ -59,8 +60,12 @@ class Cli(cmd2.Cmd):
         else:
             return []
 
-    def _render_submissions(self, submissions: dict[str, tuple[float, ...]]) -> str:
-        return f"** Rendering of submissions {submissions}. **"
+    def _render_stdout(self, text: str) -> None:
+        self.poutput(text + "\n")
+
+    @staticmethod
+    def _make_submissions_table(submissions: tuple[Job]) -> str:
+        return str(submissions)
 
     @cmd2.with_argparser(submit_parser)
     def do_submit(self, args) -> None:
@@ -69,7 +74,7 @@ class Cli(cmd2.Cmd):
         try:
             inputs = self._parse_inputs(args.inputs) + self._parse_inputs(args.file)
             submissions = self._app.submit(inputs)
-            self.poutput(self._render_submissions(submissions))
+            self._render_stdout(self._make_submissions_table(submissions))
         except ParsingError as e:
             self.perror(str(e))
 
