@@ -6,7 +6,7 @@ from datetime import datetime
 from numbers import Real
 from threading import Lock, Thread
 from time import sleep
-from typing import Any, Optional, Union, Sequence
+from typing import Any, Optional, Sequence, Union
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.sim_management.hardware import HardwareInterface, JobStatus
@@ -351,15 +351,20 @@ class SimulationsLog(object):
                 )
                 raise SimulationsLogLookupError(msg)
 
-    def get_records(self, job_ids: Sequence[Union[str, JobId, int]] = None, statuses: Sequence[JobStatus] = None) -> list[dict[str, Any]]:
+    def get_records(
+        self,
+        job_ids: Sequence[Union[str, JobId, int]] = None,
+        statuses: Sequence[JobStatus] = None,
+    ) -> list[dict[str, Any]]:
         """Return records based on given job ids and job status codes"""
         with self._lock:
-            job_ids_str = [str(job_id) for job_id in job_ids] if job_ids is not None else None
+            job_ids_str = (
+                [str(job_id) for job_id in job_ids] if job_ids is not None else None
+            )
 
             records = self._simulations_db.query(
-                lambda x:
-                (statuses is None or self._get_job_status(x) in statuses) and
-                (job_ids_str is None or str(self._get_job_id(x)) in job_ids_str)
+                lambda x: (statuses is None or self._get_job_status(x) in statuses)
+                and (job_ids_str is None or str(self._get_job_id(x)) in job_ids_str)
             )
 
         job_records = []
