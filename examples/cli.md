@@ -62,9 +62,10 @@ Within the app, commands issued according to the template:
 Submit a new design point for simulator evaluation
 
 ```
-(exauq) submit 1.1,2.2,3.3 0.1,0.2,0.3
+(exauq) submit 1.12,2.23,-1.3 3.12,4.23,-3.3
 JOBID   Input
 99      1.12,2.23,-1.3
+100     3.12,4.23,-3.3
 
 (exauq)
 ```
