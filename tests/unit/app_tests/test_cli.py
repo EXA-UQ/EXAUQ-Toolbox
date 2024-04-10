@@ -2,7 +2,7 @@ import unittest
 from collections import OrderedDict
 from textwrap import dedent
 
-from exauq.app.table import make_table
+from exauq.app.cli import make_table
 
 
 class TestMakeTable(unittest.TestCase):
