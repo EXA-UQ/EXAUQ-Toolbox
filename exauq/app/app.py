@@ -36,15 +36,8 @@ class App:
 
     def get_jobs(
         self,
-        jobs: Sequence[Union[str, JobId]] = None,
+        jobs: Sequence[Union[str, JobId, int]] = None,
         statuses: Sequence[JobStatus] = None,
     ) -> list[dict[str, Any]]:
 
-        return [
-            {
-                "job_id": JobId("123"),
-                "status": JobStatus.COMPLETED,
-                "input": (0.1, 0.2),
-                "output": 1.2,
-            }
-        ]
+        return self._sim_log.get_records(jobs, statuses)
