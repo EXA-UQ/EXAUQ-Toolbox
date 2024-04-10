@@ -64,7 +64,32 @@ class TestMakeTable(unittest.TestCase):
             1.11   (1.11, 2.22)
             10.00  (5.56, 6.67)
             """
-        ).strip()
+        ).strip("\n")
+        self.assertEqual(expected, make_table(data, formatters=formatters))
+
+    def test_default_string_formatting_of_columns(self):
+        """If not formatter is specified for a column, then the values in the column
+        are represented as strings in the default Python way."""
+
+        def fmt_float(x: float) -> str:
+            """Format floats to 2dp."""
+            return f"{x:.2f}"
+
+        data = OrderedDict(
+            [
+                ("COL1", [1.111111, 9.99999]),
+                ("COL2", [1.111111, 9.99999]),
+            ]
+        )
+
+        formatters = {"COL1": fmt_float}
+        expected = dedent(
+            """
+            COL1   COL2    
+            1.11   1.111111
+            10.00  9.99999 
+            """
+        ).strip("\n")
         self.assertEqual(expected, make_table(data, formatters=formatters))
 
 

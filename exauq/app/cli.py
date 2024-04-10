@@ -3,11 +3,12 @@ import sys
 from collections import OrderedDict
 from collections.abc import Sequence
 from io import TextIOWrapper
-from typing import Any, Union
+from typing import Any, Callable, Union
 
 import cmd2
 
 from exauq.app.app import App
+from exauq.sim_management.hardware import UnixServerScriptInterface
 from exauq.sim_management.jobs import Job
 
 
@@ -27,6 +28,9 @@ class ExecutionError(Exception):
 
 class Cli(cmd2.Cmd):
     """The command line interface to the exauq application."""
+
+    JOBID_HEADER = "JOBID"
+    INPUTS_HEADER = "INPUTS"
 
     submit_parser = cmd2.Cmd2ArgumentParser()
     submit_parser.add_argument(
@@ -64,9 +68,11 @@ class Cli(cmd2.Cmd):
     def _render_stdout(self, text: str) -> None:
         self.poutput(text + "\n")
 
-    @staticmethod
-    def _make_submissions_table(submissions: tuple[Job]) -> str:
-        return str(submissions)
+    def _make_submissions_table(self, jobs: tuple[Job]) -> str:
+        ids = tuple(job.id for job in jobs)
+        inputs = tuple(job.data for job in jobs)
+        data = OrderedDict([(self.JOBID_HEADER, ids), (self.INPUTS_HEADER, inputs)])
+        return make_table(data, formatters={self.INPUTS_HEADER: format_tuple})
 
     @cmd2.with_argparser(submit_parser)
     def do_submit(self, args) -> None:
@@ -74,8 +80,8 @@ class Cli(cmd2.Cmd):
 
         try:
             inputs = self._parse_inputs(args.inputs) + self._parse_inputs(args.file)
-            submissions = self._app.submit(inputs)
-            self._render_stdout(self._make_submissions_table(submissions))
+            submitted_jobs = self._app.submit(inputs)
+            self._render_stdout(self._make_submissions_table(submitted_jobs))
         except ParsingError as e:
             self.perror(str(e))
 
@@ -92,10 +98,14 @@ class Cli(cmd2.Cmd):
         self.poutput("** Rendering of results. **")
 
 
-def make_table(data: OrderedDict[str, Sequence[Any]], formatters=None) -> str:
+def make_table(
+    data: OrderedDict[str, Sequence[Any]],
+    formatters: dict[str, Callable[[Any], str]] = None,
+) -> str:
     # Format contents of cells according to given formatters, or else use string
     # representation
     if formatters is not None:
+        formatters |= {k: str for k in data if k not in formatters}
         formatted_data = OrderedDict(
             [(k, tuple(map(formatters[k], v))) for k, v in data.items()]
         )
@@ -116,6 +126,19 @@ def make_table(data: OrderedDict[str, Sequence[Any]], formatters=None) -> str:
 
     # Join rows and return
     return "\n".join(rows)
+
+
+def format_float(x: float, dp: int = 2) -> str:
+    """Format floats to a specified number of decimal places."""
+
+    fmt = "{" + f":.{dp}f" + "}"
+    return fmt.format(x)
+
+
+def format_tuple(x: tuple[float]) -> str:
+    """Format a tuple of floats to 2 decimal places."""
+
+    return "(" + ", ".join([format_float(flt, dp=2) for flt in x]) + ")"
 
 
 def main():
