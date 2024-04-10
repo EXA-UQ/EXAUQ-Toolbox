@@ -41,3 +41,6 @@ class App:
     ) -> list[dict[str, Any]]:
 
         return self._sim_log.get_records(jobs, statuses)
+
+    def shutdown(self):
+        self._job_manager.shutdown()

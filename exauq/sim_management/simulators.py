@@ -4,7 +4,7 @@ import random
 from abc import ABC, abstractmethod
 from datetime import datetime
 from numbers import Real
-from threading import Lock, Thread
+from threading import Event, Lock, Thread
 from time import sleep
 from typing import Any, Optional, Sequence, Union
 
@@ -590,6 +590,7 @@ class JobManager:
         self._jobs = []
         self._lock = Lock()
         self._thread = None
+        self._shutdown_event = Event()
 
         self._id_generator = JobIDGenerator()
 
@@ -677,17 +678,24 @@ class JobManager:
         with self._lock:
             self._jobs.extend(jobs)
         if self._thread is None or not self._thread.is_alive():
+            self._shutdown_event.clear()
             self._thread = Thread(target=self._monitor_jobs)
             self._thread.start()
 
     def _monitor_jobs(self):
         """Continuously monitor the status of jobs and handle their completion."""
 
-        while self._jobs:
-            sleep(self._polling_interval)
+        while self._jobs and not self._shutdown_event.is_set():
+            if self._shutdown_event.wait(timeout=self._polling_interval):
+                return
+
             with self._lock:
                 jobs = self._jobs[:]
+
             for job in jobs:
+                if self._shutdown_event.is_set():
+                    return
+
                 status = self._interface.get_job_status(job.id)
                 self._handle_job(job, status)
 
@@ -724,6 +732,13 @@ class JobManager:
         """
         with self._lock:
             self._jobs.remove(job)
+
+    def shutdown(self):
+        """Cleanly terminates the monitoring thread."""
+        with self._lock:
+            self._shutdown_event.set()
+        if self._thread and self._thread.is_alive():
+            self._thread.join()
 
     def _handle_job(self, job: Job, status: JobStatus):
         """Delegates handling of a job to the appropriate strategy based on its status."""
