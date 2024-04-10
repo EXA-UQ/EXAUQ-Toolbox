@@ -3,7 +3,7 @@ import sys
 from collections import OrderedDict
 from collections.abc import Sequence
 from io import TextIOWrapper
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 import cmd2
 
@@ -50,6 +50,10 @@ class Cli(cmd2.Cmd):
         super().__init__()
         self._app = app
         self.prompt = "(exauq)> "
+
+    def do_quit(self, args) -> Optional[bool]:
+        self._app.shutdown()
+        return super().do_quit(args)
 
     def _parse_inputs(
         self, inputs: Union[Sequence[str], TextIOWrapper]
