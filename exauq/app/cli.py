@@ -102,7 +102,35 @@ def make_table(
     data: OrderedDict[str, Sequence[Any]],
     formatters: dict[str, Callable[[Any], str]] = None,
 ) -> str:
-    # Format contents of cells according to given formatters, or else use string
+    """Make a table of data as a string.
+
+    Each column in the table is left-justified and columns are separated with two spaces.
+    The contents of each data cell in a column is formatted according to the supplied
+    formatting function, if any, or else just as a string using Python's built-in ``str``
+    function. The width of the column is equal to the length of the longest (string
+    formatted) cell value in the column (including the column header).
+
+    Parameters
+    ----------
+    data : OrderedDict[str, Sequence[Any]]
+        The data to put into the table. The keys of the ordered dict should be the
+        table column headers (formatted as desired for the table) and the values should
+        be the values in the columns. The order of the columns output is given by the
+        order of the corresponding keys in the ordered dict.
+    formatters : dict[str, Callable[[Any], str]], optional
+        (Default: None) A collection of formatting functions to apply to columns. Keys of
+        the dict should be column headings. The value for a column heading should be a
+        single argument function that can be applied to a value in the column and return a
+        string representation of that value. If `None` then all columns will be converted
+        to strings using Python's ``str`` built-in function.
+
+    Returns
+    -------
+    str
+        A table of the data, with columns formatted according to the supplied formatters.
+    """
+
+    # Format contents of table cells according to given formatters, or else use string
     # representation
     if formatters is not None:
         formatters |= {k: str for k in data if k not in formatters}
@@ -121,22 +149,51 @@ def make_table(
         tidied_column = [fmt.format(cell) for cell in column]
         tidied_columns.append(tidied_column)
 
-    # Separate cells in rows
+    # Separate cells in rows with two spaces
     rows = ["  ".join(row_cells) for row_cells in zip(*tidied_columns)]
 
-    # Join rows and return
+    # Join rows to return a single string
     return "\n".join(rows)
 
 
 def format_float(x: float, dp: int = 2) -> str:
-    """Format floats to a specified number of decimal places."""
+    """Format floats to a specified number of decimal places.
+
+    Parameters
+    ----------
+    x : float
+        A floating point number.
+    dp : int, optional
+        (Default: 2) The number of decimal places to round to.
+
+    Returns
+    -------
+    str
+        The rounded value of the given number.
+    """
 
     fmt = "{" + f":.{dp}f" + "}"
     return fmt.format(x)
 
 
 def format_tuple(x: tuple[float]) -> str:
-    """Format a tuple of floats to 2 decimal places."""
+    """Format a tuple of floats to 2 decimal places.
+
+    Parameters
+    ----------
+    x : tuple[float]
+        A tuple of floating point numbers.
+
+    Returns
+    -------
+    str
+        The tuple, with each floating point number within rounded to 2 decimal places.
+
+    Examples
+    --------
+    >>> format_tuple((1.1111, 9.9999, 3.1))
+    '(1.11, 10.00, 3.10)'
+    """
 
     return "(" + ", ".join([format_float(flt, dp=2) for flt in x]) + ")"
 
