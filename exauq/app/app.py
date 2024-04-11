@@ -10,6 +10,32 @@ from exauq.sim_management.types import FilePath
 
 
 class App:
+    """
+    Provides a high-level interface for submitting simulation jobs and managing their statuses.
+
+    This class acts as a facade to the more complex simulation management components, offering
+    a simplified interface for submitting batches of simulation jobs and querying job statuses.
+    It initialises and coordinates interactions between the hardware interface, the simulations log,
+    and the job manager.
+
+    Parameters
+    ----------
+    interface : HardwareInterface
+        The hardware interface through which simulation jobs will be executed.
+    input_dim : int
+        The dimensionality of the input data for simulations.
+    simulations_log_file : FilePath, optional
+        Path to the file where simulation job logs will be stored. Defaults to "simulations.csv".
+
+    Methods
+    -------
+    submit(inputs: Sequence[Sequence[Real]]) -> tuple[Job]
+        Submits a batch of simulation jobs based on the provided inputs.
+    get_jobs(jobs: Sequence[Union[str, JobId, int]] = None, statuses: Sequence[JobStatus] = None) -> list[dict[str, Any]]
+        Retrieves information about jobs, optionally filtered by job IDs or statuses.
+    shutdown()
+        Cleanly terminates the job monitoring process and ensures all resources are properly released.
+    """
     def __init__(
         self,
         interface: HardwareInterface,
