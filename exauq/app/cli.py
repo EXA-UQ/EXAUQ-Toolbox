@@ -58,12 +58,16 @@ class Cli(cmd2.Cmd):
         }
 
     def do_quit(self, args) -> Optional[bool]:
+        """Exit the application."""
+
         self._app.shutdown()
         return super().do_quit(args)
 
     def _parse_inputs(
         self, inputs: Union[Sequence[str], TextIOWrapper]
     ) -> list[tuple[float, ...]]:
+        """Convert string representations of simulator inputs to tuples of floats."""
+
         if inputs:
             try:
                 return [tuple(map(float, x.split(","))) for x in inputs]
@@ -76,12 +80,18 @@ class Cli(cmd2.Cmd):
             return []
 
     def _render_stdout(self, text: str) -> None:
+        """Write text to the application's standard output."""
+
         self.poutput(text + "\n")
 
     def _make_table(self, data: OrderedDict[str, Sequence[Any]]) -> str:
+        """Make a textual table from data."""
+
         return make_table(data, formatters=self.table_formatters)
 
     def _make_submissions_table(self, jobs: tuple[Job]) -> str:
+        """Make table of submitted jobs for displaying to the user."""
+
         ids = tuple(job.id for job in jobs)
         inputs = tuple(job.data for job in jobs)
         data = OrderedDict([(self.JOBID_HEADER, ids), (self.INPUT_HEADER, inputs)])
@@ -99,6 +109,8 @@ class Cli(cmd2.Cmd):
             self.perror(str(e))
 
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
+        """Make table of job information for displaying to the user."""
+
         data = OrderedDict(
             [
                 (self.JOBID_HEADER, (job["job_id"] for job in jobs)),
@@ -114,16 +126,6 @@ class Cli(cmd2.Cmd):
 
         jobs = self._app.get_jobs()
         self._render_stdout(self._make_show_table(jobs))
-
-    def do_status(self, args) -> None:
-        """Get the status of simulation jobs."""
-
-        self.poutput("** Rendering of statuses. **")
-
-    def do_result(self, args) -> None:
-        """Retrieve the result of simulation jobs"""
-
-        self.poutput("** Rendering of results. **")
 
 
 def make_table(
