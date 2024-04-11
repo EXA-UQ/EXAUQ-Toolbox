@@ -29,9 +29,6 @@ class ExecutionError(Exception):
 class Cli(cmd2.Cmd):
     """The command line interface to the exauq application."""
 
-    JOBID_HEADER = "JOBID"
-    INPUTS_HEADER = "INPUTS"
-
     submit_parser = cmd2.Cmd2ArgumentParser()
     submit_parser.add_argument(
         "inputs",
@@ -50,6 +47,11 @@ class Cli(cmd2.Cmd):
         super().__init__()
         self._app = app
         self.prompt = "(exauq)> "
+        self.JOBID_HEADER = "JOBID"
+        self.INPUT_HEADER = "INPUT"
+        self.STATUS_HEADER = "STATUS"
+        self.RESULT_HEADER = "RESULT"
+        self.table_formatters = {self.INPUT_HEADER: format_tuple}
 
     def do_quit(self, args) -> Optional[bool]:
         self._app.shutdown()
@@ -72,11 +74,14 @@ class Cli(cmd2.Cmd):
     def _render_stdout(self, text: str) -> None:
         self.poutput(text + "\n")
 
+    def _make_table(self, data: OrderedDict[str, Sequence[Any]]) -> str:
+        return make_table(data, formatters=self.table_formatters)
+
     def _make_submissions_table(self, jobs: tuple[Job]) -> str:
         ids = tuple(job.id for job in jobs)
         inputs = tuple(job.data for job in jobs)
-        data = OrderedDict([(self.JOBID_HEADER, ids), (self.INPUTS_HEADER, inputs)])
-        return make_table(data, formatters={self.INPUTS_HEADER: format_tuple})
+        data = OrderedDict([(self.JOBID_HEADER, ids), (self.INPUT_HEADER, inputs)])
+        return self._make_table(data)
 
     @cmd2.with_argparser(submit_parser)
     def do_submit(self, args) -> None:
@@ -88,6 +93,23 @@ class Cli(cmd2.Cmd):
             self._render_stdout(self._make_submissions_table(submitted_jobs))
         except ParsingError as e:
             self.perror(str(e))
+
+    def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
+        data = OrderedDict(
+            [
+                (self.JOBID_HEADER, (job["job_id"] for job in jobs)),
+                (self.INPUT_HEADER, (job["input"] for job in jobs)),
+                (self.STATUS_HEADER, (job["status"] for job in jobs)),
+                (self.RESULT_HEADER, (job["output"] for job in jobs)),
+            ]
+        )
+        return self._make_table(data)
+
+    def do_show(self, args) -> None:
+        """Show information about jobs."""
+
+        jobs = self._app.get_jobs()
+        self._render_stdout(self._make_show_table(jobs))
 
     def do_status(self, args) -> None:
         """Get the status of simulation jobs."""
