@@ -734,7 +734,26 @@ class JobManager:
             self._jobs.remove(job)
 
     def shutdown(self):
-        """Cleanly terminates the monitoring thread."""
+        """
+        Cleanly terminates the monitoring thread and ensures all resources are properly released.
+
+        This method signals the monitoring thread to stop by setting a shutdown event. It waits
+        for the monitoring thread to terminate, ensuring that the job manager is cleanly shut down.
+        This is particularly useful to call before exiting an application to ensure that no threads
+        remain running in the background.
+
+        Notes
+        -----
+        If the monitoring thread is not active, this method will return immediately. It ensures
+        thread-safe shutdown operations and can be called from any thread.
+
+        Examples
+        --------
+        >>> job_manager.shutdown()
+
+        This example demonstrates how to properly shut down the JobManager's monitoring capabilities,
+        ensuring that the application can be closed without leaving orphaned threads.
+        """
         with self._lock:
             self._shutdown_event.set()
         if self._thread and self._thread.is_alive():
