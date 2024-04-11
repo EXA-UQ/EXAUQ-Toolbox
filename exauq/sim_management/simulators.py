@@ -4,9 +4,9 @@ import random
 from abc import ABC, abstractmethod
 from datetime import datetime
 from numbers import Real
-from threading import Lock, Thread
+from threading import Event, Lock, Thread
 from time import sleep
-from typing import Any, Optional, Union
+from typing import Any, Optional, Sequence, Union
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
 from exauq.sim_management.hardware import HardwareInterface, JobStatus
@@ -351,6 +351,35 @@ class SimulationsLog(object):
                 )
                 raise SimulationsLogLookupError(msg)
 
+    def get_records(
+        self,
+        job_ids: Sequence[Union[str, JobId, int]] = None,
+        statuses: Sequence[JobStatus] = None,
+    ) -> list[dict[str, Any]]:
+        """Return records based on given job ids and job status codes"""
+        with self._lock:
+            job_ids_str = (
+                [str(job_id) for job_id in job_ids] if job_ids is not None else None
+            )
+
+            records = self._simulations_db.query(
+                lambda x: (statuses is None or self._get_job_status(x) in statuses)
+                and (job_ids_str is None or str(self._get_job_id(x)) in job_ids_str)
+            )
+
+        job_records = []
+        for record in records:
+            simulation = self._extract_simulation(record)
+            job_record = {
+                "job_id": JobId(self._get_job_id(record)),
+                "status": self._get_job_status(record),
+                "input": simulation[0],
+                "output": simulation[1],
+            }
+            job_records.append(job_record)
+
+        return job_records
+
     def get_pending_jobs(self) -> tuple[Job]:
         """Return all jobs which don't have results and are in non-terminal states.
 
@@ -561,6 +590,7 @@ class JobManager:
         self._jobs = []
         self._lock = Lock()
         self._thread = None
+        self._shutdown_event = Event()
 
         self._id_generator = JobIDGenerator()
 
@@ -570,30 +600,40 @@ class JobManager:
         if wait_for_pending and self._thread is not None:
             self._thread.join()
 
-    def submit(self, x: Input):
+    def submit(self, x: Input) -> Job:
         """
-        Initialises a new simulation job, logs it with a NOT_SUBMITTED status, and then
-        passes it to the job handling strategies for submission.
+        Submits a new simulation job. This method creates a job with a unique ID,
+        logs it with a NOT_SUBMITTED status, and schedules it for submission through the appropriate
+        job handling strategy.
 
-        This method generates a unique ID for the job and records it in the simulations log.
-        The job, marked as NOT_SUBMITTED, is then handed over to the appropriate job handling
-        strategy, which is responsible for submitting the job to the simulation hardware.
+        Upon initialisation, the job is assigned a unique ID and recorded in the simulations log with a
+        NOT_SUBMITTED status. It is then passed to a job handling strategy, which is tasked with
+        submitting the job to the simulation hardware. The method returns the Job instance, allowing for
+        further interaction or querying of its status.
 
         Parameters
         ----------
         x : Input
             The input data for the simulation job.
 
+        Returns
+        -------
+        Job
+            The initialised and logged Job object.
+
         Examples
         --------
-        >>> job_manager.submit(Input(0.0, 1.0))
+        >>> job = job_manager.submit(Input(0.0, 1.0))
+        >>> print(job.id)
 
-        Creates a job with the given parameters, logs it, and schedules it for submission
-        through the job handling strategies.
+        This example demonstrates creating a job with the specified input parameters, logging it, and
+        obtaining its unique ID. The job is prepared for submission through the job handling strategies.
         """
 
         job = Job(self._id_generator.generate_id(), x)
         self._handle_job(job, JobStatus.NOT_SUBMITTED)
+
+        return job
 
     @staticmethod
     def _init_job_strategies() -> dict:
@@ -638,17 +678,24 @@ class JobManager:
         with self._lock:
             self._jobs.extend(jobs)
         if self._thread is None or not self._thread.is_alive():
+            self._shutdown_event.clear()
             self._thread = Thread(target=self._monitor_jobs)
             self._thread.start()
 
     def _monitor_jobs(self):
         """Continuously monitor the status of jobs and handle their completion."""
 
-        while self._jobs:
-            sleep(self._polling_interval)
+        while self._jobs and not self._shutdown_event.is_set():
+            if self._shutdown_event.wait(timeout=self._polling_interval):
+                return
+
             with self._lock:
                 jobs = self._jobs[:]
+
             for job in jobs:
+                if self._shutdown_event.is_set():
+                    return
+
                 status = self._interface.get_job_status(job.id)
                 self._handle_job(job, status)
 
@@ -685,6 +732,32 @@ class JobManager:
         """
         with self._lock:
             self._jobs.remove(job)
+
+    def shutdown(self):
+        """
+        Cleanly terminates the monitoring thread and ensures all resources are properly released.
+
+        This method signals the monitoring thread to stop by setting a shutdown event. It waits
+        for the monitoring thread to terminate, ensuring that the job manager is cleanly shut down.
+        This is particularly useful to call before exiting an application to ensure that no threads
+        remain running in the background.
+
+        Notes
+        -----
+        If the monitoring thread is not active, this method will return immediately. It ensures
+        thread-safe shutdown operations and can be called from any thread.
+
+        Examples
+        --------
+        >>> job_manager.shutdown()
+
+        This example demonstrates how to properly shut down the JobManager's monitoring capabilities,
+        ensuring that the application can be closed without leaving orphaned threads.
+        """
+        with self._lock:
+            self._shutdown_event.set()
+        if self._thread and self._thread.is_alive():
+            self._thread.join()
 
     def _handle_job(self, job: Job, status: JobStatus):
         """Delegates handling of a job to the appropriate strategy based on its status."""
