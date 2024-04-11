@@ -42,6 +42,10 @@ class App:
         input_dim: int,
         simulations_log_file: FilePath = "simulations.csv",
     ):
+        """
+        Initialises the application with the specified hardware interface, input dimensionality for simulations,
+        and path to the simulations log file.
+        """
         self._sim_log_path = simulations_log_file
         self._input_dim = input_dim
         self._interface = interface
