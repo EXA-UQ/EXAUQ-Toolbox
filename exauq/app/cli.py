@@ -92,13 +92,11 @@ class Cli(cmd2.Cmd):
     def do_status(self, args) -> None:
         """Get the status of simulation jobs."""
 
-        _ = self._app.status()
         self.poutput("** Rendering of statuses. **")
 
     def do_result(self, args) -> None:
         """Retrieve the result of simulation jobs"""
 
-        _ = self._app.result()
         self.poutput("** Rendering of results. **")
 
 
