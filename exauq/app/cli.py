@@ -8,7 +8,7 @@ from typing import Any, Callable, Optional, Union
 import cmd2
 
 from exauq.app.app import App
-from exauq.sim_management.hardware import UnixServerScriptInterface
+from exauq.sim_management.hardware import JobStatus
 from exauq.sim_management.jobs import Job
 
 
@@ -51,7 +51,11 @@ class Cli(cmd2.Cmd):
         self.INPUT_HEADER = "INPUT"
         self.STATUS_HEADER = "STATUS"
         self.RESULT_HEADER = "RESULT"
-        self.table_formatters = {self.INPUT_HEADER: format_tuple}
+        self.table_formatters = {
+            self.INPUT_HEADER: format_tuple,
+            self.STATUS_HEADER: format_status,
+            self.RESULT_HEADER: lambda x: format_float(x, sig_figs=None),
+        }
 
     def do_quit(self, args) -> Optional[bool]:
         self._app.shutdown()
@@ -180,28 +184,32 @@ def make_table(
     return "\n".join(rows)
 
 
-def format_float(x: float, dp: int = 2) -> str:
-    """Format floats to a specified number of decimal places.
+def format_float(x: Union[float, None], sig_figs: Optional[int] = None) -> str:
+    """Format floats to a specified number of significant figures.
 
     Parameters
     ----------
-    x : float
-        A floating point number.
-    dp : int, optional
-        (Default: 2) The number of decimal places to round to.
+    x : float or None
+        A floating point number. If ``None`` then an empty string is returned.
+    sig_figs : int, optional
+        (Default: None) The number of significant figures to display. If ``None``
+        then display with full precision.
 
     Returns
     -------
     str
-        The rounded value of the given number.
+        The floating point number rounded to the given number of significant figures,
+        or the empty string if ``None`` was provided for `x`.
     """
-
-    fmt = "{" + f":.{dp}f" + "}"
-    return fmt.format(x)
+    if x is None:
+        return ""
+    else:
+        fmt = "{" + f":.{sig_figs}" + "}" if sig_figs is not None else "{:}"
+        return fmt.format(x)
 
 
 def format_tuple(x: tuple[float]) -> str:
-    """Format a tuple of floats to 2 decimal places.
+    """Format a tuple of floats to 3 significant figures.
 
     Parameters
     ----------
@@ -211,15 +219,32 @@ def format_tuple(x: tuple[float]) -> str:
     Returns
     -------
     str
-        The tuple, with each floating point number within rounded to 2 decimal places.
+        The tuple, with each floating point number within rounded to 3 significant
+        figures.
 
     Examples
     --------
     >>> format_tuple((1.1111, 9.9999, 3.1))
-    '(1.11, 10.00, 3.10)'
+    '(1.11, 10.0, 3.1)'
     """
 
-    return "(" + ", ".join([format_float(flt, dp=2) for flt in x]) + ")"
+    return "(" + ", ".join([format_float(flt, sig_figs=3) for flt in x]) + ")"
+
+
+def format_status(status: JobStatus) -> str:
+    """Format a job status, returning the string value of the enum member.
+
+    Parameters
+    ----------
+    status : JobStatus
+        A job status.
+
+    Returns
+    -------
+    str
+        The enum value of the status.
+    """
+    return str(status.value)
 
 
 def main():
