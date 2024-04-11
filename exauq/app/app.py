@@ -97,6 +97,36 @@ class App:
         jobs: Sequence[Union[str, JobId, int]] = None,
         statuses: Sequence[JobStatus] = None,
     ) -> list[dict[str, Any]]:
+        """
+        Retrieves records of simulation jobs, optionally filtered by specific job IDs or job statuses.
+
+        This method queries the simulations log to fetch details of jobs. It can be used to get the
+        current status of jobs, their input parameters, or outcomes. Filtering by job IDs or statuses
+        allows for more targeted information retrieval.
+
+        Parameters
+        ----------
+        jobs : Sequence[Union[str, JobId, int]], optional
+            A sequence of job identifiers (IDs, JobId objects, or numerical IDs) to specifically
+            retrieve records for. If None, information on all jobs will be returned.
+        statuses : Sequence[JobStatus], optional
+            A sequence of job statuses to filter the retrieved job records by. If None, jobs
+            of all statuses will be included in the result.
+
+        Returns
+        -------
+        list[dict[str, Any]]
+            A list of dictionaries, where each dictionary contains details of a single job,
+            such as its ID, status, input parameters, and outcomes.
+
+        Examples
+        --------
+        >>> jobs_info = app.get_jobs(statuses=[JobStatus.COMPLETED])
+        >>> for info in jobs_info:
+        ...     print(info['job_id'], info['status'])
+
+        This example retrieves and prints the IDs and statuses of all jobs that have been completed.
+        """
 
         return self._sim_log.get_records(jobs, statuses)
 
