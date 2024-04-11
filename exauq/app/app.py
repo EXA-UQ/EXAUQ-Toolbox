@@ -58,6 +58,34 @@ class App:
         )
 
     def submit(self, inputs: Sequence[Sequence[Real]]) -> tuple[Job]:
+        """
+        Submits a batch of simulation jobs to the job manager based on the provided input sequences.
+
+        Each input sequence is converted into an Input object and then submitted as a new simulation
+        job through the JobManager. This method is ideal for bulk submission of jobs to utilize
+        hardware resources efficiently.
+
+        Parameters
+        ----------
+        inputs : Sequence[Sequence[Real]]
+            A sequence of input sequences, where each inner sequence represents the input parameters
+            for a single simulation job.
+
+        Returns
+        -------
+        tuple[Job]
+            A tuple of the Job objects created for each submitted job, allowing for further interaction
+            or status checking.
+
+        Examples
+        --------
+        >>> jobs = app.submit([(1.0, 2.0), (3.0, 4.0)])
+        >>> for job in jobs:
+        ...     print(job.id)
+
+        This demonstrates submitting two jobs to the simulation environment with different input parameters.
+        """
+
         submitted_jobs = []
         for inp in inputs:
             submitted_jobs.append(self._job_manager.submit(Input(*inp)))
