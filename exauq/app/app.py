@@ -131,4 +131,19 @@ class App:
         return self._sim_log.get_records(jobs, statuses)
 
     def shutdown(self):
+        """
+        Initiates a clean shutdown process for the application, particularly the job monitoring
+        mechanism.
+
+        This method is critical for ensuring that the application exits cleanly without leaving
+        any orphaned threads or unresolved resources. It delegates the shutdown process to the
+        job manager, which terminates its monitoring thread and ensures all resources are properly
+        released.
+
+        Examples
+        --------
+        >>> app.shutdown()
+
+        Demonstrates initiating a shutdown of the application's job management and monitoring systems.
+        """
         self._job_manager.shutdown()
