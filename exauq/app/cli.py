@@ -76,9 +76,8 @@ class Cli(cmd2.Cmd):
                 "Please provide the following details to initialise the workspace..."
             )
             input_dim = int(input("  Dimension of simulator input space: "))
-            for param, prompt in factory.interactive_prompts:
-                value = input(f"  {prompt}: ")
-                factory.set_param_from_str(param, value)
+            for param, prompt in factory.interactive_prompts.items():
+                self._get_param_from_input(factory, param, f"  {prompt}: ")
 
             self.poutput("Setting up hardware...")
             hardware = factory.build_hardware()
@@ -113,6 +112,15 @@ class Cli(cmd2.Cmd):
             )
         return None
 
+    def _get_param_from_input(self, factory, param: str, prompt: str) -> None:
+        while True:
+            value = input(prompt)
+            try:
+                factory.set_param_from_str(param, value)
+                return None
+            except ValueError as e:
+                self._render_error(f"Invalid value -- {e}")
+
     def do_quit(self, args) -> Optional[bool]:
         """Exit the application."""
 
@@ -141,6 +149,9 @@ class Cli(cmd2.Cmd):
         """Write text to the application's standard output."""
 
         self.poutput(text + "\n")
+
+    def _render_error(self, text: str) -> None:
+        self.perror("Error: " + text)
 
     def _make_table(self, data: OrderedDict[str, Sequence[Any]]) -> str:
         """Make a textual table from data."""

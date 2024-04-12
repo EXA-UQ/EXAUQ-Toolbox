@@ -1,7 +1,8 @@
 import inspect
 import json
+import pathlib
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Callable, Optional
 
 from exauq.sim_management.hardware import HardwareInterface, UnixServerScriptInterface
 from exauq.sim_management.types import FilePath
@@ -18,7 +19,7 @@ class HardwareInterfaceFactory:
         else:
             self._hardware_cls = hardware_cls
 
-        self._hardware_parameters = self._get_init_params(hardware_cls)
+        self.hardware_parameters = self._get_init_params(hardware_cls)
 
     @staticmethod
     def _get_init_params(cls_: type) -> OrderedDict[str, Any]:
@@ -29,15 +30,11 @@ class HardwareInterfaceFactory:
         )
 
     @property
-    def hardware_parameters(self) -> OrderedDict[str, Any]:
-        return self._hardware_parameters
-
-    @property
     def hardware_type(self) -> str:
         return self._hardware_cls.__name__
 
     def set_param_from_str(self, param: str, value: str) -> None:
-        self._hardware_parameters[param] = value
+        self.hardware_parameters[param] = value
 
     def serialise_hardware_parameters(self, params_file: FilePath) -> None:
         with open(params_file, mode="w") as f:
@@ -50,7 +47,7 @@ class HardwareInterfaceFactory:
             params = json.load(f)
 
         if set(params) == set(self.hardware_parameters):
-            self._hardware_parameters = OrderedDict(params)
+            self.hardware_parameters = OrderedDict(params)
             return None
         else:
             raise AssertionError(
@@ -60,7 +57,7 @@ class HardwareInterfaceFactory:
     def build_hardware(self) -> HardwareInterface:
         missings_params = {
             param
-            for param, value in self._hardware_parameters.items()
+            for param, value in self.hardware_parameters.items()
             if value is self._MISSING
         }
         if missings_params:
@@ -85,17 +82,93 @@ class HardwareInterfaceFactory:
 class UnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
     def __init__(self):
         super().__init__(UnixServerScriptInterface)
+        self._parsers = {
+            "host": make_str_parser(),
+            "user": make_str_parser(),
+            "script_path": make_posix_path_parser(),
+            "program": make_str_parser(),
+            "use_ssh_agent": make_bool_parser(
+                required=False,
+                default=self.hardware_parameters["use_ssh_agent"],
+            ),
+        }
+
+    def set_param_from_str(self, param: str, value: str) -> None:
+        self.hardware_parameters[param] = self._parsers[param](value)
 
     def build_hardware(self) -> UnixServerScriptInterface:
         hardware = super().build_hardware()
-        self._hardware_parameters["workspace_dir"] = hardware.workspace_dir
+        self.hardware_parameters["workspace_dir"] = hardware.workspace_dir
         return hardware
 
     @property
-    def interactive_prompts(self):
-        return (
-            ("host", "Host server address"),
-            ("user", "Host username"),
-            ("script_path", "Path to simulator script on host"),
-            ("program", "Program to run simulator script with"),
+    def interactive_prompts(self) -> OrderedDict[str, str]:
+        use_ssh_agent_default = (
+            "yes" if self.hardware_parameters["use_ssh_agent"] else "no"
         )
+        return OrderedDict(
+            (
+                ("host", "Host server address"),
+                ("user", "Host username"),
+                ("script_path", "Path to simulator script on host"),
+                ("program", "Program to run simulator script with"),
+                (
+                    "use_ssh_agent",
+                    f"Use SSH agent? (Default '{use_ssh_agent_default}')",
+                ),
+            )
+        )
+
+
+def make_str_parser(
+    required: bool = True, default: Optional[str] = None
+) -> Callable[[str], Optional[str]]:
+
+    def parse(x: str) -> Optional[str]:
+        x = x.strip()
+        if required and x == "":
+            raise ValueError("A nonempty string must be supplied.")
+        elif x == "":
+            return default
+        else:
+            return x
+
+    return parse
+
+
+def make_posix_path_parser(
+    required: bool = True, default: Optional[FilePath] = None
+) -> Callable[[str], Optional[str]]:
+
+    def parse(x: str) -> Optional[str]:
+        x = make_str_parser(required=required, default="")(x)
+        if x == "":
+            return str(pathlib.PurePosixPath(default))
+        else:
+            try:
+                return str(pathlib.PurePosixPath(x))
+            except ValueError:
+                raise ValueError(f"Could not parse '{x}' as a Posix path.")
+
+    return parse
+
+
+def make_bool_parser(
+    required: bool = True, default: Optional[bool] = None
+) -> Callable[[str], Optional[bool]]:
+
+    true_values = {"true", "yes", "t", "y"}
+    false_values = {"false", "no", "f", "n"}
+
+    def parse(x: str) -> Optional[bool]:
+        x = make_str_parser(required=required, default="")(x)
+        if x == "":
+            return default
+        elif len(x.split()) > 1 or x.lower() not in (true_values | false_values):
+            raise ValueError(f"Could not parse '{x}' as a boolean")
+        elif x.lower() in true_values:
+            return True
+        else:
+            return False
+
+    return parse
