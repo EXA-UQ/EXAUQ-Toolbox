@@ -75,8 +75,13 @@ class Cli(cmd2.Cmd):
             self.poutput(
                 "Please provide the following details to initialise the workspace..."
             )
-            input_dim = int(input("Dimension of simulator input space: "))
-            hardware = factory.make_hardware_interactively()
+            input_dim = int(input("  Dimension of simulator input space: "))
+            for param, prompt in factory.interactive_prompts:
+                value = input(f"  {prompt}: ")
+                factory.set_param_from_str(param, value)
+
+            self.poutput("Setting up hardware...")
+            hardware = factory.make_hardware()
 
             # Write settings to file
             self._workspace_dir.mkdir(exist_ok=True)
@@ -99,7 +104,8 @@ class Cli(cmd2.Cmd):
         else:
             self.poutput(f"Using workspace '{self._workspace_dir}'.")
             general_settings = read_settings_json(general_settings_file)
-            hardware = factory.load_hardware(hardware_params_file)
+            factory.load_hardware_parameters(hardware_params_file)
+            hardware = factory.make_hardware()
             self._app = App(
                 interface=hardware,
                 input_dim=general_settings["input_dim"],
