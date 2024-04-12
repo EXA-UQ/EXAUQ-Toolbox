@@ -1,4 +1,6 @@
 import argparse
+import json
+import pathlib
 import sys
 from collections import OrderedDict
 from collections.abc import Sequence
@@ -8,7 +10,7 @@ from typing import Any, Callable, Optional, Union
 import cmd2
 
 from exauq.app.app import App
-from exauq.sim_management.hardware import JobStatus
+from exauq.sim_management.hardware import JobStatus, UnixServerScriptInterface
 from exauq.sim_management.jobs import Job
 
 
@@ -44,7 +46,7 @@ class Cli(cmd2.Cmd):
     )
 
     def __init__(self, app: App):
-        super().__init__()
+        super().__init__(allow_cli_args=False)
         self._app = app
         self.prompt = "(exauq)> "
         self.JOBID_HEADER = "JOBID"
@@ -249,8 +251,90 @@ def format_status(status: JobStatus) -> str:
     return str(status.value)
 
 
+class InteractiveUnixServerScriptInterfaceFactory:
+    def __init__(self):
+        self._hardware_parameters = None
+
+    @property
+    def hardware_parameters(self):
+        return self._hardware_parameters
+
+    def make_hardware_interactively(self):
+        host = input("Host server address: ")
+        user = input("Host username: ")
+        script_path = input("Path to simulator script on host: ")
+        program = input("Program to run simulator script with: ")
+        params = {
+            "host": host,
+            "user": user,
+            "script_path": script_path,
+            "program": program,
+        }
+        hardware = UnixServerScriptInterface(**params)
+        params["workspace_dir"] = hardware.workspace_dir
+        self._hardware_parameters = params
+        return hardware
+
+
 def main():
-    cli = Cli(App())
+    workspace_dir = pathlib.Path(".exauq-ws")
+    workspace_settings = workspace_dir / "settings.json"
+    workspace_log_file = workspace_dir / "simulations.csv"
+
+    if not workspace_settings.exists():
+        print(f"A new workspace '{workspace_dir}' will be set up.")
+        print("Please provide the following details to initialise the workspace...")
+
+        factory = InteractiveUnixServerScriptInterfaceFactory()
+        hardware = factory.make_hardware_interactively()
+
+        input_dim = int(input("Dimension of simulator input space: "))
+
+        # WRITE WORKSPACE SETTINGS FILE
+        settings = {
+            "hardware_type": "UnixServerScriptInterface",
+            "hardware_settings": factory.hardware_parameters,
+            "input_dim": input_dim,
+        }
+        workspace_dir.mkdir(exist_ok=True)
+        with open(workspace_settings, mode="w") as f:
+            json.dump(settings, f, indent=4)
+
+        print(f"Thanks. '{workspace_dir}' is now set up.")
+
+        # CREATE APPLICATION INSTANCE USING INITIALISED CONCRETE HARDWARE, INPUT DIM ETC.
+        cli = Cli(
+            App(
+                interface=hardware,
+                input_dim=input_dim,
+                simulations_log_file=workspace_log_file,
+            )
+        )
+    else:
+        print(f"Using workspace {workspace_dir}")
+        with open(workspace_settings, mode="r") as f:
+            settings = json.load(f)
+
+        user = settings["hardware_settings"]["user"]
+        host = settings["hardware_settings"]["host"]
+        program = settings["hardware_settings"]["program"]
+        script_path = settings["hardware_settings"]["script_path"]
+        workspace_dir = settings["hardware_settings"]["workspace_dir"]
+        input_dim = int(settings["input_dim"])
+        cli = Cli(
+            App(
+                interface=UnixServerScriptInterface(
+                    user=user,
+                    host=host,
+                    program=program,
+                    script_path=script_path,
+                    workspace_dir=workspace_dir,
+                ),
+                input_dim=input_dim,
+                simulations_log_file=workspace_log_file,
+            )
+        )
+
     sys.exit(cli.cmdloop())
 
 
