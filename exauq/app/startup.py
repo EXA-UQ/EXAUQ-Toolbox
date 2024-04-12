@@ -62,7 +62,7 @@ class HardwareInterfaceFactory:
         return self._hardware_cls(**params)
 
 
-class InteractiveUnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
+class UnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
     def __init__(self):
         super().__init__(UnixServerScriptInterface)
         self._hardware_parameters = None

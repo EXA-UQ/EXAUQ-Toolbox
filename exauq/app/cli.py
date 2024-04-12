@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional, Union
 import cmd2
 
 from exauq.app.app import App
-from exauq.app.startup import InteractiveUnixServerScriptInterfaceFactory
+from exauq.app.startup import UnixServerScriptInterfaceFactory
 from exauq.sim_management.hardware import JobStatus
 from exauq.sim_management.jobs import Job
 from exauq.sim_management.types import FilePath
@@ -268,7 +268,7 @@ def main():
     general_settings_file = workspace_dir / "settings.json"
     hardware_params_file = workspace_dir / "hardware_params"
     workspace_log_file = workspace_dir / "simulations.csv"
-    factory = InteractiveUnixServerScriptInterfaceFactory()
+    factory = UnixServerScriptInterfaceFactory()
 
     if not general_settings_file.exists():
         # Gather settings from UI
