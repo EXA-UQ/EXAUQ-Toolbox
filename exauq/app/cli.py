@@ -12,6 +12,7 @@ import cmd2
 from exauq.app.app import App
 from exauq.sim_management.hardware import JobStatus, UnixServerScriptInterface
 from exauq.sim_management.jobs import Job
+from exauq.sim_management.types import FilePath
 
 
 class ParsingError(Exception):
@@ -276,6 +277,23 @@ class InteractiveUnixServerScriptInterfaceFactory:
         return hardware
 
 
+def write_workspace_settings(
+    path: FilePath, hardware_type: str, hardware_params: dict[str, Any], input_dim: int
+) -> None:
+    settings = {
+        "hardware_type": hardware_type,
+        "hardware_settings": hardware_params,
+        "input_dim": input_dim,
+    }
+    with open(path, mode="w") as f:
+        json.dump(settings, f, indent=4)
+
+
+def read_workspace_settings(path: FilePath) -> dict[str, dict[str, Any]]:
+    with open(path, mode="r") as f:
+        return json.load(f)
+
+
 def main():
     workspace_dir = pathlib.Path(".exauq-ws")
     workspace_settings = workspace_dir / "settings.json"
@@ -287,19 +305,16 @@ def main():
 
         factory = InteractiveUnixServerScriptInterfaceFactory()
         hardware = factory.make_hardware_interactively()
-
         input_dim = int(input("Dimension of simulator input space: "))
 
         # WRITE WORKSPACE SETTINGS FILE
-        settings = {
-            "hardware_type": "UnixServerScriptInterface",
-            "hardware_settings": factory.hardware_parameters,
-            "input_dim": input_dim,
-        }
         workspace_dir.mkdir(exist_ok=True)
-        with open(workspace_settings, mode="w") as f:
-            json.dump(settings, f, indent=4)
-
+        write_workspace_settings(
+            workspace_settings,
+            hardware_type="UnixServerScriptInterfaceFactory",
+            hardware_params=factory.hardware_parameters,
+            input_dim=input_dim,
+        )
         print(f"Thanks. '{workspace_dir}' is now set up.")
 
         # CREATE APPLICATION INSTANCE USING INITIALISED CONCRETE HARDWARE, INPUT DIM ETC.
@@ -312,25 +327,12 @@ def main():
         )
     else:
         print(f"Using workspace {workspace_dir}")
-        with open(workspace_settings, mode="r") as f:
-            settings = json.load(f)
 
-        user = settings["hardware_settings"]["user"]
-        host = settings["hardware_settings"]["host"]
-        program = settings["hardware_settings"]["program"]
-        script_path = settings["hardware_settings"]["script_path"]
-        workspace_dir = settings["hardware_settings"]["workspace_dir"]
-        input_dim = int(settings["input_dim"])
+        settings = read_workspace_settings(workspace_settings)
         cli = Cli(
             App(
-                interface=UnixServerScriptInterface(
-                    user=user,
-                    host=host,
-                    program=program,
-                    script_path=script_path,
-                    workspace_dir=workspace_dir,
-                ),
-                input_dim=input_dim,
+                interface=UnixServerScriptInterface(**settings["hardware_settings"]),
+                input_dim=settings["input_dim"],
                 simulations_log_file=workspace_log_file,
             )
         )
