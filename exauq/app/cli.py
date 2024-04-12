@@ -47,8 +47,9 @@ class Cli(cmd2.Cmd):
         help="A path to a csv file containing inputs to submit to the simulator.",
     )
 
-    def __init__(self):
+    def __init__(self, workspace_dir: FilePath):
         super().__init__(allow_cli_args=False)
+        self._workspace_dir = pathlib.Path(workspace_dir)
         self._app = None
         self.prompt = "(exauq)> "
         self.JOBID_HEADER = "JOBID"
@@ -63,15 +64,14 @@ class Cli(cmd2.Cmd):
         self.register_preloop_hook(self.start_up_app)
 
     def start_up_app(self) -> None:
-        workspace_dir = pathlib.Path(".exauq-ws")
-        general_settings_file = workspace_dir / "settings.json"
-        hardware_params_file = workspace_dir / "hardware_params"
-        workspace_log_file = workspace_dir / "simulations.csv"
+        general_settings_file = self._workspace_dir / "settings.json"
+        hardware_params_file = self._workspace_dir / "hardware_params"
+        workspace_log_file = self._workspace_dir / "simulations.csv"
         factory = UnixServerScriptInterfaceFactory()
 
         if not general_settings_file.exists():
             # Gather settings from UI
-            self.poutput(f"A new workspace '{workspace_dir}' will be set up.")
+            self.poutput(f"A new workspace '{self._workspace_dir}' will be set up.")
             self.poutput(
                 "Please provide the following details to initialise the workspace..."
             )
@@ -79,7 +79,7 @@ class Cli(cmd2.Cmd):
             hardware = factory.make_hardware_interactively()
 
             # Write settings to file
-            workspace_dir.mkdir(exist_ok=True)
+            self._workspace_dir.mkdir(exist_ok=True)
             write_settings_json(
                 {
                     "hardware_type": factory.hardware_type,
@@ -88,7 +88,7 @@ class Cli(cmd2.Cmd):
                 general_settings_file,
             )
             factory.serialise_hardware_parameters(hardware_params_file)
-            self.poutput(f"Thanks. '{workspace_dir}' is now set up.")
+            self.poutput(f"Thanks. '{self._workspace_dir}' is now set up.")
 
             # Create app
             self._app = App(
@@ -97,7 +97,7 @@ class Cli(cmd2.Cmd):
                 simulations_log_file=workspace_log_file,
             )
         else:
-            self.poutput(f"Using workspace '{workspace_dir}'.")
+            self.poutput(f"Using workspace '{self._workspace_dir}'.")
             general_settings = read_settings_json(general_settings_file)
             hardware = factory.load_hardware(hardware_params_file)
             self._app = App(
@@ -105,13 +105,14 @@ class Cli(cmd2.Cmd):
                 input_dim=general_settings["input_dim"],
                 simulations_log_file=workspace_log_file,
             )
-
         return None
 
     def do_quit(self, args) -> Optional[bool]:
         """Exit the application."""
 
-        self._app.shutdown()
+        if self._app is not None:
+            self._app.shutdown()
+
         return super().do_quit(args)
 
     def _parse_inputs(
@@ -311,9 +312,26 @@ def read_settings_json(path: FilePath) -> dict[str, dict[str, Any]]:
 
 
 def main():
-    # Make CLI app and run
-    cli = Cli()
-    sys.exit(cli.cmdloop())
+    try:
+        # Parse input args
+        parser = argparse.ArgumentParser(
+            description="Submit and view the status of simulations.",
+        )
+        parser.add_argument(
+            "workspace",
+            type=pathlib.Path,
+            nargs="?",  # 0 or 1
+            default=".exauq-ws",
+            help="Path to a directory for storing hardware settings and simulation results (defaults to '%(default)s').",
+        )
+
+        args = parser.parse_args()
+
+        # Make main app and run
+        cli = Cli(args.workspace)
+        sys.exit(cli.cmdloop())
+    except KeyboardInterrupt:
+        sys.exit(print())
 
 
 if __name__ == "__main__":
