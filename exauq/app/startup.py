@@ -49,8 +49,13 @@ class HardwareInterfaceFactory:
         with open(params_file, mode="r") as f:
             params = json.load(f)
 
-        self._hardware_parameters = OrderedDict(params)
-        return None
+        if set(params) == set(self.hardware_parameters):
+            self._hardware_parameters = OrderedDict(params)
+            return None
+        else:
+            raise AssertionError(
+                f"The deserialised parameter names do not agree with those required to initialise {self.hardware_type}."
+            )
 
     def make_hardware(self) -> HardwareInterface:
         missings_params = {
