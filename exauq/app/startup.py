@@ -8,7 +8,13 @@ from exauq.sim_management.types import FilePath
 
 class HardwareInterfaceFactory:
     def __init__(self, hardware_cls: type):
-        self._hardware_cls = hardware_cls
+        if not issubclass(hardware_cls, HardwareInterface):
+            raise ValueError(
+                f"{hardware_cls} does not inherit from {HardwareInterface.__name__}"
+            )
+        else:
+            self._hardware_cls = hardware_cls
+
         self._hardware_parameters = None
 
     @property
