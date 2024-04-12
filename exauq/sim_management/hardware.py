@@ -313,11 +313,14 @@ class UnixServerScriptInterface(SSHInterface):
         self._user_at_host = f"{self._user}@{self._host}"
         self._program = program
         self._script_path = pathlib.PurePosixPath(script_path)
-        self._workpace_dir_created = self._remote_dir_exists(workspace_dir)
         self._workspace_dir = (
             pathlib.PurePosixPath(workspace_dir) if workspace_dir is not None else None
         )
-        self._job_log = self._initialise_job_log()
+        if not self._remote_dir_exists(workspace_dir):
+            self._make_workspace_dir()
+            self._job_log = dict()
+        else:
+            self._job_log = self._initialise_job_log_from_server()
 
     def _remote_dir_exists(self, path: Union[str, pathlib.PurePosixPath, None]) -> bool:
         """Whether a directory at the given path exists on the server."""
@@ -337,20 +340,17 @@ class UnixServerScriptInterface(SSHInterface):
                 )
             return flag == result
 
-    def _initialise_job_log(self) -> dict[str, dict[str, Any]]:
+    def _initialise_job_log_from_server(self) -> dict[str, dict[str, Any]]:
         """Populate the job log with details of existing jobs that have been submitted to
         the server."""
 
-        if not self._workpace_dir_created:
-            return dict()
-        else:
-            # Check whether there are any jobs already submitted
-            job_ids = self._fetch_remote_job_ids()
+        # Check whether there are any jobs already submitted
+        job_ids = self._fetch_remote_job_ids()
 
-            return {
-                job_id: self._make_job_settings(job_id, status=JobStatus.SUBMITTED)
-                for job_id in job_ids
-            }
+        return {
+            job_id: self._make_job_settings(job_id, status=JobStatus.SUBMITTED)
+            for job_id in job_ids
+        }
 
     def _fetch_remote_job_ids(self) -> tuple[JobId, ...]:
         """Get IDs of jobs that have been submitted to the server.
@@ -478,10 +478,6 @@ class UnixServerScriptInterface(SSHInterface):
                 f"been submitted."
             )
 
-        # Make workspace directory, if required
-        if not self._workpace_dir_created:
-            self._make_workspace_dir()
-
         # Create the settings for the new job
         job_settings = self._make_job_settings(job.id)
 
@@ -551,11 +547,9 @@ class UnixServerScriptInterface(SSHInterface):
                     f"Could not create workspace directory in {self._script_path.parent} "
                     f"for {self._user_at_host}: {e}"
                 )
-            self._workpace_dir_created = True
             return None
         else:
             self._make_directory_on_remote(self._workspace_dir, make_parents=True)
-            self._workpace_dir_created = True
             return None
 
     def _make_runner_script(
@@ -987,8 +981,6 @@ class UnixServerScriptInterface(SSHInterface):
     def delete_workspace(self) -> None:
         """Delete the entire workspace directory associated with this instance.
 
-        This will delete ``self.workspace_dir``, if it has been created on the server.
-
         Warning: this is an 'unsafe' deletion: it does not wait for any outstanding jobs
         to complete. This could result in server-side errors for any simulations that are
         still running when the workspace directory is deleted.
@@ -998,17 +990,14 @@ class UnixServerScriptInterface(SSHInterface):
         HardwareInterfaceFailureError
             If there were problems connecting to the server or deleting the directory.
         """
-        if self._workpace_dir_created:
-            try:
-                _ = self._run_remote_command(f"rm -r {self.workspace_dir}")
-            except Exception as e:
-                raise HardwareInterfaceFailureError(
-                    f"Could not delete workspace directory {self.workspace_dir} for "
-                    f"{self._user_at_host}: {e}"
-                )
-            return None
-        else:
-            return None
+        try:
+            _ = self._run_remote_command(f"rm -r {self.workspace_dir}")
+        except Exception as e:
+            raise HardwareInterfaceFailureError(
+                f"Could not delete workspace directory {self.workspace_dir} for "
+                f"{self._user_at_host}: {e}"
+            )
+        return None
 
     def delete_remote_job_dir(self, job_id: JobId) -> None:
         """Delete the remote directory corresponding to a given job ID.
