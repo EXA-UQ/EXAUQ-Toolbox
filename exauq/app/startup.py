@@ -57,7 +57,7 @@ class HardwareInterfaceFactory:
                 f"The deserialised parameter names do not agree with those required to initialise {self.hardware_type}."
             )
 
-    def make_hardware(self) -> HardwareInterface:
+    def build_hardware(self) -> HardwareInterface:
         missings_params = {
             param
             for param, value in self._hardware_parameters.items()
@@ -86,8 +86,8 @@ class UnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
     def __init__(self):
         super().__init__(UnixServerScriptInterface)
 
-    def make_hardware(self) -> UnixServerScriptInterface:
-        hardware = super().make_hardware()
+    def build_hardware(self) -> UnixServerScriptInterface:
+        hardware = super().build_hardware()
         self._hardware_parameters["workspace_dir"] = hardware.workspace_dir
         return hardware
 

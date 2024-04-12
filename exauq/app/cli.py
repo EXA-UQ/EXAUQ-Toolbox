@@ -81,7 +81,7 @@ class Cli(cmd2.Cmd):
                 factory.set_param_from_str(param, value)
 
             self.poutput("Setting up hardware...")
-            hardware = factory.make_hardware()
+            hardware = factory.build_hardware()
 
             # Write settings to file
             self._workspace_dir.mkdir(exist_ok=True)
@@ -105,7 +105,7 @@ class Cli(cmd2.Cmd):
             self.poutput(f"Using workspace '{self._workspace_dir}'.")
             general_settings = read_settings_json(general_settings_file)
             factory.load_hardware_parameters(hardware_params_file)
-            hardware = factory.make_hardware()
+            hardware = factory.build_hardware()
             self._app = App(
                 interface=hardware,
                 input_dim=general_settings["input_dim"],
