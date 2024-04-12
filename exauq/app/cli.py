@@ -47,9 +47,9 @@ class Cli(cmd2.Cmd):
         help="A path to a csv file containing inputs to submit to the simulator.",
     )
 
-    def __init__(self, app: App):
+    def __init__(self):
         super().__init__(allow_cli_args=False)
-        self._app = app
+        self._app = None
         self.prompt = "(exauq)> "
         self.JOBID_HEADER = "JOBID"
         self.INPUT_HEADER = "INPUT"
@@ -60,6 +60,53 @@ class Cli(cmd2.Cmd):
             self.STATUS_HEADER: format_status,
             self.RESULT_HEADER: lambda x: format_float(x, sig_figs=None),
         }
+        self.register_preloop_hook(self.start_up_app)
+
+    def start_up_app(self) -> None:
+        workspace_dir = pathlib.Path(".exauq-ws")
+        general_settings_file = workspace_dir / "settings.json"
+        hardware_params_file = workspace_dir / "hardware_params"
+        workspace_log_file = workspace_dir / "simulations.csv"
+        factory = UnixServerScriptInterfaceFactory()
+
+        if not general_settings_file.exists():
+            # Gather settings from UI
+            self.poutput(f"A new workspace '{workspace_dir}' will be set up.")
+            self.poutput(
+                "Please provide the following details to initialise the workspace..."
+            )
+            input_dim = int(input("Dimension of simulator input space: "))
+            hardware = factory.make_hardware_interactively()
+
+            # Write settings to file
+            workspace_dir.mkdir(exist_ok=True)
+            write_settings_json(
+                {
+                    "hardware_type": factory.hardware_type,
+                    "input_dim": input_dim,
+                },
+                general_settings_file,
+            )
+            factory.serialise_hardware_parameters(hardware_params_file)
+            self.poutput(f"Thanks. '{workspace_dir}' is now set up.")
+
+            # Create app
+            self._app = App(
+                interface=hardware,
+                input_dim=input_dim,
+                simulations_log_file=workspace_log_file,
+            )
+        else:
+            self.poutput(f"Using workspace '{workspace_dir}'.")
+            general_settings = read_settings_json(general_settings_file)
+            hardware = factory.load_hardware(hardware_params_file)
+            self._app = App(
+                interface=hardware,
+                input_dim=general_settings["input_dim"],
+                simulations_log_file=workspace_log_file,
+            )
+
+        return None
 
     def do_quit(self, args) -> Optional[bool]:
         """Exit the application."""
@@ -264,49 +311,8 @@ def read_settings_json(path: FilePath) -> dict[str, dict[str, Any]]:
 
 
 def main():
-    workspace_dir = pathlib.Path(".exauq-ws")
-    general_settings_file = workspace_dir / "settings.json"
-    hardware_params_file = workspace_dir / "hardware_params"
-    workspace_log_file = workspace_dir / "simulations.csv"
-    factory = UnixServerScriptInterfaceFactory()
-
-    if not general_settings_file.exists():
-        # Gather settings from UI
-        print(f"A new workspace '{workspace_dir}' will be set up.")
-        print("Please provide the following details to initialise the workspace...")
-        input_dim = int(input("Dimension of simulator input space: "))
-        hardware = factory.make_hardware_interactively()
-
-        # Write settings to file
-        workspace_dir.mkdir(exist_ok=True)
-        write_settings_json(
-            {
-                "hardware_type": factory.hardware_type,
-                "input_dim": input_dim,
-            },
-            general_settings_file,
-        )
-        factory.serialise_hardware_parameters(hardware_params_file)
-        print(f"Thanks. '{workspace_dir}' is now set up.")
-
-        # Create app
-        app = App(
-            interface=hardware,
-            input_dim=input_dim,
-            simulations_log_file=workspace_log_file,
-        )
-    else:
-        print(f"Using workspace '{workspace_dir}'.")
-        general_settings = read_settings_json(general_settings_file)
-        hardware = factory.load_hardware(hardware_params_file)
-        app = App(
-            interface=hardware,
-            input_dim=general_settings["input_dim"],
-            simulations_log_file=workspace_log_file,
-        )
-
     # Make CLI app and run
-    cli = Cli(app)
+    cli = Cli()
     sys.exit(cli.cmdloop())
 
 
