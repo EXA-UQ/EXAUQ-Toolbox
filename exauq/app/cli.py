@@ -88,7 +88,7 @@ class Cli(cmd2.Cmd):
                 general_settings_file,
             )
             factory.serialise_hardware_parameters(hardware_params_file)
-            self.poutput(f"Thanks. '{self._workspace_dir}' is now set up.")
+            self.poutput(f"Thanks -- workspace '{self._workspace_dir}' is now set up.")
 
             # Create app
             self._app = App(
@@ -313,7 +313,6 @@ def read_settings_json(path: FilePath) -> dict[str, dict[str, Any]]:
 
 def main():
     try:
-        # Parse input args
         parser = argparse.ArgumentParser(
             description="Submit and view the status of simulations.",
         )
@@ -324,14 +323,11 @@ def main():
             default=".exauq-ws",
             help="Path to a directory for storing hardware settings and simulation results (defaults to '%(default)s').",
         )
-
         args = parser.parse_args()
-
-        # Make main app and run
         cli = Cli(args.workspace)
         sys.exit(cli.cmdloop())
     except KeyboardInterrupt:
-        sys.exit(print())
+        sys.exit(print())  # Use of print ensures next shell prompt starts on new line
 
 
 if __name__ == "__main__":
