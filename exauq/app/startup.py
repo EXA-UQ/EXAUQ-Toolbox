@@ -34,7 +34,13 @@ class HardwareInterfaceFactory:
         return self._hardware_cls.__name__
 
     def set_param_from_str(self, param: str, value: str) -> None:
-        self.hardware_parameters[param] = value
+        value = value.strip()
+        if self.hardware_parameters[param] is not self._MISSING and value == "":
+            pass
+        elif value == "":
+            raise ValueError("A nonempty string must be supplied.")
+        else:
+            self.hardware_parameters[param] = value
 
     def serialise_hardware_parameters(self, params_file: FilePath) -> None:
         with open(params_file, mode="w") as f:
@@ -72,9 +78,9 @@ class HardwareInterfaceFactory:
         prompts = OrderedDict()
         for param, value in self.hardware_parameters.items():
             if value is self._MISSING:
-                prompts[param] = f"{self.hardware_type} {param.name}"
+                prompts[param] = f"{self.hardware_type} {param}"
             else:
-                prompts[param] = f"{self.hardware_type} {param.name} (default: {value})"
+                prompts[param] = f"{self.hardware_type} {param} (default: {value})"
 
         return prompts
 
