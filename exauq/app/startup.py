@@ -20,6 +20,8 @@ class HardwareInterfaceFactory:
             self._hardware_cls = hardware_cls
 
         self.hardware_parameters = self._get_init_params(hardware_cls)
+        self.parsers = self._make_default_parsers()
+        self.set_parsers()
 
     @staticmethod
     def _get_init_params(cls_: type) -> OrderedDict[str, Any]:
@@ -29,18 +31,26 @@ class HardwareInterfaceFactory:
             if not param.name == "self"
         )
 
+    def _make_default_parsers(self) -> dict[str, Callable[[str], Any]]:
+        return {
+            param: make_default_parser()
+            for param, value in self.hardware_parameters.items()
+            if value is self._MISSING
+        } | {
+            param: make_default_parser(required=False, default=value)
+            for param, value in self.hardware_parameters.items()
+            if value is not self._MISSING
+        }
+
+    def set_parsers(self) -> None:
+        pass
+
     @property
     def hardware_type(self) -> str:
         return self._hardware_cls.__name__
 
     def set_param_from_str(self, param: str, value: str) -> None:
-        value = value.strip()
-        if self.hardware_parameters[param] is not self._MISSING and value == "":
-            pass
-        elif value == "":
-            raise ValueError("A nonempty string must be supplied.")
-        else:
-            self.hardware_parameters[param] = value
+        self.hardware_parameters[param] = self.parsers[param](value)
 
     def serialise_hardware_parameters(self, params_file: FilePath) -> None:
         with open(params_file, mode="w") as f:
@@ -88,19 +98,18 @@ class HardwareInterfaceFactory:
 class UnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
     def __init__(self):
         super().__init__(UnixServerScriptInterface)
-        self._parsers = {
-            "host": make_str_parser(),
-            "user": make_str_parser(),
-            "script_path": make_posix_path_parser(),
-            "program": make_str_parser(),
-            "use_ssh_agent": make_bool_parser(
-                required=False,
-                default=self.hardware_parameters["use_ssh_agent"],
-            ),
-        }
 
-    def set_param_from_str(self, param: str, value: str) -> None:
-        self.hardware_parameters[param] = self._parsers[param](value)
+    def set_parsers(self) -> None:
+        self.parsers.update(
+            {
+                "script_path": make_posix_path_parser(),
+                "use_ssh_agent": make_bool_parser(
+                    required=False,
+                    default=self.hardware_parameters["use_ssh_agent"],
+                ),
+            }
+        )
+        return None
 
     def build_hardware(self) -> UnixServerScriptInterface:
         hardware = super().build_hardware()
@@ -126,11 +135,11 @@ class UnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
         )
 
 
-def make_str_parser(
-    required: bool = True, default: Optional[str] = None
-) -> Callable[[str], Optional[str]]:
+def make_default_parser(
+    required: bool = True, default: Optional[Any] = None
+) -> Callable[[str], Any]:
 
-    def parse(x: str) -> Optional[str]:
+    def parse(x: str) -> Any:
         x = x.strip()
         if required and x == "":
             raise ValueError("A nonempty string must be supplied.")
@@ -147,7 +156,7 @@ def make_posix_path_parser(
 ) -> Callable[[str], Optional[str]]:
 
     def parse(x: str) -> Optional[str]:
-        x = make_str_parser(required=required, default="")(x)
+        x = make_default_parser(required=required, default="")(x)
         if x == "":
             return str(pathlib.PurePosixPath(default))
         else:
@@ -167,7 +176,7 @@ def make_bool_parser(
     false_values = {"false", "no", "f", "n"}
 
     def parse(x: str) -> Optional[bool]:
-        x = make_str_parser(required=required, default="")(x)
+        x = make_default_parser(required=required, default="")(x)
         if x == "":
             return default
         elif len(x.split()) > 1 or x.lower() not in (true_values | false_values):
