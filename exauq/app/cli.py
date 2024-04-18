@@ -111,7 +111,7 @@ class Cli(cmd2.Cmd):
                     self._render_error(f"Invalid value -- {e}")
 
             self.poutput("Setting up hardware...")
-            hardware = factory.build_hardware()
+            hardware = factory.create_hardware()
 
             # Write settings to file
             self._workspace_dir.mkdir(exist_ok=True)
@@ -135,7 +135,7 @@ class Cli(cmd2.Cmd):
             self.poutput(f"Using workspace '{self._workspace_dir}'.")
             general_settings = read_settings_json(general_settings_file)
             factory.load_hardware_parameters(hardware_params_file)
-            hardware = factory.build_hardware()
+            hardware = factory.create_hardware()
             self._app = App(
                 interface=hardware,
                 input_dim=general_settings["input_dim"],

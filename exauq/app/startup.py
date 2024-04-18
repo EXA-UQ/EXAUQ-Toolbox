@@ -9,32 +9,32 @@ from exauq.sim_management.types import FilePath
 
 
 class HardwareInterfaceFactory:
-    """Provides support for building hardware interfaces interactively.
+    """Provides support for creating hardware interfaces interactively.
 
-    An instance of this class builds a specific class of hardware interface, as specified
+    An instance of this class creates a specific class of hardware interface, as specified
     by the `hardware_cls` parameter, with hardware parameter values stored in
     `self.hardware_parameters`. More precisely, creation of hardware interfaces is
-    done by calling the `self.build_hardware` method, which initialises an instance of
+    done by calling the `self.create_hardware` method, which initialises an instance of
     `self.hardware_cls` with arguments stored in `self.hardware_parameters`. To support
     applications that need to gather hardware parameter values interactively from a user,
     the `self.interactive_prompts` attribute specifies prompts to issue to the user and
     the `self.parsers` attribute defines functions for parsing strings into parameter
     values.
 
-    Those wishing to create their own classes for interactively building a certain class
+    Those wishing to create their own classes for interactively creating a certain class
     of hardware interface can derive from this class. In particular, one may wish to
     override the methods `self.serialise_hardware_parameters` and
     `self.load_hardware_parameters` concerning the serialisation and loading of parameters
     required for initialising hardware interfaces; the `interactive_prompts` property for
     creating text to display to users when gathering hardware parameter values; and
-    possibly the main `self.build_hardware` method for constructing a instance of the
+    possibly the main `self.create_hardware` method for constructing a instance of the
     hardware interface from parameter values stored in `self.hardware_parameters`.
 
     Parameters
     ----------
     hardware_cls : type
         A class deriving from ``exauq.sim_management.hardware.HardwareInterface``.
-        Instances of this class will be created by the method `self.build_hardware`.
+        Instances of this class will be created by the method `self.create_hardware`.
 
     Attributes
     ----------
@@ -186,7 +186,7 @@ class HardwareInterfaceFactory:
                 f"The deserialised parameter names do not agree with those required to initialise {self.hardware_type}."
             )
 
-    def build_hardware(self) -> HardwareInterface:
+    def create_hardware(self) -> HardwareInterface:
         """Create an instance of a hardware interface based on stored parameter values.
 
         Returns an instance of `self.hardware_cls` by initialising with parameter values
@@ -257,8 +257,8 @@ class UnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
         )
         return None
 
-    def build_hardware(self) -> UnixServerScriptInterface:
-        """Build an instance of ``UnixServerScriptInterface`` from stored parameter values.
+    def create_hardware(self) -> UnixServerScriptInterface:
+        """Create an instance of ``UnixServerScriptInterface`` from stored parameter values.
 
         Returns
         -------
@@ -272,7 +272,7 @@ class UnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
             If any parameter values in `self.hardware_params` are missing.
         """
 
-        hardware = super().build_hardware()
+        hardware = super().create_hardware()
         self.hardware_parameters["workspace_dir"] = hardware.workspace_dir
         return hardware
 
