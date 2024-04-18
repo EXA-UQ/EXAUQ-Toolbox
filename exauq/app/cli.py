@@ -117,7 +117,7 @@ class Cli(cmd2.Cmd):
             self._workspace_dir.mkdir(exist_ok=True)
             write_settings_json(
                 {
-                    "hardware_type": factory.hardware_type,
+                    "hardware_type": factory.hardware_cls.__name__,
                     "input_dim": input_dim,
                 },
                 general_settings_file,

@@ -120,10 +120,6 @@ class HardwareInterfaceFactory:
         """The class of hardware interface that this factory instance will create."""
         return self._hardware_cls
 
-    @property
-    def hardware_type(self) -> str:
-        return self._hardware_cls.__name__
-
     def set_param_from_str(self, param: str, value: str) -> None:
         """Set a hardware interface parameter value from a string.
 
@@ -190,7 +186,8 @@ class HardwareInterfaceFactory:
             return None
         else:
             raise AssertionError(
-                f"The deserialised parameter names do not agree with those required to initialise {self.hardware_type}."
+                "The deserialised parameter names do not agree with those required to "
+                f"initialise {self._hardware_cls}."
             )
 
     def create_hardware(self) -> HardwareInterface:
@@ -216,7 +213,8 @@ class HardwareInterfaceFactory:
         }
         if missings_params:
             raise AssertionError(
-                f"Cannot initialise instance of {self.hardware_type} while missing params {missings_params}."
+                f"Cannot initialise instance of {self._hardware_cls} while missing params "
+                f"{missings_params}."
             )
         else:
             return self._hardware_cls(**self.hardware_parameters)
@@ -241,9 +239,11 @@ class HardwareInterfaceFactory:
         prompts = OrderedDict()
         for param, value in self.hardware_parameters.items():
             if value is self._MISSING:
-                prompts[param] = f"{self.hardware_type} {param}"
+                prompts[param] = f"{self._hardware_cls.__name__} {param}"
             else:
-                prompts[param] = f"{self.hardware_type} {param} (default: {value})"
+                prompts[param] = (
+                    f"{self._hardware_cls.__name__} {param} (default: {value})"
+                )
 
         return prompts
 
