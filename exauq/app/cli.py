@@ -62,14 +62,14 @@ class Cli(cmd2.Cmd):
         self._workspace_dir = pathlib.Path(workspace_dir)
         self._app = None
         self.prompt = "(exauq)> "
-        self.JOBID_HEADER = "JOBID"
-        self.INPUT_HEADER = "INPUT"
-        self.STATUS_HEADER = "STATUS"
-        self.RESULT_HEADER = "RESULT"
+        self._JOBID_HEADER = "JOBID"
+        self._INPUT_HEADER = "INPUT"
+        self._STATUS_HEADER = "STATUS"
+        self._RESULT_HEADER = "RESULT"
         self.table_formatters = {
-            self.INPUT_HEADER: format_tuple,
-            self.STATUS_HEADER: format_status,
-            self.RESULT_HEADER: lambda x: format_float(x, sig_figs=None),
+            self._INPUT_HEADER: format_tuple,
+            self._STATUS_HEADER: format_status,
+            self._RESULT_HEADER: lambda x: format_float(x, sig_figs=None),
         }
         self.register_preloop_hook(self.start_up_app)
 
@@ -196,7 +196,7 @@ class Cli(cmd2.Cmd):
 
         ids = tuple(job.id for job in jobs)
         inputs = tuple(job.data for job in jobs)
-        data = OrderedDict([(self.JOBID_HEADER, ids), (self.INPUT_HEADER, inputs)])
+        data = OrderedDict([(self._JOBID_HEADER, ids), (self._INPUT_HEADER, inputs)])
         return self._make_table(data)
 
     @cmd2.with_argparser(submit_parser)
@@ -215,10 +215,10 @@ class Cli(cmd2.Cmd):
 
         data = OrderedDict(
             [
-                (self.JOBID_HEADER, (job["job_id"] for job in jobs)),
-                (self.INPUT_HEADER, (job["input"] for job in jobs)),
-                (self.STATUS_HEADER, (job["status"] for job in jobs)),
-                (self.RESULT_HEADER, (job["output"] for job in jobs)),
+                (self._JOBID_HEADER, (job["job_id"] for job in jobs)),
+                (self._INPUT_HEADER, (job["input"] for job in jobs)),
+                (self._STATUS_HEADER, (job["status"] for job in jobs)),
+                (self._RESULT_HEADER, (job["output"] for job in jobs)),
             ]
         )
         return self._make_table(data)
