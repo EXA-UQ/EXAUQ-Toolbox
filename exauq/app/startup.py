@@ -25,8 +25,9 @@ class HardwareInterfaceFactory:
     of hardware interface can derive from this class. In particular, one may wish to
     override the methods `self.serialise_hardware_parameters` and
     `self.load_hardware_parameters` concerning the serialisation and loading of parameters
-    required for initialising hardware interfaces; the `interactive_prompts` property for
-    creating text to display to users when gathering hardware parameter values; and
+    required for initialising hardware interfaces; the `self.make_parsers` method for
+    creating `self.parsers` at factory initialisation; the `interactive_prompts` property
+    for creating text to display to users when gathering hardware parameter values; and
     possibly the main `self.create_hardware` method for constructing a instance of the
     hardware interface from parameter values stored in `self.hardware_parameters`.
 
@@ -68,8 +69,7 @@ class HardwareInterfaceFactory:
             self._hardware_cls = hardware_cls
 
         self.hardware_parameters = self._get_init_params(hardware_cls)
-        self.parsers = self._make_default_parsers()
-        self.set_parsers()
+        self.parsers = self.make_parsers()
 
     @staticmethod
     def _get_init_params(cls_: type) -> OrderedDict[str, Any]:
@@ -86,14 +86,24 @@ class HardwareInterfaceFactory:
             if not param.name == "self"
         )
 
-    def _make_default_parsers(self) -> dict[str, Callable[[str], Any]]:
-        """Make parsers converting strings to parameter values.
+    def make_parsers(self) -> dict[str, Callable[[str], Any]]:
+        """Make parsers for converting strings to parameter values.
 
-        Keys in the returned dict correspond to names of parameters required to intialise
-        instances of `self.hardware_cls`. The values are functions that essentially return
-        the same string as given them, except that (1) they strip any leading/trailing
-        whitespace, and (2) they map the empty string to the default parameter value if
-        applicable, or None otherwise.
+        This method is used to set `self.parsers` upon initialisation of this object. The
+        keys in the returned dict are the same keys found in `self.hardware_parameters`.
+        The values are functions that essentially return the same string as given them,
+        except that (1) they strip any leading/trailing whitespace, and (2) they map the
+        empty string to the default parameter value if applicable, or None otherwise.
+
+        Classes deriving from `HardwareInterfaceFactory` may wish to override this method
+        to provide custom parsers for parameters that are not strings (or have particular
+        structure, such as file paths. Note that any implementation should ensure the
+        returned dict has exactly the same keys as `self.hardware_parameters`.
+
+        Returns
+        -------
+        dict[str, Callable[[str], Any]]
+            A mapping of hardware interface parameter names to parsing functions.
         """
         return {
             param: make_default_parser()
@@ -104,9 +114,6 @@ class HardwareInterfaceFactory:
             for param, value in self.hardware_parameters.items()
             if value is not self._MISSING
         }
-
-    def set_parsers(self) -> None:
-        pass
 
     @property
     def hardware_cls(self) -> type:
@@ -245,20 +252,31 @@ class UnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
     def __init__(self):
         super().__init__(UnixServerScriptInterface)
 
-    def set_parsers(self) -> None:
-        self.parsers.update(
-            {
-                "script_path": make_posix_path_parser(),
-                "use_ssh_agent": make_bool_parser(
-                    required=False,
-                    default=self.hardware_parameters["use_ssh_agent"],
-                ),
-            }
-        )
-        return None
+    def make_parsers(self) -> dict[str, Callable[[str], Any]]:
+        """Make parsers for converting strings to parameter values.
+
+        This method is used to set `self.parsers` upon initialisation of this object. It
+        overrides the `make_parsers` method of ``HardwareInterfaceFactory`` by replacing
+        parsers for the 'script_path' and 'use_ssh_agent' parameters with POSIX path and
+        boolean parsers, respectively. Other parameters are set as per the parent class
+        implementation.
+
+        Returns
+        -------
+        dict[str, Callable[[str], Any]]
+            A mapping of hardware interface parameter names to parsing functions.
+        """
+        return super().make_parsers() | {
+            "script_path": make_posix_path_parser(),
+            "use_ssh_agent": make_bool_parser(
+                required=False,
+                default=self.hardware_parameters["use_ssh_agent"],
+            ),
+        }
 
     def create_hardware(self) -> UnixServerScriptInterface:
-        """Create an instance of ``UnixServerScriptInterface`` from stored parameter values.
+        """Create an instance of ``UnixServerScriptInterface`` from stored parameter
+        values.
 
         Returns
         -------
@@ -349,7 +367,8 @@ def make_default_parser(
 def make_posix_path_parser(
     required: bool = True, default: Optional[FilePath] = None
 ) -> Callable[[str], Optional[str]]:
-    """Make a function for parsing a POSIX-compliant path, with handling for blank strings.
+    """Make a function for parsing a POSIX-compliant path, with handling for blank
+    strings.
 
     The returned parser function is designed to be used for parsing user-provided text.
     If the provided string defines a valid POSIX path, then the parser will return it
