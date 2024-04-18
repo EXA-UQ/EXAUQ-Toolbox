@@ -71,10 +71,10 @@ class Cli(cmd2.Cmd):
             self._STATUS_HEADER: format_status,
             self._RESULT_HEADER: lambda x: format_float(x, sig_figs=None),
         }
-        self.register_preloop_hook(self.start_up_app)
+        self.register_preloop_hook(self.initialise_app)
 
-    def start_up_app(self) -> None:
-        """Start the application, initialising or loading workspace settings.
+    def initialise_app(self) -> None:
+        """Initialise the application with workspace settings.
 
         The behaviour of this method depends on whether settings can be found in the
         application's workspace directory. If they can, then this implies that
