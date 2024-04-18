@@ -1,4 +1,6 @@
 import argparse
+import json
+import pathlib
 import sys
 from collections import OrderedDict
 from collections.abc import Sequence
@@ -8,8 +10,10 @@ from typing import Any, Callable, Optional, Union
 import cmd2
 
 from exauq.app.app import App
+from exauq.app.startup import UnixServerScriptInterfaceFactory
 from exauq.sim_management.hardware import JobStatus
 from exauq.sim_management.jobs import Job
+from exauq.sim_management.types import FilePath
 
 
 class ParsingError(Exception):
@@ -27,7 +31,17 @@ class ExecutionError(Exception):
 
 
 class Cli(cmd2.Cmd):
-    """The command line interface to the exauq application."""
+    """The command line interface to the EXAUQ command line application.
+
+    This class implements a command line interpreter using the ``cmd2`` third-party
+    package. A 'workspace' directory is used to persist settings relating to a hardware
+    interface, the simulatior within and a log of simulation jobs submitted.
+
+    Parameters
+    ----------
+    workspace_dir : exauq.sim_management.types.FilePath
+        Path to the workspace directory to use for the app's session.
+    """
 
     submit_parser = cmd2.Cmd2ArgumentParser()
     submit_parser.add_argument(
@@ -43,24 +57,98 @@ class Cli(cmd2.Cmd):
         help="A path to a csv file containing inputs to submit to the simulator.",
     )
 
-    def __init__(self, app: App):
-        super().__init__()
-        self._app = app
+    def __init__(self, workspace_dir: FilePath):
+        super().__init__(allow_cli_args=False)
+        self._workspace_dir = pathlib.Path(workspace_dir)
+        self._app = None
         self.prompt = "(exauq)> "
-        self.JOBID_HEADER = "JOBID"
-        self.INPUT_HEADER = "INPUT"
-        self.STATUS_HEADER = "STATUS"
-        self.RESULT_HEADER = "RESULT"
+        self._JOBID_HEADER = "JOBID"
+        self._INPUT_HEADER = "INPUT"
+        self._STATUS_HEADER = "STATUS"
+        self._RESULT_HEADER = "RESULT"
         self.table_formatters = {
-            self.INPUT_HEADER: format_tuple,
-            self.STATUS_HEADER: format_status,
-            self.RESULT_HEADER: lambda x: format_float(x, sig_figs=None),
+            self._INPUT_HEADER: format_tuple,
+            self._STATUS_HEADER: format_status,
+            self._RESULT_HEADER: lambda x: format_float(x, sig_figs=None),
         }
+        self.register_preloop_hook(self.initialise_app)
+
+    def initialise_app(self) -> None:
+        """Initialise the application with workspace settings.
+
+        The behaviour of this method depends on whether settings can be found in the
+        application's workspace directory. If they can, then this implies that
+        a workspace was initialised in a previous session of the application, in which
+        case this method will initialise a new application instance with the workspace
+        settings found. Otherwise, the required settings are gathered from the user and
+        stored in the workspace directory, and then a new application intance is
+        initialised with these settings.
+
+        Currently the only possible hardware interface that can be used is the
+        ``UnixServerScriptInterface``. This methods creates and uses an instance of
+        ``UnixServerScriptInterfaceFactory`` to set up this interface.
+        """
+
+        general_settings_file = self._workspace_dir / "settings.json"
+        hardware_params_file = self._workspace_dir / "hardware_params"
+        workspace_log_file = self._workspace_dir / "simulations.csv"
+
+        # TODO: add option to dispatch on plugin
+        factory = UnixServerScriptInterfaceFactory()
+
+        if not general_settings_file.exists():
+            # Gather settings from UI
+            self.poutput(f"A new workspace '{self._workspace_dir}' will be set up.")
+            self.poutput(
+                "Please provide the following details to initialise the workspace..."
+            )
+            input_dim = int(input("  Dimension of simulator input space: "))
+            for param, prompt in factory.interactive_prompts.items():
+                value_str = input(f"  {prompt}: ")
+                try:
+                    factory.set_param_from_str(param, value_str)
+                except ValueError as e:
+                    self._render_error(f"Invalid value -- {e}")
+
+            self.poutput("Setting up hardware...")
+            hardware = factory.create_hardware()
+
+            # Write settings to file
+            self._workspace_dir.mkdir(exist_ok=True)
+            write_settings_json(
+                {
+                    "hardware_type": factory.hardware_cls.__name__,
+                    "input_dim": input_dim,
+                },
+                general_settings_file,
+            )
+            factory.serialise_hardware_parameters(hardware_params_file)
+            self.poutput(f"Thanks -- workspace '{self._workspace_dir}' is now set up.")
+
+            # Create app
+            self._app = App(
+                interface=hardware,
+                input_dim=input_dim,
+                simulations_log_file=workspace_log_file,
+            )
+        else:
+            self.poutput(f"Using workspace '{self._workspace_dir}'.")
+            general_settings = read_settings_json(general_settings_file)
+            factory.load_hardware_parameters(hardware_params_file)
+            hardware = factory.create_hardware()
+            self._app = App(
+                interface=hardware,
+                input_dim=general_settings["input_dim"],
+                simulations_log_file=workspace_log_file,
+            )
+        return None
 
     def do_quit(self, args) -> Optional[bool]:
         """Exit the application."""
 
-        self._app.shutdown()
+        if self._app is not None:
+            self._app.shutdown()
+
         return super().do_quit(args)
 
     def _parse_inputs(
@@ -80,9 +168,14 @@ class Cli(cmd2.Cmd):
             return []
 
     def _render_stdout(self, text: str) -> None:
-        """Write text to the application's standard output."""
+        """Write text to standard output."""
 
         self.poutput(text + "\n")
+
+    def _render_error(self, text: str) -> None:
+        """Write text as an error message to standard error."""
+
+        self.perror("Error: " + text)
 
     def _make_table(self, data: OrderedDict[str, Sequence[Any]]) -> str:
         """Make a textual table from data."""
@@ -94,7 +187,7 @@ class Cli(cmd2.Cmd):
 
         ids = tuple(job.id for job in jobs)
         inputs = tuple(job.data for job in jobs)
-        data = OrderedDict([(self.JOBID_HEADER, ids), (self.INPUT_HEADER, inputs)])
+        data = OrderedDict([(self._JOBID_HEADER, ids), (self._INPUT_HEADER, inputs)])
         return self._make_table(data)
 
     @cmd2.with_argparser(submit_parser)
@@ -113,10 +206,10 @@ class Cli(cmd2.Cmd):
 
         data = OrderedDict(
             [
-                (self.JOBID_HEADER, (job["job_id"] for job in jobs)),
-                (self.INPUT_HEADER, (job["input"] for job in jobs)),
-                (self.STATUS_HEADER, (job["status"] for job in jobs)),
-                (self.RESULT_HEADER, (job["output"] for job in jobs)),
+                (self._JOBID_HEADER, (job["job_id"] for job in jobs)),
+                (self._INPUT_HEADER, (job["input"] for job in jobs)),
+                (self._STATUS_HEADER, (job["status"] for job in jobs)),
+                (self._RESULT_HEADER, (job["output"] for job in jobs)),
             ]
         )
         return self._make_table(data)
@@ -249,9 +342,62 @@ def format_status(status: JobStatus) -> str:
     return str(status.value)
 
 
+def write_settings_json(settings: dict[str, Any], path: FilePath) -> None:
+    """Serialise a dict of settings to a JSON file.
+
+    Dictionary values should be of types that can be serialised into JSON; note that not
+    all Python objects can serialised in this way. (For example, sets cannot be
+    serialised.)
+
+    Parameters
+    ----------
+    settings : dict[str, Any]
+        The settings to be serialised.
+    path : FilePath
+        Path to a text file to write the JSON-serialised settings to.
+    """
+    with open(path, mode="w") as f:
+        json.dump(settings, f, indent=4)
+
+
+def read_settings_json(path: FilePath) -> dict[str, Any]:
+    """Read settings from a JSON file.
+
+    Deserialises the JSON data into a Python object.
+
+    Parameters
+    ----------
+    path : FilePath
+        Path to a JSON file of the settings.
+
+    Returns
+    -------
+    dict[str, Any]
+        The settings stored in the JSON file.
+    """
+    with open(path, mode="r") as f:
+        return json.load(f)
+
+
 def main():
-    cli = Cli(App())
-    sys.exit(cli.cmdloop())
+    """The entry point into the EXAUQ command line application."""
+
+    try:
+        parser = argparse.ArgumentParser(
+            description="Submit and view the status of simulations.",
+        )
+        parser.add_argument(
+            "workspace",
+            type=pathlib.Path,
+            nargs="?",  # 0 or 1
+            default=".exauq-ws",
+            help="Path to a directory for storing hardware settings and simulation results (defaults to '%(default)s').",
+        )
+        args = parser.parse_args()
+        cli = Cli(args.workspace)
+        sys.exit(cli.cmdloop())
+    except KeyboardInterrupt:
+        sys.exit(print())  # Use of print ensures next shell prompt starts on new line
 
 
 if __name__ == "__main__":
