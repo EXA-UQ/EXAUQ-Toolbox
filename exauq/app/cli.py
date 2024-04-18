@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional, Union
 import cmd2
 
 from exauq.app.app import App
-from exauq.app.startup import HardwareInterfaceFactory, UnixServerScriptInterfaceFactory
+from exauq.app.startup import UnixServerScriptInterfaceFactory
 from exauq.sim_management.hardware import JobStatus
 from exauq.sim_management.jobs import Job
 from exauq.sim_management.types import FilePath
@@ -104,7 +104,11 @@ class Cli(cmd2.Cmd):
             )
             input_dim = int(input("  Dimension of simulator input space: "))
             for param, prompt in factory.interactive_prompts.items():
-                self._get_param_from_input(factory, param, f"  {prompt}: ")
+                value_str = input(f"  {prompt}: ")
+                try:
+                    factory.set_param_from_str(param, value_str)
+                except ValueError as e:
+                    self._render_error(f"Invalid value -- {e}")
 
             self.poutput("Setting up hardware...")
             hardware = factory.build_hardware()
@@ -138,19 +142,6 @@ class Cli(cmd2.Cmd):
                 simulations_log_file=workspace_log_file,
             )
         return None
-
-    def _get_param_from_input(
-        self, factory: HardwareInterfaceFactory, param: str, prompt: str
-    ) -> None:
-        """Get the value of a hardware interface parameter from standard input."""
-
-        while True:
-            value = input(prompt)
-            try:
-                factory.set_param_from_str(param, value)
-                return None
-            except ValueError as e:
-                self._render_error(f"Invalid value -- {e}")
 
     def do_quit(self, args) -> Optional[bool]:
         """Exit the application."""
