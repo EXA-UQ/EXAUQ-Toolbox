@@ -6,12 +6,13 @@ import sys
 import webbrowser
 
 import exauq
+import exauq.app.cli
 
 
 def launch_docs() -> None:
     """Open the documentation for the EXAUQ-Toolbox from a local static site."""
 
-    doc_index = pathlib.Path(__file__).absolute().parent / "docs" / "index.html"
+    doc_index = pathlib.Path(exauq.__file__).absolute().parent / "docs" / "index.html"
 
     if "WSL_DISTRO_NAME" in os.environ:
 
@@ -37,13 +38,13 @@ def main():
             type=pathlib.Path,
             nargs="?",  # 0 or 1
             default=".exauq-ws",
-            help="Path to a directory for storing hardware settings and simulation results (defaults to '%(default)s').",
+            help="path to a directory for storing hardware settings and simulation results (defaults to '%(default)s')",
         )
         parser.add_argument(
             "-d",
             "--docs",
             action="store_true",
-            help="Open a browser at the EXAUQ documentation and exit.",
+            help="open a browser at the EXAUQ documentation and exit",
         )
         args = parser.parse_args()
 
@@ -52,6 +53,7 @@ def main():
         else:
             cli = exauq.app.cli.Cli(args.workspace)
             sys.exit(cli.cmdloop())
+
     except KeyboardInterrupt:
         sys.exit(print())  # Use of print ensures next shell prompt starts on new line
 
