@@ -1,0 +1,11 @@
+site_name: EXAUQ Documentation
+
+# Settings for deploying as local files, using the file:// scheme
+site_url: ""
+site_dir: exauq/docs
+use_directory_urls: false
+plugins:
+  - offline
+
+theme:
+  name: material
