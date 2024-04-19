@@ -22,4 +22,4 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-exauq = "exauq.app.cli:main"
+exauq = "exauq.__main__:main"

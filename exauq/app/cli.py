@@ -1,10 +1,6 @@
 import argparse
 import json
-import os
 import pathlib
-import subprocess
-import sys
-import webbrowser
 from collections import OrderedDict
 from collections.abc import Sequence
 from io import TextIOWrapper
@@ -380,53 +376,3 @@ def read_settings_json(path: FilePath) -> dict[str, Any]:
     """
     with open(path, mode="r") as f:
         return json.load(f)
-
-
-def launch_docs() -> None:
-    doc_index = pathlib.Path(__file__).absolute().parent.parent / "docs" / "index.html"
-
-    if "WSL_DISTRO_NAME" in os.environ:
-
-        result = subprocess.run(
-            ["wslpath", "-w", doc_index], capture_output=True, text=True
-        )
-        path = result.stdout.strip()
-        url = "file://" + path
-        subprocess.run(["wslview", url])
-    else:
-        webbrowser.open(f"file://{doc_index}", new=2)  # open in new tab
-
-
-def main():
-    """The entry point into the EXAUQ command line application."""
-
-    try:
-        parser = argparse.ArgumentParser(
-            description="Submit and view the status of simulations.",
-        )
-        parser.add_argument(
-            "workspace",
-            type=pathlib.Path,
-            nargs="?",  # 0 or 1
-            default=".exauq-ws",
-            help="Path to a directory for storing hardware settings and simulation results (defaults to '%(default)s').",
-        )
-        parser.add_argument(
-            "-d",
-            "--docs",
-            action="store_true",
-            help="Open a browser at the EXAUQ documentation and exit.",
-        )
-        args = parser.parse_args()
-
-        if args.docs:
-            sys.exit(launch_docs())
-
-        cli = Cli(args.workspace)
-        sys.exit(cli.cmdloop())
-    except KeyboardInterrupt:
-        sys.exit(print())  # Use of print ensures next shell prompt starts on new line
-
-
-if __name__ == "__main__":
-    main()
