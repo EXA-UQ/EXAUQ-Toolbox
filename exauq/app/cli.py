@@ -1,7 +1,6 @@
 import argparse
 import json
 import pathlib
-import sys
 from collections import OrderedDict
 from collections.abc import Sequence
 from io import TextIOWrapper
@@ -377,28 +376,3 @@ def read_settings_json(path: FilePath) -> dict[str, Any]:
     """
     with open(path, mode="r") as f:
         return json.load(f)
-
-
-def main():
-    """The entry point into the EXAUQ command line application."""
-
-    try:
-        parser = argparse.ArgumentParser(
-            description="Submit and view the status of simulations.",
-        )
-        parser.add_argument(
-            "workspace",
-            type=pathlib.Path,
-            nargs="?",  # 0 or 1
-            default=".exauq-ws",
-            help="Path to a directory for storing hardware settings and simulation results (defaults to '%(default)s').",
-        )
-        args = parser.parse_args()
-        cli = Cli(args.workspace)
-        sys.exit(cli.cmdloop())
-    except KeyboardInterrupt:
-        sys.exit(print())  # Use of print ensures next shell prompt starts on new line
-
-
-if __name__ == "__main__":
-    main()

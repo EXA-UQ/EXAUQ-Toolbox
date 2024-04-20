@@ -14,10 +14,13 @@ cmd2 = ">=2.4.0"
 
 [tool.poetry.group.dev.dependencies]
 black = ">=22.0.0"
+mkdocs = "^1.5.3"
+mkdocs-material = "^9.5.18"
+pygments = "^2.17.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-exauq = "exauq.app.cli:main"
+exauq = "exauq.__main__:main"
