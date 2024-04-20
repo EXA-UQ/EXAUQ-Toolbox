@@ -223,10 +223,10 @@ class UnixServerScriptInterface(SSHInterface):
     <program> <script_path> path/to/simulation-input.csv path/to/simulation-output.txt
     ```
 
-    Here, ``<program>`` is a program that can run the simulator script, such as `bash`,
-    `python`, `Rscript`, etc. The first argument to the script is the path to a CSV file
-    containing the simulation input data, while the second argument is the path to a text
-    file that the script will write the simulation output to.
+    Here, ``<program>`` is a program that can run the simulator script, such as ``bash``,
+    ``python``, ``Rscript``, etc. The first argument to the script is the path to a CSV
+    file containing the simulation input data, while the second argument is the path to a
+    text file that the script will write the simulation output to.
 
     Objects of this class will take care of creating the input CSV file from a `Job`,
     uploading this to a job-specific subdirectory of a remote 'workspace' directory. This
@@ -286,8 +286,9 @@ class UnixServerScriptInterface(SSHInterface):
         the workspace directory, or other such server-related issues.
     """
 
-    manager_script_name = "exauq_manager.sh"
-    runner_script_name = "runner.sh"
+    _bash = "/bin/bash"
+    _manager_script_name = "exauq_manager.sh"
+    _runner_script_name = "runner.sh"
 
     def __init__(
         self,
@@ -357,7 +358,7 @@ class UnixServerScriptInterface(SSHInterface):
         # List paths to job manager scripts in directories directly below the workspace
         # directory
         no_job_ids_flag = "NO_JOBIDS"
-        cmd = f"cd {self.workspace_dir} && find . | grep -G '^\\./[0-9]*/{self.manager_script_name}$' || echo {no_job_ids_flag}"
+        cmd = f"cd {self.workspace_dir} && find . | grep -G '^\\./[0-9]*/{self._manager_script_name}$' || echo {no_job_ids_flag}"
         try:
             job_manager_paths_str = self._run_remote_command(cmd)
         except Exception as e:
@@ -384,8 +385,8 @@ class UnixServerScriptInterface(SSHInterface):
         """
 
         job_remote_dir = self._workspace_dir / str(job_id)
-        job_manager_path = job_remote_dir / self.manager_script_name
-        runner_path = job_remote_dir / self.runner_script_name
+        job_manager_path = job_remote_dir / self._manager_script_name
+        runner_path = job_remote_dir / self._runner_script_name
         input_data_path = pathlib.PurePosixPath(job_remote_dir, "input.csv")
         script_output_path = str(job_remote_dir / "output.txt")
         script_stdout_path = job_remote_dir / f"{self._script_path.name}.out"
@@ -494,7 +495,9 @@ class UnixServerScriptInterface(SSHInterface):
 
         # Start job
         try:
-            _ = self._run_remote_command(f"bash {job_settings['job_manager']} start")
+            _ = self._run_remote_command(
+                f"{self._bash} {job_settings['job_manager']} start"
+            )
         except Exception as e:
             raise HardwareInterfaceFailureError(
                 f"Could not start job with id {job.id} on {self._user_at_host}: {e}"
@@ -837,7 +840,7 @@ class UnixServerScriptInterface(SSHInterface):
         the server."""
 
         status = self._run_remote_command(
-            f"bash {self._job_log[job_id]['job_manager']} status"
+            f"{self._bash} {self._job_log[job_id]['job_manager']} status"
         )
         if status == "RUNNING":
             self._job_log[job_id]["status"] = JobStatus.RUNNING
@@ -946,7 +949,7 @@ class UnixServerScriptInterface(SSHInterface):
         if self.get_job_status(job_id) == JobStatus.RUNNING:
             try:
                 self._run_remote_command(
-                    f"bash {self._job_log[job_id]['job_manager']} stop"
+                    f"{self._bash} {self._job_log[job_id]['job_manager']} stop"
                 )
                 self._job_log[job_id]["status"] = JobStatus.CANCELLED
             except Exception as e:
