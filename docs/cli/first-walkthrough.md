@@ -11,7 +11,7 @@ The purpose of this tutorial is to demonstrate the main workflow of working with
   Conda environment, or similar.
 * You have simulator script living on a remote server that can be run within a Bash
   shell via SSH, according to the requirements given in
-  [Writing a Simulator Script](./simulator-script.md).
+  [Writing a Simulator Script](./user-guides/simulator-script.md).
 * This tutorial will create new directories and files, so you may wish to make a
   new, empty directory and navigate to it before following along with the commands
   below.
