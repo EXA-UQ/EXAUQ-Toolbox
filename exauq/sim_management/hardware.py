@@ -463,7 +463,7 @@ class UnixServerScriptInterface(SSHInterface):
 
         elif self._job_has_been_submitted(job.id):
             raise ValueError(
-                f"Cannnot submit job with ID {job.id}: a job with the same ID has already "
+                f"Cannot submit job with ID {job.id}: a job with the same ID has already "
                 f"been submitted."
             )
 
@@ -985,7 +985,7 @@ class UnixServerScriptInterface(SSHInterface):
         """Delete the remote directory corresponding to a given job ID.
 
         This will recursively delete all the contents of the directory, invoking
-        ``rm -r`` on it. Only sumbitted jobs that aren't currently running can have their
+        ``rm -r`` on it. Only submitted jobs that aren't currently running can have their
         remote directories deleted.
 
         Parameters
@@ -1027,7 +1027,7 @@ class UnixServerScriptInterface(SSHInterface):
 
 
 class HardwareInterfaceFailureError(Exception):
-    """Raised when an error was encounted when running a command or communicating with a
+    """Raised when an error was encountered when running a command or communicating with a
     machine."""
 
     pass
