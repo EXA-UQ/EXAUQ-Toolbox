@@ -95,7 +95,7 @@ class App:
 
     def get_jobs(
         self,
-        jobs: Sequence[Union[str, JobId, int]] = None,
+        job_ids: Sequence[Union[str, JobId, int]] = None,
         n_most_recent: int = None,
         statuses: Sequence[JobStatus] = None,
     ) -> list[dict[str, Any]]:
@@ -108,7 +108,7 @@ class App:
 
         Parameters
         ----------
-        jobs : Sequence[Union[str, JobId, int]], optional
+        job_ids : Sequence[Union[str, JobId, int]], optional
             A sequence of job identifiers (IDs, JobId objects, or numerical IDs) to specifically
             retrieve records for. If None, information on all jobs will be returned.
         statuses : Sequence[JobStatus], optional
@@ -135,13 +135,14 @@ class App:
         elif n_most_recent is not None and n_most_recent < 0:
             raise ValueError("'n_most_recent' must be non-negative")
         else:
-            jobs = sorted(
-                self._sim_log.get_records(jobs, statuses), key=lambda x: str(x["job_id"])
+            job_ids = sorted(
+                self._sim_log.get_records(job_ids, statuses),
+                key=lambda x: str(x["job_id"]),
             )
             if n_most_recent is not None:
-                return jobs[-n_most_recent:]
+                return job_ids[-n_most_recent:]
             else:
-                return jobs
+                return job_ids
 
     def shutdown(self):
         """

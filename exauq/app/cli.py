@@ -58,6 +58,15 @@ class Cli(cmd2.Cmd):
 
     show_parser = cmd2.Cmd2ArgumentParser()
     show_parser.add_argument(
+        "job_ids",
+        nargs="*",
+        type=str,
+        help=(
+            "Job IDs to show information for. If not provided, then will show all jobs "
+            "subject to the filtering provided by other options."
+        ),
+    )
+    show_parser.add_argument(
         "-n",
         "--n",
         nargs="?",
@@ -224,22 +233,22 @@ class Cli(cmd2.Cmd):
         )
         return self._make_table(data)
 
-    def _check_valid_show_args(self, args):
+    def _parse_show_args(self, args) -> dict[str, Any]:
         if args.n < 0:
             raise ParsingError("'n' must be a non-negative integer.")
-        return None
+
+        job_ids = args.job_ids if args.job_ids else None
+        return {"job_ids": job_ids, "n_most_recent": args.n}
 
     @cmd2.with_argparser(show_parser)
     def do_show(self, args) -> None:
         """Show information about jobs."""
         try:
-            self._check_valid_show_args(args)
+            kwargs = self._parse_show_args(args)
+            jobs = self._app.get_jobs(**kwargs)
+            self._render_stdout(self._make_show_table(jobs))
         except ParsingError as e:
             self.perror(str(e))
-            return None
-
-        jobs = self._app.get_jobs(n_most_recent=args.n)
-        self._render_stdout(self._make_show_table(jobs))
 
 
 def make_table(
