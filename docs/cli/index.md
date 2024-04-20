@@ -1,5 +1,8 @@
 # Command Line Application
 
-A command line application, called `exauq`, is installed as part of the EXAUQ-Toolbox.
-If this is your first time using the command line application, have a look through
-our [walkthrough](./first-walkthrough.md).
+The EXAUQ-Toolbox provides a command line application, called `exauq`, for submitting and
+managing simulations.
+
+If this is your first time using the command line application, have a look at
+[how to write a simulator script](./simulator-script.md) and the
+[walkthrough](./first-walkthrough.md).

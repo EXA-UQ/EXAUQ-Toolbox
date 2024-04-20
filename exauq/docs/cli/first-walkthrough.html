@@ -12,6 +12,8 @@
         <link rel="prev" href="index.html">
       
       
+        <link rel="next" href="simulator-script.html">
+      
       
       <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.18">
@@ -184,6 +186,8 @@
       
         
       
+        
+      
     
     
       
@@ -280,6 +284,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#viewing-help-and-documentation" class="md-nav__link">
     <span class="md-ellipsis">
       Viewing help and documentation
@@ -366,6 +379,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="simulator-script.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Writing a Simulator Script
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -398,6 +432,15 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#viewing-help-and-documentation" class="md-nav__link">
@@ -495,19 +538,18 @@
 <h1 id="a-first-walkthrough">A First Walkthrough</h1>
 <p>The purpose of this tutorial is to demonstrate the main workflow of working with the
 <code>exauq</code> command line application.</p>
-<blockquote>
-<p><strong>Prerequisites</strong></p>
+<h2 id="prerequisites">Prerequisites</h2>
 <ul>
 <li>You have installed the EXAUQ-Toolbox into a virtual environment and activated that
   environment. This could be an environment created with Python's <code>venv</code> module, a
   Conda environment, or similar.</li>
-<li>You have a command line application that runs a simulator living on a Linux server.
-  See </li>
+<li>You have simulator script living on a remote server that can be run within a Bash
+  shell via SSH, according to the requirements given in
+  <a href="simulator-script.html">Writing a Simulator Script</a>.</li>
 <li>This tutorial will create new directories and files, so you may wish to make a
   new, empty directory and navigate to it before following along with the commands
   below.</li>
 </ul>
-</blockquote>
 <h2 id="viewing-help-and-documentation">Viewing help and documentation</h2>
 <p>To view help on the options for starting the <code>exauq</code> application, run <code>exauq</code> with the
 <code>--help</code> (or <code>-h</code>) option:</p>
