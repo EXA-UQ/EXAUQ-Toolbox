@@ -36,6 +36,7 @@ class App:
     shutdown()
         Cleanly terminates the job monitoring process and ensures all resources are properly released.
     """
+
     def __init__(
         self,
         interface: HardwareInterface,
@@ -95,6 +96,7 @@ class App:
     def get_jobs(
         self,
         jobs: Sequence[Union[str, JobId, int]] = None,
+        n_most_recent: int = None,
         statuses: Sequence[JobStatus] = None,
     ) -> list[dict[str, Any]]:
         """
@@ -128,7 +130,18 @@ class App:
         This example retrieves and prints the IDs and statuses of all jobs that have been completed.
         """
 
-        return self._sim_log.get_records(jobs, statuses)
+        if n_most_recent is not None and n_most_recent == 0:
+            return []
+        elif n_most_recent is not None and n_most_recent < 0:
+            raise ValueError("'n_most_recent' must be non-negative")
+        else:
+            jobs = sorted(
+                self._sim_log.get_records(jobs, statuses), key=lambda x: str(x["job_id"])
+            )
+            if n_most_recent is not None:
+                return jobs[-n_most_recent:]
+            else:
+                return jobs
 
     def shutdown(self):
         """

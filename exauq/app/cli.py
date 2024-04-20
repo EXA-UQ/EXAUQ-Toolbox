@@ -56,6 +56,17 @@ class Cli(cmd2.Cmd):
         help="A path to a csv file containing inputs to submit to the simulator.",
     )
 
+    show_parser = cmd2.Cmd2ArgumentParser()
+    show_parser.add_argument(
+        "-n",
+        "--n",
+        nargs="?",
+        type=int,
+        default=50,
+        const=50,
+        help="the number of jobs to show, counting backwards from the most recently created (defaults to %(default)s)",
+    )
+
     def __init__(self, workspace_dir: FilePath):
         super().__init__(allow_cli_args=False)
         self._workspace_dir = pathlib.Path(workspace_dir)
@@ -213,10 +224,21 @@ class Cli(cmd2.Cmd):
         )
         return self._make_table(data)
 
+    def _check_valid_show_args(self, args):
+        if args.n < 0:
+            raise ParsingError("'n' must be a non-negative integer.")
+        return None
+
+    @cmd2.with_argparser(show_parser)
     def do_show(self, args) -> None:
         """Show information about jobs."""
+        try:
+            self._check_valid_show_args(args)
+        except ParsingError as e:
+            self.perror(str(e))
+            return None
 
-        jobs = self._app.get_jobs()
+        jobs = self._app.get_jobs(n_most_recent=args.n)
         self._render_stdout(self._make_show_table(jobs))
 
 
