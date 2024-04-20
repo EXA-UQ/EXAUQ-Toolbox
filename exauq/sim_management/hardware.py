@@ -1,6 +1,5 @@
 import getpass
 import io
-import json
 import pathlib
 import string
 import textwrap
@@ -221,21 +220,19 @@ class UnixServerScriptInterface(SSHInterface):
     following command:
 
     ```
-    <program> <script_path> path/to/config.json
+    <program> <script_path> path/to/simulation-input.csv path/to/simulation-output.txt
     ```
 
-    Here, ``<program>`` is a program such as `bash`, `python`, `Rscript`, etc. The script
-    is expected to take a single JSON config file as input. This config file consists of a
-    single object with keys "input_file" and "output_file", which give paths to an
-    input csv file for the simulator and an output file for the simulator to write its
-    output to.
+    Here, ``<program>`` is a program that can run the simulator script, such as ``bash``,
+    ``python``, ``Rscript``, etc. The first argument to the script is the path to a CSV
+    file containing the simulation input data, while the second argument is the path to a
+    text file that the script will write the simulation output to.
 
-    Objects of this class will take care of creating the necessary JSON config file and
-    input file from a `Job`, uploading these to a job-specific subdirectory of a remote
-    'workspace' directory. This job-specific directory is also where the output of the
-    simulator script is written to, along with a file capturing standard output and
-    standard error from running the script. Note that any required intermiary directories
-    are created on the server.
+    Objects of this class will take care of creating the input CSV file from a `Job`,
+    uploading this to a job-specific subdirectory of a remote 'workspace' directory. This
+    job-specific directory is also where the output of the simulator script is written to,
+    along with a file capturing standard output and standard error from running the
+    script. Note that any required intermediary directories are created on the server.
 
     The remote workspace directory can be specified as part of initialisation. If a a
     pre-existing directory is supplied, then the details of any existing jobs already
@@ -243,7 +240,6 @@ class UnixServerScriptInterface(SSHInterface):
     directory is not specified, then a new directory will be created alongside the main
     simulation script with name'exauqXXXXX' where 'XXXXX' is a uniquely generated string
     of characters created via the ``mktemp`` command on Unix systems.
-
 
     If `key_filename` and `ssh_config_path` are not provided and `use_ssh_agent` is
     ``False`` then a prompt for a password from standard input will be issued each time a
@@ -290,8 +286,9 @@ class UnixServerScriptInterface(SSHInterface):
         the workspace directory, or other such server-related issues.
     """
 
-    manager_script_name = "exauq_manager.sh"
-    runner_script_name = "runner.sh"
+    _bash = "/bin/bash"
+    _manager_script_name = "exauq_manager.sh"
+    _runner_script_name = "runner.sh"
 
     def __init__(
         self,
@@ -361,7 +358,7 @@ class UnixServerScriptInterface(SSHInterface):
         # List paths to job manager scripts in directories directly below the workspace
         # directory
         no_job_ids_flag = "NO_JOBIDS"
-        cmd = f"cd {self.workspace_dir} && find . | grep -G '^\\./[0-9]*/{self.manager_script_name}$' || echo {no_job_ids_flag}"
+        cmd = f"cd {self.workspace_dir} && find . | grep -G '^\\./[0-9]*/{self._manager_script_name}$' || echo {no_job_ids_flag}"
         try:
             job_manager_paths_str = self._run_remote_command(cmd)
         except Exception as e:
@@ -388,11 +385,10 @@ class UnixServerScriptInterface(SSHInterface):
         """
 
         job_remote_dir = self._workspace_dir / str(job_id)
-        job_manager_path = job_remote_dir / self.manager_script_name
-        runner_path = job_remote_dir / self.runner_script_name
+        job_manager_path = job_remote_dir / self._manager_script_name
+        runner_path = job_remote_dir / self._runner_script_name
         input_data_path = pathlib.PurePosixPath(job_remote_dir, "input.csv")
         script_output_path = str(job_remote_dir / "output.txt")
-        script_config_path = pathlib.PurePosixPath(job_remote_dir, "config.json")
         script_stdout_path = job_remote_dir / f"{self._script_path.name}.out"
         return {
             "status": status,
@@ -401,7 +397,6 @@ class UnixServerScriptInterface(SSHInterface):
             "job_manager": job_manager_path,
             "input_data_path": input_data_path,
             "script_output_path": script_output_path,
-            "script_config_path": script_config_path,
             "script_stdout_path": script_stdout_path,
             "output": None,
         }
@@ -419,14 +414,8 @@ class UnixServerScriptInterface(SSHInterface):
 
         Upon submission, a new subdirectory of the remote workspace directory is created
         for the job, using the job's ID as the directory name. (The workspace directory
-        will be created as well if it doesn't already exist.) A JSON config file for the
-        script is uploaded to this directory, along with a simulator input csv file
-        containing the data from the job. The content of the JSON config file has the
-        following form:
-
-        ```
-        {"input_file": "path/to/job_dir/input.csv", "output_file": "path/to/job_dir/output.txt"}
-        ```
+        will be created as well if it doesn't already exist.) A CSV file containing the
+        simulation input data for the job is uploaded to this directory.
 
         A Bash script is also uploaded to the job's directory, which is responsible for
         managing the job; it is through this script that the job can be started, cancelled
@@ -474,7 +463,7 @@ class UnixServerScriptInterface(SSHInterface):
 
         elif self._job_has_been_submitted(job.id):
             raise ValueError(
-                f"Cannnot submit job with ID {job.id}: a job with the same ID has already "
+                f"Cannot submit job with ID {job.id}: a job with the same ID has already "
                 f"been submitted."
             )
 
@@ -489,19 +478,10 @@ class UnixServerScriptInterface(SSHInterface):
         data_str = ",".join(map(str, job.data)) + "\n"
         self._make_text_file_on_remote(data_str, job_settings["input_data_path"])
 
-        # Make script input config and put onto server
-        script_config = {
-            "input_file": str(job_settings["input_data_path"]),
-            "output_file": str(job_settings["script_output_path"]),
-        }
-        self._make_text_file_on_remote(
-            json.dumps(script_config), job_settings["script_config_path"]
-        )
-
         # Create runner script and manager script and put onto server
         runner_script = self._make_runner_script(
             job_settings["job_remote_dir"],
-            job_settings["script_config_path"],
+            job_settings["input_data_path"],
             job_settings["script_output_path"],
         )
         manager_script = self._make_manager_script(
@@ -515,7 +495,9 @@ class UnixServerScriptInterface(SSHInterface):
 
         # Start job
         try:
-            _ = self._run_remote_command(f"bash {job_settings['job_manager']} start")
+            _ = self._run_remote_command(
+                f"{self._bash} {job_settings['job_manager']} start"
+            )
         except Exception as e:
             raise HardwareInterfaceFailureError(
                 f"Could not start job with id {job.id} on {self._user_at_host}: {e}"
@@ -555,7 +537,7 @@ class UnixServerScriptInterface(SSHInterface):
     def _make_runner_script(
         self,
         job_remote_dir: Union[str, pathlib.PurePosixPath],
-        config_path: Union[str, pathlib.PurePosixPath],
+        input_path: Union[str, pathlib.PurePosixPath],
         output_path: Union[str, pathlib.PurePosixPath],
     ) -> str:
         """Create the text for a script that runs the simulation script."""
@@ -564,7 +546,7 @@ class UnixServerScriptInterface(SSHInterface):
 
         # Run script and create new COMPLETED flag file upon successful execution and
         # presence of output file.
-        #PY_PROGRAM #PY_SCRIPT #PY_CONFIG_PATH && if [ -e #PY_OUTPUT_PATH ]; then touch #PY_JOB_DIR/COMPLETED; fi
+        #PY_PROGRAM #PY_SCRIPT #PY_INPUT_PATH #PY_OUTPUT_PATH && if [ -e #PY_OUTPUT_PATH ]; then touch #PY_JOB_DIR/COMPLETED; fi
 
         """
 
@@ -575,7 +557,7 @@ class UnixServerScriptInterface(SSHInterface):
                 "JOB_DIR": str(job_remote_dir),
                 "SCRIPT": str(self._script_path),
                 "PROGRAM": str(self._program),
-                "CONFIG_PATH": str(config_path),
+                "INPUT_PATH": str(input_path),
                 "OUTPUT_PATH": str(output_path),
             }
         )
@@ -858,7 +840,7 @@ class UnixServerScriptInterface(SSHInterface):
         the server."""
 
         status = self._run_remote_command(
-            f"bash {self._job_log[job_id]['job_manager']} status"
+            f"{self._bash} {self._job_log[job_id]['job_manager']} status"
         )
         if status == "RUNNING":
             self._job_log[job_id]["status"] = JobStatus.RUNNING
@@ -967,7 +949,7 @@ class UnixServerScriptInterface(SSHInterface):
         if self.get_job_status(job_id) == JobStatus.RUNNING:
             try:
                 self._run_remote_command(
-                    f"bash {self._job_log[job_id]['job_manager']} stop"
+                    f"{self._bash} {self._job_log[job_id]['job_manager']} stop"
                 )
                 self._job_log[job_id]["status"] = JobStatus.CANCELLED
             except Exception as e:
@@ -1003,7 +985,7 @@ class UnixServerScriptInterface(SSHInterface):
         """Delete the remote directory corresponding to a given job ID.
 
         This will recursively delete all the contents of the directory, invoking
-        ``rm -r`` on it. Only sumbitted jobs that aren't currently running can have their
+        ``rm -r`` on it. Only submitted jobs that aren't currently running can have their
         remote directories deleted.
 
         Parameters
@@ -1045,7 +1027,7 @@ class UnixServerScriptInterface(SSHInterface):
 
 
 class HardwareInterfaceFailureError(Exception):
-    """Raised when an error was encounted when running a command or communicating with a
+    """Raised when an error was encountered when running a command or communicating with a
     machine."""
 
     pass

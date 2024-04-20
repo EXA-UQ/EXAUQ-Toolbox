@@ -9,10 +9,8 @@
       
       
       
-        <link rel="prev" href="../index.html">
+        <link rel="prev" href="first-walkthrough.html">
       
-      
-        <link rel="next" href="first-walkthrough.html">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -20,7 +18,7 @@
     
     
       
-        <title>Command Line Application - EXAUQ-Toolbox</title>
+        <title>Writing a Simulator Script - EXAUQ-Toolbox</title>
       
     
     
@@ -64,7 +62,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#command-line-application" class="md-skip">
+        <a href="#writing-a-simulator-script" class="md-skip">
           Skip to content
         </a>
       
@@ -100,7 +98,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Command Line Application
+              Writing a Simulator Script
             
           </span>
         </div>
@@ -205,7 +203,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="index.html" class="md-nav__link md-nav__link--active">
+            <a href="index.html" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -216,7 +214,7 @@
             </a>
             
               
-              <label class="md-nav__link md-nav__link--active" for="__nav_2" id="__nav_2_label" tabindex="">
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
@@ -256,10 +254,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="simulator-script.html" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="simulator-script.html" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -268,6 +275,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -313,12 +321,21 @@
                   
 
 
-<h1 id="command-line-application">Command Line Application</h1>
-<p>The EXAUQ-Toolbox provides a command line application, called <code>exauq</code>, for submitting and
-managing simulations.</p>
-<p>If this is your first time using the command line application, have a look at
-<a href="simulator-script.html">how to write a simulator script</a> and the
-<a href="first-walkthrough.html">walkthrough</a>.</p>
+<h1 id="writing-a-simulator-script">Writing a Simulator Script</h1>
+<p>By default, the <code>exauq</code> application is set up to connect with a server via SSH and run
+a simulator script within a Bash shell. In order to run simulations, the simulator script
+needs to assume a particular command line interface, which is described in what follows.</p>
+<p>In order to run a simulation, the script should take in exactly two command line
+arguments:</p>
+<ul>
+<li>The first argument should be the path to a CSV file containing the simulation input
+  data. The script should read the data from this file.</li>
+<li>The second argument should be the path to a text file that the script will write the
+  simulation output to.</li>
+</ul>
+<p>The simulator script is then run within Bash according to the general form:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>PROGRAM<span class="w"> </span>path/to/simulator-script<span class="w"> </span>path/to/simulation-input.csv<span class="w"> </span>path/to/simulation-output.txt
+</span></code></pre></div>
 
 
 

@@ -3,16 +3,18 @@
 The purpose of this tutorial is to demonstrate the main workflow of working with the
 `exauq` command line application.
 
-> **Prerequisites**
->
-> * You have installed the EXAUQ-Toolbox into a virtual environment and activated that
->   environment. This could be an environment created with Python's `venv` module, a
->   Conda environment, or similar.
-> * You have a command line application that runs a simulator living on a Linux server.
->   See 
-> * This tutorial will create new directories and files, so you may wish to make a
->   new, empty directory and navigate to it before following along with the commands
->   below.
+
+## Prerequisites
+
+* You have installed the EXAUQ-Toolbox into a virtual environment and activated that
+  environment. This could be an environment created with Python's `venv` module, a
+  Conda environment, or similar.
+* You have simulator script living on a remote server that can be run within a Bash
+  shell via SSH, according to the requirements given in
+  [Writing a Simulator Script](./simulator-script.md).
+* This tutorial will create new directories and files, so you may wish to make a
+  new, empty directory and navigate to it before following along with the commands
+  below.
 
 
 ## Viewing help and documentation
