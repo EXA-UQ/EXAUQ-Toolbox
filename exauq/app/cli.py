@@ -34,7 +34,7 @@ class Cli(cmd2.Cmd):
 
     This class implements a command line interpreter using the ``cmd2`` third-party
     package. A 'workspace' directory is used to persist settings relating to a hardware
-    interface, the simulatior within and a log of simulation jobs submitted.
+    interface, the simulator within and a log of simulation jobs submitted.
 
     Parameters
     ----------
@@ -100,7 +100,7 @@ class Cli(cmd2.Cmd):
         a workspace was initialised in a previous session of the application, in which
         case this method will initialise a new application instance with the workspace
         settings found. Otherwise, the required settings are gathered from the user and
-        stored in the workspace directory, and then a new application intance is
+        stored in the workspace directory, and then a new application instance is
         initialised with these settings.
 
         Currently the only possible hardware interface that can be used is the
@@ -218,7 +218,7 @@ class Cli(cmd2.Cmd):
             submitted_jobs = self._app.submit(inputs)
             self._render_stdout(self._make_submissions_table(submitted_jobs))
         except ParsingError as e:
-            self.perror(str(e))
+            self._render_error(str(e))
 
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of job information for displaying to the user."""
@@ -248,7 +248,7 @@ class Cli(cmd2.Cmd):
             jobs = self._app.get_jobs(**kwargs)
             self._render_stdout(self._make_show_table(jobs))
         except ParsingError as e:
-            self.perror(str(e))
+            self._render_error(str(e))
 
 
 def make_table(
