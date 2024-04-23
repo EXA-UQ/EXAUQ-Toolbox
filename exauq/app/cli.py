@@ -1,6 +1,7 @@
 import argparse
 import json
 import pathlib
+import re
 from collections import OrderedDict
 from collections.abc import Sequence
 from io import TextIOWrapper
@@ -74,6 +75,17 @@ class Cli(cmd2.Cmd):
         default=50,
         const=50,
         help="the number of jobs to show, counting backwards from the most recently created (defaults to %(default)s)",
+    )
+    show_parser.add_argument(
+        "-s",
+        "--status",
+        nargs="?",
+        default="",
+        const="",
+        help=(
+            "a comma-separated list of statuses, so that only jobs having one of these "
+            "statuses will be shown (defaults to %(default)s, which means show all jobs)"
+        ),
     )
 
     def __init__(self, workspace_dir: FilePath):
@@ -233,12 +245,43 @@ class Cli(cmd2.Cmd):
         )
         return self._make_table(data)
 
+    _STATUS_STRINGS = {status.name for status in JobStatus}
+
+    @staticmethod
+    def _parse_statuses_string_to_set(
+        statuses: str, empty_to_all: bool = False
+    ) -> set[JobStatus]:
+        # Remove leading and trailing whitespace and quotes
+        statuses = statuses.strip().strip("'\"")
+
+        # Get comma-separated components
+        statuses = statuses.split(",")
+
+        # Remove leading and trailing whitespace, replace inner whitespace with a single
+        # underscore, and convert to upper case
+        statuses = {re.sub("\\s+", "_", status.strip()).upper() for status in statuses}
+
+        # Return as set of job statuses
+        if statuses == {""} and empty_to_all:
+            return set(JobStatus)
+        else:
+            return {x for x in JobStatus if x.name in statuses}
+
     def _parse_show_args(self, args) -> dict[str, Any]:
         if args.n < 0:
             raise ParsingError("'n' must be a non-negative integer.")
 
         job_ids = args.job_ids if args.job_ids else None
-        return {"job_ids": job_ids, "n_most_recent": args.n}
+
+        statuses_to_keep = self._parse_statuses_string_to_set(
+            args.status, empty_to_all=True
+        )
+
+        return {
+            "job_ids": job_ids,
+            "n_most_recent": args.n,
+            "statuses_to_keep": statuses_to_keep,
+        }
 
     @cmd2.with_argparser(show_parser)
     def do_show(self, args) -> None:
