@@ -69,11 +69,12 @@ class Cli(cmd2.Cmd):
     )
     show_parser.add_argument(
         "-n",
-        "--n",
+        "--n-jobs",
         nargs="?",
         type=int,
         default=50,
         const=50,
+        metavar="N_JOBS",
         help="the number of jobs to show, counting backwards from the most recently created (defaults to %(default)s)",
     )
     show_parser.add_argument(
@@ -82,6 +83,7 @@ class Cli(cmd2.Cmd):
         nargs="?",
         default="",
         const="",
+        metavar="STATUSES",
         help=(
             "a comma-separated list of statuses, so that only jobs having one of these "
             "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
@@ -93,6 +95,7 @@ class Cli(cmd2.Cmd):
         nargs="?",
         default="",
         const="",
+        metavar="STATUSES",
         help=(
             "a comma-separated list of statuses, so that only jobs *not* having one of these "
             "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
@@ -277,7 +280,7 @@ class Cli(cmd2.Cmd):
             return {x for x in JobStatus if x.name in statuses}
 
     def _parse_show_args(self, args) -> dict[str, Any]:
-        if args.n < 0:
+        if args.n_jobs < 0:
             raise ParsingError("'n' must be a non-negative integer.")
 
         job_ids = args.job_ids if args.job_ids else None
@@ -289,7 +292,7 @@ class Cli(cmd2.Cmd):
         statuses = statuses_included - statuses_excluded
         return {
             "job_ids": job_ids,
-            "n_most_recent": args.n,
+            "n_most_recent": args.n_jobs,
             "statuses": statuses,
         }
 
