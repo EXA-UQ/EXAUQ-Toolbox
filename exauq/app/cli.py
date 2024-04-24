@@ -77,6 +77,7 @@ class Cli(cmd2.Cmd):
         metavar="N_JOBS",
         help="the number of jobs to show, counting backwards from the most recently created (defaults to %(default)s)",
     )
+    status_opt_short = "-s"
     show_parser.add_argument(
         "-s",
         "--status",
@@ -89,6 +90,7 @@ class Cli(cmd2.Cmd):
             "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
         ),
     )
+    status_not_opt_short = "-S"
     show_parser.add_argument(
         "-S",
         "--status-not",
@@ -101,10 +103,11 @@ class Cli(cmd2.Cmd):
             "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
         ),
     )
-    result_option = "--result"
+    result_opt = "--result"
+    result_opt_short = "-r"
     show_parser.add_argument(
         "-r",
-        result_option,
+        result_opt,
         nargs="?",
         choices={"true", "false", ""},
         default="",
@@ -113,10 +116,21 @@ class Cli(cmd2.Cmd):
         metavar="true|false",
         help=(
             "whether to show only jobs which have a simulation output ('true'), or show only "
-            f"jobs that *don't* have a simulation output ('false'). If {result_option} is "
+            f"jobs that *don't* have a simulation output ('false'). If {result_opt} is "
             "given as an argument without a value specified, then defaults to '%(const)s'. If "
-            f"{result_option} is not given as an argument, then all jobs will be shown "
+            f"{result_opt} is not given as an argument, then all jobs will be shown "
             "subject to the other filtering options."
+        ),
+    )
+    show_parser.add_argument(
+        "-x",
+        "--twr",
+        action="store_true",
+        help=(
+            "show only jobs that have 'terminated without result', i.e. that have no "
+            "simulation output yet are no longer running or waiting to run. This overrides "
+            "any filters applied to statuses or simulation outputs via with the arguments "
+            f"{status_opt_short}, {status_not_opt_short}, and {result_opt_short}."
         ),
     )
 
@@ -309,12 +323,21 @@ class Cli(cmd2.Cmd):
 
         job_ids = args.job_ids if args.job_ids else None
 
-        statuses_included = self._parse_statuses_string_to_set(
-            args.status, empty_to_all=True
-        )
-        statuses_excluded = self._parse_statuses_string_to_set(args.status_not)
-        statuses = statuses_included - statuses_excluded
-        result_filter = self._parse_bool(args.result)
+        if args.twr:
+            statuses = set(JobStatus) - {
+                JobStatus.NOT_SUBMITTED,
+                JobStatus.SUBMITTED,
+                JobStatus.RUNNING,
+            }
+            result_filter = False
+        else:
+            statuses_included = self._parse_statuses_string_to_set(
+                args.status, empty_to_all=True
+            )
+            statuses_excluded = self._parse_statuses_string_to_set(args.status_not)
+            statuses = statuses_included - statuses_excluded
+            result_filter = self._parse_bool(args.result)
+
         return {
             "job_ids": job_ids,
             "n_most_recent": args.n_jobs,
