@@ -84,7 +84,18 @@ class Cli(cmd2.Cmd):
         const="",
         help=(
             "a comma-separated list of statuses, so that only jobs having one of these "
-            "statuses will be shown (defaults to %(default)s, which means show all jobs)"
+            "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
+        ),
+    )
+    show_parser.add_argument(
+        "-S",
+        "--status-not",
+        nargs="?",
+        default="",
+        const="",
+        help=(
+            "a comma-separated list of statuses, so that only jobs *not* having one of these "
+            "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
         ),
     )
 
@@ -271,14 +282,15 @@ class Cli(cmd2.Cmd):
 
         job_ids = args.job_ids if args.job_ids else None
 
-        statuses_to_keep = self._parse_statuses_string_to_set(
+        statuses_included = self._parse_statuses_string_to_set(
             args.status, empty_to_all=True
         )
-
+        statuses_excluded = self._parse_statuses_string_to_set(args.status_not)
+        statuses = statuses_included - statuses_excluded
         return {
             "job_ids": job_ids,
             "n_most_recent": args.n,
-            "statuses_to_keep": statuses_to_keep,
+            "statuses": statuses,
         }
 
     @cmd2.with_argparser(show_parser)

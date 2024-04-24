@@ -97,7 +97,7 @@ class App:
         self,
         job_ids: Sequence[Union[str, JobId, int]] = None,
         n_most_recent: int = None,
-        statuses_to_keep: Sequence[JobStatus] = None,
+        statuses: Sequence[JobStatus] = None,
     ) -> list[dict[str, Any]]:
         """
         Retrieves records of simulation jobs, optionally filtered by specific job IDs or job statuses.
@@ -136,7 +136,7 @@ class App:
             raise ValueError("'n_most_recent' must be non-negative")
         else:
             job_ids = sorted(
-                self._sim_log.get_records(job_ids, statuses_to_keep),
+                self._sim_log.get_records(job_ids, statuses),
                 key=lambda x: str(x["job_id"]),
             )
             if n_most_recent is not None:
