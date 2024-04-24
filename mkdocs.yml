@@ -15,7 +15,7 @@ nav:
     - "User Guides":
       - "cli/user-guides/index.md"
       - "Writing a Simulator Script": "cli/user-guides/simulator-script.md"
-      - "Filtering Jobs": "cli/user-guides/filtering-jobs.md"
+      - "Getting Information on Jobs": "cli/user-guides/filtering-jobs.md"
 
 # Material for MkDocs
 theme:
