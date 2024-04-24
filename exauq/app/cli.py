@@ -101,6 +101,24 @@ class Cli(cmd2.Cmd):
             "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
         ),
     )
+    result_option = "--result"
+    show_parser.add_argument(
+        "-r",
+        result_option,
+        nargs="?",
+        choices={"true", "false", ""},
+        default="",
+        const="true",
+        type=lambda x: clean_input_string(x).lower(),
+        metavar="true|false",
+        help=(
+            "whether to show only jobs which have a simulation output ('true'), or show only "
+            f"jobs that *don't* have a simulation output ('false'). If {result_option} is "
+            "given as an argument without a value specified, then defaults to '%(const)s'. If "
+            f"{result_option} is not given as an argument, then all jobs will be shown "
+            "subject to the other filtering options."
+        ),
+    )
 
     def __init__(self, workspace_dir: FilePath):
         super().__init__(allow_cli_args=False)
@@ -259,12 +277,10 @@ class Cli(cmd2.Cmd):
         )
         return self._make_table(data)
 
-    @staticmethod
     def _parse_statuses_string_to_set(
-        statuses: str, empty_to_all: bool = False
+        self, statuses: str, empty_to_all: bool = False
     ) -> set[JobStatus]:
-        # Remove leading and trailing whitespace and quotes
-        statuses = statuses.strip().strip("'\"")
+        statuses = clean_input_string(statuses)
 
         # Get comma-separated components
         statuses = statuses.split(",")
@@ -279,9 +295,17 @@ class Cli(cmd2.Cmd):
         else:
             return {x for x in JobStatus if x.name in statuses}
 
+    def _parse_bool(self, result: str) -> Optional[bool]:
+        if result == "true":
+            return True
+        elif result == "false":
+            return False
+        else:
+            return None
+
     def _parse_show_args(self, args) -> dict[str, Any]:
         if args.n_jobs < 0:
-            raise ParsingError("'n' must be a non-negative integer.")
+            raise ParsingError("Value for --n-jobs must be a non-negative integer.")
 
         job_ids = args.job_ids if args.job_ids else None
 
@@ -290,10 +314,12 @@ class Cli(cmd2.Cmd):
         )
         statuses_excluded = self._parse_statuses_string_to_set(args.status_not)
         statuses = statuses_included - statuses_excluded
+        result_filter = self._parse_bool(args.result)
         return {
             "job_ids": job_ids,
             "n_most_recent": args.n_jobs,
             "statuses": statuses,
+            "result_filter": result_filter,
         }
 
     @cmd2.with_argparser(show_parser)
@@ -305,6 +331,10 @@ class Cli(cmd2.Cmd):
             self._render_stdout(self._make_show_table(jobs))
         except ParsingError as e:
             self._render_error(str(e))
+
+
+def clean_input_string(string: str) -> str:
+    return string.strip().strip("'\"")
 
 
 def make_table(

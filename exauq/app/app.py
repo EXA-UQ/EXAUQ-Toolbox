@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from numbers import Real
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from exauq.core.modelling import Input
 from exauq.sim_management.hardware import HardwareInterface, JobStatus
@@ -98,6 +98,7 @@ class App:
         job_ids: Sequence[Union[str, JobId, int]] = None,
         n_most_recent: int = None,
         statuses: Sequence[JobStatus] = None,
+        result_filter: Optional[bool] = None,
     ) -> list[dict[str, Any]]:
         """
         Retrieves records of simulation jobs, optionally filtered by specific job IDs or job statuses.
@@ -135,14 +136,27 @@ class App:
         elif n_most_recent is not None and n_most_recent < 0:
             raise ValueError("'n_most_recent' must be non-negative")
         else:
-            job_ids = sorted(
-                self._sim_log.get_records(job_ids, statuses),
+            jobs = sorted(
+                self._filter_records(
+                    self._sim_log.get_records(job_ids, statuses),
+                    result_filter=result_filter,
+                ),
                 key=lambda x: str(x["job_id"]),
             )
             if n_most_recent is not None:
-                return job_ids[-n_most_recent:]
+                return jobs[-n_most_recent:]
             else:
-                return job_ids
+                return jobs
+
+    def _filter_records(
+        self, records: list[dict[str, Any]], result_filter: Optional[bool] = None
+    ):
+        if result_filter is None:
+            return records
+        elif result_filter:
+            return filter(lambda x: x["output"] is not None, records)
+        else:
+            return filter(lambda x: x["output"] is None, records)
 
     def shutdown(self):
         """
