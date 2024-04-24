@@ -4,4 +4,4 @@ In this section you will find guides that explain how to use the main features o
 `exauq` application.
 
 - [Writing a Simulator Script](./simulator-script.md)
-- [Filtering Jobs](./filtering-jobs.md)
+- [Getting Information on Jobs](./showing-jobs.md)
