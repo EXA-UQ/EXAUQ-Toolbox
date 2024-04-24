@@ -64,7 +64,7 @@ show all jobs _not_ having one of a collection of statuses, use the optional arg
 
 For example, to show all jobs with a status of 'Submitted' or 'Running':
 
-``` console
+```
 (exauq)> show --status=submitted,running
 JOBID              INPUT            STATUS     RESULT
 20240424175044903  (8.0, 4.0, 5.0)  Running          
@@ -73,7 +73,7 @@ JOBID              INPUT            STATUS     RESULT
 
 To show all jobs except those that are 'Completed' or 'Submitted':
 
-``` console
+```
 (exauq)> show --status-not=completed,failed
 JOBID              INPUT            STATUS     RESULT
 20240420184546233  (0.0, 0.0, 0.0)  Failed           
@@ -157,7 +157,7 @@ resubmitting.
 !!! note
 
     The `--twr` option overrides any filters applied to statuses or simulation outputs via
-    `--status`, `--status-not` and `--result` arguments. Notice how the jobs with status
+    `--status`, `--status-not` and `--result` arguments. Notice how the job with status
     'Failed' is _not_ removed in the following, because `--status-not=failed` is overridden
     by `--twr`:
 
