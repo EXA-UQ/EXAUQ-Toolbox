@@ -245,8 +245,6 @@ class Cli(cmd2.Cmd):
         )
         return self._make_table(data)
 
-    _STATUS_STRINGS = {status.name for status in JobStatus}
-
     @staticmethod
     def _parse_statuses_string_to_set(
         statuses: str, empty_to_all: bool = False
