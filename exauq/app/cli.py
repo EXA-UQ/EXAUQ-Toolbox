@@ -23,7 +23,7 @@ class ParsingError(Exception):
         self._base_msg = str(e)
 
     def __str__(self):
-        return f"Error parsing args: {self._base_msg}"
+        return self._base_msg
 
 
 class ExecutionError(Exception):
