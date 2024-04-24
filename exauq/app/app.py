@@ -96,8 +96,8 @@ class App:
     def get_jobs(
         self,
         job_ids: Sequence[Union[str, JobId, int]] = None,
-        n_most_recent: int = None,
-        statuses: Sequence[JobStatus] = None,
+        n_most_recent: Optional[int] = None,
+        statuses: Optional[Sequence[JobStatus]] = None,
         result_filter: Optional[bool] = None,
     ) -> list[dict[str, Any]]:
         """

@@ -67,15 +67,29 @@ class Cli(cmd2.Cmd):
             "subject to the filtering provided by other options."
         ),
     )
+    n_jobs_opt_short = "-n"
+    n_jobs_opt = "--n-jobs"
     show_parser.add_argument(
-        "-n",
+        n_jobs_opt_short,
         "--n-jobs",
         nargs="?",
         type=int,
         default=50,
         const=50,
         metavar="N_JOBS",
-        help="the number of jobs to show, counting backwards from the most recently created (defaults to %(default)s)",
+        help=(
+            "the number of jobs to show, counting backwards from the most recently "
+            "created (defaults to %(default)s)"
+        ),
+    )
+    show_parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help=(
+            "don't limit the number of jobs to show from the workspace. This "
+            f"overrides the {n_jobs_opt_short} argument."
+        ),
     )
     status_opt_short = "-s"
     show_parser.add_argument(
@@ -319,9 +333,9 @@ class Cli(cmd2.Cmd):
 
     def _parse_show_args(self, args) -> dict[str, Any]:
         if args.n_jobs < 0:
-            raise ParsingError("Value for --n-jobs must be a non-negative integer.")
-
-        job_ids = args.job_ids if args.job_ids else None
+            raise ParsingError(
+                f"Value for {self.n_jobs_opt_short}/{self.n_jobs_opt} must be a non-negative integer."
+            )
 
         if args.twr:
             statuses = set(JobStatus) - {
@@ -338,9 +352,11 @@ class Cli(cmd2.Cmd):
             statuses = statuses_included - statuses_excluded
             result_filter = self._parse_bool(args.result)
 
+        job_ids = args.job_ids if args.job_ids else None
+        n_most_recent = args.n_jobs if not args.all else None
         return {
             "job_ids": job_ids,
-            "n_most_recent": args.n_jobs,
+            "n_most_recent": n_most_recent,
             "statuses": statuses,
             "result_filter": result_filter,
         }
