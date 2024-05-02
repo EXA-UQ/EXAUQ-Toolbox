@@ -204,12 +204,34 @@ JOBID              INPUT
 Notice that an ID has been returned for the submitted job. This is a uniquely-generated
 integer for the job and is used by the `exauq` application to keep track of the status of
 the job. (The ID you receive will likely differ.) The input for the job is also printed,
-with coordinates rounded to avoid long
-lines of output.
+with coordinates rounded to avoid long lines of output.
 
 !!! note
     Although the coordinates are rounded in the `INPUT` table heading, the full precision
     numbers are submitted to the simulator.
+
+!!! info
+    If you try submitting an input that starts with a negative number with the approach
+    given above, you will encounter an error:
+
+    ```
+    (exauq)> submit -1,2,3
+    Usage: submit [-h] [-f FILE] [inputs [...]]
+    Error: unrecognized arguments: -1,2,3
+
+    (exauq)>
+    ```
+    
+    This is because the `-1` is being interpreted as an optional argument to `submit`,
+    which is not what we want. To get around this, place the list of inputs after `--`,
+    like so:
+
+    ```
+    (exauq)> submit -- -1,2,3
+    ``` 
+
+    This will now submit the input `(-1.0, 2.0, 3.0)` as desired.
+
 
 Instead of submitting inputs manually at the prompt, there is the option to submit a
 collection of inputs as read from a csv file, using the `--file` (or `-f`) option. For
