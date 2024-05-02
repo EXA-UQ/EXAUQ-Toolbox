@@ -11,7 +11,7 @@ The purpose of this tutorial is to demonstrate the main workflow of working with
   Conda environment, or similar.
 * You have simulator script living on a remote server that can be run within a Bash
   shell via SSH, according to the requirements given in
-  [Writing a Simulator Script](./simulator-script.md).
+  [Writing a Simulator Script](./user-guides/simulator-script.md).
 * This tutorial will create new directories and files, so you may wish to make a
   new, empty directory and navigate to it before following along with the commands
   below.
@@ -204,12 +204,34 @@ JOBID              INPUT
 Notice that an ID has been returned for the submitted job. This is a uniquely-generated
 integer for the job and is used by the `exauq` application to keep track of the status of
 the job. (The ID you receive will likely differ.) The input for the job is also printed,
-with coordinates rounded to avoid long
-lines of output.
+with coordinates rounded to avoid long lines of output.
 
 !!! note
     Although the coordinates are rounded in the `INPUT` table heading, the full precision
     numbers are submitted to the simulator.
+
+!!! info
+    If you try submitting an input that starts with a negative number with the approach
+    given above, you will encounter an error:
+
+    ```
+    (exauq)> submit -1,2,3
+    Usage: submit [-h] [-f FILE] [inputs [...]]
+    Error: unrecognized arguments: -1,2,3
+
+    (exauq)>
+    ```
+    
+    This is because the `-1` is being interpreted as an optional argument to `submit`,
+    which is not what we want. To get around this, place the list of inputs after `--`,
+    like so:
+
+    ```
+    (exauq)> submit -- -1,2,3
+    ``` 
+
+    This will now submit the input `(-1.0, 2.0, 3.0)` as desired.
+
 
 Instead of submitting inputs manually at the prompt, there is the option to submit a
 collection of inputs as read from a csv file, using the `--file` (or `-f`) option. For

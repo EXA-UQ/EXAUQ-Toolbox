@@ -1,6 +1,7 @@
 import argparse
 import json
 import pathlib
+import re
 from collections import OrderedDict
 from collections.abc import Sequence
 from io import TextIOWrapper
@@ -22,7 +23,7 @@ class ParsingError(Exception):
         self._base_msg = str(e)
 
     def __str__(self):
-        return f"Error parsing args: {self._base_msg}"
+        return self._base_msg
 
 
 class ExecutionError(Exception):
@@ -34,7 +35,7 @@ class Cli(cmd2.Cmd):
 
     This class implements a command line interpreter using the ``cmd2`` third-party
     package. A 'workspace' directory is used to persist settings relating to a hardware
-    interface, the simulatior within and a log of simulation jobs submitted.
+    interface, the simulator within and a log of simulation jobs submitted.
 
     Parameters
     ----------
@@ -54,6 +55,97 @@ class Cli(cmd2.Cmd):
         "--file",
         type=argparse.FileType(mode="r"),
         help="A path to a csv file containing inputs to submit to the simulator.",
+    )
+
+    show_parser = cmd2.Cmd2ArgumentParser()
+    show_parser.add_argument(
+        "job_ids",
+        nargs="*",
+        type=str,
+        help=(
+            "Job IDs to show information for. If not provided, then will show all jobs "
+            "subject to the filtering provided by other options."
+        ),
+    )
+    n_jobs_opt_short = "-n"
+    n_jobs_opt = "--n-jobs"
+    show_parser.add_argument(
+        n_jobs_opt_short,
+        "--n-jobs",
+        nargs="?",
+        type=int,
+        default=50,
+        const=50,
+        metavar="N_JOBS",
+        help=(
+            "the number of jobs to show, counting backwards from the most recently "
+            "created (defaults to %(default)s)"
+        ),
+    )
+    show_parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help=(
+            "don't limit the number of jobs to show from the workspace. This "
+            f"overrides the {n_jobs_opt_short} argument."
+        ),
+    )
+    status_opt_short = "-s"
+    show_parser.add_argument(
+        "-s",
+        "--status",
+        nargs="?",
+        default="",
+        const="",
+        metavar="STATUSES",
+        help=(
+            "a comma-separated list of statuses, so that only jobs having one of these "
+            "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
+        ),
+    )
+    status_not_opt_short = "-S"
+    show_parser.add_argument(
+        "-S",
+        "--status-not",
+        nargs="?",
+        default="",
+        const="",
+        metavar="STATUSES",
+        help=(
+            "a comma-separated list of statuses, so that only jobs *not* having one of these "
+            "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
+        ),
+    )
+    result_opt = "--result"
+    result_opt_short = "-r"
+    show_parser.add_argument(
+        "-r",
+        result_opt,
+        nargs="?",
+        choices={"true", "false", ""},
+        default="",
+        const="true",
+        type=lambda x: clean_input_string(x).lower(),
+        metavar="true|false",
+        help=(
+            "whether to show only jobs which have a simulation output ('true'), or show only "
+            f"jobs that *don't* have a simulation output ('false'). If {result_opt} is "
+            "given as an argument without a value specified, then defaults to '%(const)s'. If "
+            f"{result_opt} is not given as an argument, then all jobs will be shown "
+            "subject to the other filtering options."
+        ),
+    )
+    show_parser.add_argument(
+        "-x",
+        "--twr",
+        action="store_true",
+        help=(
+            "show only jobs that have 'terminated without result', i.e. that have no "
+            "simulation output yet are no longer running or waiting to run. This overrides "
+            "any filters applied to statuses or simulation outputs via with the arguments "
+            f"{status_opt_short}, {status_not_opt_short}, and {result_opt_short}."
+        ),
     )
 
     def __init__(self, workspace_dir: FilePath):
@@ -80,7 +172,7 @@ class Cli(cmd2.Cmd):
         a workspace was initialised in a previous session of the application, in which
         case this method will initialise a new application instance with the workspace
         settings found. Otherwise, the required settings are gathered from the user and
-        stored in the workspace directory, and then a new application intance is
+        stored in the workspace directory, and then a new application instance is
         initialised with these settings.
 
         Currently the only possible hardware interface that can be used is the
@@ -150,22 +242,6 @@ class Cli(cmd2.Cmd):
 
         return super().do_quit(args)
 
-    def _parse_inputs(
-        self, inputs: Union[Sequence[str], TextIOWrapper]
-    ) -> list[tuple[float, ...]]:
-        """Convert string representations of simulator inputs to tuples of floats."""
-
-        if inputs:
-            try:
-                return [tuple(map(float, x.split(","))) for x in inputs]
-            except ValueError as e:
-                raise ParsingError(e)
-            finally:
-                if isinstance(inputs, TextIOWrapper):
-                    inputs.close()
-        else:
-            return []
-
     def _render_stdout(self, text: str) -> None:
         """Write text to standard output."""
 
@@ -194,11 +270,14 @@ class Cli(cmd2.Cmd):
         """Submit a job to the simulator."""
 
         try:
-            inputs = self._parse_inputs(args.inputs) + self._parse_inputs(args.file)
+            inputs = parse_inputs(args.inputs) + parse_inputs(args.file)
             submitted_jobs = self._app.submit(inputs)
             self._render_stdout(self._make_submissions_table(submitted_jobs))
         except ParsingError as e:
-            self.perror(str(e))
+            self._render_error(str(e))
+        finally:
+            if isinstance(args.file, TextIOWrapper):
+                args.file.close()
 
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of job information for displaying to the user."""
@@ -213,11 +292,202 @@ class Cli(cmd2.Cmd):
         )
         return self._make_table(data)
 
+    def _parse_show_args(self, args) -> dict[str, Any]:
+        """Convert command line arguments for the show command to a dict of arguments for
+        the application to process.
+        """
+        if args.n_jobs < 0:
+            raise ParsingError(
+                f"Value for {self.n_jobs_opt_short}/{self.n_jobs_opt} must be a non-negative integer."
+            )
+
+        if args.twr:
+            statuses = set(JobStatus) - {
+                JobStatus.NOT_SUBMITTED,
+                JobStatus.SUBMITTED,
+                JobStatus.RUNNING,
+            }
+            result_filter = False
+        else:
+            statuses_included = parse_statuses_string_to_set(
+                args.status, empty_to_all=True
+            )
+            statuses_excluded = parse_statuses_string_to_set(args.status_not)
+            statuses = statuses_included - statuses_excluded
+            result_filter = parse_bool(args.result)
+
+        job_ids = args.job_ids if args.job_ids else None
+        n_most_recent = args.n_jobs if not args.all else None
+        return {
+            "job_ids": job_ids,
+            "n_most_recent": n_most_recent,
+            "statuses": statuses,
+            "result_filter": result_filter,
+        }
+
+    @cmd2.with_argparser(show_parser)
     def do_show(self, args) -> None:
         """Show information about jobs."""
+        try:
+            kwargs = self._parse_show_args(args)
+            jobs = self._app.get_jobs(**kwargs)
+            self._render_stdout(self._make_show_table(jobs))
+        except ParsingError as e:
+            self._render_error(str(e))
 
-        jobs = self._app.get_jobs()
-        self._render_stdout(self._make_show_table(jobs))
+
+def clean_input_string(string: str) -> str:
+    """Remove leading and trailing whitespace and quotes from a string.
+
+    Examples
+    --------
+
+    Remove leading/trailing whitespace:
+
+    >>> clean_input_string("  foo\n")
+    'foo'
+
+    Remove leading/trailing quotes (single and double):
+
+    >>> clean_input_string("\"foo'")
+    'foo'
+
+    """
+    return string.strip().strip("'\"")
+
+
+def parse_statuses_string_to_set(
+    statuses: str, empty_to_all: bool = False
+) -> set[JobStatus]:
+    """Convert a string listing of job statuses to a set.
+
+    Before converting, the input string is cleaned by removing any leading and
+    trailing whitespace and any quotation marks.
+
+    Parameters
+    ----------
+    statuses : str
+        A comma-separated list of job statuses. The statuses should match the names of
+        the corresponding enums, with spaces represented either as whitespace or
+        underscores and with matching done case-insensitively. (See examples.)
+    empty_to_all : bool, optional
+        (Default: False) Whether to interpret the empty list as representing no job
+        statuses (``False``) or all possible job statuses (``True``).
+
+    Returns
+    -------
+    set[JobStatus]
+        A set of the job statuses from the string.
+
+    Examples
+    --------
+
+    Provide statuses as a comma-separated string. Note that the case doesn't matter
+    and any leading/trailing whitespace is removed:
+
+    >>> cli._parse_statuses_string_to_set("cancelled,   failed")
+    {<JobStatus.CANCELLED: 'Cancelled'>, <JobStatus.FAILED: 'Failed'>}
+
+    Spaces in the status can be represented as whitespace or underscores:
+
+    >>> cli._parse_statuses_string_to_set("not submitted")
+    {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
+    >>> cli._parse_statuses_string_to_set("not_submitted")
+    {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
+
+    By default, providing an empty string returns the empty set, but setting
+    ``empty_to_all = True`` will cause the full set of job statuses to be returned
+    instead:
+
+    >>> cli._parse_statuses_string_to_set("")
+    set()
+    >>> cli._parse_statuses_string_to_set("", empty_to_all=True) == set(JobStatus)
+    True
+    """
+    statuses = clean_input_string(statuses)
+
+    # Get comma-separated components
+    statuses = statuses.split(",")
+
+    # Remove leading and trailing whitespace, replace inner whitespace with a single
+    # underscore, and convert to upper case
+    statuses = {re.sub("\\s+", "_", status.strip()).upper() for status in statuses}
+
+    # Return as set of job statuses
+    if statuses == {""} and empty_to_all:
+        return set(JobStatus)
+    else:
+        return {x for x in JobStatus if x.name in statuses}
+
+
+def parse_bool(result: str) -> Optional[bool]:
+    """Convert a string to a boolean.
+
+    Converts 'true' to ``True``, 'false' to ``False`` and any other string to
+    ``None``.
+    """
+    if result == "true":
+        return True
+    elif result == "false":
+        return False
+    else:
+        return None
+
+
+def parse_inputs(inputs: Union[Sequence[str], TextIOWrapper]) -> list[tuple[float, ...]]:
+    """Convert string representations of simulator inputs to tuples of floats.
+
+    Any leading/trailing whitespace or quotes are removed from the string before parsing
+    and strings that are empty after this cleaning are ignored.
+
+    Parameters
+    ----------
+    inputs : Union[Sequence[str], TextIOWrapper]
+        A sequence of strings that define simulator inputs as a comma-separated list of
+        floats. These can be provided by an open text file.
+
+    Returns
+    -------
+    list[tuple[float, ...]]
+        The simulator inputs, as tuples of floats.
+
+    Raises
+    ------
+    ParsingError
+        If the between-comma components of any of the strings cannot be parsed as a float.
+
+    Examples
+    --------
+
+    Parse simulation inputs from a list of strings:
+
+    >>> parse_inputs(["1,2,3", "-1,-0.09,0.654"])
+    [(1.0, 2.0, 3.0), (-1.0, -0.09, 0.654)]
+
+    Leading/trailing whitespace and quotes (single and double) are removed before parsing:
+
+    >>> parse_inputs(["  1, 2, 3\n"])
+    [(1.0, 2.0, 3.0)]
+
+    >>> parse_inputs(["'1,2,3'"])
+    [(1.0, 2.0, 3.0)]
+
+    Any strings containing only whitespace or quotes are ignored in the output:
+
+    >>> parse_inputs(["", "\"\""])
+    []
+    """
+
+    if inputs:
+        try:
+            cleaned_inputs = map(clean_input_string, inputs)
+            return [
+                tuple(map(float, x.split(","))) for x in cleaned_inputs if not x == ""
+            ]
+        except ValueError as e:
+            raise ParsingError(e)
+    else:
+        return []
 
 
 def make_table(

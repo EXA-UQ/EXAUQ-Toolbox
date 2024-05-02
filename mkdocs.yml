@@ -12,7 +12,10 @@ nav:
   - "Command Line App":
     - "cli/index.md"
     - "A First Walkthrough": "cli/first-walkthrough.md"
-    - "Writing a Simulator Script": "cli/simulator-script.md"
+    - "User Guides":
+      - "cli/user-guides/index.md"
+      - "Writing a Simulator Script": "cli/user-guides/simulator-script.md"
+      - "Getting Information on Jobs": "cli/user-guides/showing-jobs.md"
 
 # Material for MkDocs
 theme:

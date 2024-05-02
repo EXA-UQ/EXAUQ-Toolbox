@@ -12,7 +12,7 @@
         <link rel="prev" href="index.html">
       
       
-        <link rel="next" href="simulator-script.html">
+        <link rel="next" href="user-guides/index.html">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -385,8 +385,65 @@
   
   
   
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="user-guides/index.html" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    User Guides
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            User Guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
-      <a href="simulator-script.html" class="md-nav__link">
+      <a href="user-guides/simulator-script.html" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -395,6 +452,35 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="user-guides/showing-jobs.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Getting Information on Jobs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -545,7 +631,7 @@
   Conda environment, or similar.</li>
 <li>You have simulator script living on a remote server that can be run within a Bash
   shell via SSH, according to the requirements given in
-  <a href="simulator-script.html">Writing a Simulator Script</a>.</li>
+  <a href="user-guides/simulator-script.html">Writing a Simulator Script</a>.</li>
 <li>This tutorial will create new directories and files, so you may wish to make a
   new, empty directory and navigate to it before following along with the commands
   below.</li>
@@ -696,37 +782,53 @@ submit the input <code>(1.111, 2.222, 9.999)</code>, we enter the following into
 <p>Notice that an ID has been returned for the submitted job. This is a uniquely-generated
 integer for the job and is used by the <code>exauq</code> application to keep track of the status of
 the job. (The ID you receive will likely differ.) The input for the job is also printed,
-with coordinates rounded to avoid long
-lines of output.</p>
+with coordinates rounded to avoid long lines of output.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Although the coordinates are rounded in the <code>INPUT</code> table heading, the full precision
 numbers are submitted to the simulator.</p>
 </div>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>If you try submitting an input that starts with a negative number with the approach
+given above, you will encounter an error:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>(exauq)&gt; submit -1,2,3
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>Usage: submit [-h] [-f FILE] [inputs [...]]
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>Error: unrecognized arguments: -1,2,3
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>(exauq)&gt;
+</span></code></pre></div>
+<p>This is because the <code>-1</code> is being interpreted as an optional argument to <code>submit</code>,
+which is not what we want. To get around this, place the list of inputs after <code>--</code>,
+like so:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>(exauq)&gt; submit -- -1,2,3
+</span></code></pre></div>
+<p>This will now submit the input <code>(-1.0, 2.0, 3.0)</code> as desired.</p>
+</div>
 <p>Instead of submitting inputs manually at the prompt, there is the option to submit a
 collection of inputs as read from a csv file, using the <code>--file</code> (or <code>-f</code>) option. For
 example, supposing we had a csv file <code>design.csv</code> in our working directory, we could run
 the command</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt; submit --file design.csv</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">JOBID              INPUT               </span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="go">20240419185014637  (1.32, -0.986, 31.4)</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="go">20240419185015374  (5.97, -3.09, -3.04)</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="go">20240419185015969  (6.98, -8.03, 0.099)</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="go">20240419185016560  (-12.0, 9.07, -2.1) </span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt;</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt; submit --file design.csv</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="go">JOBID              INPUT               </span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="go">20240419185014637  (1.32, -0.986, 31.4)</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="go">20240419185015374  (5.97, -3.09, -3.04)</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="go">20240419185015969  (6.98, -8.03, 0.099)</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="go">20240419185016560  (-12.0, 9.07, -2.1) </span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt;</span>
 </span></code></pre></div>
 <h3 id="showing-the-status-of-jobs">Showing the status of jobs</h3>
 <p>Having submitted jobs, we can get the status of them by using the <code>show</code> command.</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt; show</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="go">JOBID              INPUT                 STATUS     RESULT             </span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="go">20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             </span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="go">20240419185014637  (1.32, -0.986, 31.4)  Running          </span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="go">20240419185015374  (5.97, -3.09, -3.04)  Running          </span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="go">20240419185015969  (6.98, -8.03, 0.099)  Running          </span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="go">20240419185016560  (-12.0, 9.07, -2.1)   Running          </span>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt;</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt; show</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="go">JOBID              INPUT                 STATUS     RESULT             </span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="go">20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             </span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="go">20240419185014637  (1.32, -0.986, 31.4)  Running          </span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="go">20240419185015374  (5.97, -3.09, -3.04)  Running          </span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="go">20240419185015969  (6.98, -8.03, 0.099)  Running          </span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="go">20240419185016560  (-12.0, 9.07, -2.1)   Running          </span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt;</span>
 </span></code></pre></div>
 <p>Notice how jobs that have successfully completed contain the value of the simulator output
 in the <code>RESULT</code> column, while jobs that are still running are indicated as such.</p>
@@ -735,23 +837,23 @@ Furthermore, it will pick up where it left off when restarting a new session wit
 workspace. For example, suppose we quit the <code>exauq</code> application and waited a while for the
 jobs to finish. By starting <code>exauq</code> with the same workspace, we can check on the status of
 the jobs:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt; quit</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="gp">$</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="gp">$ </span><span class="c1"># wait a while...</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="gp">$</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="gp">$ </span>exauq
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="go">Using workspace &#39;.exauq-ws&#39;.</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="go">Password for joe@server.example.com: </span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="go">Connection to server.example.com established.</span>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt; show</span>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="go">JOBID              INPUT                 STATUS     RESULT             </span>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="go">20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             </span>
-</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="go">20240419185014637  (1.32, -0.986, 31.4)  Completed  31.74438342        </span>
-</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="go">20240419185015374  (5.97, -3.09, -3.04)  Completed  -0.1624690000000002</span>
-</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="go">20240419185015969  (6.98, -8.03, 0.099)  Completed  -0.9515869999999993</span>
-</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="go">20240419185016560  (-12.0, 9.07, -2.1)   Completed  -5.06375744        </span>
-</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>
-</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt;</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt; quit</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="gp">$</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="gp">$ </span><span class="c1"># wait a while...</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="gp">$</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="gp">$ </span>exauq
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="go">Using workspace &#39;.exauq-ws&#39;.</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="go">Password for joe@server.example.com: </span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="go">Connection to server.example.com established.</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt; show</span>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="go">JOBID              INPUT                 STATUS     RESULT             </span>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="go">20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             </span>
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="go">20240419185014637  (1.32, -0.986, 31.4)  Completed  31.74438342        </span>
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="go">20240419185015374  (5.97, -3.09, -3.04)  Completed  -0.1624690000000002</span>
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="go">20240419185015969  (6.98, -8.03, 0.099)  Completed  -0.9515869999999993</span>
+</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="go">20240419185016560  (-12.0, 9.07, -2.1)   Completed  -5.06375744        </span>
+</span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>
+</span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="gp gp-VirtualEnv">(exauq)</span><span class="go">&gt;</span>
 </span></code></pre></div>
 <p>In this case, we see that the outstanding running jobs have now completed.</p>
 
