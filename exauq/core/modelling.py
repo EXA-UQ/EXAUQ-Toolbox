@@ -798,6 +798,15 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
+class MultiLevelGaussianProcess:
+    def get_gp(self, level: int) -> AbstractGaussianProcess:
+        pass
+
+    def nes(self) -> float:
+        """The normalised squared expectation."""
+        return 1.0
+
+
 class AbstractHyperparameters(abc.ABC):
     """A base class for hyperparameters used to train an emulator.
 
