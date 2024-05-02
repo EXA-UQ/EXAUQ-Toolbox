@@ -275,6 +275,9 @@ class Cli(cmd2.Cmd):
             self._render_stdout(self._make_submissions_table(submitted_jobs))
         except ParsingError as e:
             self._render_error(str(e))
+        finally:
+            if isinstance(args.file, TextIOWrapper):
+                args.file.close()
 
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of job information for displaying to the user."""
@@ -434,6 +437,9 @@ def parse_bool(result: str) -> Optional[bool]:
 def parse_inputs(inputs: Union[Sequence[str], TextIOWrapper]) -> list[tuple[float, ...]]:
     """Convert string representations of simulator inputs to tuples of floats.
 
+    Any leading/trailing whitespace or quotes are removed from the string before parsing
+    and strings that are empty after this cleaning are ignored.
+
     Parameters
     ----------
     inputs : Union[Sequence[str], TextIOWrapper]
@@ -455,19 +461,31 @@ def parse_inputs(inputs: Union[Sequence[str], TextIOWrapper]) -> list[tuple[floa
 
     Parse simulation inputs from a list of strings:
 
-    >>> parse_inputs(["1,2,3", "-1,-.09,0.654"])
+    >>> parse_inputs(["1,2,3", "-1,-0.09,0.654"])
     [(1.0, 2.0, 3.0), (-1.0, -0.09, 0.654)]
 
+    Leading/trailing whitespace and quotes (single and double) are removed before parsing:
+
+    >>> parse_inputs(["  1, 2, 3\n"])
+    [(1.0, 2.0, 3.0)]
+
+    >>> parse_inputs(["'1,2,3'"])
+    [(1.0, 2.0, 3.0)]
+
+    Any strings containing only whitespace or quotes are ignored in the output:
+
+    >>> parse_inputs(["", "\"\""])
+    []
     """
 
     if inputs:
         try:
-            return [tuple(map(float, x.split(","))) for x in inputs]
+            cleaned_inputs = map(clean_input_string, inputs)
+            return [
+                tuple(map(float, x.split(","))) for x in cleaned_inputs if not x == ""
+            ]
         except ValueError as e:
             raise ParsingError(e)
-        finally:
-            if isinstance(inputs, TextIOWrapper):
-                inputs.close()
     else:
         return []
 
