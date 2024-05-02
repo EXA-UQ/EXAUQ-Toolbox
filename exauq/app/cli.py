@@ -242,22 +242,6 @@ class Cli(cmd2.Cmd):
 
         return super().do_quit(args)
 
-    def _parse_inputs(
-        self, inputs: Union[Sequence[str], TextIOWrapper]
-    ) -> list[tuple[float, ...]]:
-        """Convert string representations of simulator inputs to tuples of floats."""
-
-        if inputs:
-            try:
-                return [tuple(map(float, x.split(","))) for x in inputs]
-            except ValueError as e:
-                raise ParsingError(e)
-            finally:
-                if isinstance(inputs, TextIOWrapper):
-                    inputs.close()
-        else:
-            return []
-
     def _render_stdout(self, text: str) -> None:
         """Write text to standard output."""
 
@@ -286,7 +270,7 @@ class Cli(cmd2.Cmd):
         """Submit a job to the simulator."""
 
         try:
-            inputs = self._parse_inputs(args.inputs) + self._parse_inputs(args.file)
+            inputs = parse_inputs(args.inputs) + parse_inputs(args.file)
             submitted_jobs = self._app.submit(inputs)
             self._render_stdout(self._make_submissions_table(submitted_jobs))
         except ParsingError as e:
@@ -305,82 +289,6 @@ class Cli(cmd2.Cmd):
         )
         return self._make_table(data)
 
-    def _parse_statuses_string_to_set(
-        self, statuses: str, empty_to_all: bool = False
-    ) -> set[JobStatus]:
-        """Convert a string listing of job statuses to a set.
-
-        Before converting, the input string is cleaned by removing any leading and
-        trailing whitespace and any quotation marks.
-
-        Parameters
-        ----------
-        statuses : str
-            A comma-separated list of job statuses. The statuses should match the names of
-            the corresponding enums, with spaces represented either as whitespace or
-            underscores and with matching done case-insensitively. (See examples.)
-        empty_to_all : bool, optional
-            (Default: False) Whether to interpret the empty list as representing no job
-            statuses (``False``) or all possible job statuses (``True``).
-
-        Returns
-        -------
-        set[JobStatus]
-            A set of the job statuses from the string.
-
-        Examples
-        --------
-
-        Provide statuses as a comma-separated string. Note that the case doesn't matter
-        and any leading/trailing whitespace is removed:
-
-        >>> cli._parse_statuses_string_to_set("cancelled,   failed")
-        {<JobStatus.CANCELLED: 'Cancelled'>, <JobStatus.FAILED: 'Failed'>}
-
-        Spaces in the status can be represented as whitespace or underscores:
-
-        >>> cli._parse_statuses_string_to_set("not submitted")
-        {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
-        >>> cli._parse_statuses_string_to_set("not_submitted")
-        {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
-
-        By default, providing an empty string returns the empty set, but setting
-        ``empty_to_all = True`` will cause the full set of job statuses to be returned
-        instead:
-
-        >>> cli._parse_statuses_string_to_set("")
-        set()
-        >>> cli._parse_statuses_string_to_set("", empty_to_all=True) == set(JobStatus)
-        True
-        """
-        statuses = clean_input_string(statuses)
-
-        # Get comma-separated components
-        statuses = statuses.split(",")
-
-        # Remove leading and trailing whitespace, replace inner whitespace with a single
-        # underscore, and convert to upper case
-        statuses = {re.sub("\\s+", "_", status.strip()).upper() for status in statuses}
-
-        # Return as set of job statuses
-        if statuses == {""} and empty_to_all:
-            return set(JobStatus)
-        else:
-            return {x for x in JobStatus if x.name in statuses}
-
-    def _parse_bool(self, result: str) -> Optional[bool]:
-        """Convert a string to a boolean.
-
-        Converts 'true' to ``True``, 'false' to ``False`` and any other string to
-        ``None``.
-        """
-        if result == "true":
-            return True
-        elif result == "false":
-            return False
-        else:
-            return None
-
     def _parse_show_args(self, args) -> dict[str, Any]:
         """Convert command line arguments for the show command to a dict of arguments for
         the application to process.
@@ -398,12 +306,12 @@ class Cli(cmd2.Cmd):
             }
             result_filter = False
         else:
-            statuses_included = self._parse_statuses_string_to_set(
+            statuses_included = parse_statuses_string_to_set(
                 args.status, empty_to_all=True
             )
-            statuses_excluded = self._parse_statuses_string_to_set(args.status_not)
+            statuses_excluded = parse_statuses_string_to_set(args.status_not)
             statuses = statuses_included - statuses_excluded
-            result_filter = self._parse_bool(args.result)
+            result_filter = parse_bool(args.result)
 
         job_ids = args.job_ids if args.job_ids else None
         n_most_recent = args.n_jobs if not args.all else None
@@ -443,6 +351,125 @@ def clean_input_string(string: str) -> str:
 
     """
     return string.strip().strip("'\"")
+
+
+def parse_statuses_string_to_set(
+    statuses: str, empty_to_all: bool = False
+) -> set[JobStatus]:
+    """Convert a string listing of job statuses to a set.
+
+    Before converting, the input string is cleaned by removing any leading and
+    trailing whitespace and any quotation marks.
+
+    Parameters
+    ----------
+    statuses : str
+        A comma-separated list of job statuses. The statuses should match the names of
+        the corresponding enums, with spaces represented either as whitespace or
+        underscores and with matching done case-insensitively. (See examples.)
+    empty_to_all : bool, optional
+        (Default: False) Whether to interpret the empty list as representing no job
+        statuses (``False``) or all possible job statuses (``True``).
+
+    Returns
+    -------
+    set[JobStatus]
+        A set of the job statuses from the string.
+
+    Examples
+    --------
+
+    Provide statuses as a comma-separated string. Note that the case doesn't matter
+    and any leading/trailing whitespace is removed:
+
+    >>> cli._parse_statuses_string_to_set("cancelled,   failed")
+    {<JobStatus.CANCELLED: 'Cancelled'>, <JobStatus.FAILED: 'Failed'>}
+
+    Spaces in the status can be represented as whitespace or underscores:
+
+    >>> cli._parse_statuses_string_to_set("not submitted")
+    {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
+    >>> cli._parse_statuses_string_to_set("not_submitted")
+    {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
+
+    By default, providing an empty string returns the empty set, but setting
+    ``empty_to_all = True`` will cause the full set of job statuses to be returned
+    instead:
+
+    >>> cli._parse_statuses_string_to_set("")
+    set()
+    >>> cli._parse_statuses_string_to_set("", empty_to_all=True) == set(JobStatus)
+    True
+    """
+    statuses = clean_input_string(statuses)
+
+    # Get comma-separated components
+    statuses = statuses.split(",")
+
+    # Remove leading and trailing whitespace, replace inner whitespace with a single
+    # underscore, and convert to upper case
+    statuses = {re.sub("\\s+", "_", status.strip()).upper() for status in statuses}
+
+    # Return as set of job statuses
+    if statuses == {""} and empty_to_all:
+        return set(JobStatus)
+    else:
+        return {x for x in JobStatus if x.name in statuses}
+
+
+def parse_bool(result: str) -> Optional[bool]:
+    """Convert a string to a boolean.
+
+    Converts 'true' to ``True``, 'false' to ``False`` and any other string to
+    ``None``.
+    """
+    if result == "true":
+        return True
+    elif result == "false":
+        return False
+    else:
+        return None
+
+
+def parse_inputs(inputs: Union[Sequence[str], TextIOWrapper]) -> list[tuple[float, ...]]:
+    """Convert string representations of simulator inputs to tuples of floats.
+
+    Parameters
+    ----------
+    inputs : Union[Sequence[str], TextIOWrapper]
+        A sequence of strings that define simulator inputs as a comma-separated list of
+        floats. These can be provided by an open text file.
+
+    Returns
+    -------
+    list[tuple[float, ...]]
+        The simulator inputs, as tuples of floats.
+
+    Raises
+    ------
+    ParsingError
+        If the between-comma components of any of the strings cannot be parsed as a float.
+
+    Examples
+    --------
+
+    Parse simulation inputs from a list of strings:
+
+    >>> parse_inputs(["1,2,3", "-1,-.09,0.654"])
+    [(1.0, 2.0, 3.0), (-1.0, -0.09, 0.654)]
+
+    """
+
+    if inputs:
+        try:
+            return [tuple(map(float, x.split(","))) for x in inputs]
+        except ValueError as e:
+            raise ParsingError(e)
+        finally:
+            if isinstance(inputs, TextIOWrapper):
+                inputs.close()
+    else:
+        return []
 
 
 def make_table(
