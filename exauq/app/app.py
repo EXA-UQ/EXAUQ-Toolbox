@@ -101,26 +101,42 @@ class App:
         result_filter: Optional[bool] = None,
     ) -> list[dict[str, Any]]:
         """
-        Retrieves records of simulation jobs, optionally filtered by specific job IDs or job statuses.
+        Retrieves records of simulation jobs, with optional filtering.
 
-        This method queries the simulations log to fetch details of jobs. It can be used to get the
-        current status of jobs, their input parameters, or outcomes. Filtering by job IDs or statuses
-        allows for more targeted information retrieval.
+        This method queries the simulations log to fetch details of jobs, subject to
+        optional filters on job ID, job status, the number of jobs (from the most recent)
+        and whether there is a simulation output.
 
         Parameters
         ----------
         job_ids : Sequence[Union[str, JobId, int]], optional
-            A sequence of job identifiers (IDs, JobId objects, or numerical IDs) to specifically
-            retrieve records for. If None, information on all jobs will be returned.
+            (Default: None) IDs of the jobs to retrieve records for. If ``None``, retrieve
+            all records from the log, subject to other filters.
+        n_most_recent : int, optional
+            (Default: None) The number of job records to return, counting back from the
+            most recent in terms of job ID. If ``None`` then do not restrict the number of
+            records returned from the log.
         statuses : Sequence[JobStatus], optional
-            A sequence of job statuses to filter the retrieved job records by. If None, jobs
-            of all statuses will be included in the result.
+            (Default: None) Job statuses to filter on, so that the records returned will
+            only be for jobs with one of these statuses. If ``None``, then do not restrict
+            the records returned from the log by status.
+        result_filter : bool, optional
+            (Default: None) Whether to get only jobs that have a simulation output
+            (``True``), get only jobs that don't have a simulation output (``False``), or
+            whether not to restrict the records returned from the log by presence of
+            simulation output (``None``).
 
         Returns
         -------
         list[dict[str, Any]]
-            A list of dictionaries, where each dictionary contains details of a single job,
-            such as its ID, status, input parameters, and outcomes.
+            Records of jobs from the simulations log that meet the specified filtering
+            criteria. The keys and values of the dictionary are
+
+            * 'job_id': the ``JobID`` for the job.
+            * 'status': the ``JobStatus`` for the job.
+            * 'input': the simulation input, as an ``Input``.
+            * 'output': the simulation output as a ``float`` if available, or ``None``
+              if not.
 
         Examples
         --------
@@ -128,7 +144,8 @@ class App:
         >>> for info in jobs_info:
         ...     print(info['job_id'], info['status'])
 
-        This example retrieves and prints the IDs and statuses of all jobs that have been completed.
+        This example retrieves and prints the IDs and statuses of all jobs that have been
+        completed.
         """
 
         if n_most_recent is not None and n_most_recent == 0:

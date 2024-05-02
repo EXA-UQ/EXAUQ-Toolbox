@@ -308,6 +308,51 @@ class Cli(cmd2.Cmd):
     def _parse_statuses_string_to_set(
         self, statuses: str, empty_to_all: bool = False
     ) -> set[JobStatus]:
+        """Convert a string listing of job statuses to a set.
+
+        Before converting, the input string is cleaned by removing any leading and
+        trailing whitespace and any quotation marks.
+
+        Parameters
+        ----------
+        statuses : str
+            A comma-separated list of job statuses. The statuses should match the names of
+            the corresponding enums, with spaces represented either as whitespace or
+            underscores and with matching done case-insensitively. (See examples.)
+        empty_to_all : bool, optional
+            (Default: False) Whether to interpret the empty list as representing no job
+            statuses (``False``) or all possible job statuses (``True``).
+
+        Returns
+        -------
+        set[JobStatus]
+            A set of the job statuses from the string.
+
+        Examples
+        --------
+
+        Provide statuses as a comma-separated string. Note that the case doesn't matter
+        and any leading/trailing whitespace is removed:
+
+        >>> cli._parse_statuses_string_to_set("cancelled,   failed")
+        {<JobStatus.CANCELLED: 'Cancelled'>, <JobStatus.FAILED: 'Failed'>}
+
+        Spaces in the status can be represented as whitespace or underscores:
+
+        >>> cli._parse_statuses_string_to_set("not submitted")
+        {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
+        >>> cli._parse_statuses_string_to_set("not_submitted")
+        {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
+
+        By default, providing an empty string returns the empty set, but setting
+        ``empty_to_all = True`` will cause the full set of job statuses to be returned
+        instead:
+
+        >>> cli._parse_statuses_string_to_set("")
+        set()
+        >>> cli._parse_statuses_string_to_set("", empty_to_all=True) == set(JobStatus)
+        True
+        """
         statuses = clean_input_string(statuses)
 
         # Get comma-separated components
@@ -324,6 +369,11 @@ class Cli(cmd2.Cmd):
             return {x for x in JobStatus if x.name in statuses}
 
     def _parse_bool(self, result: str) -> Optional[bool]:
+        """Convert a string to a boolean.
+
+        Converts 'true' to ``True``, 'false' to ``False`` and any other string to
+        ``None``.
+        """
         if result == "true":
             return True
         elif result == "false":
@@ -332,6 +382,9 @@ class Cli(cmd2.Cmd):
             return None
 
     def _parse_show_args(self, args) -> dict[str, Any]:
+        """Convert command line arguments for the show command to a dict of arguments for
+        the application to process.
+        """
         if args.n_jobs < 0:
             raise ParsingError(
                 f"Value for {self.n_jobs_opt_short}/{self.n_jobs_opt} must be a non-negative integer."
@@ -373,6 +426,22 @@ class Cli(cmd2.Cmd):
 
 
 def clean_input_string(string: str) -> str:
+    """Remove leading and trailing whitespace and quotes from a string.
+
+    Examples
+    --------
+
+    Remove leading/trailing whitespace:
+
+    >>> clean_input_string("  foo\n")
+    'foo'
+
+    Remove leading/trailing quotes (single and double):
+
+    >>> clean_input_string("\"foo'")
+    'foo'
+
+    """
     return string.strip().strip("'\"")
 
 
