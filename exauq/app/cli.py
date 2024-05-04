@@ -165,7 +165,7 @@ class Cli(cmd2.Cmd):
         self._INPUT_HEADER = "INPUT"
         self._STATUS_HEADER = "STATUS"
         self._RESULT_HEADER = "RESULT"
-        self._HEADERS = {
+        self._HEADER_MAPPER = {
             "job_id": self._JOBID_HEADER,
             "input": self._INPUT_HEADER,
             "status": self._STATUS_HEADER,
@@ -298,12 +298,11 @@ class Cli(cmd2.Cmd):
 
         data = OrderedDict(
             [
-                (self._JOBID_HEADER, (job["job_id"] for job in jobs)),
-                (self._INPUT_HEADER, (job["input"] for job in jobs)),
-                (self._STATUS_HEADER, (job["status"] for job in jobs)),
-                (self._RESULT_HEADER, (job["output"] for job in jobs)),
+                (header, tuple(job[k] for job in jobs))
+                for k, header in self._HEADER_MAPPER.items()
             ]
         )
+
         return self._make_table(data)
 
     def _parse_show_args(self, args) -> dict[str, Any]:
@@ -374,7 +373,8 @@ class Cli(cmd2.Cmd):
 
         # Rename keys
         restructured_record = {
-            new_key: job_record[old_key] for old_key, new_key in self._HEADERS.items()
+            new_key: job_record[old_key]
+            for old_key, new_key in self._HEADER_MAPPER.items()
         }
 
         # Unpack input coordinates
