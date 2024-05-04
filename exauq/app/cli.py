@@ -149,6 +149,13 @@ class Cli(cmd2.Cmd):
         ),
     )
 
+    write_parser = cmd2.Cmd2ArgumentParser()
+    write_parser.add_argument(
+        "file",
+        type=argparse.FileType(mode="w"),
+        help="A path to a csv file to write job details to.",
+    )
+
     def __init__(self, workspace_dir: FilePath):
         super().__init__(allow_cli_args=False)
         self._workspace_dir = pathlib.Path(workspace_dir)
@@ -342,13 +349,19 @@ class Cli(cmd2.Cmd):
         except ParsingError as e:
             self._render_error(str(e))
 
+    @cmd2.with_argparser(write_parser)
     def do_write(self, args) -> None:
-        """Write information about jobs to a CSV file."""
+        """Write details of jobs in this workspace to a CSV file."""
 
-        jobs = map(self._restructure_record_for_write, self._app.get_jobs())
-        self._write_to_csv(jobs, "jobs.csv")
+        jobs = map(self._restructure_record_for_csv, self._app.get_jobs())
+        try:
+            self._write_to_csv(jobs, args.file)
+        except Exception as e:
+            self._render_error(str(e))
+        finally:
+            args.file.close()
 
-    def _restructure_record_for_write(self, job_record: dict[str, Any]) -> dict[str, Any]:
+    def _restructure_record_for_csv(self, job_record: dict[str, Any]) -> dict[str, Any]:
         """Convert job information to a dict that's suitable for writing to a CSV.
 
         Performs the following steps:
@@ -379,17 +392,17 @@ class Cli(cmd2.Cmd):
 
         return restructured_record
 
-    def _write_to_csv(self, jobs: list[dict[str, Any]], path: FilePath) -> None:
+    def _write_to_csv(self, jobs: list[dict[str, Any]], csv_file: TextIOWrapper) -> None:
+        """Write details of jobs to an open CSV file."""
 
         field_names = (
             [self._JOBID_HEADER]
             + [f"{self._INPUT_HEADER}_{n}" for n in [1, 2, 3]]
             + [self._STATUS_HEADER, self._RESULT_HEADER]
         )
-        with open(path, mode="w", newline="") as csv_file:
-            writer = csv.DictWriter(csv_file, fieldnames=field_names)
-            writer.writeheader()
-            writer.writerows(jobs)
+        writer = csv.DictWriter(csv_file, fieldnames=field_names)
+        writer.writeheader()
+        writer.writerows(jobs)
 
 
 def clean_input_string(string: str) -> str:

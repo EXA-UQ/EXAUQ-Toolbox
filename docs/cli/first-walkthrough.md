@@ -304,7 +304,6 @@ output of simulations in your own analysis. This is done using the `write` comma
 
 ```
 (exauq)> write jobs.csv
-
 (exauq)>
 ```
 
@@ -312,6 +311,11 @@ Note that the full precision of simulation inputs and outputs will be written to
 file. The output CSV has the same column headings that appear in the `show` command, with
 the addition that the individual simulation input coordinates are put under headings
 `INPUT_1`, `INPUT_2`, etc.
+
+!!! note
+    When writing to a file, the parent directory of the file needs to exist. For example,
+    if we were to supply `foo/bar/jobs.csv` to `write`, then the directories `foo` and
+    `bar` need to already exist.
 
 If we quit the application and list to contents of the working directory, we see that
 the `jobs.csv` file has been created:
