@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 import pathlib
 import re
@@ -157,6 +158,12 @@ class Cli(cmd2.Cmd):
         self._INPUT_HEADER = "INPUT"
         self._STATUS_HEADER = "STATUS"
         self._RESULT_HEADER = "RESULT"
+        self._HEADERS = {
+            "job_id": self._JOBID_HEADER,
+            "input": self._INPUT_HEADER,
+            "status": self._STATUS_HEADER,
+            "output": self._RESULT_HEADER,
+        }
         self.table_formatters = {
             self._INPUT_HEADER: format_tuple,
             self._STATUS_HEADER: format_status,
@@ -334,6 +341,55 @@ class Cli(cmd2.Cmd):
             self._render_stdout(self._make_show_table(jobs))
         except ParsingError as e:
             self._render_error(str(e))
+
+    def do_write(self, args) -> None:
+        """Write information about jobs to a CSV file."""
+
+        jobs = map(self._restructure_record_for_write, self._app.get_jobs())
+        self._write_to_csv(jobs, "jobs.csv")
+
+    def _restructure_record_for_write(self, job_record: dict[str, Any]) -> dict[str, Any]:
+        """Convert job information to a dict that's suitable for writing to a CSV.
+
+        Performs the following steps:
+
+        * Converts the keys to the headers required for CSV output.
+        * Unpacks the ``Input`` in `job_record['input']` so that there is one dict entry
+          for each input coordinate.
+        * Formats the ``JobStatus`` for CSV output.
+        """
+
+        # Rename keys
+        restructured_record = {
+            new_key: job_record[old_key] for old_key, new_key in self._HEADERS.items()
+        }
+
+        # Unpack input coordinates
+        input_coords = {
+            f"{self._INPUT_HEADER}_{i + 1}": x
+            for i, x in enumerate(restructured_record[self._INPUT_HEADER])
+        }
+        restructured_record |= input_coords
+        del restructured_record[self._INPUT_HEADER]
+
+        # Format status
+        restructured_record[self._STATUS_HEADER] = format_status(
+            restructured_record[self._STATUS_HEADER]
+        )
+
+        return restructured_record
+
+    def _write_to_csv(self, jobs: list[dict[str, Any]], path: FilePath) -> None:
+
+        field_names = (
+            [self._JOBID_HEADER]
+            + [f"{self._INPUT_HEADER}_{n}" for n in [1, 2, 3]]
+            + [self._STATUS_HEADER, self._RESULT_HEADER]
+        )
+        with open(path, mode="w", newline="") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=field_names)
+            writer.writeheader()
+            writer.writerows(jobs)
 
 
 def clean_input_string(string: str) -> str:
