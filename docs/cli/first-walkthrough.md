@@ -295,3 +295,30 @@ JOBID              INPUT                 STATUS     RESULT
 ```
 
 In this case, we see that the outstanding running jobs have now completed.
+
+
+### Write the jobs to a CSV file
+
+Finally, the details of the jobs can be written to a file, allowing you to use the
+output of simulations in your own analysis. This is done using the `write` command:
+
+```
+(exauq)> write jobs.csv
+
+(exauq)>
+```
+
+Note that the full precision of simulation inputs and outputs will be written to the
+file. The output CSV has the same column headings that appear in the `show` command, with
+the addition that the individual simulation input coordinates are put under headings
+`INPUT_1`, `INPUT_2`, etc.
+
+If we quit the application and list to contents of the working directory, we see that
+the `jobs.csv` file has been created:
+
+```
+(exauq)> quit
+$ ls -a
+.  ..  .exauq-ws  jobs.csv
+
+```
