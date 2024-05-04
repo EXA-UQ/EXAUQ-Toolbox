@@ -649,29 +649,3 @@ def compute_multi_level_loo_samples(
         candidate_design_points.items(), key=lambda x: x[1][1]
     )
     return [(chosen_level, chosen_input)]
-
-
-def compute_loo_errors_gp_new(
-    gp: AbstractGaussianProcess,
-    domain: SimulatorDomain,
-    loo_errors_gp: Optional[AbstractGaussianProcess] = None,
-) -> AbstractGaussianProcess:
-    error_training_data = []
-    loo_gp = copy.deepcopy(gp)
-    for leave_out_idx, datum in enumerate(gp.training_data):
-        # Fit LOO GP, storing into loo_gp
-        _ = compute_loo_gp(gp, leave_out_idx, loo_gp=loo_gp)
-
-        # Add training input and nes error
-        nes_loo_error = loo_gp.nes_error(datum.input, datum.output)
-        error_training_data.append(TrainingDatum(datum.input, nes_loo_error))
-
-    gp_e = loo_errors_gp if loo_errors_gp is not None else copy.deepcopy(gp)
-
-    # Note: the following is a simplification of sqrt(-0.5 / log(10 ** (-8))) from paper
-    bound_scale = 0.25 / math.sqrt(math.log(10))
-    bounds = [(bound_scale * (bnd[1] - bnd[0]), None) for bnd in domain.bounds] + [
-        (None, None)
-    ]
-    gp_e.fit(error_training_data, hyperparameter_bounds=bounds)
-    return gp_e
