@@ -22,7 +22,7 @@ The purpose of this tutorial is to demonstrate the main workflow of working with
 To view help on the options for starting the `exauq` application, run `exauq` with the
 `--help` (or `-h`) option:
 
-``` console
+```
 $ exauq --help
 usage: exauq [-h] [-d] [workspace]
 
@@ -40,7 +40,7 @@ optional arguments:
 To view documentation in your browser (this website!) you can instead use the `--docs`
 (or `-d`) option:
 
-``` console
+```
 $ exauq --docs
 ```
 
@@ -58,7 +58,7 @@ explanations of steps where user input is required. (The comments with numbering
 (1)`, are just to help refer to the lines in the explanation and shouldn't be included
 when running through for real.)
 
-``` console
+```
 $ exauq
 A new workspace '.exauq-ws' will be set up.
 Please provide the following details to initialise the workspace...
@@ -98,7 +98,7 @@ Thanks -- workspace '.exauq-ws' is now set up.
 Having just started the application, let's make sure we know how to exit it! We do this
 simply by entering the command `quit`, like so:
 
-``` console
+```
 (exauq)> quit
 $
 ```
@@ -110,7 +110,7 @@ If we list the contents of the current directory (including hidden items), we se
 we have a new directory called `.exauq-ws`. This contains settings files that record the 
 details provided at workspace creation:
 
-``` console
+```
 $ ls -a
 .  ..  .exauq-ws
 
@@ -128,7 +128,7 @@ To start the application again with the same workspace, we simply run `exauq` wi
 the directory containing `.exauq-ws`. Note this will ask us for our password to connect
 to the server.
 
-``` console
+```
 $ exauq
 Using workspace '.exauq-ws'.
 Password for joe@server.example.com: 
@@ -142,7 +142,7 @@ Once `exauq` has been started an initialised, it is ready to receive commands fr
 to execute. Commands are entered next to the prompt `(exauq)>`, much like you enter
 commands into a terminal, following the general template:
 
-``` console
+```
 (exauq)> COMMAND [OPTIONS] ARGS
 ```
 
@@ -155,7 +155,7 @@ until the application is exited.
 
 To view all available commands within the application, run the `help` command:
 
-``` console
+```
 (exauq)> help
 
 Documented commands (use 'help -v' for verbose/'help <topic>' for details):
@@ -169,7 +169,7 @@ edit   history  quit   run_script    shell  show
 The main commands to be aware of are `help`, `submit`, `show` and `quit`. To view help
 for a particular command, run `help COMMAND`, for example:
 
-``` console
+```
 (exauq)> help submit
 Usage: submit [-h] [-f FILE] [inputs [...]]
 
@@ -193,7 +193,7 @@ simulator takes in 3-dimensional inputs when creating the workspace. We can subm
 input to the simulator with the `submit` command, as a comma-separated list of numbers. For example, to
 submit the input `(1.111, 2.222, 9.999)`, we enter the following into the application:
 
-``` console
+```
 (exauq)> submit 1.111,2.222,9.999
 JOBID              INPUT             
 20240419183827910  (1.11, 2.22, 10.0)
@@ -238,7 +238,7 @@ collection of inputs as read from a csv file, using the `--file` (or `-f`) optio
 example, supposing we had a csv file `design.csv` in our working directory, we could run
 the command
 
-``` console
+```
 (exauq)> submit --file design.csv
 JOBID              INPUT               
 20240419185014637  (1.32, -0.986, 31.4)
@@ -253,7 +253,7 @@ JOBID              INPUT
 
 Having submitted jobs, we can get the status of them by using the `show` command.
 
-``` console
+```
 (exauq)> show
 JOBID              INPUT                 STATUS     RESULT             
 20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             
@@ -274,11 +274,11 @@ workspace. For example, suppose we quit the `exauq` application and waited a whi
 jobs to finish. By starting `exauq` with the same workspace, we can check on the status of
 the jobs:
 
-``` console
+```
 (exauq)> quit
-$
-$ # wait a while...
-$
+
+# wait a while...
+
 $ exauq
 Using workspace '.exauq-ws'.
 Password for joe@server.example.com: 
