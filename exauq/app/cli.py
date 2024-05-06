@@ -58,6 +58,14 @@ class Cli(cmd2.Cmd):
         help="A path to a csv file containing inputs to submit to the simulator.",
     )
 
+    cancel_parser = cmd2.Cmd2ArgumentParser()
+    cancel_parser.add_argument(
+        "job_ids",
+        nargs="+",
+        type=str,
+        help=("Job IDs of the jobs to cancel."),
+    )
+
     show_parser = cmd2.Cmd2ArgumentParser()
     show_parser.add_argument(
         "job_ids",
@@ -281,7 +289,7 @@ class Cli(cmd2.Cmd):
 
     @cmd2.with_argparser(submit_parser)
     def do_submit(self, args) -> None:
-        """Submit a job to the simulator."""
+        """Submit jobs to the simulator."""
 
         try:
             inputs = parse_inputs(args.inputs) + parse_inputs(args.file)
@@ -292,6 +300,11 @@ class Cli(cmd2.Cmd):
         finally:
             if isinstance(args.file, TextIOWrapper):
                 args.file.close()
+
+    @cmd2.with_argparser(cancel_parser)
+    def do_cancel(self, args) -> None:
+        "Cancel simulation jobs."
+        pass
 
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of job information for displaying to the user."""
