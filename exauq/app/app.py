@@ -5,7 +5,11 @@ from typing import Any, Optional, Union
 from exauq.core.modelling import Input
 from exauq.sim_management.hardware import HardwareInterface, JobStatus
 from exauq.sim_management.jobs import Job, JobId
-from exauq.sim_management.simulators import JobManager, SimulationsLog
+from exauq.sim_management.simulators import (
+    InvalidJobStatusError,
+    JobManager,
+    SimulationsLog,
+)
 from exauq.sim_management.types import FilePath
 
 
@@ -114,7 +118,12 @@ class App:
         else:
             cancelled_jobs = []
             for job_id in job_ids:
-                cancelled_jobs.append(self._job_manager.cancel(job_id))
+                try:
+                    cancelled_jobs.append(self._job_manager.cancel(job_id))
+                except InvalidJobStatusError as e:
+                    # TODO: replace this exception raising with a return type from this
+                    # function that provides a 'report' of how each job cancellation went.
+                    raise e
 
             return tuple(cancelled_jobs)
 

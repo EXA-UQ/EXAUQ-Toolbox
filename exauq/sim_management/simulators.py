@@ -530,6 +530,10 @@ class SimulationsLogLookupError(Exception):
     pass
 
 
+class InvalidJobStatusError(Exception):
+    """Raised when the status of a job is not appropriate for some action."""
+
+
 class JobManager:
     """
     Orchestrates the submission, monitoring, and status management of simulation jobs
@@ -636,19 +640,38 @@ class JobManager:
         return job
 
     def cancel(self, job_id: JobId) -> Job:
-        with self._lock:
-            jobs_to_cancel = [job for job in self._jobs if job.id == job_id]
-
-        if not jobs_to_cancel:
+        try:
+            status = self.simulations_log.get_job_status(job_id)
+        except SimulationsLogLookupError:
             raise ValueError(
                 f"Could not cancel job with ID {job_id}: no such job exists."
             )
+
+        if status in TERMINAL_STATUSES:
+            raise InvalidJobStatusError(
+                f"Cannot cancel 'job' with terminal status {status}."
+            )
         else:
-            job = jobs_to_cancel[0]
-            status = self.simulations_log.get_job_status(job.id)
-            if status in TERMINAL_STATUSES:
-                raise ValueError(f"Cannot cancel 'job' with terminal status {status}.")
+            with self._lock:
+                jobs_to_cancel = [job for job in self._jobs if job.id == job_id]
+
+            if not jobs_to_cancel:
+                # If here then we are in the unlikely case where a job was recorded as
+                # non-terminal when checking from the log at the top of this function but
+                # has since ceased to be monitored by the manager. So get check the status
+                # again.
+                status = self.simulations_log.get_job_status(job_id)
+                raise InvalidJobStatusError(
+                    f"Cannot cancel 'job' with terminal status {status}."
+                )
             else:
+                job = jobs_to_cancel[0]
+
+                # TODO: it is possible that the remote job has terminated yet the job
+                # queue self._jobs has not been updated. In this case, the following will
+                # issue a cancellation command to the hardware interface, which may just
+                # return without error and without cancelling a terminated job. This
+                # should be handled.
                 self._handle_job(job, JobStatus.CANCELLED)
                 return job
 

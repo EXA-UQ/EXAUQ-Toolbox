@@ -14,6 +14,7 @@ from exauq.app.app import App, UnknownJobIdError
 from exauq.app.startup import UnixServerScriptInterfaceFactory
 from exauq.sim_management.hardware import JobStatus
 from exauq.sim_management.jobs import Job, JobId
+from exauq.sim_management.simulators import InvalidJobStatusError
 from exauq.sim_management.types import FilePath
 
 
@@ -315,6 +316,8 @@ class Cli(cmd2.Cmd):
             self._render_error(
                 f"The following IDs do not correspond to jobs: {', '.join(unknown_ids)}."
             )
+        except InvalidJobStatusError:
+            self._render_error("IDs of terminal jobs supplied.")
 
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of job information for displaying to the user."""
