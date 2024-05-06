@@ -9,7 +9,7 @@ from time import sleep
 from typing import Any, Optional, Sequence, Union
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
-from exauq.sim_management.hardware import HardwareInterface, JobStatus
+from exauq.sim_management.hardware import TERMINAL_STATUSES, HardwareInterface, JobStatus
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
 from exauq.utilities.csv_db import CsvDB, Record
@@ -635,6 +635,23 @@ class JobManager:
 
         return job
 
+    def cancel(self, job_id: JobId) -> Job:
+        with self._lock:
+            jobs_to_cancel = [job for job in self._jobs if job.id == job_id]
+
+        if not jobs_to_cancel:
+            raise ValueError(
+                f"Could not cancel job with ID {job_id}: no such job exists."
+            )
+        else:
+            job = jobs_to_cancel[0]
+            status = self.simulations_log.get_job_status(job.id)
+            if status in TERMINAL_STATUSES:
+                raise ValueError(f"Cannot cancel 'job' with terminal status {status}.")
+            else:
+                self._handle_job(job, JobStatus.CANCELLED)
+                return job
+
     @staticmethod
     def _init_job_strategies() -> dict:
         """Initialises and returns a dictionary of job status to their corresponding handling strategies."""
@@ -977,8 +994,37 @@ class CancelledJobStrategy(JobStrategy):
 
     @staticmethod
     def handle(job: Job, job_manager: JobManager):
-        job_manager.simulations_log.update_job_status(str(job.id), JobStatus.CANCELLED)
-        job_manager.remove_job(job)
+
+        retry_attempts = 0
+        max_retries = 5
+        initial_delay = 1
+        max_delay = 32
+
+        while retry_attempts < max_retries:
+            try:
+                job_manager.interface.cancel_job(job.id)
+                job_manager.simulations_log.update_job_status(
+                    str(job.id), JobStatus.CANCELLED
+                )
+                job_manager.remove_job(job)
+                break
+            except Exception as e:
+                retry_attempts += 1
+
+                if retry_attempts == max_retries:
+                    print(
+                        f"Max retry attempts reached for job {job.id}. Aborting cancellation."
+                    )
+                    break
+
+                delay = min(
+                    initial_delay * (2**retry_attempts), max_delay
+                )  # Exponential backoff
+                jitter = random.uniform(0, 0.1 * delay)
+                print(
+                    f"Failed to cancel job {job.id}: {e}. Retrying in {delay + jitter:.2f} seconds..."
+                )
+                sleep(delay + jitter)
 
 
 class JobIDGenerator:
