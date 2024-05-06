@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Optional, Union
 
@@ -7,6 +7,16 @@ from exauq.sim_management.hardware import HardwareInterface, JobStatus
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.simulators import JobManager, SimulationsLog
 from exauq.sim_management.types import FilePath
+
+
+class UnknownJobIdError(Exception):
+    """Raised when a job ID does not correspond to a job within the application."""
+
+    def __init__(
+        self, msg: Optional[str] = "", unknown_ids: Optional[Collection[JobId]] = None
+    ):
+        super().__init__(msg)
+        self.unknown_ids = unknown_ids
 
 
 class App:
@@ -92,6 +102,21 @@ class App:
             submitted_jobs.append(self._job_manager.submit(Input(*inp)))
 
         return tuple(submitted_jobs)
+
+    def cancel(self, job_ids: Sequence[Union[str, JobId, int]]) -> list[dict[str, Any]]:
+
+        logged_jobs = self._sim_log.get_records(job_ids)
+        logged_jobs_ids = set(job["job_id"] for job in logged_jobs)
+        if unknown_ids := set(job_ids) - logged_jobs_ids:
+            raise UnknownJobIdError(
+                f"Cannot cancel unknown job IDs: {unknown_ids}.", unknown_ids=unknown_ids
+            )
+        else:
+            cancelled_jobs = []
+            for job_id in job_ids:
+                cancelled_jobs.append(self._job_manager.cancel(job_id))
+
+            return tuple(cancelled_jobs)
 
     def get_jobs(
         self,

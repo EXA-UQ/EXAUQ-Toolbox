@@ -10,10 +10,10 @@ from typing import Any, Callable, Optional, Union
 
 import cmd2
 
-from exauq.app.app import App
+from exauq.app.app import App, UnknownJobIdError
 from exauq.app.startup import UnixServerScriptInterfaceFactory
 from exauq.sim_management.hardware import JobStatus
-from exauq.sim_management.jobs import Job
+from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
 
 
@@ -304,7 +304,17 @@ class Cli(cmd2.Cmd):
     @cmd2.with_argparser(cancel_parser)
     def do_cancel(self, args) -> None:
         "Cancel simulation jobs."
-        pass
+
+        try:
+            job_ids = parse_job_ids(args.job_ids)
+            self._app.cancel(job_ids)
+        except ParsingError as e:
+            self._render_error(str(e))
+        except UnknownJobIdError as e:
+            unknown_ids = sorted({str(id_) for id_ in e.unknown_ids})
+            self._render_error(
+                f"The following IDs do not correspond to jobs: {', '.join(unknown_ids)}."
+            )
 
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of job information for displaying to the user."""
@@ -570,6 +580,19 @@ def parse_inputs(inputs: Union[Sequence[str], TextIOWrapper]) -> list[tuple[floa
             raise ParsingError(e)
     else:
         return []
+
+
+def parse_job_ids(job_ids: Sequence[str]) -> tuple[JobId, ...]:
+    parsed_ids = []
+    for id_ in job_ids:
+        try:
+            parsed_ids.append(JobId(id_))
+        except ValueError:
+            raise ParsingError(
+                f"{id_} does not define a valid job ID: should be a non-negative integer."
+            )
+
+    return tuple(parsed_ids)
 
 
 def make_table(
