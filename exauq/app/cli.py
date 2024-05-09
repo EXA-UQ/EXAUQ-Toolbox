@@ -352,7 +352,9 @@ class Cli(cmd2.Cmd):
     def do_write(self, args) -> None:
         """Write details of jobs in this workspace to a CSV file."""
 
-        jobs = map(self._restructure_record_for_csv, self._app.get_jobs())
+        jobs = [
+            self._restructure_record_for_csv(record) for record in self._app.get_jobs()
+        ]
         try:
             self._write_to_csv(jobs, args.file)
         except Exception as e:
@@ -379,7 +381,7 @@ class Cli(cmd2.Cmd):
 
         # Unpack input coordinates
         input_coords = {
-            f"{self._INPUT_HEADER}_{i + 1}": x
+            self._make_input_coord_header(i): x
             for i, x in enumerate(restructured_record[self._INPUT_HEADER])
         }
         restructured_record |= input_coords
@@ -392,12 +394,17 @@ class Cli(cmd2.Cmd):
 
         return restructured_record
 
+    def _make_input_coord_header(self, idx: int) -> str:
+        """Make a heading for an input coordinate based on the index of the coordinate."""
+
+        return f"{self._INPUT_HEADER}_{idx + 1}"
+
     def _write_to_csv(self, jobs: list[dict[str, Any]], csv_file: TextIOWrapper) -> None:
         """Write details of jobs to an open CSV file."""
 
         field_names = (
             [self._JOBID_HEADER]
-            + [f"{self._INPUT_HEADER}_{n}" for n in [1, 2, 3]]
+            + [self._make_input_coord_header(i) for i in range(self._app.input_dim)]
             + [self._STATUS_HEADER, self._RESULT_HEADER]
         )
         writer = csv.DictWriter(csv_file, fieldnames=field_names)
