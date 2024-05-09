@@ -2,6 +2,7 @@ import csv
 import os
 import random
 from abc import ABC, abstractmethod
+from collections.abc import Collection
 from datetime import datetime
 from numbers import Real
 from threading import Event, Lock, Thread
@@ -533,6 +534,20 @@ class SimulationsLogLookupError(Exception):
 class InvalidJobStatusError(Exception):
     """Raised when the status of a job is not appropriate for some action."""
 
+    def __init__(self, msg, status: Optional[JobStatus] = None):
+        super().__init__(msg)
+        self.status = status
+
+
+class UnknownJobIdError(Exception):
+    """Raised when a job ID does not correspond to a job."""
+
+    def __init__(
+        self, msg: Optional[str] = "", unknown_ids: Optional[Collection[JobId]] = None
+    ):
+        super().__init__(msg)
+        self.unknown_ids = unknown_ids
+
 
 class JobManager:
     """
@@ -640,40 +655,31 @@ class JobManager:
         return job
 
     def cancel(self, job_id: JobId) -> Job:
-        try:
-            status = self.simulations_log.get_job_status(job_id)
-        except SimulationsLogLookupError:
-            raise ValueError(
-                f"Could not cancel job with ID {job_id}: no such job exists."
-            )
+        with self._lock:
+            jobs_to_cancel = [job for job in self._jobs if job.id == job_id]
 
-        if status in TERMINAL_STATUSES:
+        if not jobs_to_cancel:
+            # If here then the job is no longer being monitored, i.e. has terminated, so
+            # get the status and raise an error indicating it cannot be cancelled.
+            try:
+                status = self.simulations_log.get_job_status(job_id)
+            except SimulationsLogLookupError:
+                raise UnknownJobIdError(
+                    f"Could not cancel job with ID {job_id}: no such job exists."
+                )
+
             raise InvalidJobStatusError(
-                f"Cannot cancel 'job' with terminal status {status}."
+                f"Cannot cancel 'job' with terminal status {status}.", status=status
             )
         else:
-            with self._lock:
-                jobs_to_cancel = [job for job in self._jobs if job.id == job_id]
-
-            if not jobs_to_cancel:
-                # If here then we are in the unlikely case where a job was recorded as
-                # non-terminal when checking from the log at the top of this function but
-                # has since ceased to be monitored by the manager. So get check the status
-                # again.
-                status = self.simulations_log.get_job_status(job_id)
-                raise InvalidJobStatusError(
-                    f"Cannot cancel 'job' with terminal status {status}."
-                )
-            else:
-                job = jobs_to_cancel[0]
-
-                # TODO: it is possible that the remote job has terminated yet the job
-                # queue self._jobs has not been updated. In this case, the following will
-                # issue a cancellation command to the hardware interface, which may just
-                # return without error and without cancelling a terminated job. This
-                # should be handled.
+            # If here, then last known status of the job is that it's not terminated,
+            # so issue cancellation.
+            job = jobs_to_cancel[0]
+            try:
                 self._handle_job(job, JobStatus.CANCELLED)
-                return job
+            except InvalidJobStatusError as e:
+                raise e
+            return job
 
     @staticmethod
     def _init_job_strategies() -> dict:
@@ -1025,12 +1031,26 @@ class CancelledJobStrategy(JobStrategy):
 
         while retry_attempts < max_retries:
             try:
-                job_manager.interface.cancel_job(job.id)
-                job_manager.simulations_log.update_job_status(
-                    str(job.id), JobStatus.CANCELLED
-                )
-                job_manager.remove_job(job)
-                break
+                # First check the latest status from the hardware, in case the job
+                # has reached a terminal status before the job manager has had a chance
+                # to pick this up.
+                job_status = job_manager.interface.get_job_status(job.id)
+                if job_status in TERMINAL_STATUSES:
+                    job_manager.simulations_log.update_job_status(str(job.id), job_status)
+                    job_manager.remove_job(job)
+                    raise InvalidJobStatusError(
+                        f"Cannot cancel 'job' with terminal status {job_status}.",
+                        status=job_status,
+                    )
+                else:
+                    job_manager.interface.cancel_job(job.id)
+                    job_manager.simulations_log.update_job_status(
+                        str(job.id), JobStatus.CANCELLED
+                    )
+                    job_manager.remove_job(job)
+                    break
+            except InvalidJobStatusError as e:
+                raise e
             except Exception as e:
                 retry_attempts += 1
 

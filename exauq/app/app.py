@@ -1,4 +1,4 @@
-from collections.abc import Collection, Sequence
+from collections.abc import Sequence
 from numbers import Real
 from typing import Any, Optional, Union
 
@@ -9,18 +9,9 @@ from exauq.sim_management.simulators import (
     InvalidJobStatusError,
     JobManager,
     SimulationsLog,
+    UnknownJobIdError,
 )
 from exauq.sim_management.types import FilePath
-
-
-class UnknownJobIdError(Exception):
-    """Raised when a job ID does not correspond to a job within the application."""
-
-    def __init__(
-        self, msg: Optional[str] = "", unknown_ids: Optional[Collection[JobId]] = None
-    ):
-        super().__init__(msg)
-        self.unknown_ids = unknown_ids
 
 
 class App:
@@ -115,23 +106,27 @@ class App:
 
     def cancel(self, job_ids: Sequence[Union[str, JobId, int]]) -> list[dict[str, Any]]:
 
-        logged_jobs = self._sim_log.get_records(job_ids)
-        logged_jobs_ids = set(job["job_id"] for job in logged_jobs)
-        if unknown_ids := set(job_ids) - logged_jobs_ids:
-            raise UnknownJobIdError(
-                f"Cannot cancel unknown job IDs: {unknown_ids}.", unknown_ids=unknown_ids
-            )
-        else:
-            cancelled_jobs = []
-            for job_id in job_ids:
-                try:
-                    cancelled_jobs.append(self._job_manager.cancel(job_id))
-                except InvalidJobStatusError as e:
-                    # TODO: replace this exception raising with a return type from this
-                    # function that provides a 'report' of how each job cancellation went.
-                    raise e
+        report = {
+            "cancelled_jobs": [],
+            "non_existent_jobs": [],
+            "terminated_jobs": [],
+        }
+        for job_id in job_ids:
+            try:
+                cancelled_job = self._job_manager.cancel(job_id)
+                report["cancelled_jobs"].append(
+                    {
+                        "job_id": cancelled_job.id,
+                        "input": cancelled_job.data,
+                        "status": JobStatus.CANCELLED,
+                    }
+                )
+            except UnknownJobIdError:
+                report["non_existent_jobs"].append(job_id)
+            except InvalidJobStatusError:
+                report["terminated_jobs"].append(job_id)
 
-            return tuple(cancelled_jobs)
+        return report
 
     def get_jobs(
         self,

@@ -10,11 +10,10 @@ from typing import Any, Callable, Optional, Union
 
 import cmd2
 
-from exauq.app.app import App, UnknownJobIdError
+from exauq.app.app import App
 from exauq.app.startup import UnixServerScriptInterfaceFactory
 from exauq.sim_management.hardware import JobStatus
 from exauq.sim_management.jobs import Job, JobId
-from exauq.sim_management.simulators import InvalidJobStatusError
 from exauq.sim_management.types import FilePath
 
 
@@ -265,15 +264,22 @@ class Cli(cmd2.Cmd):
 
         return super().do_quit(args)
 
-    def _render_stdout(self, text: str) -> None:
+    def _render_stdout(self, text: str, trailing_newline: bool = True) -> None:
         """Write text to standard output."""
 
-        self.poutput(text + "\n")
+        if trailing_newline:
+            self.poutput(text + "\n")
+        else:
+            self.poutput(text)
 
     def _render_error(self, text: str) -> None:
         """Write text as an error message to standard error."""
 
         self.perror("Error: " + text)
+
+    def _render_warning(self, text: str) -> None:
+
+        self.pwarning("Warning: " + text)
 
     def _make_table(self, data: OrderedDict[str, Sequence[Any]]) -> str:
         """Make a textual table from data."""
@@ -302,22 +308,52 @@ class Cli(cmd2.Cmd):
             if isinstance(args.file, TextIOWrapper):
                 args.file.close()
 
+    def _make_cancel_table(self, jobs: Sequence[dict[str, Any]]) -> str:
+        """Make table of details of cancelled jobs for displaying to the user."""
+
+        col_headings = {
+            "job_id": self._JOBID_HEADER,
+            "input": self._INPUT_HEADER,
+            "status": self._STATUS_HEADER,
+        }
+        data = OrderedDict(
+            [
+                (header, tuple(job[k] for job in jobs))
+                for k, header in col_headings.items()
+            ]
+        )
+
+        return self._make_table(data)
+
     @cmd2.with_argparser(cancel_parser)
     def do_cancel(self, args) -> None:
         "Cancel simulation jobs."
 
         try:
             job_ids = parse_job_ids(args.job_ids)
-            self._app.cancel(job_ids)
         except ParsingError as e:
             self._render_error(str(e))
-        except UnknownJobIdError as e:
-            unknown_ids = sorted({str(id_) for id_ in e.unknown_ids})
-            self._render_error(
-                f"The following IDs do not correspond to jobs: {', '.join(unknown_ids)}."
+            return None
+
+        report = self._app.cancel(job_ids)
+        cancelled_jobs = report["cancelled_jobs"]
+        if cancelled_jobs:
+            self._render_stdout(self._make_cancel_table(cancelled_jobs))
+
+        terminated_jobs = [str(job_id) for job_id in report["terminated_jobs"]]
+        if terminated_jobs:
+            self._render_stdout(
+                "The following jobs have already terminated and were not cancelled:\n"
+                + "\n".join(f"  {job_id}" for job_id in terminated_jobs),
+                trailing_newline=False,
             )
-        except InvalidJobStatusError:
-            self._render_error("IDs of terminal jobs supplied.")
+
+        non_existent_jobs = [str(job_id) for job_id in report["non_existent_jobs"]]
+        if non_existent_jobs:
+            self._render_warning(
+                "Could not find jobs with the following IDs:\n"
+                + "\n".join(f"  {job_id}" for job_id in non_existent_jobs)
+            )
 
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of job information for displaying to the user."""
@@ -593,16 +629,16 @@ def parse_inputs(inputs: Union[Sequence[str], TextIOWrapper]) -> list[tuple[floa
 
 
 def parse_job_ids(job_ids: Sequence[str]) -> tuple[JobId, ...]:
-    parsed_ids = []
+    parsed_ids = set()
     for id_ in job_ids:
         try:
-            parsed_ids.append(JobId(id_))
+            parsed_ids.add(JobId(id_))
         except ValueError:
             raise ParsingError(
                 f"{id_} does not define a valid job ID: should be a non-negative integer."
             )
 
-    return tuple(parsed_ids)
+    return tuple(sorted(parsed_ids, key=str))
 
 
 def make_table(
