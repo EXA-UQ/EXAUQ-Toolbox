@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 import pathlib
 import re
@@ -148,6 +149,13 @@ class Cli(cmd2.Cmd):
         ),
     )
 
+    write_parser = cmd2.Cmd2ArgumentParser()
+    write_parser.add_argument(
+        "file",
+        type=argparse.FileType(mode="w"),
+        help="A path to a csv file to write job details to.",
+    )
+
     def __init__(self, workspace_dir: FilePath):
         super().__init__(allow_cli_args=False)
         self._workspace_dir = pathlib.Path(workspace_dir)
@@ -157,6 +165,12 @@ class Cli(cmd2.Cmd):
         self._INPUT_HEADER = "INPUT"
         self._STATUS_HEADER = "STATUS"
         self._RESULT_HEADER = "RESULT"
+        self._HEADER_MAPPER = {
+            "job_id": self._JOBID_HEADER,
+            "input": self._INPUT_HEADER,
+            "status": self._STATUS_HEADER,
+            "output": self._RESULT_HEADER,
+        }
         self.table_formatters = {
             self._INPUT_HEADER: format_tuple,
             self._STATUS_HEADER: format_status,
@@ -284,12 +298,11 @@ class Cli(cmd2.Cmd):
 
         data = OrderedDict(
             [
-                (self._JOBID_HEADER, (job["job_id"] for job in jobs)),
-                (self._INPUT_HEADER, (job["input"] for job in jobs)),
-                (self._STATUS_HEADER, (job["status"] for job in jobs)),
-                (self._RESULT_HEADER, (job["output"] for job in jobs)),
+                (header, tuple(job[k] for job in jobs))
+                for k, header in self._HEADER_MAPPER.items()
             ]
         )
+
         return self._make_table(data)
 
     def _parse_show_args(self, args) -> dict[str, Any]:
@@ -334,6 +347,62 @@ class Cli(cmd2.Cmd):
             self._render_stdout(self._make_show_table(jobs))
         except ParsingError as e:
             self._render_error(str(e))
+
+    @cmd2.with_argparser(write_parser)
+    def do_write(self, args) -> None:
+        """Write details of jobs in this workspace to a CSV file."""
+
+        jobs = map(self._restructure_record_for_csv, self._app.get_jobs())
+        try:
+            self._write_to_csv(jobs, args.file)
+        except Exception as e:
+            self._render_error(str(e))
+        finally:
+            args.file.close()
+
+    def _restructure_record_for_csv(self, job_record: dict[str, Any]) -> dict[str, Any]:
+        """Convert job information to a dict that's suitable for writing to a CSV.
+
+        Performs the following steps:
+
+        * Converts the keys to the headers required for CSV output.
+        * Unpacks the ``Input`` in `job_record['input']` so that there is one dict entry
+          for each input coordinate.
+        * Formats the ``JobStatus`` for CSV output.
+        """
+
+        # Rename keys
+        restructured_record = {
+            new_key: job_record[old_key]
+            for old_key, new_key in self._HEADER_MAPPER.items()
+        }
+
+        # Unpack input coordinates
+        input_coords = {
+            f"{self._INPUT_HEADER}_{i + 1}": x
+            for i, x in enumerate(restructured_record[self._INPUT_HEADER])
+        }
+        restructured_record |= input_coords
+        del restructured_record[self._INPUT_HEADER]
+
+        # Format status
+        restructured_record[self._STATUS_HEADER] = format_status(
+            restructured_record[self._STATUS_HEADER]
+        )
+
+        return restructured_record
+
+    def _write_to_csv(self, jobs: list[dict[str, Any]], csv_file: TextIOWrapper) -> None:
+        """Write details of jobs to an open CSV file."""
+
+        field_names = (
+            [self._JOBID_HEADER]
+            + [f"{self._INPUT_HEADER}_{n}" for n in [1, 2, 3]]
+            + [self._STATUS_HEADER, self._RESULT_HEADER]
+        )
+        writer = csv.DictWriter(csv_file, fieldnames=field_names)
+        writer.writeheader()
+        writer.writerows(jobs)
 
 
 def clean_input_string(string: str) -> str:
