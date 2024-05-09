@@ -72,6 +72,12 @@ class App:
             wait_for_pending=False,
         )
 
+    @property
+    def input_dim(self) -> int:
+        """(Read-only) The dimensionality of the input data for simulations."""
+
+        return self._input_dim
+
     def submit(self, inputs: Sequence[Sequence[Real]]) -> tuple[Job]:
         """
         Submits a batch of simulation jobs to the job manager based on the provided input sequences.
