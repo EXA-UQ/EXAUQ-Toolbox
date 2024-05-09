@@ -265,7 +265,7 @@ class Cli(cmd2.Cmd):
         return super().do_quit(args)
 
     def _render_stdout(self, text: str, trailing_newline: bool = True) -> None:
-        """Write text to standard output."""
+        """Write text to standard output, with an optional trailing newline character."""
 
         if trailing_newline:
             self.poutput(text + "\n")
@@ -278,6 +278,7 @@ class Cli(cmd2.Cmd):
         self.perror("Error: " + text)
 
     def _render_warning(self, text: str) -> None:
+        """Write text as a warning message to standard error."""
 
         self.pwarning("Warning: " + text)
 
@@ -629,6 +630,25 @@ def parse_inputs(inputs: Union[Sequence[str], TextIOWrapper]) -> list[tuple[floa
 
 
 def parse_job_ids(job_ids: Sequence[str]) -> tuple[JobId, ...]:
+    """Parse a sequence of string job IDs to a tuple of ``JobId``s.
+
+    Removes any repeated IDs and orders the returned IDs by string ordering.
+
+    Parameters
+    ----------
+    job_ids : Sequence[str]
+        A sequence of job IDs, as strings.
+
+    Returns
+    -------
+    tuple[JobId, ...]
+        The unique job IDs as ``JobId`` objects.
+
+    Raises
+    ------
+    ParsingError
+        If one of the supplied IDs does not define a valid job ID.
+    """
     parsed_ids = set()
     for id_ in job_ids:
         try:

@@ -104,8 +104,30 @@ class App:
 
         return tuple(submitted_jobs)
 
-    def cancel(self, job_ids: Sequence[Union[str, JobId, int]]) -> list[dict[str, Any]]:
+    def cancel(self, job_ids: Sequence[Union[str, JobId, int]]) -> dict[str, list]:
+        """Cancels jobs and returns a report detailing results of the cancellations.
 
+        The returned dictionary is structured with the following keys and values:
+
+        * "cancelled_jobs": A list of ``Job``s for the jobs that were successfully
+          cancelled.
+        * "non_existent_jobs": A list of ``JobId``s that could not be found, i.e. that
+          do not define jobs in the simulations log.
+        * "terminated_jobs": A list of ``JobIds`` of jobs that have already terminated and
+          so were not cancelled.
+
+        Parameters
+        ----------
+        job_ids : Sequence[Union[str, JobId, int]]
+            The IDs of jobs to cancel.
+
+        Returns
+        -------
+        dict[str, list]
+            A report containing details of jobs that were successfully cancelled, were not
+            cancelled because they don't exist or were not cancelled because they have
+            already terminated. See details above.
+        """
         report = {
             "cancelled_jobs": [],
             "non_existent_jobs": [],

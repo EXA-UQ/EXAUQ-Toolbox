@@ -655,6 +655,25 @@ class JobManager:
         return job
 
     def cancel(self, job_id: JobId) -> Job:
+        """Cancels a job with the given ID.
+
+        Parameters
+        ----------
+        job_id : JobId
+            The ID of the job to cancel.
+
+        Returns
+        -------
+        Job
+            The job that was cancelled.
+
+        Raises
+        ------
+        UnknownJobIdError
+            If the provided ID does not define a job from the simulations log.
+        InvalidJobStatusError
+            If the job has already terminated and so cannot be cancelled.
+        """
         with self._lock:
             jobs_to_cancel = [job for job in self._jobs if job.id == job_id]
 
@@ -677,8 +696,8 @@ class JobManager:
             job = jobs_to_cancel[0]
             try:
                 self._handle_job(job, JobStatus.CANCELLED)
-            except InvalidJobStatusError as e:
-                raise e
+            except InvalidJobStatusError:
+                raise
             return job
 
     @staticmethod
@@ -949,7 +968,8 @@ class NotSubmittedJobStrategy(JobStrategy):
 
     This strategy attempts to submit the job with up to 5 retries, using
     exponential backoff and jitter to manage temporary issues like network congestion
-    or service unavailability. If submission fails after all retries, the job's status.
+    or service unavailability. If submission fails after all retries, the job's status
+    is marked as FAILED_SUBMIT.
 
     Parameters
     ----------
@@ -1007,15 +1027,24 @@ class CancelledJobStrategy(JobStrategy):
     """
     Strategy for handling jobs that have been cancelled.
 
-    Once a job is identified as cancelled, this strategy updates the job's status
-    in the simulations log to CANCELLED and removes it from the list of jobs currently
-    being monitored by the JobManager. This action signifies that no further processing
-    is required or expected for the job.
+    This strategy attempts to cancel the job with up to 5 retries, using
+    exponential backoff and jitter to manage temporary issues like network congestion
+    or service unavailability. If cancellation fails after all retries, the job's status
+    remains unchanged.
+
+    As part of cancellation, the status of the job is checked from the hardware interface.
+    If the job is not one of the ``TERMINAL_STATUSES`` then cancellation is attempted and,
+    if successful, the simulations log of the supplied `job_manager` is updated to reflect
+    the new CANCELLED status and the job is removed from the queue of monitored jobs
+    within `job_manager`. On the other hand, if the job is found to be one of the
+    `TERMINAL_STATUSES` then the job is not cancelled: instead, the simulations log of
+    `job_manager` is updated to reflect the current status and the job is removed from the
+    queue of monitored jobs.
 
     Parameters
     ----------
     job : Job
-        The job that has been cancelled.
+        The job to be cancelled.
     job_manager : JobManager
         The manager overseeing the job's lifecycle, including its submission, monitoring,
         and status updates.
