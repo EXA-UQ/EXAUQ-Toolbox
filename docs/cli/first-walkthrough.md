@@ -304,8 +304,10 @@ command with the job ID(s) of the job(s) we want to terminate. For example, supp
 start off a couple of jobs:
 
 ```
-(exauq)> submit -1,2,3 0.5,0.32,-3.12
-TODO
+(exauq)> submit -- -1,2,3 0.5,0.32,-3.12
+JOBID              INPUT             
+20240521102800090  (-1.0, 2.0, 3.0)  
+20240521102801154  (0.5, 0.32, -3.12)
 
 (exauq)> 
 ```
@@ -313,8 +315,10 @@ TODO
 We can see that the status of the jobs is 'Running':
 
 ```
-(exauq)> show TODO TODO
-TODO
+(exauq)> show 20240521102800090 20240521102801154
+JOBID              INPUT               STATUS   RESULT
+20240521102800090  (-1.0, 2.0, 3.0)    Running        
+20240521102801154  (0.5, 0.32, -3.12)  Running        
 
 (exauq)>
 ```
@@ -323,22 +327,16 @@ To cancel the new jobs, we supply the corresponding job IDs. The returned output
 their cancellation:
 
 ```
-(exauq)> cancel TODO TODO
-TODO
+(exauq)> cancel 20240521102800090 20240521102801154
+JOBID              INPUT               STATUS   
+20240521102800090  (-1.0, 2.0, 3.0)    Cancelled
+20240521102801154  (0.5, 0.32, -3.12)  Cancelled
 
 (exauq)> 
 ```
 
 Note that only jobs with a status of 'Not submitted', 'Submitted' and 'Running' can be
-cancelled. If we try cancelling a job with a different status, no action will be taken and
-a message will be printed to the screen:
-
-```
-(exauq)> cancel 20240419185016560
-Cannot cancel job with ID 20240419185016560 as its status is 'Completed'.
-
-(exauq)>
-```
+cancelled.
 
 
 ### Write the jobs to a CSV file
