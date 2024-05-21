@@ -296,11 +296,59 @@ JOBID              INPUT                 STATUS     RESULT
 
 In this case, we see that the outstanding running jobs have now completed.
 
+For a more in-depth guide on viewing information about submitted jobs, see
+[Getting Information on Jobs](./user-guides/showing-jobs.md).
+
+
+### Cancelling jobs
+
+If we ever want to cancel a job before it finishes running, we can use the `cancel`
+command with the job ID(s) of the job(s) we want to terminate. For example, suppose we
+start off a couple of jobs:
+
+```
+(exauq)> submit -- -1,2,3 0.5,0.32,-3.12
+JOBID              INPUT             
+20240521102800090  (-1.0, 2.0, 3.0)  
+20240521102801154  (0.5, 0.32, -3.12)
+
+(exauq)> 
+```
+
+We can see that the status of the jobs is 'Running':
+
+```
+(exauq)> show 20240521102800090 20240521102801154
+JOBID              INPUT               STATUS   RESULT
+20240521102800090  (-1.0, 2.0, 3.0)    Running        
+20240521102801154  (0.5, 0.32, -3.12)  Running        
+
+(exauq)>
+```
+
+To cancel the new jobs, we supply the corresponding job IDs. The returned output confirms
+their cancellation:
+
+```
+(exauq)> cancel 20240521102800090 20240521102801154
+JOBID              INPUT               STATUS   
+20240521102800090  (-1.0, 2.0, 3.0)    Cancelled
+20240521102801154  (0.5, 0.32, -3.12)  Cancelled
+
+(exauq)> 
+```
+
+Note that only jobs with a status of 'Not submitted', 'Submitted' and 'Running' can be
+cancelled.
+
+For more details on cancelling jobs, consult the
+[Cancelling Jobs](./user-guides/cancelling-jobs.md) guide.
+
 
 ### Write the jobs to a CSV file
 
-Finally, the details of the jobs can be written to a file, allowing you to use the
-output of simulations in your own analysis. This is done using the `write` command:
+Finally, the details of the jobs can be written to a file, allowing us to use the
+output of simulations in our own analysis. This is done using the `write` command:
 
 ```
 (exauq)> write jobs.csv

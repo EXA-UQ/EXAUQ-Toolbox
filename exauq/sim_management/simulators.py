@@ -2,6 +2,7 @@ import csv
 import os
 import random
 from abc import ABC, abstractmethod
+from collections.abc import Collection
 from datetime import datetime
 from numbers import Real
 from threading import Event, Lock, Thread
@@ -9,7 +10,7 @@ from time import sleep
 from typing import Any, Optional, Sequence, Union
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
-from exauq.sim_management.hardware import HardwareInterface, JobStatus
+from exauq.sim_management.hardware import TERMINAL_STATUSES, HardwareInterface, JobStatus
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
 from exauq.utilities.csv_db import CsvDB, Record
@@ -530,6 +531,24 @@ class SimulationsLogLookupError(Exception):
     pass
 
 
+class InvalidJobStatusError(Exception):
+    """Raised when the status of a job is not appropriate for some action."""
+
+    def __init__(self, msg, status: Optional[JobStatus] = None):
+        super().__init__(msg)
+        self.status = status
+
+
+class UnknownJobIdError(Exception):
+    """Raised when a job ID does not correspond to a job."""
+
+    def __init__(
+        self, msg: Optional[str] = "", unknown_ids: Optional[Collection[JobId]] = None
+    ):
+        super().__init__(msg)
+        self.unknown_ids = unknown_ids
+
+
 class JobManager:
     """
     Orchestrates the submission, monitoring, and status management of simulation jobs
@@ -634,6 +653,52 @@ class JobManager:
         self._handle_job(job, JobStatus.NOT_SUBMITTED)
 
         return job
+
+    def cancel(self, job_id: JobId) -> Job:
+        """Cancels a job with the given ID.
+
+        Parameters
+        ----------
+        job_id : JobId
+            The ID of the job to cancel.
+
+        Returns
+        -------
+        Job
+            The job that was cancelled.
+
+        Raises
+        ------
+        UnknownJobIdError
+            If the provided ID does not define a job from the simulations log.
+        InvalidJobStatusError
+            If the job has already terminated and so cannot be cancelled.
+        """
+        with self._lock:
+            jobs_to_cancel = [job for job in self._jobs if job.id == job_id]
+
+        if not jobs_to_cancel:
+            # If here then the job is no longer being monitored, i.e. has terminated, so
+            # get the status and raise an error indicating it cannot be cancelled.
+            try:
+                status = self.simulations_log.get_job_status(job_id)
+            except SimulationsLogLookupError:
+                raise UnknownJobIdError(
+                    f"Could not cancel job with ID {job_id}: no such job exists."
+                )
+
+            raise InvalidJobStatusError(
+                f"Cannot cancel 'job' with terminal status {status}.", status=status
+            )
+        else:
+            # If here, then last known status of the job is that it's not terminated,
+            # so issue cancellation.
+            job = jobs_to_cancel[0]
+            try:
+                self._handle_job(job, JobStatus.CANCELLED)
+            except InvalidJobStatusError:
+                raise
+            return job
 
     @staticmethod
     def _init_job_strategies() -> dict:
@@ -903,7 +968,8 @@ class NotSubmittedJobStrategy(JobStrategy):
 
     This strategy attempts to submit the job with up to 5 retries, using
     exponential backoff and jitter to manage temporary issues like network congestion
-    or service unavailability. If submission fails after all retries, the job's status.
+    or service unavailability. If submission fails after all retries, the job's status
+    is marked as FAILED_SUBMIT.
 
     Parameters
     ----------
@@ -961,15 +1027,24 @@ class CancelledJobStrategy(JobStrategy):
     """
     Strategy for handling jobs that have been cancelled.
 
-    Once a job is identified as cancelled, this strategy updates the job's status
-    in the simulations log to CANCELLED and removes it from the list of jobs currently
-    being monitored by the JobManager. This action signifies that no further processing
-    is required or expected for the job.
+    This strategy attempts to cancel the job with up to 5 retries, using
+    exponential backoff and jitter to manage temporary issues like network congestion
+    or service unavailability. If cancellation fails after all retries, the job's status
+    remains unchanged.
+
+    As part of cancellation, the status of the job is checked from the hardware interface.
+    If the job is not one of the ``TERMINAL_STATUSES`` then cancellation is attempted and,
+    if successful, the simulations log of the supplied `job_manager` is updated to reflect
+    the new CANCELLED status and the job is removed from the queue of monitored jobs
+    within `job_manager`. On the other hand, if the job is found to be one of the
+    `TERMINAL_STATUSES` then the job is not cancelled: instead, the simulations log of
+    `job_manager` is updated to reflect the current status and the job is removed from the
+    queue of monitored jobs.
 
     Parameters
     ----------
     job : Job
-        The job that has been cancelled.
+        The job to be cancelled.
     job_manager : JobManager
         The manager overseeing the job's lifecycle, including its submission, monitoring,
         and status updates.
@@ -977,8 +1052,51 @@ class CancelledJobStrategy(JobStrategy):
 
     @staticmethod
     def handle(job: Job, job_manager: JobManager):
-        job_manager.simulations_log.update_job_status(str(job.id), JobStatus.CANCELLED)
-        job_manager.remove_job(job)
+
+        retry_attempts = 0
+        max_retries = 5
+        initial_delay = 1
+        max_delay = 32
+
+        while retry_attempts < max_retries:
+            try:
+                # First check the latest status from the hardware, in case the job
+                # has reached a terminal status before the job manager has had a chance
+                # to pick this up.
+                job_status = job_manager.interface.get_job_status(job.id)
+                if job_status in TERMINAL_STATUSES:
+                    job_manager.simulations_log.update_job_status(str(job.id), job_status)
+                    job_manager.remove_job(job)
+                    raise InvalidJobStatusError(
+                        f"Cannot cancel 'job' with terminal status {job_status}.",
+                        status=job_status,
+                    )
+                else:
+                    job_manager.interface.cancel_job(job.id)
+                    job_manager.simulations_log.update_job_status(
+                        str(job.id), JobStatus.CANCELLED
+                    )
+                    job_manager.remove_job(job)
+                    break
+            except InvalidJobStatusError as e:
+                raise e
+            except Exception as e:
+                retry_attempts += 1
+
+                if retry_attempts == max_retries:
+                    print(
+                        f"Max retry attempts reached for job {job.id}. Aborting cancellation."
+                    )
+                    break
+
+                delay = min(
+                    initial_delay * (2**retry_attempts), max_delay
+                )  # Exponential backoff
+                jitter = random.uniform(0, 0.1 * delay)
+                print(
+                    f"Failed to cancel job {job.id}: {e}. Retrying in {delay + jitter:.2f} seconds..."
+                )
+                sleep(delay + jitter)
 
 
 class JobIDGenerator:
