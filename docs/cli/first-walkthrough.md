@@ -296,6 +296,9 @@ JOBID              INPUT                 STATUS     RESULT
 
 In this case, we see that the outstanding running jobs have now completed.
 
+For a more in-depth guide on viewing information about submitted jobs, see
+[Getting Information on Jobs](./user-guides/showing-jobs.md).
+
 
 ### Cancelling jobs
 
@@ -337,6 +340,9 @@ JOBID              INPUT               STATUS
 
 Note that only jobs with a status of 'Not submitted', 'Submitted' and 'Running' can be
 cancelled.
+
+For more details on cancelling jobs, consult the
+[Cancelling Jobs](./user-guides/cancelling-jobs.md) guide.
 
 
 ### Write the jobs to a CSV file
