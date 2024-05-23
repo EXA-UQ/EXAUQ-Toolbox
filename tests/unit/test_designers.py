@@ -21,7 +21,13 @@ from exauq.core.designers import (
     compute_single_level_loo_samples,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
+from exauq.core.modelling import (
+    Input,
+    MultiLevelCollection,
+    MultiLevelGaussianProcess,
+    SimulatorDomain,
+    TrainingDatum,
+)
 from exauq.core.numerics import equal_within_tolerance
 from tests.utilities.utilities import ExauqTestCase, exact
 
@@ -839,17 +845,21 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
 
 class TestComputeMultiLevelLooSamples(ExauqTestCase):
     @staticmethod
-    def make_level_costs(costs: Sequence[Real]) -> tuple[Real, ...]:
-        return tuple(costs)
+    def make_level_costs(costs: Sequence[Real]) -> MultiLevelCollection[Real]:
+        return MultiLevelCollection(costs)
 
     @staticmethod
-    def get_levels(costs: Sequence[Real]) -> set[int]:
-        return set(range(1, len(costs) + 1))
+    def get_levels(costs: MultiLevelCollection[Real]) -> set[int]:
+        return set(costs.levels)
+
+    def setUp(self) -> None:
+        self.default_domain = SimulatorDomain([(0, 1)])
+        self.default_mlgp = MultiLevelGaussianProcess()
 
     def compute_multi_level_loo_samples(
         self, domain: Optional[SimulatorDomain] = None, batch_size: Optional[int] = 1
     ):
-        domain = SimulatorDomain([(0, 1)]) if domain is None else domain
+        domain = self.default_domain if domain is None else domain
         return compute_multi_level_loo_samples(domain=domain, batch_size=batch_size)
 
     def test_number_of_design_points_returned_equals_batch_size(self):
@@ -871,7 +881,6 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
         domains = [SimulatorDomain([(0, 1)]), SimulatorDomain([(2, 3)])]
         costs = self.make_level_costs([1, 2, 3])
-        levels = self.get_levels(costs)
         for domain in domains:
             with self.subTest(domain=domain):
                 design_points = self.compute_multi_level_loo_samples(
@@ -883,7 +892,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                     self.assertIsInstance(dp, tuple)
                     self.assertEqual(2, len(dp))
                     level, x = dp
-                    self.assertIn(level, levels)
+                    self.assertIn(level, costs.levels)
                     self.assertIn(x, domain)
 
     def test_returns_design_points_at_same_level(self):
