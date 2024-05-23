@@ -20,6 +20,8 @@ from exauq.utilities.csv_db import Path
 
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 
+# TODO: generic multi-level type
+
 
 class Input(Sequence):
     """The input to a simulator or emulator.
@@ -799,12 +801,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
 
 class MultiLevelGaussianProcess:
-    def get_gp(self, level: int) -> AbstractGaussianProcess:
-        pass
-
-    def nes(self) -> float:
-        """The normalised squared expectation."""
-        return 1.0
+    pass
 
 
 class AbstractHyperparameters(abc.ABC):
