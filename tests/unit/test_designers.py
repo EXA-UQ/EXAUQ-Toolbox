@@ -864,7 +864,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                 )
                 self.assertEqual(batch_size, len(design_points))
 
-    def test_returns_design_points_with_levels(self):
+    def test_returns_design_points_from_domain(self):
         """The return type is a tuple, with each element being a tuple of the form
         ``(l, x)`` where ``l`` is one of the simulator levels and ``x`` belongs to the
         supplied simulator domain."""
@@ -885,6 +885,14 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                     level, x = dp
                     self.assertIn(level, levels)
                     self.assertIn(x, domain)
+
+    def test_returns_design_points_at_same_level(self):
+        """Each design point in the returned batch is paired with the same simulator
+        level."""
+
+        design_points = self.compute_multi_level_loo_samples(batch_size=2)
+        levels = {dp[0] for dp in design_points}
+        self.assertEqual(1, len(levels))
 
 
 if __name__ == "__main__":
