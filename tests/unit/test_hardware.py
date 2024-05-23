@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, call, patch
 
 from paramiko.ssh_exception import AuthenticationException
 
-from exauq.core.hardware import HardwareInterface, SSHInterface
+from exauq.sim_management.hardware import HardwareInterface, SSHInterface
 
 
 class TestHardwareInterface(unittest.TestCase):
@@ -34,7 +34,7 @@ class MockedSSHInterface(SSHInterface):
 class TestSSHInterface(unittest.TestCase):
     """Test cases for the SSHInterface class."""
 
-    @patch("exauq.core.hardware.Connection")
+    @patch("exauq.sim_management.hardware.Connection")
     def test_init_with_key_filename(self, mock_conn):
         """Test that a connection to a server is established using a specified private key file
         upon initialisation."""
@@ -44,8 +44,8 @@ class TestSSHInterface(unittest.TestCase):
             "user@host", connect_kwargs={"key_filename": "/path/to/key"}
         )
 
-    @patch("exauq.core.hardware.Connection")
-    @patch("exauq.core.hardware.Config", return_value=MagicMock())
+    @patch("exauq.sim_management.hardware.Connection")
+    @patch("exauq.sim_management.hardware.Config", return_value=MagicMock())
     def test_init_with_ssh_config_path(self, mock_config, mock_conn):
         """Test that a connection to a server is established using the specified SSH config path
         upon initialisation."""
@@ -56,7 +56,7 @@ class TestSSHInterface(unittest.TestCase):
         )
         mock_conn.assert_called_once_with("host", config=mock_config.return_value)
 
-    @patch("exauq.core.hardware.Connection")
+    @patch("exauq.sim_management.hardware.Connection")
     def test_init_with_ssh_agent(self, mock_conn):
         """Test that a connection to a server is established using the SSH agent upon
         initialisation."""
@@ -82,8 +82,8 @@ class TestSSHInterface(unittest.TestCase):
         with self.assertRaises(ValueError):
             MockedSSHInterface("user", "host", **non_defaults)
 
-    @patch("exauq.core.hardware.getpass.getpass", return_value="mock_password")
-    @patch("exauq.core.hardware.Connection", side_effect=Exception("Connection failed"))
+    @patch("exauq.sim_management.hardware.getpass.getpass", return_value="mock_password")
+    @patch("exauq.sim_management.hardware.Connection", side_effect=Exception("Connection failed"))
     def test_failed_connection(self, mock_conn, mock_getpass):
         """Test that an exception is raised when a connection fails during initialization."""
 
@@ -92,10 +92,10 @@ class TestSSHInterface(unittest.TestCase):
 
     @patch("builtins.print")
     @patch(
-        "exauq.core.hardware.getpass.getpass",
+        "exauq.sim_management.hardware.getpass.getpass",
         side_effect=["wrong_pass1", "wrong_pass2", "wrong_pass3"],
     )
-    @patch("exauq.core.hardware.Connection", side_effect=AuthenticationException())
+    @patch("exauq.sim_management.hardware.Connection", side_effect=AuthenticationException())
     def test_max_attempts_authentication_exception(
         self, mock_conn, mock_getpass, mock_print
     ):
@@ -118,8 +118,8 @@ class TestSSHInterface(unittest.TestCase):
             ]
         )
 
-    @patch("exauq.core.hardware.getpass.getpass", side_effect=["correct_pass"])
-    @patch("exauq.core.hardware.Connection")
+    @patch("exauq.sim_management.hardware.getpass.getpass", side_effect=["correct_pass"])
+    @patch("exauq.sim_management.hardware.Connection")
     def test_successful_password_auth_on_first_try(self, mock_conn, mock_getpass):
         """Test that a connection is successfully established on the first password attempt."""
 
@@ -134,7 +134,7 @@ class TestSSHInterface(unittest.TestCase):
             "user@host", connect_kwargs={"password": "correct_pass"}
         )
 
-    @patch("exauq.core.hardware.Connection.run", return_value=True)
+    @patch("exauq.sim_management.hardware.Connection.run", return_value=True)
     def test_successful_check_connection(self, mock_conn):
         """Test checking a connection when it's successful."""
 
@@ -145,7 +145,7 @@ class TestSSHInterface(unittest.TestCase):
             self.fail(f"_check_connection raised an exception: {e}")
 
     @patch(
-        "exauq.core.hardware.Connection.run", side_effect=Exception("Command failed")
+        "exauq.sim_management.hardware.Connection.run", side_effect=Exception("Command failed")
     )
     def test_failed_check_connection(self, mock_conn):
         """Test checking a connection when it fails."""
@@ -158,7 +158,7 @@ class TestSSHInterface(unittest.TestCase):
             str(context.exception), "Could not connect to sample_host: Command failed"
         )
 
-    @patch("exauq.core.hardware.Connection")
+    @patch("exauq.sim_management.hardware.Connection")
     def test_entry_method(self, mock_conn):
         """Test that the __enter__ method of the context manager returns the instance itself."""
 
@@ -167,7 +167,7 @@ class TestSSHInterface(unittest.TestCase):
         with interface as result:
             self.assertIs(interface, result)
 
-    @patch("exauq.core.hardware.Connection")
+    @patch("exauq.sim_management.hardware.Connection")
     def test_exit_method(self, mock_conn):
         """Test that the __exit__ method of the context manager closes the connection."""
 

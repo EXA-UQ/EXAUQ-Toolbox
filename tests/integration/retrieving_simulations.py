@@ -3,7 +3,7 @@ import pathlib
 import time
 
 from exauq.core.modelling import Input
-from exauq.core.simulators import SimulationsLog, Simulator, SimulatorDomain
+from exauq.sim_management.simulators import SimulationsLog, Simulator, SimulatorDomain
 from tests.utilities.local_simulator import WORKSPACE, LocalSimulatorInterface
 
 log_file = pathlib.Path("./simulations.csv")

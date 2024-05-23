@@ -7,8 +7,14 @@ from numbers import Real
 from typing import Type
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.core.simulators import SimulationsLog, SimulationsLogLookupError, Simulator
-from exauq.core.types import FilePath
+from exauq.sim_management.hardware import JobStatus
+from exauq.sim_management.jobs import JobId
+from exauq.sim_management.simulators import (
+    SimulationsLog,
+    SimulationsLogLookupError,
+    Simulator,
+)
+from exauq.sim_management.types import FilePath
 from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
 from tests.utilities.utilities import exact
 
@@ -23,9 +29,11 @@ def make_fake_simulator(
     """
 
     with unittest.mock.patch(
-        "exauq.core.simulators.SimulationsLog",
+        "exauq.sim_management.simulators.SimulationsLog",
         new=make_fake_simulations_log_class(simulations),
-    ), unittest.mock.patch("exauq.core.simulators.JobManager", new=DumbJobManager):
+    ), unittest.mock.patch(
+        "exauq.sim_management.simulators.JobManager", new=DumbJobManager
+    ):
         return Simulator(
             SimulatorDomain([(-10, 10)]), DumbHardwareInterface(), simulations_log
         )
@@ -121,16 +129,14 @@ class TestSimulator(unittest.TestCase):
         records of previous simulations."""
 
         with unittest.mock.patch(
-            "exauq.core.simulators.SimulationsLog",
+            "exauq.sim_management.simulators.SimulationsLog",
             new=make_fake_simulations_log_class(tuple()),
         ):
             # Unix
             _ = Simulator(self.simulator_domain, self.hardware_interface, r"a/b/c")
-            _ = Simulator(self.simulator_domain, self.hardware_interface, rb"a/b/c")
 
             # Windows
             _ = Simulator(self.simulator_domain, self.hardware_interface, r"a\b\c")
-            _ = Simulator(self.simulator_domain, self.hardware_interface, rb"a\b\c")
 
             # Platform independent
             _ = Simulator(
@@ -141,7 +147,9 @@ class TestSimulator(unittest.TestCase):
         """Test that a new log file with name 'simulations.csv' is created in the
         working directory as the default."""
 
-        with unittest.mock.patch("exauq.core.simulators.SimulationsLog") as mock:
+        with unittest.mock.patch(
+            "exauq.sim_management.simulators.SimulationsLog"
+        ) as mock:
             _ = Simulator(self.simulator_domain, self.hardware_interface)
             mock.assert_called_once_with("simulations.csv", self.simulator_domain.dim)
 
@@ -171,9 +179,7 @@ class TestSimulator(unittest.TestCase):
             with self.subTest(x=x):
                 with self.assertRaisesRegex(
                     TypeError,
-                    exact(
-                        f"Argument 'x' must be of type Input, but received {type(x)}."
-                    ),
+                    exact(f"Argument 'x' must be of type Input, but received {type(x)}."),
                 ):
                     self.empty_simulator.compute(x)
 
@@ -286,16 +292,14 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that a new simulator log file at a given path is created upon object
         initialisation, on a POSIX-based system."""
 
-        _ = SimulationsLog(
-            str(pathlib.PurePosixPath(self.simulations_file)), input_dim=3
-        )
+        _ = SimulationsLog(str(pathlib.PurePosixPath(self.simulations_file)), input_dim=3)
         self.assertTrue(self.simulations_file.exists())
 
     def test_initialise_new_log_file_not_opened_if_exists(self):
         """Test that an existing simulator log file is not opened for writing upon
         initialisation."""
 
-        self.simulations_file.write_text("Input_1,Output,Job_ID\n")
+        self.simulations_file.write_text("Input_1,Output,Job_ID,Job_Status\n")
         self.simulations_file.touch(mode=0o400)  # read-only
         try:
             _ = SimulationsLog(self.simulations_file, input_dim=1)
@@ -354,7 +358,7 @@ class TestSimulationsLog(unittest.TestCase):
         log.add_new_record(x2, job_id="2")
 
         x3 = Input(3, 3)
-        log.add_new_record(x3)
+        log.add_new_record(x3, job_id="3")
 
         expected = ((x1, 10), (x2, None), (x3, None))
         self.assertEqual(expected, log.get_simulations())
@@ -363,7 +367,9 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that a log file is parsed correctly irrespective of the order of input
         and output columns."""
 
-        self.simulations_file.write_text("Input_2,Job_ID,Output,Input_1\n1,0,2,10\n")
+        self.simulations_file.write_text(
+            "Input_2,Job_Status,Job_ID,Output,Input_1\n1,Completed,0,2,10\n"
+        )
         log = SimulationsLog(self.simulations_file, input_dim=2)
         expected = ((Input(10, 1), 2),)
         self.assertEqual(expected, log.get_simulations())
@@ -383,7 +389,48 @@ class TestSimulationsLog(unittest.TestCase):
                     f"but got {len(x)} instead."
                 ),
             ):
-                log.add_new_record(x)
+                log.add_new_record(x, "1234")
+
+    def test_add_new_record_id_invalid_job_id_error(self):
+        """Test that a ValueError is raised if the supplied job id does not define a
+        numeric string."""
+
+        log = SimulationsLog(self.simulations_file, input_dim=1)
+        for job_id in [None, -1, "a1"]:
+            with self.subTest(job_id=job_id):
+                with self.assertRaises(ValueError):
+                    log.add_new_record(Input(1), job_id)
+
+    def test_add_new_record_duplicate_id_error(self):
+        """Test that a ValueError is raised if a record has same job id as supplied."""
+
+        log = SimulationsLog(self.simulations_file, input_dim=1)
+        log.add_new_record(Input(1), "1")
+
+        with self.assertRaisesRegex(
+            ValueError, exact(f"The job_id '1' is already in use.")
+        ):
+            log.add_new_record(Input(1), "1")
+
+    def test_add_new_record_job_id_different_data_types(self):
+        """Test adding new records with job IDs of different data types."""
+
+        log = SimulationsLog(self.simulations_file, 1)
+
+        test_cases = [
+            ("123", "String type should be accepted."),
+            (456, "Integer type should be accepted."),
+            (JobId("789"), "Custom JobId type should be accepted."),
+        ]
+
+        for job_id, message in test_cases:
+            with self.subTest(job_id=job_id):
+                try:
+                    log.add_new_record(Input(1), job_id, JobStatus.NOT_SUBMITTED)
+                except ValueError as e:
+                    self.fail(f"{message} Failed with ValueError: {e}")
+                except TypeError as e:
+                    self.fail(f"{message} Failed with TypeError: {e}")
 
     def test_add_new_record_single_input(self):
         """Test that, when a record for a given input is added, the corresponding
@@ -391,7 +438,7 @@ class TestSimulationsLog(unittest.TestCase):
 
         x = Input(1)
         log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        log.add_new_record(x)
+        log.add_new_record(x, "1234")
         self.assertEqual(((x, None),), log.get_simulations())
 
     def test_add_new_record_multiple_records_same_input(self):
@@ -400,9 +447,19 @@ class TestSimulationsLog(unittest.TestCase):
 
         x = Input(1)
         log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        log.add_new_record(x)
-        log.add_new_record(x)
+        log.add_new_record(x, "1111")
+        log.add_new_record(x, "2222")
         self.assertEqual(((x, None), (x, None)), log.get_simulations())
+
+    def test_add_new_record_default_status(self):
+        """Test that, when a new record is created, it is labelled as NOT_SUBMITTED by default."""
+
+        x1 = Input(1)
+        x2 = Input(2)
+        log = SimulationsLog(self.simulations_file, input_dim=len(x1))
+        log.add_new_record(x1, "1")
+        log.add_new_record(x2, "2")
+        self.assertEqual((x1, x2), log.get_unsubmitted_inputs())
 
     def test_insert_result_missing_job_id_error(self):
         """Test that a SimulationsLogLookupError is raised if one attempts to add an
@@ -421,24 +478,6 @@ class TestSimulationsLog(unittest.TestCase):
         ):
             log.insert_result(job_id, 10)
 
-    def test_insert_result_multiple_job_id_error(self):
-        """Test that a SimulationsLogLookupError is raised if there are multiple
-        records with the same job ID when trying to insert a simulator output."""
-
-        x = Input(1)
-        log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        job_id = "0"
-        log.add_new_record(x, job_id)
-        log.add_new_record(x, job_id)
-        with self.assertRaisesRegex(
-            SimulationsLogLookupError,
-            exact(
-                f"Could not add output to simulation with job ID = {job_id}: "
-                "multiple records with this ID found."
-            ),
-        ):
-            log.insert_result(job_id, 10)
-
     def test_get_pending_jobs_empty_log_file(self):
         """Test that an empty tuple of pending jobs is returned if there are no
         records in the simulations log file."""
@@ -448,34 +487,42 @@ class TestSimulationsLog(unittest.TestCase):
 
     def test_get_pending_jobs_empty_when_all_completed(self):
         """Test that an empty tuple is returned if all jobs in the simulations
-        log file have a simulator output."""
+        log file have a non-pending JobStatus i.e. one of COMPLETED, FAILED, CANCELLED."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
 
-        log.add_new_record(Input(1), job_id="1")
+        log.add_new_record(Input(1), job_id="1", job_status=JobStatus.COMPLETED)
         log.insert_result(job_id="1", result=10.1)
 
-        log.add_new_record(Input(2), job_id="2")
+        log.add_new_record(Input(2), job_id="2", job_status=JobStatus.COMPLETED)
         log.insert_result(job_id="2", result=20.2)
+
+        log.add_new_record(Input(3), job_id="3", job_status=JobStatus.FAILED)
+
+        log.add_new_record(Input(4), job_id="4", job_status=JobStatus.CANCELLED)
 
         self.assertEqual(tuple(), log.get_pending_jobs())
 
     def test_get_pending_jobs_selects_correct_jobs(self):
-        """Test that the jobs selected are those that have a Job ID but not an
-        output."""
+        """Test that the jobs selected are those that have a valid pending JobState:
+        SUBMITTED, NOT_SUBMITTED, RUNNING, FAILED_SUBMIT."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
-        for x, job_id, y in (
-            (Input(1), "1", 10.1),
-            (Input(2), "2", None),
-            (Input(3), "3", None),
-            (Input(4), None, None),
+        for x, job_id, y, status in (
+            (Input(1), "1", 10.1, JobStatus.COMPLETED),
+            (Input(2), "2", None, JobStatus.SUBMITTED),
+            (Input(3), "3", None, JobStatus.NOT_SUBMITTED),
+            (Input(4), "4", None, JobStatus.CANCELLED),
+            (Input(5), "5", None, JobStatus.RUNNING),
+            (Input(6), "6", None, JobStatus.FAILED_SUBMIT),
+            (Input(7), "7", None, JobStatus.FAILED),
         ):
-            log.add_new_record(x, job_id)
-            if job_id is not None:
-                log.insert_result(job_id, y)
+            log.add_new_record(x, job_id, status)
 
-        self.assertEqual(("2", "3"), log.get_pending_jobs())
+        pending_jobs = log.get_pending_jobs()
+
+        pending_job_ids = tuple(str(job.id) for job in pending_jobs)
+        self.assertEqual(("2", "3", "5", "6"), pending_job_ids)
 
     def test_get_unsubmitted_inputs_no_inputs(self):
         """Test that an empty tuple is returned if no inputs have been submitted to the
@@ -483,40 +530,6 @@ class TestSimulationsLog(unittest.TestCase):
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
         self.assertEqual(tuple(), log.get_unsubmitted_inputs())
-
-    def test_get_unsubmitted_inputs_unsubmitted_input(self):
-        """Test that, when an input is submitted with no job ID, it features as an
-        unsubmitted input."""
-
-        x = Input(1)
-        log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        log.add_new_record(x)
-        self.assertEqual((x,), log.get_unsubmitted_inputs())
-
-    def test_get_unsubmitted_inputs_submitted_input(self):
-        """Test that, when an input is submitted with a job ID, it does not feature as
-        an unsubmitted input."""
-
-        x = Input(1)
-        job_id = "0"
-        log = SimulationsLog(self.simulations_file, input_dim=len(x))
-        log.add_new_record(x, job_id)
-        self.assertTrue(x not in log.get_unsubmitted_inputs())
-
-    def test_get_unsubmitted_inputs_submitted_unsubmitted_mix(self):
-        """Test that, when several inputs are submitted, only those that weren't
-        submitted with a job ID are returned as unsubmitted inputs."""
-
-        x1 = Input(1)
-        x2 = Input(2)
-        x3 = Input(3)
-        x4 = Input(4)
-        log = SimulationsLog(self.simulations_file, input_dim=len(x1))
-        log.add_new_record(x1, job_id="0")
-        log.add_new_record(x2)
-        log.add_new_record(x3)
-        log.add_new_record(x4, job_id="1")
-        self.assertEqual((x2, x3), log.get_unsubmitted_inputs())
 
 
 if __name__ == "__main__":

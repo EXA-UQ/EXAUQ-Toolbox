@@ -1,15 +1,18 @@
 """Provides emulators for simulators."""
+
 from __future__ import annotations
 
 import dataclasses
+import itertools
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Literal, Optional
+from typing import Callable, Literal, Optional
 
 import mogp_emulator as mogp
 import numpy as np
 from mogp_emulator import GaussianProcess
 from mogp_emulator.GPParams import GPParams
+from numpy.typing import NDArray
 
 from exauq.core.modelling import (
     AbstractGaussianProcess,
@@ -27,14 +30,15 @@ class MogpEmulator(AbstractGaussianProcess):
     An emulator wrapping a ``GaussianProcess`` object from the mogp-emulator
     package.
 
-    This class allows mogp-emulator ``GaussianProcess`` objects to be used with
-    the designers defined in the EXAUQ-Toolbox, ensuring the interface required
-    by the designers is present. Keyword arguments supplied to the
-    `MogpEmulator` are passed onto the ``GaussianProcess``
-    initialiser to create the underlying (i.e. wrapped) ``GaussianProcess``
-    object. Note that any ``inputs`` or ``targets`` supplied are ignored: the
-    underlying ``GaussianProcess`` will initially be constructed with no
-    training data.
+    This class allows mogp-emulator ``GaussianProcess`` objects to be used with the
+    designers defined in the EXAUQ-Toolbox, ensuring the interface required by the
+    designers is present. Keyword arguments supplied to the `MogpEmulator` are passed onto
+    the ``GaussianProcess`` initialiser to create the underlying (i.e. wrapped)
+    ``GaussianProcess`` object. Note that any ``inputs`` or ``targets`` supplied are
+    ignored: the underlying ``GaussianProcess`` will initially be constructed with no
+    training data. Additionally, the only ``kernel``s currently supported are
+    'SquaredExponential' (the default), 'Matern52' and 'ProductMat52'; these should be
+    specified as strings during initialisation.
 
     The underlying ``GaussianProcess` object can be obtained through the
     `gp` property. Note that the `fit` method, used to train the emulator, will
@@ -43,10 +47,11 @@ class MogpEmulator(AbstractGaussianProcess):
     Parameters
     ----------
     **kwargs : dict, optional
-        Any permitted keyword arguments that can be used to create a
-        mogp-emulator ``GaussianProcess`` object. See the mogp-emulator
-        documentation for details. If ``inputs`` or ``targets`` are supplied as
-        keyword arguments then these will be ignored.
+        Any permitted keyword arguments that can be used to create a mogp-emulator
+        ``GaussianProcess`` object. See the mogp-emulator documentation for details. If
+        ``inputs`` or ``targets`` are supplied as keyword arguments then these will be
+        ignored. ``kernel``, if supplied, should be a string of one of the currently
+        supported kernels (see above).
 
     Attributes
     ----------
@@ -62,14 +67,28 @@ class MogpEmulator(AbstractGaussianProcess):
 
     Raises
     ------
+    ValueError
+        If the kernel supplied is not one of the supported kernel functions.
     RuntimeError
         If keyword arguments are supplied upon initialisation that aren't
         supported by the initialiser of ``GaussianProcess`` from the
         mogp-emulator package.
     """
 
+    _kernel_funcs = {
+        "Matern52": mogp.Kernel.Matern52().kernel_f,
+        "SquaredExponential": mogp.Kernel.SquaredExponential().kernel_f,
+        "ProductMat52": mogp.Kernel.ProductMat52().kernel_f,
+    }
+
     def __init__(self, **kwargs):
         self._gp_kwargs = self._remove_entries(kwargs, "inputs", "targets")
+        self._validate_kernel(self._gp_kwargs)
+        self._kernel = (
+            self._make_kernel_function(self._gp_kwargs["kernel"])
+            if "kernel" in self._gp_kwargs
+            else self._make_kernel_function()
+        )
         self._gp = self._make_gp(**self._gp_kwargs)
 
         # Add the default nugget type if not provided explicitly
@@ -81,11 +100,29 @@ class MogpEmulator(AbstractGaussianProcess):
         )
         self._fit_hyperparameters = None
 
+        # Correlation length scale parameters on a negative log scale
+        self._corr_transformed = None
+
     @staticmethod
     def _remove_entries(_dict: dict, *args) -> dict:
         """Return a dict with the specified keys removed."""
 
         return {k: v for (k, v) in _dict.items() if k not in args}
+
+    @classmethod
+    def _validate_kernel(cls, kwargs):
+        try:
+            kernel = kwargs["kernel"]
+        except KeyError:
+            return None
+
+        if kernel not in cls._kernel_funcs:
+            raise ValueError(
+                f"Could not initialise MogpEmulator with kernel = {kernel}: not a "
+                "supported kernel function."
+            )
+        else:
+            return None
 
     @staticmethod
     def _make_gp(**kwargs) -> GaussianProcess:
@@ -102,6 +139,19 @@ class MogpEmulator(AbstractGaussianProcess):
                 "initialisation of MogpEmulator"
             )
             raise RuntimeError(msg)
+
+    @classmethod
+    def _make_kernel_function(
+        cls,
+        kernel: str = "SquaredExponential",
+    ) -> Callable[[Input, Input, NDArray], float]:
+
+        def kernel_f(x1: Input, x2: Input, corr_raw: NDArray) -> float:
+            return float(
+                cls._kernel_funcs[kernel](np.array(x1), np.array(x2), corr_raw)[0, 0]
+            )
+
+        return kernel_f
 
     @property
     def gp(self) -> GaussianProcess:
@@ -191,6 +241,7 @@ class MogpEmulator(AbstractGaussianProcess):
         self._fit_hyperparameters = MogpHyperparameters.from_mogp_gp_params(
             self._gp.theta
         )
+        self._corr_transformed = self._gp.theta.corr_raw
         self._training_data = training_data
 
         return None
@@ -318,10 +369,13 @@ class MogpEmulator(AbstractGaussianProcess):
         If ``corr_matrix`` is the output of this method, then the ordering of the nested
         tuples in ``corr_matrix`` is such that (in pseudocode)
         ``corr_matrix[i][j] = kernel(inputs1[i], inputs2[j])``, where ``kernel`` is the
-        kernel function for the underlying Gaussian process.
+        kernel function for the underlying Gaussian process. The only exception to this is
+        when either of the sequence of inputs is empty, in which case a (single level)
+        empty tuple is returned.
 
-        In order to calculate the correlation, this emulator's ``fit_hyperparameters``
-        needs to not be ``None``, i.e. the emulator needs to have been trained on data.
+        In order to calculate the correlation between nonempty sequences of inputs, this
+        emulator's ``fit_hyperparameters`` needs to not be ``None``, i.e. the emulator
+        needs to have been trained on data.
 
         Parameters
         ----------
@@ -338,22 +392,96 @@ class MogpEmulator(AbstractGaussianProcess):
         ------
         AssertionError
             If this emulator has not yet been trained on data.
+        ValueError
+            If the dimension of any of the supplied simulator inputs doesn't match the
+            dimension of training data inputs for this emulator.
         """
 
-        assert self.fit_hyperparameters is not None, (
-            f"Cannot calculate correlations for this instance of {self.__class__} because "
-            "it hasn't yet been trained on data."
-        )
+        try:
+            correlations = tuple(
+                tuple(self._kernel(xi, xj, self._corr_transformed) for xj in inputs2)
+                for xi in inputs1
+            )
+            if any(len(row) > 0 for row in correlations):
+                return correlations
+            else:
+                return tuple()
 
-        # TODO: implement support for other kernels
-        corr_raw = self.fit_hyperparameters.to_mogp_gp_params().corr_raw
+        except TypeError:
+            # Raised if inputs1 or inputs2 not iterable
+            raise TypeError(
+                "Expected 'inputs1' and 'inputs2' to be sequences of Input objects, "
+                f"but received {type(inputs1)} and {type(inputs2)} instead."
+            )
+        except AssertionError:
+            assert self._corr_transformed is not None, (
+                f"Cannot calculate correlations for this instance of {self.__class__} "
+                "because it hasn't yet been trained on data."
+            )
+            # mogp-emulator arg validation errors typically seem to be raised as
+            # AssertionErrors - these get bubbled up through self._kernel
+            if not (
+                all(isinstance(x, Input) for x in inputs1)
+                and all(isinstance(x, Input) for x in inputs2)
+            ):
+                raise TypeError(
+                    "Expected 'inputs1' and 'inputs2' to only contain Input objects."
+                )
+        except ValueError:
+            expected_dim = len(self.training_data[0].input)
+            wrong_dims = list(
+                len(x)
+                for x in itertools.chain(inputs1, inputs2)
+                if len(x) != expected_dim
+            )
+            if wrong_dims:
+                raise ValueError(
+                    f"Expected inputs to have dimension equal to {expected_dim}, but "
+                    f"received input of dimension {wrong_dims[0]}."
+                ) from None
 
-        def kernel_func(x1: Input, x2: Input) -> float:
-            return mogp.Kernel.Matern52().kernel_f(
-                np.array(list(x1)), np.array(list(x2)), corr_raw
-            )[0, 0]
+    def covariance_matrix(self, inputs: Sequence[Input]) -> tuple[tuple[float, ...], ...]:
+        """Compute the covariance matrix for a sequence of simulator inputs.
 
-        return tuple(tuple(kernel_func(xi, xj) for xj in inputs2) for xi in inputs1)
+        In pseudocode, the covariance matrix for a given collection
+        `inputs` of simulator inputs is defined in terms of the correlation matrix as
+        ``sigma^2 * correlation(training_inputs, inputs)``, where ``sigma^2`` is the
+        process variance for this Gaussian process (which was determined or supplied
+        during training) and ``training_inputs`` are the simulator inputs used in
+        training. The only exceptions to this are when the supplied inputs is empty or if
+        this emulator hasn't been trained on data: in these cases a (single level) empty
+        tuple is returned.
+
+        Parameters
+        ----------
+        inputs : Sequence[Input]
+            A sequence of simulator inputs.
+
+        Returns
+        -------
+        tuple[tuple[float, ...], ...]
+            The covariance matrix for the sequence of inputs. The outer tuple
+            consists of ``n`` tuples of length ``len(inputs)``, where ``n`` is the
+            number of training data points for this Gaussian process.
+
+        Raises
+        ------
+        ValueError
+            If the dimension of any of the supplied simulator inputs doesn't match the
+            dimension of training data inputs for this emulator.
+        """
+        try:
+            return super().covariance_matrix(inputs)
+        except TypeError:
+            if not isinstance(inputs, Sequence):
+                raise TypeError(
+                    "Expected 'inputs' to be a sequence of Input objects, but received "
+                    f"{type(inputs)} instead."
+                ) from None
+            else:
+                raise TypeError(
+                    "Expected 'inputs' to only contain Input objects."
+                ) from None
 
     def predict(self, x: Input) -> Prediction:
         """Make a prediction of a simulator output for a given input.

@@ -1,0 +1,48 @@
+site_name: EXAUQ-Toolbox
+
+# Settings for deploying as local files, using the file:// scheme
+site_url: ""
+site_dir: exauq/docs
+use_directory_urls: false
+plugins:
+  - offline
+
+nav:
+  - Home: "index.md"
+  - "Command Line App":
+    - "cli/index.md"
+    - "A First Walkthrough": "cli/first-walkthrough.md"
+    - "User Guides":
+      - "cli/user-guides/index.md"
+      - "Writing a Simulator Script": "cli/user-guides/simulator-script.md"
+      - "Getting Information on Jobs": "cli/user-guides/showing-jobs.md"
+      - "Cancelling Jobs": "cli/user-guides/cancelling-jobs.md"
+
+# Material for MkDocs
+theme:
+  name: material
+  features:
+    - navigation.sections  # navigation pane, see https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#navigation-sections
+    - navigation.indexes
+    - content.code.annotate  # code annotations, see https://squidfunk.github.io/mkdocs-material/reference/code-blocks/#adding-annotations
+
+# See:
+# - https://squidfunk.github.io/mkdocs-material/reference/admonitions/
+# - https://squidfunk.github.io/mkdocs-material/reference/code-blocks/
+# - https://squidfunk.github.io/mkdocs-material/reference/grids/
+# - https://squidfunk.github.io/mkdocs-material/reference/icons-emojis/
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg

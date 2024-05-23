@@ -6,7 +6,7 @@ import dataclasses
 from collections.abc import Collection, Sequence
 from typing import Optional
 
-from exauq.core.hardware import HardwareInterface
+from exauq.sim_management.hardware import HardwareInterface
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     AbstractSimulator,
@@ -16,7 +16,7 @@ from exauq.core.modelling import (
     Prediction,
     TrainingDatum,
 )
-from exauq.core.simulators import SimulationsLog
+from exauq.sim_management.simulators import SimulationsLog
 
 
 class FakeGP(AbstractGaussianProcess):
