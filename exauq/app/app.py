@@ -5,7 +5,12 @@ from typing import Any, Optional, Union
 from exauq.core.modelling import Input
 from exauq.sim_management.hardware import HardwareInterface, JobStatus
 from exauq.sim_management.jobs import Job, JobId
-from exauq.sim_management.simulators import JobManager, SimulationsLog
+from exauq.sim_management.simulators import (
+    InvalidJobStatusError,
+    JobManager,
+    SimulationsLog,
+    UnknownJobIdError,
+)
 from exauq.sim_management.types import FilePath
 
 
@@ -58,6 +63,12 @@ class App:
             wait_for_pending=False,
         )
 
+    @property
+    def input_dim(self) -> int:
+        """(Read-only) The dimensionality of the input data for simulations."""
+
+        return self._input_dim
+
     def submit(self, inputs: Sequence[Sequence[Real]]) -> tuple[Job]:
         """
         Submits a batch of simulation jobs to the job manager based on the provided input sequences.
@@ -92,6 +103,52 @@ class App:
             submitted_jobs.append(self._job_manager.submit(Input(*inp)))
 
         return tuple(submitted_jobs)
+
+    def cancel(self, job_ids: Sequence[Union[str, JobId, int]]) -> dict[str, list]:
+        """Cancels jobs and returns a report detailing results of the cancellations.
+
+        The returned dictionary is structured with the following keys and values:
+
+        * "cancelled_jobs": A list of ``Job``s for the jobs that were successfully
+          cancelled.
+        * "non_existent_jobs": A list of ``JobId``s that could not be found, i.e. that
+          do not define jobs in the simulations log.
+        * "terminated_jobs": A list of ``JobIds`` of jobs that have already terminated and
+          so were not cancelled.
+
+        Parameters
+        ----------
+        job_ids : Sequence[Union[str, JobId, int]]
+            The IDs of jobs to cancel.
+
+        Returns
+        -------
+        dict[str, list]
+            A report containing details of jobs that were successfully cancelled, were not
+            cancelled because they don't exist or were not cancelled because they have
+            already terminated. See details above.
+        """
+        report = {
+            "cancelled_jobs": [],
+            "non_existent_jobs": [],
+            "terminated_jobs": [],
+        }
+        for job_id in job_ids:
+            try:
+                cancelled_job = self._job_manager.cancel(job_id)
+                report["cancelled_jobs"].append(
+                    {
+                        "job_id": cancelled_job.id,
+                        "input": cancelled_job.data,
+                        "status": JobStatus.CANCELLED,
+                    }
+                )
+            except UnknownJobIdError:
+                report["non_existent_jobs"].append(job_id)
+            except InvalidJobStatusError:
+                report["terminated_jobs"].append(job_id)
+
+        return report
 
     def get_jobs(
         self,

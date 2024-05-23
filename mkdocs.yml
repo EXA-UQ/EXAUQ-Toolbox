@@ -16,6 +16,7 @@ nav:
       - "cli/user-guides/index.md"
       - "Writing a Simulator Script": "cli/user-guides/simulator-script.md"
       - "Getting Information on Jobs": "cli/user-guides/showing-jobs.md"
+      - "Cancelling Jobs": "cli/user-guides/cancelling-jobs.md"
 
 # Material for MkDocs
 theme:

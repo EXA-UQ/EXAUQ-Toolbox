@@ -22,7 +22,7 @@ The purpose of this tutorial is to demonstrate the main workflow of working with
 To view help on the options for starting the `exauq` application, run `exauq` with the
 `--help` (or `-h`) option:
 
-``` console
+```
 $ exauq --help
 usage: exauq [-h] [-d] [workspace]
 
@@ -40,7 +40,7 @@ optional arguments:
 To view documentation in your browser (this website!) you can instead use the `--docs`
 (or `-d`) option:
 
-``` console
+```
 $ exauq --docs
 ```
 
@@ -58,7 +58,7 @@ explanations of steps where user input is required. (The comments with numbering
 (1)`, are just to help refer to the lines in the explanation and shouldn't be included
 when running through for real.)
 
-``` console
+```
 $ exauq
 A new workspace '.exauq-ws' will be set up.
 Please provide the following details to initialise the workspace...
@@ -98,7 +98,7 @@ Thanks -- workspace '.exauq-ws' is now set up.
 Having just started the application, let's make sure we know how to exit it! We do this
 simply by entering the command `quit`, like so:
 
-``` console
+```
 (exauq)> quit
 $
 ```
@@ -110,7 +110,7 @@ If we list the contents of the current directory (including hidden items), we se
 we have a new directory called `.exauq-ws`. This contains settings files that record the 
 details provided at workspace creation:
 
-``` console
+```
 $ ls -a
 .  ..  .exauq-ws
 
@@ -128,7 +128,7 @@ To start the application again with the same workspace, we simply run `exauq` wi
 the directory containing `.exauq-ws`. Note this will ask us for our password to connect
 to the server.
 
-``` console
+```
 $ exauq
 Using workspace '.exauq-ws'.
 Password for joe@server.example.com: 
@@ -142,7 +142,7 @@ Once `exauq` has been started an initialised, it is ready to receive commands fr
 to execute. Commands are entered next to the prompt `(exauq)>`, much like you enter
 commands into a terminal, following the general template:
 
-``` console
+```
 (exauq)> COMMAND [OPTIONS] ARGS
 ```
 
@@ -155,7 +155,7 @@ until the application is exited.
 
 To view all available commands within the application, run the `help` command:
 
-``` console
+```
 (exauq)> help
 
 Documented commands (use 'help -v' for verbose/'help <topic>' for details):
@@ -169,7 +169,7 @@ edit   history  quit   run_script    shell  show
 The main commands to be aware of are `help`, `submit`, `show` and `quit`. To view help
 for a particular command, run `help COMMAND`, for example:
 
-``` console
+```
 (exauq)> help submit
 Usage: submit [-h] [-f FILE] [inputs [...]]
 
@@ -193,7 +193,7 @@ simulator takes in 3-dimensional inputs when creating the workspace. We can subm
 input to the simulator with the `submit` command, as a comma-separated list of numbers. For example, to
 submit the input `(1.111, 2.222, 9.999)`, we enter the following into the application:
 
-``` console
+```
 (exauq)> submit 1.111,2.222,9.999
 JOBID              INPUT             
 20240419183827910  (1.11, 2.22, 10.0)
@@ -238,7 +238,7 @@ collection of inputs as read from a csv file, using the `--file` (or `-f`) optio
 example, supposing we had a csv file `design.csv` in our working directory, we could run
 the command
 
-``` console
+```
 (exauq)> submit --file design.csv
 JOBID              INPUT               
 20240419185014637  (1.32, -0.986, 31.4)
@@ -253,7 +253,7 @@ JOBID              INPUT
 
 Having submitted jobs, we can get the status of them by using the `show` command.
 
-``` console
+```
 (exauq)> show
 JOBID              INPUT                 STATUS     RESULT             
 20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             
@@ -274,11 +274,11 @@ workspace. For example, suppose we quit the `exauq` application and waited a whi
 jobs to finish. By starting `exauq` with the same workspace, we can check on the status of
 the jobs:
 
-``` console
+```
 (exauq)> quit
-$
-$ # wait a while...
-$
+
+# wait a while...
+
 $ exauq
 Using workspace '.exauq-ws'.
 Password for joe@server.example.com: 
@@ -295,3 +295,82 @@ JOBID              INPUT                 STATUS     RESULT
 ```
 
 In this case, we see that the outstanding running jobs have now completed.
+
+For a more in-depth guide on viewing information about submitted jobs, see
+[Getting Information on Jobs](./user-guides/showing-jobs.md).
+
+
+### Cancelling jobs
+
+If we ever want to cancel a job before it finishes running, we can use the `cancel`
+command with the job ID(s) of the job(s) we want to terminate. For example, suppose we
+start off a couple of jobs:
+
+```
+(exauq)> submit -- -1,2,3 0.5,0.32,-3.12
+JOBID              INPUT             
+20240521102800090  (-1.0, 2.0, 3.0)  
+20240521102801154  (0.5, 0.32, -3.12)
+
+(exauq)> 
+```
+
+We can see that the status of the jobs is 'Running':
+
+```
+(exauq)> show 20240521102800090 20240521102801154
+JOBID              INPUT               STATUS   RESULT
+20240521102800090  (-1.0, 2.0, 3.0)    Running        
+20240521102801154  (0.5, 0.32, -3.12)  Running        
+
+(exauq)>
+```
+
+To cancel the new jobs, we supply the corresponding job IDs. The returned output confirms
+their cancellation:
+
+```
+(exauq)> cancel 20240521102800090 20240521102801154
+JOBID              INPUT               STATUS   
+20240521102800090  (-1.0, 2.0, 3.0)    Cancelled
+20240521102801154  (0.5, 0.32, -3.12)  Cancelled
+
+(exauq)> 
+```
+
+Note that only jobs with a status of 'Not submitted', 'Submitted' and 'Running' can be
+cancelled.
+
+For more details on cancelling jobs, consult the
+[Cancelling Jobs](./user-guides/cancelling-jobs.md) guide.
+
+
+### Write the jobs to a CSV file
+
+Finally, the details of the jobs can be written to a file, allowing us to use the
+output of simulations in our own analysis. This is done using the `write` command:
+
+```
+(exauq)> write jobs.csv
+(exauq)>
+```
+
+Note that the full precision of simulation inputs and outputs will be written to the
+file. The output CSV has the same column headings that appear in the `show` command, with
+the addition that the individual simulation input coordinates are put under headings
+`INPUT_1`, `INPUT_2`, etc.
+
+!!! note
+    When writing to a file, the parent directory of the file needs to exist. For example,
+    if we were to supply `foo/bar/jobs.csv` to `write`, then the directories `foo` and
+    `bar` need to already exist.
+
+If we quit the application and list to contents of the working directory, we see that
+the `jobs.csv` file has been created:
+
+```
+(exauq)> quit
+$ ls -a
+.  ..  .exauq-ws  jobs.csv
+
+```

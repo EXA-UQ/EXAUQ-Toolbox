@@ -50,6 +50,15 @@ class JobStatus(Enum):
     value 'Cancelled'."""
 
 
+TERMINAL_STATUSES = {
+    JobStatus.COMPLETED,
+    JobStatus.FAILED,
+    JobStatus.FAILED_SUBMIT,
+    JobStatus.CANCELLED,
+}
+"""Statuses that define jobs that are no longer running (possibly due to error)."""
+
+
 class HardwareInterface(ABC):
     """
     Abstract base class for a hardware interface.

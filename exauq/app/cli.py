@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 import pathlib
 import re
@@ -12,7 +13,7 @@ import cmd2
 from exauq.app.app import App
 from exauq.app.startup import UnixServerScriptInterfaceFactory
 from exauq.sim_management.hardware import JobStatus
-from exauq.sim_management.jobs import Job
+from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
 
 
@@ -55,6 +56,14 @@ class Cli(cmd2.Cmd):
         "--file",
         type=argparse.FileType(mode="r"),
         help="A path to a csv file containing inputs to submit to the simulator.",
+    )
+
+    cancel_parser = cmd2.Cmd2ArgumentParser()
+    cancel_parser.add_argument(
+        "job_ids",
+        nargs="+",
+        type=str,
+        help=("Job IDs of the jobs to cancel."),
     )
 
     show_parser = cmd2.Cmd2ArgumentParser()
@@ -148,6 +157,13 @@ class Cli(cmd2.Cmd):
         ),
     )
 
+    write_parser = cmd2.Cmd2ArgumentParser()
+    write_parser.add_argument(
+        "file",
+        type=argparse.FileType(mode="w"),
+        help="A path to a csv file to write job details to.",
+    )
+
     def __init__(self, workspace_dir: FilePath):
         super().__init__(allow_cli_args=False)
         self._workspace_dir = pathlib.Path(workspace_dir)
@@ -157,6 +173,12 @@ class Cli(cmd2.Cmd):
         self._INPUT_HEADER = "INPUT"
         self._STATUS_HEADER = "STATUS"
         self._RESULT_HEADER = "RESULT"
+        self._HEADER_MAPPER = {
+            "job_id": self._JOBID_HEADER,
+            "input": self._INPUT_HEADER,
+            "status": self._STATUS_HEADER,
+            "output": self._RESULT_HEADER,
+        }
         self.table_formatters = {
             self._INPUT_HEADER: format_tuple,
             self._STATUS_HEADER: format_status,
@@ -242,15 +264,23 @@ class Cli(cmd2.Cmd):
 
         return super().do_quit(args)
 
-    def _render_stdout(self, text: str) -> None:
-        """Write text to standard output."""
+    def _render_stdout(self, text: str, trailing_newline: bool = True) -> None:
+        """Write text to standard output, with an optional trailing newline character."""
 
-        self.poutput(text + "\n")
+        if trailing_newline:
+            self.poutput(text + "\n")
+        else:
+            self.poutput(text)
 
     def _render_error(self, text: str) -> None:
         """Write text as an error message to standard error."""
 
         self.perror("Error: " + text)
+
+    def _render_warning(self, text: str) -> None:
+        """Write text as a warning message to standard error."""
+
+        self.pwarning("Warning: " + text)
 
     def _make_table(self, data: OrderedDict[str, Sequence[Any]]) -> str:
         """Make a textual table from data."""
@@ -267,7 +297,7 @@ class Cli(cmd2.Cmd):
 
     @cmd2.with_argparser(submit_parser)
     def do_submit(self, args) -> None:
-        """Submit a job to the simulator."""
+        """Submit jobs to the simulator."""
 
         try:
             inputs = parse_inputs(args.inputs) + parse_inputs(args.file)
@@ -279,17 +309,63 @@ class Cli(cmd2.Cmd):
             if isinstance(args.file, TextIOWrapper):
                 args.file.close()
 
+    def _make_cancel_table(self, jobs: Sequence[dict[str, Any]]) -> str:
+        """Make table of details of cancelled jobs for displaying to the user."""
+
+        col_headings = {
+            "job_id": self._JOBID_HEADER,
+            "input": self._INPUT_HEADER,
+            "status": self._STATUS_HEADER,
+        }
+        data = OrderedDict(
+            [
+                (header, tuple(job[k] for job in jobs))
+                for k, header in col_headings.items()
+            ]
+        )
+
+        return self._make_table(data)
+
+    @cmd2.with_argparser(cancel_parser)
+    def do_cancel(self, args) -> None:
+        "Cancel simulation jobs."
+
+        try:
+            job_ids = parse_job_ids(args.job_ids)
+        except ParsingError as e:
+            self._render_error(str(e))
+            return None
+
+        report = self._app.cancel(job_ids)
+        cancelled_jobs = report["cancelled_jobs"]
+        if cancelled_jobs:
+            self._render_stdout(self._make_cancel_table(cancelled_jobs))
+
+        terminated_jobs = [str(job_id) for job_id in report["terminated_jobs"]]
+        if terminated_jobs:
+            self._render_stdout(
+                "The following jobs have already terminated and were not cancelled:\n"
+                + "\n".join(f"  {job_id}" for job_id in terminated_jobs),
+                trailing_newline=False,
+            )
+
+        non_existent_jobs = [str(job_id) for job_id in report["non_existent_jobs"]]
+        if non_existent_jobs:
+            self._render_warning(
+                "Could not find jobs with the following IDs:\n"
+                + "\n".join(f"  {job_id}" for job_id in non_existent_jobs)
+            )
+
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of job information for displaying to the user."""
 
         data = OrderedDict(
             [
-                (self._JOBID_HEADER, (job["job_id"] for job in jobs)),
-                (self._INPUT_HEADER, (job["input"] for job in jobs)),
-                (self._STATUS_HEADER, (job["status"] for job in jobs)),
-                (self._RESULT_HEADER, (job["output"] for job in jobs)),
+                (header, tuple(job[k] for job in jobs))
+                for k, header in self._HEADER_MAPPER.items()
             ]
         )
+
         return self._make_table(data)
 
     def _parse_show_args(self, args) -> dict[str, Any]:
@@ -334,6 +410,69 @@ class Cli(cmd2.Cmd):
             self._render_stdout(self._make_show_table(jobs))
         except ParsingError as e:
             self._render_error(str(e))
+
+    @cmd2.with_argparser(write_parser)
+    def do_write(self, args) -> None:
+        """Write details of jobs in this workspace to a CSV file."""
+
+        jobs = [
+            self._restructure_record_for_csv(record) for record in self._app.get_jobs()
+        ]
+        try:
+            self._write_to_csv(jobs, args.file)
+        except Exception as e:
+            self._render_error(str(e))
+        finally:
+            args.file.close()
+
+    def _restructure_record_for_csv(self, job_record: dict[str, Any]) -> dict[str, Any]:
+        """Convert job information to a dict that's suitable for writing to a CSV.
+
+        Performs the following steps:
+
+        * Converts the keys to the headers required for CSV output.
+        * Unpacks the ``Input`` in `job_record['input']` so that there is one dict entry
+          for each input coordinate.
+        * Formats the ``JobStatus`` for CSV output.
+        """
+
+        # Rename keys
+        restructured_record = {
+            new_key: job_record[old_key]
+            for old_key, new_key in self._HEADER_MAPPER.items()
+        }
+
+        # Unpack input coordinates
+        input_coords = {
+            self._make_input_coord_header(i): x
+            for i, x in enumerate(restructured_record[self._INPUT_HEADER])
+        }
+        restructured_record |= input_coords
+        del restructured_record[self._INPUT_HEADER]
+
+        # Format status
+        restructured_record[self._STATUS_HEADER] = format_status(
+            restructured_record[self._STATUS_HEADER]
+        )
+
+        return restructured_record
+
+    def _make_input_coord_header(self, idx: int) -> str:
+        """Make a heading for an input coordinate based on the index of the coordinate."""
+
+        return f"{self._INPUT_HEADER}_{idx + 1}"
+
+    def _write_to_csv(self, jobs: list[dict[str, Any]], csv_file: TextIOWrapper) -> None:
+        """Write details of jobs to an open CSV file."""
+
+        field_names = (
+            [self._JOBID_HEADER]
+            + [self._make_input_coord_header(i) for i in range(self._app.input_dim)]
+            + [self._STATUS_HEADER, self._RESULT_HEADER]
+        )
+        writer = csv.DictWriter(csv_file, fieldnames=field_names)
+        writer.writeheader()
+        writer.writerows(jobs)
 
 
 def clean_input_string(string: str) -> str:
@@ -488,6 +627,38 @@ def parse_inputs(inputs: Union[Sequence[str], TextIOWrapper]) -> list[tuple[floa
             raise ParsingError(e)
     else:
         return []
+
+
+def parse_job_ids(job_ids: Sequence[str]) -> tuple[JobId, ...]:
+    """Parse a sequence of string job IDs to a tuple of ``JobId``s.
+
+    Removes any repeated IDs and orders the returned IDs by string ordering.
+
+    Parameters
+    ----------
+    job_ids : Sequence[str]
+        A sequence of job IDs, as strings.
+
+    Returns
+    -------
+    tuple[JobId, ...]
+        The unique job IDs as ``JobId`` objects.
+
+    Raises
+    ------
+    ParsingError
+        If one of the supplied IDs does not define a valid job ID.
+    """
+    parsed_ids = set()
+    for id_ in job_ids:
+        try:
+            parsed_ids.add(JobId(id_))
+        except ValueError:
+            raise ParsingError(
+                f"{id_} does not define a valid job ID: should be a non-negative integer."
+            )
+
+    return tuple(sorted(parsed_ids, key=str))
 
 
 def make_table(
