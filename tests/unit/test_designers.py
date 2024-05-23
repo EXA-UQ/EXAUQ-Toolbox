@@ -4,6 +4,8 @@ import itertools
 import math
 import unittest
 import unittest.mock
+from collections.abc import Sequence
+from numbers import Real
 from unittest.mock import MagicMock
 
 from scipy.stats import norm
@@ -14,6 +16,7 @@ from exauq.core.designers import (
     SimpleDesigner,
     compute_loo_errors_gp,
     compute_loo_gp,
+    compute_multi_level_loo_samples,
     compute_single_level_loo_samples,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
@@ -831,6 +834,27 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             mock.assert_called_once_with(
                 self.gp, self.domain, loo_errors_gp=loo_errors_gp
             )
+
+
+class TestComputeMultiLevelLooSamples(ExauqTestCase):
+    @staticmethod
+    def make_level_costs(costs: Sequence[Real]) -> tuple[Real, ...]:
+        return tuple(costs)
+
+    def compute_multi_level_loo_samples(self, batch_size: int = 1):
+        return compute_multi_level_loo_samples(batch_size=batch_size)
+
+    def test_number_of_design_points_returned_equals_batch_size(self):
+        """Then number of design points (with levels) returned equals the provided batch
+        size.
+        """
+
+        for batch_size in [1, 2, 3]:
+            with self.subTest(batch_size=batch_size):
+                design_points = self.compute_multi_level_loo_samples(
+                    batch_size=batch_size
+                )
+                self.assertEqual(batch_size, len(design_points))
 
 
 if __name__ == "__main__":
