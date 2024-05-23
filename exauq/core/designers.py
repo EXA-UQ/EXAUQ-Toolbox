@@ -608,7 +608,10 @@ def compute_single_level_loo_samples(
     return tuple(design_points)
 
 
-def compute_multi_level_loo_samples(batch_size: int = 1) -> tuple:
+def compute_multi_level_loo_samples(
+    domain: SimulatorDomain, batch_size: int = 1
+) -> tuple:
     """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
 
-    return (1,) * batch_size
+    x = domain.scale([0.5])
+    return ((1, x),) * batch_size

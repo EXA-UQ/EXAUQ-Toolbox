@@ -6,6 +6,7 @@ import unittest
 import unittest.mock
 from collections.abc import Sequence
 from numbers import Real
+from typing import Optional
 from unittest.mock import MagicMock
 
 from scipy.stats import norm
@@ -841,8 +842,15 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
     def make_level_costs(costs: Sequence[Real]) -> tuple[Real, ...]:
         return tuple(costs)
 
-    def compute_multi_level_loo_samples(self, batch_size: int = 1):
-        return compute_multi_level_loo_samples(batch_size=batch_size)
+    @staticmethod
+    def get_levels(costs: Sequence[Real]) -> set[int]:
+        return set(range(1, len(costs) + 1))
+
+    def compute_multi_level_loo_samples(
+        self, domain: Optional[SimulatorDomain] = None, batch_size: Optional[int] = 1
+    ):
+        domain = SimulatorDomain([(0, 1)]) if domain is None else domain
+        return compute_multi_level_loo_samples(domain=domain, batch_size=batch_size)
 
     def test_number_of_design_points_returned_equals_batch_size(self):
         """Then number of design points (with levels) returned equals the provided batch
@@ -855,6 +863,28 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                     batch_size=batch_size
                 )
                 self.assertEqual(batch_size, len(design_points))
+
+    def test_returns_design_points_with_levels(self):
+        """The return type is a tuple, with each element being a tuple of the form
+        ``(l, x)`` where ``l`` is one of the simulator levels and ``x`` belongs to the
+        supplied simulator domain."""
+
+        domains = [SimulatorDomain([(0, 1)]), SimulatorDomain([(2, 3)])]
+        costs = self.make_level_costs([1, 2, 3])
+        levels = self.get_levels(costs)
+        for domain in domains:
+            with self.subTest(domain=domain):
+                design_points = self.compute_multi_level_loo_samples(
+                    domain=domain, batch_size=2
+                )
+
+                self.assertIsInstance(design_points, tuple)
+                for dp in design_points:
+                    self.assertIsInstance(dp, tuple)
+                    self.assertEqual(2, len(dp))
+                    level, x = dp
+                    self.assertIn(level, levels)
+                    self.assertIn(x, domain)
 
 
 if __name__ == "__main__":
