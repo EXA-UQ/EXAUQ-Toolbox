@@ -10,7 +10,7 @@ import math
 from collections.abc import Collection, Sequence
 from itertools import product
 from numbers import Real
-from typing import Any, Optional, Union
+from typing import Any, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -798,6 +798,19 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         """
 
         raise NotImplementedError
+
+
+T = TypeVar("T")
+
+
+class MultiLevelCollection(dict[int, T]):
+    def __init__(self, elements: Sequence[T]):
+        super().__init__([(i + 1, e) for i, e in enumerate(elements)])
+
+    @property
+    def levels(self) -> tuple[int, ...]:
+        """(Read-only) The levels in the collection."""
+        return tuple(sorted(self.keys()))
 
 
 class MultiLevelGaussianProcess:
