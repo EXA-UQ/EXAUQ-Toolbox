@@ -10,6 +10,8 @@ from scipy.stats import norm
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     Input,
+    MultiLevelCollection,
+    MultiLevelGaussianProcess,
     SimulatorDomain,
     TrainingDatum,
 )
@@ -620,10 +622,32 @@ def compute_single_level_loo_samples(
     return tuple(design_points)
 
 
+def compute_multi_level_pei(
+    mlgp: MultiLevelGaussianProcess, domain: SimulatorDomain
+) -> MultiLevelCollection[PEICalculator]:
+    return MultiLevelCollection(
+        [PEICalculator(domain, mlgp[level]) for level in mlgp.levels]
+    )
+
+
 def compute_multi_level_loo_samples(
-    domain: SimulatorDomain, batch_size: int = 1
+    mlgp: MultiLevelGaussianProcess,
+    domain: SimulatorDomain,
+    costs: MultiLevelCollection[Real],
+    batch_size: int = 1,
 ) -> tuple:
     """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
-
-    x = domain.scale([0.5])
-    return ((1, x),) * batch_size
+    ml_pei = compute_multi_level_pei(mlgp, domain)
+    weights = {1: 1 / costs[1]} | {
+        level: 1 / (costs[level - 1] + costs[level])
+        for level in costs.levels
+        if level > 1
+    }
+    maximal_weighted_peis = MultiLevelCollection(
+        [
+            maximise(lambda x: ml_pei[level].compute(x) * weights[level], domain)
+            for level in ml_pei.levels
+        ]
+    )
+    level, (x, _) = max(maximal_weighted_peis.items(), key=lambda item: item[1][1])
+    return ((level, x),) * batch_size

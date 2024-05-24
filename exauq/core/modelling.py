@@ -813,7 +813,7 @@ class MultiLevelCollection(dict[int, T]):
         return tuple(sorted(self.keys()))
 
 
-class MultiLevelGaussianProcess:
+class MultiLevelGaussianProcess(MultiLevelCollection[AbstractGaussianProcess]):
     pass
 
 

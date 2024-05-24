@@ -18,6 +18,7 @@ from exauq.core.designers import (
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_multi_level_loo_samples,
+    compute_multi_level_pei,
     compute_single_level_loo_samples,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
@@ -29,6 +30,7 @@ from exauq.core.modelling import (
     TrainingDatum,
 )
 from exauq.core.numerics import equal_within_tolerance
+from exauq.utilities.optimisation import maximise
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -883,13 +885,37 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
     def setUp(self) -> None:
         self.default_domain = SimulatorDomain([(0, 1)])
-        self.default_mlgp = MultiLevelGaussianProcess()
+        gp = MogpEmulator()
+        gp.fit(
+            [
+                TrainingDatum(Input(0.2), 1),
+                TrainingDatum(Input(0.4), 1),
+                TrainingDatum(Input(0.6), 1),
+            ]
+        )
+        self.default_mlgp = MultiLevelGaussianProcess([gp])
+        self.default_costs = MultiLevelCollection([1, 10])
 
     def compute_multi_level_loo_samples(
-        self, domain: Optional[SimulatorDomain] = None, batch_size: Optional[int] = 1
+        self,
+        mlgp: Optional[MultiLevelGaussianProcess] = None,
+        domain: Optional[SimulatorDomain] = None,
+        costs: Optional[MultiLevelCollection[Real]] = None,
+        batch_size: Optional[int] = 1,
     ):
+        mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
-        return compute_multi_level_loo_samples(domain=domain, batch_size=batch_size)
+        costs = self.default_costs if costs is None else costs
+        return compute_multi_level_loo_samples(mlgp, domain, costs, batch_size=batch_size)
+
+    def compute_multi_level_pei(
+        self,
+        mlgp: Optional[MultiLevelGaussianProcess] = None,
+        domain: Optional[SimulatorDomain] = None,
+    ) -> MultiLevelCollection[PEICalculator]:
+        mlgp = self.default_mlgp if mlgp is None else mlgp
+        domain = self.default_domain if domain is None else domain
+        return compute_multi_level_pei(mlgp, domain)
 
     def test_number_of_design_points_returned_equals_batch_size(self):
         """Then number of design points (with levels) returned equals the provided batch
@@ -909,11 +935,29 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         supplied simulator domain."""
 
         domains = [SimulatorDomain([(0, 1)]), SimulatorDomain([(2, 3)])]
+        gp1 = MogpEmulator()
+        gp1.fit(
+            [
+                TrainingDatum(Input(0.2), 1),
+                TrainingDatum(Input(0.4), 2),
+                TrainingDatum(Input(0.6), 3),
+            ]
+        )
+        gp2 = MogpEmulator()
+        gp2.fit(
+            [
+                TrainingDatum(Input(2.2), -1),
+                TrainingDatum(Input(2.4), -2),
+                TrainingDatum(Input(2.6), -3),
+            ]
+        )
         costs = self.make_level_costs([1, 2, 3])
-        for domain in domains:
-            with self.subTest(domain=domain):
+        gps = [gp1, gp2]
+        for domain, gp in zip(domains, gps):
+            with self.subTest(domain=domain, gp=gp):
+                mlgp = MultiLevelGaussianProcess([gp] * len(costs))
                 design_points = self.compute_multi_level_loo_samples(
-                    domain=domain, batch_size=2
+                    mlgp=mlgp, domain=domain, costs=costs, batch_size=2
                 )
 
                 self.assertIsInstance(design_points, tuple)
@@ -931,6 +975,62 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         design_points = self.compute_multi_level_loo_samples(batch_size=2)
         levels = {dp[0] for dp in design_points}
         self.assertEqual(1, len(levels))
+
+    def test_single_batch_level_that_maximises_pei(self):
+        """For a single batch output, the input and level returned are the ones that
+        maximise weighted pseudo-expected improvements across all simulator levels. The
+        weightings are reciprocals of the associated costs for calculating differences
+        of simulator outputs."""
+
+        costs = self.make_level_costs([1, 10, 100])
+        domain = SimulatorDomain([(0, 1)])
+
+        gp1 = MogpEmulator()
+        gp1.fit(
+            [
+                TrainingDatum(Input(0.1), 1),
+                TrainingDatum(Input(0.2), 2),
+                TrainingDatum(Input(0.3), 3),
+            ]
+        )
+        gp2 = MogpEmulator()
+        gp2.fit(
+            [
+                TrainingDatum(Input(0.4), 2),
+                TrainingDatum(Input(0.5), 99),
+                TrainingDatum(Input(0.6), -4),
+            ]
+        )
+        gp3 = MogpEmulator()
+        gp3.fit(
+            [
+                TrainingDatum(Input(0.7), 3),
+                TrainingDatum(Input(0.8), -3),
+                TrainingDatum(Input(0.9), 3),
+            ]
+        )
+
+        mlgp = MultiLevelGaussianProcess([gp1, gp2, gp3])
+        design_points = self.compute_multi_level_loo_samples(
+            mlgp=mlgp, domain=domain, costs=costs
+        )
+        self.assertEqual(1, len(design_points))
+        level, _ = design_points[0]
+
+        ml_pei = self.compute_multi_level_pei(mlgp, domain)
+        _, max_pei1 = maximise(lambda x: ml_pei[1].compute(x), domain)
+        _, max_pei2 = maximise(lambda x: ml_pei[2].compute(x), domain)
+        _, max_pei3 = maximise(lambda x: ml_pei[3].compute(x), domain)
+
+        expected_level, _ = max(
+            [
+                (1, max_pei1 / costs[1]),
+                (2, max_pei2 / (costs[2] + costs[1])),
+                (3, max_pei3 / (costs[3] + costs[2])),
+            ],
+            key=lambda tup: tup[1],
+        )
+        self.assertEqual(expected_level, level)
 
 
 if __name__ == "__main__":
