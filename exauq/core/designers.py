@@ -529,19 +529,25 @@ def compute_single_level_loo_samples(
     domain: SimulatorDomain,
     batch_size: int = 1,
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
+    seed: Optional[int] = None,
 ) -> tuple[Input]:
     """Compute a new batch of design points adaptively for a single-level Gaussian process.
 
     Implements the cross-validation-based adaptive sampling for emulators, as described in
-    Mohammadi et. al. (2022)[1]_. This involves computing a Guassian process (GP) trained
+    Mohammadi et. al. (2022)[1]_. This involves computing a Gaussian process (GP) trained
     on normalised expected squared errors arising from a leave-one-out (LOO)
-    cross-validaton, then finding design points that maximise the pseudo-expected
+    cross-validation, then finding design points that maximise the pseudo-expected
     improvement of this LOO errors GP.
 
     By default, a deep copy of the main GP supplied (`gp`) is trained on the leave-one-out
     errors. Alternatively, another ``AbstractGaussianProcess`` can be supplied that will
     be trained on the leave-one-out errors (and so modified in-place), allowing for the
     use of different Gaussian process settings (e.g. a different kernel function).
+
+    If `seed` is provided, then this will be used when maximising the pseudo-expected
+    improvement of the LOO errors GP. Providing a seed does not necessarily mean
+    calculation of the output design points is deterministic, as this also depends on
+    computation of the LOO errors GP being deterministic.
 
     Parameters
     ----------
@@ -553,10 +559,13 @@ def compute_single_level_loo_samples(
     batch_size : int, optional
         (Default: 1) The number of new design points to compute. Should be a positive
         integer.
-    loo_errors_gp : Optional[AbstractGaussianProcess], optional
+    loo_errors_gp : AbstractGaussianProcess, optional
         (Default: None) Another Gaussian process that is trained on the LOO errors as part
         of the adaptive sampling method. If ``None`` then a deep copy of `gp` will be used
         instead.
+    seed : int, optional
+        (Default: None) A random number seed to use when maximising pseudo-expected
+        improvement. If ``None`` then the maximisation won't be seeded.
 
     Returns
     -------
@@ -576,6 +585,9 @@ def compute_single_level_loo_samples(
         Pseudo-expected improvement calculation.
     modelling.AbstractGaussianProcess.nes_error :
         Normalised expected squared errors for Gaussian processes.
+    utilities.optimisation.maximise :
+        Global maximisation over a simulator domain, used on pseudo-expected improvement
+        for the LOO errors GP.
 
     References
     ----------
@@ -601,7 +613,7 @@ def compute_single_level_loo_samples(
 
     design_points = []
     for _ in range(batch_size):
-        new_design_point, _ = maximise(lambda x: pei.compute(x), domain)
+        new_design_point, _ = maximise(lambda x: pei.compute(x), domain, seed=seed)
         design_points.append(new_design_point)
         pei.add_repulsion_point(new_design_point)
 

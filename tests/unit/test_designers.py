@@ -746,6 +746,35 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
                     self.gp, self.domain, batch_size=batch_size
                 )
 
+    def test_unseeded_pei_maximisation_default(self):
+        """The calculation of new design points involves unseeded maximisation of
+        pseudo-expected improvement by default."""
+
+        mock_maximise_return = (self.domain.scale([0.5]), 1)
+        with unittest.mock.patch(
+            "exauq.core.designers.maximise",
+            autospec=True,
+            return_value=mock_maximise_return,
+        ) as mock_maximise:
+            _ = compute_single_level_loo_samples(self.gp, self.domain)
+
+        self.assertDictContainsSubset({"seed": None}, mock_maximise.call_args.kwargs)
+
+    def test_repeated_results_when_seed_set(self):
+        """If a seed is provided, then maximisation of pseudo-expected improvement is
+        performed with this seed."""
+
+        mock_maximise_return = (self.domain.scale([0.5]), 1)
+        seed = 99
+        with unittest.mock.patch(
+            "exauq.core.designers.maximise",
+            autospec=True,
+            return_value=mock_maximise_return,
+        ) as mock_maximise:
+            _ = compute_single_level_loo_samples(self.gp, self.domain, seed=seed)
+
+        self.assertDictContainsSubset({"seed": seed}, mock_maximise.call_args.kwargs)
+
     def test_number_of_new_design_points_matches_batch_number(self):
         """The number of new design points returned is equal to the supplied batch
         number."""
