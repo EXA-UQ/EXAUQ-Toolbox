@@ -28,8 +28,20 @@ class TestMaximise(ExauqTestCase):
         ]
         for domain in domains:
             with self.subTest(domain=domain):
-                x = maximise(negative_sum_squares, domain)
+                x, _ = maximise(negative_sum_squares, domain)
                 self.assertTrue(x in domain)
+
+    def test_maximum_value_returned(self):
+        """The maximum value of the supplied function is given along with the input
+        where this maximum is achieved."""
+
+        def f(x: np.ndarray) -> float:
+            return sum(x)
+
+        domain = SimulatorDomain([(0, 1), (0, 1), (0, 1)])
+        x, max_val = maximise(f, domain, seed=self.seed)
+        self.assertEqualWithinTolerance(3, max_val, rel_tol=1e-5)
+        self.assertEqualWithinTolerance(max_val, f(x))
 
     def test_maximises_globally(self):
         """The input returned maximises the supplied function on the whole domain,
@@ -40,7 +52,7 @@ class TestMaximise(ExauqTestCase):
             return -float(x[0] + np.sqrt(2) * np.sin(x[0]))
 
         domain = SimulatorDomain([(2, 100)])
-        x = maximise(f, domain, seed=self.seed)
+        x, _ = maximise(f, domain, seed=self.seed)
         argmax = Input(5 * np.pi / 4)
         self.assertEqualWithinTolerance(argmax, x, rel_tol=1e-5)
 
@@ -48,8 +60,8 @@ class TestMaximise(ExauqTestCase):
         """The maximisation is not seeded by default, as evidenced by repeated
         runs with the same args giving (slightly) different results."""
 
-        x1 = maximise(self.f, self.domain)
-        x2 = maximise(self.f, self.domain)
+        x1, _ = maximise(self.f, self.domain)
+        x2, _ = maximise(self.f, self.domain)
 
         # Take .value to return a float and test for exact inequality
         self.assertNotEqual(x1.value, x2.value)
@@ -57,8 +69,8 @@ class TestMaximise(ExauqTestCase):
     def test_repeated_results_when_seed_set(self):
         """The output of the maximisation is the same when the seed is the same."""
 
-        x1 = maximise(self.f, self.domain, seed=self.seed)
-        x2 = maximise(self.f, self.domain, seed=self.seed)
+        x1, _ = maximise(self.f, self.domain, seed=self.seed)
+        x2, _ = maximise(self.f, self.domain, seed=self.seed)
 
         # Take .value to return a float and test for exact equality
         self.assertEqual(x1.value, x2.value)
