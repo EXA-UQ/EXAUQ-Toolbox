@@ -91,9 +91,3 @@ def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
         raise RuntimeError(f"Maximisation failed to converge: {result.message}")
 
     return Input(*result.x)
-
-
-def maximise_new(
-    func: Callable[[NDArray], Real], domain: SimulatorDomain
-) -> tuple[Input, Real]:
-    pass
