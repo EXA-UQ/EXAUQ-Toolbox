@@ -694,10 +694,8 @@ class JobManager:
             # If here, then last known status of the job is that it's not terminated,
             # so issue cancellation.
             job = jobs_to_cancel[0]
-            try:
-                self._handle_job(job, JobStatus.CANCELLED)
-            except InvalidJobStatusError:
-                raise
+            self._simulations_log.update_job_status(str(job.id), JobStatus.PENDING_CANCEL)
+
             return job
 
     @staticmethod
