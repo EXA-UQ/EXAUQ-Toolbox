@@ -60,11 +60,15 @@ class TestMaximise(ExauqTestCase):
         """The maximisation is not seeded by default, as evidenced by repeated
         runs with the same args giving (slightly) different results."""
 
-        x1, _ = maximise(self.f, self.domain)
-        x2, _ = maximise(self.f, self.domain)
-
         # Take .value to return a float and test for exact inequality
-        self.assertNotEqual(x1.value, x2.value)
+        results = {maximise(self.f, self.domain)[0].value for _ in range(10)}
+
+        # We expect more than one unique result
+        self.assertGreater(
+            len(results),
+            1,
+            "Expected more than one unique result",
+        )
 
     def test_repeated_results_when_seed_set(self):
         """The output of the maximisation is the same when the seed is the same."""
