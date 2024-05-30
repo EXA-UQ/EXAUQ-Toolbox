@@ -71,6 +71,12 @@ TERMINAL_STATUSES = {
 }
 """Statuses that define jobs that are no longer running (possibly due to error)."""
 
+PENDING_STATUSES = {
+    JobStatus.PENDING_CANCEL,
+    JobStatus.PENDING_RESUBMIT,
+}
+"""Statuses that define jobs that are in a state of pending action."""
+
 
 class HardwareInterface(ABC):
     """
