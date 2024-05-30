@@ -1,5 +1,5 @@
 from numbers import Real
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 import scipy.optimize
@@ -9,13 +9,15 @@ from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.numerics import FLOAT_TOLERANCE
 
 
-def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
+def maximise(
+    func: Callable[[NDArray], Real], domain: SimulatorDomain, seed: Optional[int] = None
+) -> tuple[Input, float]:
     """Maximise an objective function over a simulator domain.
 
-    Finds a point in the bounded input space defined by a simulator domain that maximses
-    a given function. The underlying optimisation uses differential evolution, using the
-    implementation in the Scipy package with the bounds that define the supplied simulator
-    domain (see notes for further details.)
+    Finds a point in the bounded input space defined by a simulator domain that maximises
+    a given function, together with the maximum value. The underlying optimisation uses
+    differential evolution, using the implementation in the Scipy package with the bounds
+    that define the supplied simulator domain (see notes for further details.)
 
     The objective function `func` is expected to take a 1-dimensional Numpy array as an
     argument and to be defined for arrays corresponding to inputs from the given `domain`.
@@ -25,21 +27,25 @@ def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
     Parameters
     ----------
     func : Callable[[NDArray], numbers.Real]
-        The objective function to maximse. Should take in a 1-dimensional Numpy array and
+        The objective function to maximise. Should take in a 1-dimensional Numpy array and
         return a real number.
     domain : SimulatorDomain
         The domain of a simulator, defining the bounded input space over which `func`
-        will be maximsed.
+        will be maximised.
+    seed : int, optional
+        (Default: None) A number to seed the random number generator used in the
+        underlying optimisation. If ``None`` then no seeding will be used.
 
     Returns
     -------
-    Input
-        The point in the domain that maximises the objective function, as an ``Input``.
+    tuple[Input, float]
+        A pair ``(x, val)``, where ``x`` is the input from the domain that maximises the
+        objective function and ``val`` is the maximum value of the objective function.
 
     Raises
     ------
     RuntimeError
-        If finding the maximal value for the objective function failed for some reason
+        If finding the maximum value for the objective function failed for some reason
         (e.g. due to non-convergence).
 
     See Also
@@ -55,7 +61,8 @@ def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
     ``scipy.optimize.differential_evolution`` function, with the bounds specified in
     ``domain.bounds``. The relative and absolute tolerances governing
     convergence (i.e. the ``tol`` and ``atol`` kwargs) are set to
-    ``exauq.core.numerics.FLOAT_TOLERANCE``, but otherwise the default kwargs are used in
+    ``exauq.core.numerics.FLOAT_TOLERANCE``, and the ``seed`` parameter is exposed as
+    described above, but otherwise the default kwargs are used in
     ``scipy.optimize.differential_evolution``.
     """
 
@@ -83,6 +90,7 @@ def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
             bounds=domain.bounds,
             tol=FLOAT_TOLERANCE,
             atol=FLOAT_TOLERANCE,
+            seed=seed,
         )
     except Exception as e:
         raise RuntimeError(f"Maximisation failed: {str(e)}")
@@ -90,4 +98,4 @@ def maximise(func: Callable[[NDArray], Real], domain: SimulatorDomain) -> Input:
     if not result.success:
         raise RuntimeError(f"Maximisation failed to converge: {result.message}")
 
-    return Input(*result.x)
+    return Input(*result.x), -float(result.fun)
