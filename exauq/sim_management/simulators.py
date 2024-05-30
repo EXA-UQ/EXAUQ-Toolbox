@@ -708,7 +708,7 @@ class JobManager:
             JobStatus.RUNNING: RunningJobStrategy(),
             JobStatus.SUBMITTED: SubmittedJobStrategy(),
             JobStatus.NOT_SUBMITTED: NotSubmittedJobStrategy(),
-            JobStatus.CANCELLED: CancelledJobStrategy(),
+            JobStatus.PENDING_CANCEL: PendingCancelJobStrategy(),
         }
 
         return strategies
@@ -1021,7 +1021,7 @@ class NotSubmittedJobStrategy(JobStrategy):
                 sleep(delay + jitter)
 
 
-class CancelledJobStrategy(JobStrategy):
+class PendingCancelJobStrategy(JobStrategy):
     """
     Strategy for handling jobs that have been cancelled.
 
