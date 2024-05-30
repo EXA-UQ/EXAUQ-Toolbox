@@ -759,7 +759,11 @@ class JobManager:
                 if self._shutdown_event.is_set():
                     return
 
-                status = self._interface.get_job_status(job.id)
+                if self._simulations_log.get_job_status(job.id) in PENDING_STATUSES:
+                    status = self._simulations_log.get_job_status(job.id)
+                else:
+                    status = self._interface.get_job_status(job.id)
+
                 self._handle_job(job, status)
 
     @property
