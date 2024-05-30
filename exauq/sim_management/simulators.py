@@ -10,7 +10,7 @@ from time import sleep
 from typing import Any, Optional, Sequence, Union
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
-from exauq.sim_management.hardware import TERMINAL_STATUSES, HardwareInterface, JobStatus
+from exauq.sim_management.hardware import PENDING_STATUSES, TERMINAL_STATUSES, HardwareInterface, JobStatus
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
 from exauq.utilities.csv_db import CsvDB, Record
