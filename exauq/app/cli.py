@@ -54,7 +54,7 @@ class Cli(cmd2.Cmd):
     submit_parser.add_argument(
         "-f",
         "--file",
-        type=argparse.FileType(mode="r"),
+        type=argparse.FileType(mode="r", encoding="utf-8-sig"),
         help="A path to a csv file containing inputs to submit to the simulator.",
     )
 
