@@ -885,15 +885,23 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
     def setUp(self) -> None:
         self.default_domain = SimulatorDomain([(0, 1)])
-        gp = MogpEmulator()
-        gp.fit(
+        gp1 = MogpEmulator()
+        gp1.fit(
             [
                 TrainingDatum(Input(0.2), 1),
                 TrainingDatum(Input(0.4), 1),
                 TrainingDatum(Input(0.6), 1),
             ]
         )
-        self.default_mlgp = MultiLevelGaussianProcess([gp])
+        gp2 = MogpEmulator()
+        gp2.fit(
+            [
+                TrainingDatum(Input(0.3), 2),
+                TrainingDatum(Input(0.5), -2),
+                TrainingDatum(Input(0.7), 2),
+            ]
+        )
+        self.default_mlgp = MultiLevelGaussianProcess([gp1, gp2])
         self.default_costs = MultiLevelCollection([1, 10])
 
     def compute_multi_level_loo_samples(
