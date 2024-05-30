@@ -24,7 +24,7 @@ from exauq.core.designers import (
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     Input,
-    MultiLevelCollection,
+    MultiLevel,
     MultiLevelGaussianProcess,
     SimulatorDomain,
     TrainingDatum,
@@ -876,11 +876,11 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
 
 class TestComputeMultiLevelLooSamples(ExauqTestCase):
     @staticmethod
-    def make_level_costs(costs: Sequence[Real]) -> MultiLevelCollection[Real]:
-        return MultiLevelCollection(costs)
+    def make_level_costs(costs: Sequence[Real]) -> MultiLevel[Real]:
+        return MultiLevel(costs)
 
     @staticmethod
-    def get_levels(costs: MultiLevelCollection[Real]) -> set[int]:
+    def get_levels(costs: MultiLevel[Real]) -> set[int]:
         return set(costs.levels)
 
     def setUp(self) -> None:
@@ -903,13 +903,13 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             ]
         )
         self.default_mlgp = MultiLevelGaussianProcess([gp1, gp2])
-        self.default_costs = MultiLevelCollection([1, 10])
+        self.default_costs = MultiLevel([1, 10])
 
     def compute_multi_level_loo_samples(
         self,
         mlgp: Optional[MultiLevelGaussianProcess] = None,
         domain: Optional[SimulatorDomain] = None,
-        costs: Optional[MultiLevelCollection[Real]] = None,
+        costs: Optional[MultiLevel[Real]] = None,
         batch_size: Optional[int] = 1,
     ):
         mlgp = self.default_mlgp if mlgp is None else mlgp
@@ -921,7 +921,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         self,
         mlgp: Optional[MultiLevelGaussianProcess] = None,
         domain: Optional[SimulatorDomain] = None,
-    ) -> MultiLevelCollection[PEICalculator]:
+    ) -> MultiLevel[PEICalculator]:
         mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
         return compute_multi_level_pei(mlgp, domain)

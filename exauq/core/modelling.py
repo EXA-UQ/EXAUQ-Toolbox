@@ -803,7 +803,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 T = TypeVar("T")
 
 
-class MultiLevelCollection(dict[int, T]):
+class MultiLevel(dict[int, T]):
     def __init__(self, elements: Sequence[T]):
         super().__init__([(i + 1, e) for i, e in enumerate(elements)])
 
@@ -813,7 +813,7 @@ class MultiLevelCollection(dict[int, T]):
         return tuple(sorted(self.keys()))
 
 
-class MultiLevelGaussianProcess(MultiLevelCollection[AbstractGaussianProcess]):
+class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
     pass
 
 

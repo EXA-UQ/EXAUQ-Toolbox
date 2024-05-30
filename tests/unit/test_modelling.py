@@ -13,7 +13,7 @@ from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     Input,
-    MultiLevelCollection,
+    MultiLevel,
     Prediction,
     SimulatorDomain,
     TrainingDatum,
@@ -1575,7 +1575,7 @@ class TestMultiLevelCollection(ExauqTestCase):
         (starting at 1)."""
 
         elements = ["a", "b", "c"]
-        d = MultiLevelCollection(elements)
+        d = MultiLevel(elements)
         self.assertIsInstance(d, dict)
         expected = dict(zip([1, 2, 3], elements))
         self.assertEqual(expected, d)
@@ -1584,7 +1584,7 @@ class TestMultiLevelCollection(ExauqTestCase):
         """The levels attribute returns the levels as an ordered tuple of ints."""
 
         for n in range(0, 5):
-            d = MultiLevelCollection(["a"] * n)
+            d = MultiLevel(["a"] * n)
             levels = tuple(range(1, n + 1))
             self.assertEqual(levels, d.levels)
 
