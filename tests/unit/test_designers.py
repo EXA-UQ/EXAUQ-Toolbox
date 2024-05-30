@@ -884,6 +884,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         return set(costs.levels)
 
     def setUp(self) -> None:
+        self.tolerance = 1e-3
         self.default_domain = SimulatorDomain([(0, 1)])
         gp1 = MogpEmulator()
         gp1.fit(
@@ -1040,6 +1041,51 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         )
         self.assertEqual(expected_level, level)
 
+    def test_new_design_points_in_batch_distinct(self):
+        """A batch of new design points consists of Input objects that are (likely)
+        all distinct."""
+
+        design_pts = [x for _, x in self.compute_multi_level_loo_samples(batch_size=2)]
+
+        self.assertFalse(
+            equal_within_tolerance(
+                design_pts[0],
+                design_pts[1],
+                rel_tol=self.tolerance,
+                abs_tol=self.tolerance,
+            )
+        )
+
+    def test_new_design_points_distinct_from_training_inputs(self):
+        """A batch of new design points consists of Input objects that are (likely)
+        distinct from the training data inputs."""
+
+        ml_design_points = self.compute_multi_level_loo_samples(batch_size=3)
+        level = ml_design_points[0][0]
+        design_pts = [
+            x
+            for _, x in self.compute_multi_level_loo_samples(
+                mlgp=self.default_mlgp, batch_size=3
+            )
+        ]
+        training_inputs = [
+            datum.input for datum in self.default_mlgp[level].training_data
+        ]
+
+        for training_input, design_pt in itertools.product(training_inputs, design_pts):
+            with self.subTest(training_input=training_input, design_pt=design_pt):
+                self.assertFalse(
+                    equal_within_tolerance(
+                        training_input,
+                        design_pt,
+                        rel_tol=self.tolerance,
+                        abs_tol=self.tolerance,
+                    )
+                )
+
+
+# TODO: test that repulsion points are updated with previously calculated inputs in
+# batch mode.
 
 if __name__ == "__main__":
     unittest.main()
