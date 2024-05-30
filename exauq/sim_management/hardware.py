@@ -49,6 +49,18 @@ class JobStatus(Enum):
     """A job has been cancelled from a locally issued request or intervention. Has the
     value 'Cancelled'."""
 
+    PENDING_CANCEL = "Pending cancel"
+    """A job has been requested to be cancelled but has not yet been cancelled. Has the 
+    value 'Pending cancel'."""
+
+    FAILED_CANCEL = "Failed cancel"
+    """A job has been requested to be cancelled but the cancellation failed. Has the
+    value 'Failed cancel'."""
+
+    PENDING_RESUBMIT = "Pending resubmit"
+    """A job has been requested to be resubmitted but has not yet been resubmitted. Has
+    the value 'Pending resubmit'."""
+
 
 TERMINAL_STATUSES = {
     JobStatus.COMPLETED,
