@@ -24,6 +24,7 @@ from exauq.core.designers import (
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     Input,
+    InputWithLevel,
     MultiLevel,
     MultiLevelGaussianProcess,
     SimulatorDomain,
@@ -911,7 +912,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         domain: Optional[SimulatorDomain] = None,
         costs: Optional[MultiLevel[Real]] = None,
         batch_size: Optional[int] = 1,
-    ):
+    ) -> tuple[InputWithLevel]:
         mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
         costs = self.default_costs if costs is None else costs
@@ -939,9 +940,8 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                 self.assertEqual(batch_size, len(design_points))
 
     def test_returns_design_points_from_domain(self):
-        """The return type is a tuple, with each element being a tuple of the form
-        ``(l, x)`` where ``l`` is one of the simulator levels and ``x`` belongs to the
-        supplied simulator domain."""
+        """The return type is a tuple, with each element being an input tagged with a
+        simulator level and belonging to the supplied simulator domain."""
 
         domains = [SimulatorDomain([(0, 1)]), SimulatorDomain([(2, 3)])]
         gp1 = MogpEmulator()
@@ -970,11 +970,8 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                 )
 
                 self.assertIsInstance(design_points, tuple)
-                for dp in design_points:
-                    self.assertIsInstance(dp, tuple)
-                    self.assertEqual(2, len(dp))
-                    level, x = dp
-                    self.assertIn(level, costs.levels)
+                for x in design_points:
+                    self.assertIn(x.level, costs.levels)
                     self.assertIn(x, domain)
 
     def test_returns_design_points_at_same_level(self):
@@ -982,7 +979,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         level."""
 
         design_points = self.compute_multi_level_loo_samples(batch_size=2)
-        levels = {dp[0] for dp in design_points}
+        levels = {x.level for x in design_points}
         self.assertEqual(1, len(levels))
 
     def test_single_batch_level_that_maximises_pei(self):
@@ -1024,7 +1021,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             mlgp=mlgp, domain=domain, costs=costs
         )
         self.assertEqual(1, len(design_points))
-        level, _ = design_points[0]
+        level = design_points[0].level
 
         ml_pei = self.compute_multi_level_pei(mlgp, domain)
         _, max_pei1 = maximise(lambda x: ml_pei[1].compute(x), domain)
@@ -1045,12 +1042,11 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         """A batch of new design points consists of Input objects that are (likely)
         all distinct."""
 
-        design_pts = [x for _, x in self.compute_multi_level_loo_samples(batch_size=2)]
-
+        x1, x2 = self.compute_multi_level_loo_samples(batch_size=2)
         self.assertFalse(
             equal_within_tolerance(
-                design_pts[0],
-                design_pts[1],
+                x1,
+                x2,
                 rel_tol=self.tolerance,
                 abs_tol=self.tolerance,
             )
@@ -1061,23 +1057,20 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         distinct from the training data inputs."""
 
         ml_design_points = self.compute_multi_level_loo_samples(batch_size=3)
-        level = ml_design_points[0][0]
-        design_pts = [
-            x
-            for _, x in self.compute_multi_level_loo_samples(
-                mlgp=self.default_mlgp, batch_size=3
-            )
-        ]
+        level = ml_design_points[0].level
+        design_pts = self.compute_multi_level_loo_samples(
+            mlgp=self.default_mlgp, batch_size=3
+        )
         training_inputs = [
             datum.input for datum in self.default_mlgp[level].training_data
         ]
 
-        for training_input, design_pt in itertools.product(training_inputs, design_pts):
-            with self.subTest(training_input=training_input, design_pt=design_pt):
+        for training_x, x in itertools.product(training_inputs, design_pts):
+            with self.subTest(training_input=training_x, design_pt=x):
                 self.assertFalse(
                     equal_within_tolerance(
-                        training_input,
-                        design_pt,
+                        training_x,
+                        x,
                         rel_tol=self.tolerance,
                         abs_tol=self.tolerance,
                     )
