@@ -13,6 +13,7 @@ from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     Input,
+    LevelTagged,
     MultiLevel,
     Prediction,
     SimulatorDomain,
@@ -1567,6 +1568,63 @@ class TestSimulatorDomain(unittest.TestCase):
         )
 
         self.assertTrue(compare_input_tuples(pseudopoints, expected))
+
+
+class TestLevelTagged(ExauqTestCase):
+    def test_get_level(self):
+        """The level tagged onto the object can be obtained from the `level` attribute."""
+
+        class A:
+            def __init__(self, a: int, b=None):
+                self.a = a
+                self.b = b
+
+            def a_plus(self, x: int) -> int:
+                return self.a + x
+
+            def set_b(self, b) -> None:
+                self.b = b
+
+        class TaggedA(LevelTagged, A):
+            pass
+
+        level = 1
+        tagged = TaggedA(level, 99, "b")
+        self.assertEqual(level, tagged.level)
+
+    def test_cannot_modify_level(self):
+        """The level cannot be modified once set."""
+
+        tagged = LevelTagged(1)
+        with self.assertRaisesRegex(
+            AttributeError, "Cannot modify this instance's 'level' attribute."
+        ):
+            tagged.level = 99
+
+    def test_parent_class_has_level_attribute_error(self):
+        """A TypeError is raised if subclassing from LevelTagged would involve masking a
+        `level` attribute from a parent class (as worked out from method resolution
+        order)."""
+
+        class A:
+            def level(self):
+                return "level from A"
+
+        with self.assertRaisesRegex(TypeError, "^Cannot create class"):
+
+            class TaggedA(LevelTagged, A):
+                pass
+
+        class B:
+            def __init__(self):
+                self.level = 99
+
+        with self.assertRaisesRegex(TypeError, "^Cannot initialise object"):
+
+            class TaggedB(LevelTagged, B):
+                pass
+
+            _ = TaggedB(level=10)
 
 
 class TestMultiLevelCollection(ExauqTestCase):

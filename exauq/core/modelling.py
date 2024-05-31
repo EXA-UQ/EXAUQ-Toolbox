@@ -20,8 +20,6 @@ from exauq.utilities.csv_db import Path
 
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 
-# TODO: generic multi-level type
-
 
 class Input(Sequence):
     """The input to a simulator or emulator.
@@ -798,6 +796,31 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         """
 
         raise NotImplementedError
+
+
+class LevelTagged:
+    def __init__(self, level: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not hasattr(self, "level"):
+            self.level = level
+        else:
+            raise TypeError(
+                f"Cannot initialise object of type {__class__}: instance attribute 'level' "
+                "set by a parent class would be masked."
+            )
+
+    def __init_subclass__(cls) -> None:
+        if hasattr(super(), "level"):
+            raise TypeError(
+                f"Cannot create class {cls}: attribute 'level' set by a parent class "
+                "would be masked."
+            )
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "level" and hasattr(self, "level"):
+            raise AttributeError("Cannot modify this instance's 'level' attribute.")
+        else:
+            super().__setattr__(name, value)
 
 
 T = TypeVar("T")
