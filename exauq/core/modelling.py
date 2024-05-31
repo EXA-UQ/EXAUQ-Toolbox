@@ -799,6 +799,88 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
 
 class LevelTagged:
+    """An object with a level attached to it.
+
+    This class is not intended to be initialised directly, but rather to be used alongside
+    other classes in multiple inheritance. It should be put as the **first** class in an
+    inheritance hierarchy, in which case it attaches a read-only attribute `level` to the
+    object, defining the object's level.
+
+    Exceptions will be raised if the `level` attribute set by a parent class would be
+    overridden as a result of deriving from `LevelTagged`; see the _Raises_ section and
+    examples for more details.
+
+    Parameters
+    ----------
+    level : int
+        The level to attach to the object.
+    *args : tuple
+        Additional arguments passed to the initialiser of parent of this class (as
+        determined according to Python's method resolution order).
+    **kwargs : dict, optional
+        Keyword arguments passed to the initialiser of parent of this class (as
+        determined according to Python's method resolution order).
+
+    Attributes
+    ----------
+    level : int
+        (Read-only) The level attached to the object.
+
+    Raises
+    ------
+    TypeError
+        When attempting to subclass from this class, or initialise an instance of this
+        class, if doing so would involve masking a `level` attribute set by a parent
+        class.
+
+    Examples
+    --------
+    Here we create a version of a class `A` that is tagged with a level. Notice how there
+    is no need to define any behaviour in the initialiser of the class `AWithLevel`. When
+    creating an instance of `AWithLevel`, the first argument should be the level, while
+    the remaining arguments and keyword arguments should be those required by the
+    initialiser of class `A`:
+    >>> class A:
+    ...     def __init__(self, a: int, b=None):
+    ...         self.a = a
+    ...         self.b = b
+    ...     def a_plus(self, x: int) -> int:
+    ...         return self.a + x
+    ...     def string_of_b(self) -> str:
+    ...         return str(self.b)
+    ...
+    >>> class AWithLevel(LevelTagged, A):
+    ...     pass
+    ...
+    >>> obj = AWithLevel(level=99, a=1, b=3.14)
+    >>> (obj.level, obj.a, obj.string_of_b())
+    (99, 1, '3.14')
+
+    If we try to derive from a class that defines a (class) attribute `level`, then an
+    error is raised:
+    >>> class B:
+    ...     def level(self) -> str:
+    ...         return "101"
+    ...
+    >>> class BWithLevel(LevelTagged, B):
+    ...     pass
+    ...
+    TypeError: Cannot create class <class '__main__.BWithLevel'>: attribute 'level' set by a parent class would be masked.
+
+    Similarly, deriving from a class that sets an instance attribute called `level` at
+    initialisation will result in an error when attempting to create an instance of the
+    'level tagged' class:
+    >>> class C:
+    ...     def __init__(self):
+    ...         self.level = 101
+    ...
+    >>> class CWithLevel(LevelTagged, C):
+    ...     pass
+    ...
+    >>> c = CWithLevel(level=99)
+    TypeError: Cannot initialise object of type <class 'exauq.core.modelling.LevelTagged'>: instance attribute 'level' set by a parent class would be masked.
+    """
+
     def __init__(self, level: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not hasattr(self, "level"):
@@ -827,12 +909,43 @@ T = TypeVar("T")
 
 
 class MultiLevel(dict[int, T]):
+    """A multi-level collection of objects, as a mapping from level to objects.
+
+    Objects from this generic class are `dict` instances that have integer keys and values
+    of the same parameterised type. The keys define the levels, starting at 1, with the
+    value at a key giving the object at the level defined by the key.
+
+    Parameters
+    ----------
+    elements : Sequence[T]
+        Objects of the same type that belong to levels 1, 2, ..., n, where 'n' is the
+        number of objects supplied.
+
+    Attributes
+    ----------
+    levels : tuple of int
+        (Read-only) The levels in the collection, in increasing order.
+
+    Examples
+    --------
+    Create a multi-level collection of strings:
+    >>> ml: MultiLevel[str]
+    >>> ml = MultiLevel(["the", "quick", "brown", "fox"])
+    >>> ml.levels
+    (1, 2, 3, 4)
+    >>> ml[1]
+    'the'
+    >>> ml[4]
+    'fox'
+    """
+
     def __init__(self, elements: Sequence[T]):
         super().__init__([(i + 1, e) for i, e in enumerate(elements)])
 
     @property
     def levels(self) -> tuple[int, ...]:
-        """(Read-only) The levels in the collection."""
+        """(Read-only) The levels in the collection, in increasing order."""
+
         return tuple(sorted(self.keys()))
 
 
