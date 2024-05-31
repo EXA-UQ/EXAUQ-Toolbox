@@ -358,6 +358,10 @@ class Input(Sequence):
         return self._value
 
 
+class InputWithLevel(LevelTagged, Input):
+    pass
+
+
 @dataclasses.dataclass(frozen=True)
 class TrainingDatum(object):
     """A training point for an emulator.
