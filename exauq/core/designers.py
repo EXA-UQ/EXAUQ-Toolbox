@@ -636,17 +636,14 @@ def compute_multi_level_loo_samples(
     batch_size: int = 1,
 ) -> tuple[InputWithLevel]:
     """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
-    ml_pei = compute_multi_level_pei(mlgp, domain)
 
-    # TODO: refactor into function
-    weights = {1: 1 / costs[1]} | {
-        level: 1 / (costs[level - 1] + costs[level])
-        for level in costs.levels
-        if level > 1
-    }
+    ml_pei = compute_multi_level_pei(mlgp, domain)
+    delta_costs = MultiLevel(
+        [_compute_delta_cost(costs, level) for level in costs.levels]
+    )
     maximal_pei_values = MultiLevel(
         [
-            maximise(lambda x: ml_pei[level].compute(x) * weights[level], domain)
+            maximise(lambda x: ml_pei[level].compute(x) / delta_costs[level], domain)
             for level in ml_pei.levels
         ]
     )
@@ -660,3 +657,12 @@ def compute_multi_level_loo_samples(
             design_points.append(InputWithLevel(level, *new_design_pt))
 
     return tuple(design_points)
+
+
+def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:
+    """Compute the cost of computing a successive difference of simulations at a level."""
+
+    if level == 1:
+        return costs[1]
+    else:
+        return costs[level - 1] + costs[level]
