@@ -1631,6 +1631,25 @@ class TestMultiLevel(ExauqTestCase):
     def setUp(self) -> None:
         self.elements = ["a", "b", "c"]
 
+    def test_initialise_like_dict(self):
+        """A MultiLevel collection can be initialised like initialising a dict with
+        integer keys. If keys are not integers then a ValueError is raised."""
+
+        x1 = zip([1, 2, 3], self.elements)
+        _ = MultiLevel(x1)
+
+        x2 = dict(x1)
+        _ = MultiLevel(x2)
+
+        key = "a"
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Key '{key}' of invalid type {type(key)} found: keys should be integers that define levels."
+            ),
+        ):
+            _ = MultiLevel({key: 1})
+
     def test_is_dict_with_enumerating_keys(self):
         """The resulting type is a dict with keys being integers enumerating the elements
         (starting at 1)."""
@@ -1648,7 +1667,7 @@ class TestMultiLevel(ExauqTestCase):
         d_dict = dict(zip([1, 2, 3], self.elements))
         self.assertNotEqual(d1, d_dict)
 
-        d2 = MultiLevel(self.elements)
+        d2 = MultiLevel(d_dict)
         self.assertEqual(d1, d2)
 
     def test_levels(self):
@@ -1667,8 +1686,9 @@ class TestMultiLevel(ExauqTestCase):
         def f(x: str) -> str:
             return x + "_"
 
-        d = MultiLevel(self.elements)
-        expected = MultiLevel([f(x) for x in self.elements])
+        levels = [2, 4, 6]
+        d = MultiLevel(zip(levels, self.elements))
+        expected = MultiLevel(zip(levels, map(f, self.elements)))
         self.assertEqual(expected, d.map(f))
 
 

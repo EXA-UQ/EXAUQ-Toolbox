@@ -7,7 +7,7 @@ import csv
 import dataclasses
 import functools
 import math
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from itertools import product
 from numbers import Real
 from typing import Any, Callable, Optional, TypeVar, Union
@@ -917,14 +917,15 @@ class MultiLevel(dict[int, T]):
     """A multi-level collection of objects, as a mapping from level to objects.
 
     Objects from this generic class are `dict` instances that have integer keys and values
-    of the same parameterised type. The keys define the levels, starting at 1, with the
-    value at a key giving the object at the level defined by the key.
+    of the same parameterised type. The keys should be integers that define the levels,
+    with the value at a key giving the object at the corresponding level.
 
     Parameters
     ----------
-    elements : Sequence[T]
-        Objects of the same type that belong to levels 1, 2, ..., n, where 'n' is the
-        number of objects supplied.
+    labelled_elems :
+        Either a mapping of integers to objects of the same type, or a collection that can
+        create such a mapping when ``dict`` is applied to it (e.g. an iterable of tuples
+        ``(l, x)`` where ``l`` is an integer).
 
     Attributes
     ----------
@@ -935,23 +936,38 @@ class MultiLevel(dict[int, T]):
     --------
     Create a multi-level collection of strings:
     >>> ml: MultiLevel[str]
-    >>> ml = MultiLevel(["the", "quick", "brown", "fox"])
+    >>> levels = [2, 4, 6, 8]
+    >>> elements = ["the", "quick", "brown", "fox"]
+    >>> ml = MultiLevel(zip(levels, elements))
     >>> ml.levels
-    (1, 2, 3, 4)
-    >>> ml[1]
+    (2, 4, 6, 8)
+    >>> ml[2]
     'the'
-    >>> ml[4]
+    >>> ml[8]
     'fox'
     """
 
-    def __init__(self, elements: Sequence[T]):
-        super().__init__([(i + 1, e) for i, e in enumerate(elements)])
+    def __init__(self, labelled_elems: Union[Mapping[int, T], Iterable[tuple[int, T]]]):
+        try:
+            super().__init__(labelled_elems)
+        except (TypeError, ValueError):
+            super().__init__([(i + 1, e) for i, e in enumerate(labelled_elems)])
+
+        if invalid_keys := [k for k in self.keys() if not isinstance(k, int)]:
+            key = invalid_keys[0]
+            raise ValueError(
+                f"Key '{key}' of invalid type {type(key)} found: keys should be integers "
+                "that define levels."
+            )
 
     @property
     def levels(self) -> tuple[int, ...]:
         """(Read-only) The levels in the collection, in increasing order."""
 
         return tuple(sorted(self.keys()))
+
+    def __repr__(self):
+        return f"{__class__.__name__}({super().__repr__()})"
 
     def __eq__(self, other):
         return isinstance(other, __class__) and super().__eq__(other)
@@ -962,7 +978,7 @@ class MultiLevel(dict[int, T]):
     def map(self, f: Callable[[T], S]) -> MultiLevel[S]:
         """Apply a function level-wise."""
 
-        return __class__([f(self[level]) for level in self.levels])
+        return __class__({level: f(val) for level, val in self.items()})
 
 
 class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
