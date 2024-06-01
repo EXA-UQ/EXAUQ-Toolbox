@@ -637,6 +637,8 @@ def compute_multi_level_loo_samples(
 ) -> tuple[InputWithLevel]:
     """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
     ml_pei = compute_multi_level_pei(mlgp, domain)
+
+    # TODO: refactor into function
     weights = {1: 1 / costs[1]} | {
         level: 1 / (costs[level - 1] + costs[level])
         for level in costs.levels
@@ -649,4 +651,12 @@ def compute_multi_level_loo_samples(
         ]
     )
     level, (x, _) = max(maximal_weighted_peis.items(), key=lambda item: item[1][1])
-    return tuple(InputWithLevel(level, *x) for _ in range(batch_size))
+    design_points = [InputWithLevel(level, *x)]
+    if batch_size > 1:
+        pei = ml_pei[level]
+        for i in range(batch_size - 1):
+            pei.add_repulsion_point(design_points[i])
+            new_design_pt, _ = maximise(lambda x: pei.compute(x), domain)
+            design_points.append(InputWithLevel(level, *new_design_pt))
+
+    return tuple(design_points)
