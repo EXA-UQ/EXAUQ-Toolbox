@@ -927,6 +927,62 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         domain = self.default_domain if domain is None else domain
         return compute_multi_level_pei(mlgp, domain)
 
+    def test_arg_type_errors(self):
+        """A TypeError is raised if any of the following hold:
+
+        * The input multi-level GP is not of type MultiLevelGaussianProcess.
+        * The domain is not of type SimulatorDomain.
+        * The batch size is not an integer.
+        """
+
+        arg = "a"
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess.__name__}, but received {type(arg)} instead."
+            ),
+        ):
+            _ = self.compute_multi_level_loo_samples(mlgp=arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'domain' to be of type {SimulatorDomain.__name__}, but received {type(arg)} instead."
+            ),
+        ):
+            _ = self.compute_multi_level_loo_samples(domain=arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'batch_size' to be an integer, but received {type(arg)} instead."
+            ),
+        ):
+            _ = self.compute_multi_level_loo_samples(batch_size=arg)
+
+    def test_domain_wrong_dim_error(self):
+        """A ValueError is raised if the supplied domain's dimension does not agree with
+        the dimension of the inputs in the GP's training data."""
+
+        domain_2dim = SimulatorDomain([(0, 1), (0, 1)])
+        with self.assertRaisesRegex(
+            ValueError,
+            "Expected all training inputs in 'mlgp' to belong to the domain 'domain', but this is not the case.",
+        ):
+            _ = self.compute_multi_level_loo_samples(domain=domain_2dim)
+
+    def test_non_positive_batch_size_error(self):
+        """A ValueError is raised if the batch size is not a positive integer."""
+
+        for batch_size in [0, -1]:
+            with self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected batch size to be a positive integer, but received {batch_size} instead."
+                ),
+            ):
+                _ = self.compute_multi_level_loo_samples(batch_size=batch_size)
+
     def test_differing_input_arg_levels_error(self):
         """A ValueError is raised if the levels found in the multi-level Gaussian
         process do not also appear in the simulator costs."""

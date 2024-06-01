@@ -1042,7 +1042,10 @@ class MultiLevel(dict[int, T]):
 
 
 class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
-    pass
+
+    @property
+    def training_data(self) -> MultiLevel[tuple[TrainingDatum, ...]]:
+        return self.map(lambda _, gp: gp.training_data)
 
 
 class AbstractHyperparameters(abc.ABC):
