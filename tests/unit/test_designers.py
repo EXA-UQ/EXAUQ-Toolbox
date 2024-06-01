@@ -878,7 +878,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
 class TestComputeMultiLevelLooSamples(ExauqTestCase):
     @staticmethod
     def make_level_costs(costs: Sequence[Real]) -> MultiLevel[Real]:
-        return MultiLevel(costs)
+        return MultiLevel.from_sequence(costs)
 
     @staticmethod
     def get_levels(costs: MultiLevel[Real]) -> set[int]:
@@ -903,8 +903,8 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                 TrainingDatum(Input(0.7), 2),
             ]
         )
-        self.default_mlgp = MultiLevelGaussianProcess([gp1, gp2])
-        self.default_costs = MultiLevel([1, 10])
+        self.default_mlgp = MultiLevelGaussianProcess.from_sequence([gp1, gp2])
+        self.default_costs = MultiLevel.from_sequence([1, 10])
 
     def compute_multi_level_loo_samples(
         self,
@@ -964,7 +964,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         gps = [gp1, gp2]
         for domain, gp in zip(domains, gps):
             with self.subTest(domain=domain, gp=gp):
-                mlgp = MultiLevelGaussianProcess([gp] * len(costs))
+                mlgp = MultiLevelGaussianProcess.from_sequence([gp] * len(costs))
                 design_points = self.compute_multi_level_loo_samples(
                     mlgp=mlgp, domain=domain, costs=costs, batch_size=2
                 )
@@ -1016,7 +1016,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             ]
         )
 
-        mlgp = MultiLevelGaussianProcess([gp1, gp2, gp3])
+        mlgp = MultiLevelGaussianProcess.from_sequence([gp1, gp2, gp3])
         design_points = self.compute_multi_level_loo_samples(
             mlgp=mlgp, domain=domain, costs=costs
         )

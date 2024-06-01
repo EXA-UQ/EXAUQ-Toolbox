@@ -626,7 +626,9 @@ def compute_single_level_loo_samples(
 def compute_multi_level_pei(
     mlgp: MultiLevelGaussianProcess, domain: SimulatorDomain
 ) -> MultiLevel[PEICalculator]:
-    return MultiLevel([PEICalculator(domain, mlgp[level]) for level in mlgp.levels])
+    return MultiLevel.from_sequence(
+        [PEICalculator(domain, mlgp[level]) for level in mlgp.levels]
+    )
 
 
 def compute_multi_level_loo_samples(
@@ -638,10 +640,10 @@ def compute_multi_level_loo_samples(
     """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
 
     ml_pei = compute_multi_level_pei(mlgp, domain)
-    delta_costs = MultiLevel(
+    delta_costs = MultiLevel.from_sequence(
         [_compute_delta_cost(costs, level) for level in costs.levels]
     )
-    maximal_pei_values = MultiLevel(
+    maximal_pei_values = MultiLevel.from_sequence(
         [
             maximise(lambda x: ml_pei[level].compute(x) / delta_costs[level], domain)
             for level in ml_pei.levels

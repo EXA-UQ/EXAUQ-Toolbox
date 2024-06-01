@@ -948,17 +948,41 @@ class MultiLevel(dict[int, T]):
     """
 
     def __init__(self, labelled_elems: Union[Mapping[int, T], Iterable[tuple[int, T]]]):
-        try:
-            super().__init__(labelled_elems)
-        except (TypeError, ValueError):
-            super().__init__([(i + 1, e) for i, e in enumerate(labelled_elems)])
-
+        super().__init__(labelled_elems)
         if invalid_keys := [k for k in self.keys() if not isinstance(k, int)]:
             key = invalid_keys[0]
             raise ValueError(
                 f"Key '{key}' of invalid type {type(key)} found: keys should be integers "
                 "that define levels."
             )
+
+    @classmethod
+    def from_sequence(cls, elements: Sequence[T]) -> MultiLevel[T]:
+        """Create a multi-level collection of objects from a sequence.
+
+        Creates a multi-level collection of objects, with levels enumerating the objects
+        from the sequence in order, starting at level 1.
+
+        Parameters
+        ----------
+        elements : Sequence[T]
+            Objects of the same type that are considered belonging to levels 1, 2, ..., n,
+            where 'n' is the number of objects supplied.
+
+        Examples
+        --------
+        Create a multi-level collection of strings:
+        >>> ml: MultiLevel[str]
+        >>> ml = MultiLevel.from_sequence(["the", "quick", "brown", "fox"])
+        >>> ml.levels
+        (1, 2, 3, 4)
+        >>> ml[1]
+        'the'
+        >>> ml[4]
+        'fox'
+        """
+
+        return cls({i + 1: elem for i, elem in enumerate(elements)})
 
     @property
     def levels(self) -> tuple[int, ...]:
