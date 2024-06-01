@@ -10,7 +10,7 @@ import math
 from collections.abc import Collection, Sequence
 from itertools import product
 from numbers import Real
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -910,6 +910,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
 
 T = TypeVar("T")
+S = TypeVar("S")
 
 
 class MultiLevel(dict[int, T]):
@@ -951,6 +952,11 @@ class MultiLevel(dict[int, T]):
         """(Read-only) The levels in the collection, in increasing order."""
 
         return tuple(sorted(self.keys()))
+
+    def map(self, f: Callable[[T], S]) -> MultiLevel[S]:
+        """Apply a function level-wise."""
+
+        return __class__([f(self[level]) for level in self.levels])
 
 
 class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):

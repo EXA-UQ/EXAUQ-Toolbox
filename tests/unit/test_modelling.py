@@ -1628,14 +1628,16 @@ class TestLevelTagged(ExauqTestCase):
 
 
 class TestMultiLevel(ExauqTestCase):
+    def setUp(self) -> None:
+        self.elements = ["a", "b", "c"]
+
     def test_is_dict_with_enumerating_keys(self):
         """The resulting type is a dict with keys being integers enumerating the elements
         (starting at 1)."""
 
-        elements = ["a", "b", "c"]
-        d = MultiLevel(elements)
+        d = MultiLevel(self.elements)
         self.assertIsInstance(d, dict)
-        expected = dict(zip([1, 2, 3], elements))
+        expected = dict(zip([1, 2, 3], self.elements))
         self.assertEqual(expected, d)
 
     def test_levels(self):
@@ -1645,6 +1647,18 @@ class TestMultiLevel(ExauqTestCase):
             d = MultiLevel(["a"] * n)
             levels = tuple(range(1, n + 1))
             self.assertEqual(levels, d.levels)
+
+    def test_map_preserves_level_structure(self):
+        """The map method applies a function to the objects at each level and
+        returns the result as a multi-level collection, with the results reflecting
+        the same level structure."""
+
+        def f(x: str) -> str:
+            return x + "_"
+
+        d = MultiLevel(self.elements)
+        expected = MultiLevel([f(x) for x in self.elements])
+        self.assertEqual(expected, d.map(f))
 
 
 if __name__ == "__main__":
