@@ -1021,7 +1021,22 @@ class MultiLevel(dict[int, T]):
         return not self == other
 
     def map(self, f: Callable[[int, T], S]) -> MultiLevel[S]:
-        """Apply a function level-wise."""
+        """Apply a function level-wise.
+
+        Creates a new multi-level collection by applying the given function to each
+        (level, value) mapping in this object.
+
+        Parameters
+        ----------
+        f : Callable[[int, T], S]
+            The function to apply to (level, value) pairs.
+
+        Returns
+        -------
+        MultiLevel[S]
+            A new multi-level collection, with levels equal to `self.levels` and
+            values created by applying `f` to the (level, value) pairs of `self`.
+        """
 
         return __class__({level: f(level, val) for level, val in self.items()})
 
