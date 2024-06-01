@@ -916,21 +916,32 @@ S = TypeVar("S")
 class MultiLevel(dict[int, T]):
     """A multi-level collection of objects, as a mapping from level to objects.
 
-    Objects from this generic class are `dict` instances that have integer keys and values
-    of the same parameterised type. The keys should be integers that define the levels,
-    with the value at a key giving the object at the corresponding level.
+    Objects from this class are `dict` instances that have integer keys. The keys
+    should be integers that define the levels, with the value at a key giving the object
+    at the corresponding level.
+
+    The only methods of `dict` that this class overrides are those concerning equality
+    testing and the result of applying `repr`. An instance of this class is equal to
+    another object precisely when the other object is also an instance of this class and
+    there is equality as dicts.
 
     Parameters
     ----------
     labelled_elems :
-        Either a mapping of integers to objects of the same type, or a collection that can
-        create such a mapping when ``dict`` is applied to it (e.g. an iterable of tuples
-        ``(l, x)`` where ``l`` is an integer).
+        Either a mapping of integers to objects, or a collection that can create such a
+        mapping when ``dict`` is applied to it (e.g. an iterable of tuples ``(l, x)``
+        where ``l`` is an integer).
 
     Attributes
     ----------
     levels : tuple of int
         (Read-only) The levels in the collection, in increasing order.
+
+    Notes
+    -----
+    No checks are performed to ensure all objects in the collection have the same type,
+    however this class supports type hinting as a generic. Users requiring such checks
+    should create a subclass where this is performed.
 
     Examples
     --------
@@ -945,6 +956,16 @@ class MultiLevel(dict[int, T]):
     'the'
     >>> ml[8]
     'fox'
+
+    Note that a MultiLevel collection is not equal to another mapping if the other object
+    is not also a MultiLevel instance:
+    >>> d = dict(ml)
+    >>> ml == d
+    False
+    >>> dict.__eq__(d, ml)  # equal when considered as dicts
+    True
+    >>> ml == MultiLevel(d)
+    True
     """
 
     def __init__(self, labelled_elems: Union[Mapping[int, T], Iterable[tuple[int, T]]]):
@@ -965,9 +986,9 @@ class MultiLevel(dict[int, T]):
 
         Parameters
         ----------
-        elements : Sequence[T]
-            Objects of the same type that are considered belonging to levels 1, 2, ..., n,
-            where 'n' is the number of objects supplied.
+        elements : Sequence
+            Objects that are considered belonging to levels 1, 2, ..., n, where 'n' is the
+            number of objects supplied.
 
         Examples
         --------
