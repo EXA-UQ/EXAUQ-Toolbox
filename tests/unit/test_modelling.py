@@ -1627,7 +1627,7 @@ class TestLevelTagged(ExauqTestCase):
             _ = TaggedB(level=10)
 
 
-class TestMultiLevelCollection(ExauqTestCase):
+class TestMultiLevel(ExauqTestCase):
     def test_is_dict_with_enumerating_keys(self):
         """The resulting type is a dict with keys being integers enumerating the elements
         (starting at 1)."""
