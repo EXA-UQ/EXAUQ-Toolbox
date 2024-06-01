@@ -1637,8 +1637,19 @@ class TestMultiLevel(ExauqTestCase):
 
         d = MultiLevel(self.elements)
         self.assertIsInstance(d, dict)
-        expected = dict(zip([1, 2, 3], self.elements))
-        self.assertEqual(expected, d)
+        expected = set(zip([1, 2, 3], self.elements))
+        self.assertEqual(expected, set(d.items()))
+
+    def test_equals_detects_class(self):
+        """Two multi-level collections are equal if they are both instances of
+        MultiLevel and are equal as dicts."""
+
+        d1 = MultiLevel(self.elements)
+        d_dict = dict(zip([1, 2, 3], self.elements))
+        self.assertNotEqual(d1, d_dict)
+
+        d2 = MultiLevel(self.elements)
+        self.assertEqual(d1, d2)
 
     def test_levels(self):
         """The levels attribute returns the levels as an ordered tuple of ints."""

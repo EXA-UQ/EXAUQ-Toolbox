@@ -953,6 +953,12 @@ class MultiLevel(dict[int, T]):
 
         return tuple(sorted(self.keys()))
 
+    def __eq__(self, other):
+        return isinstance(other, __class__) and super().__eq__(other)
+
+    def __ne__(self, other):
+        return not self == other
+
     def map(self, f: Callable[[T], S]) -> MultiLevel[S]:
         """Apply a function level-wise."""
 
