@@ -639,6 +639,12 @@ def compute_multi_level_loo_samples(
 ) -> tuple[InputWithLevel]:
     """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
 
+    if missing_levels := sorted(set(mlgp.levels) - set(costs.levels)):
+        raise ValueError(
+            f"Level {missing_levels[0]} from 'mlgp' does not have associated level "
+            "from 'costs'."
+        )
+
     ml_pei = compute_multi_level_pei(mlgp, domain)
     delta_costs = MultiLevel.from_sequence(
         [_compute_delta_cost(costs, level) for level in costs.levels]

@@ -927,6 +927,18 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         domain = self.default_domain if domain is None else domain
         return compute_multi_level_pei(mlgp, domain)
 
+    def test_differing_input_arg_levels_error(self):
+        """A ValueError is raised if the levels found in the multi-level Gaussian
+        process do not also appear in the simulator costs."""
+
+        costs = self.make_level_costs([1])
+        missing_level = (set(self.default_mlgp.levels) - set(costs.levels)).pop()
+        with self.assertRaisesRegex(
+            ValueError,
+            f"Level {missing_level} from 'mlgp' does not have associated level from 'costs'.",
+        ):
+            self.compute_multi_level_loo_samples(costs=costs)
+
     def test_number_of_design_points_returned_equals_batch_size(self):
         """Then number of design points (with levels) returned equals the provided batch
         size.
