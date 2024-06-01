@@ -644,13 +644,13 @@ def compute_multi_level_loo_samples(
         for level in costs.levels
         if level > 1
     }
-    maximal_weighted_peis = MultiLevel(
+    maximal_pei_values = MultiLevel(
         [
             maximise(lambda x: ml_pei[level].compute(x) * weights[level], domain)
             for level in ml_pei.levels
         ]
     )
-    level, (x, _) = max(maximal_weighted_peis.items(), key=lambda item: item[1][1])
+    level, (x, _) = max(maximal_pei_values.items(), key=lambda item: item[1][1])
     design_points = [InputWithLevel(level, *x)]
     if batch_size > 1:
         pei = ml_pei[level]
