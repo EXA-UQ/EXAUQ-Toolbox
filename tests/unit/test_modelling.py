@@ -1683,12 +1683,12 @@ class TestMultiLevel(ExauqTestCase):
         returns the result as a multi-level collection, with the results reflecting
         the same level structure."""
 
-        def f(x: str) -> str:
-            return x + "_"
+        def f(level: int, x: str) -> str:
+            return str(level) + "_" + x
 
         levels = [2, 4, 6]
         d = MultiLevel(zip(levels, self.elements))
-        expected = MultiLevel(zip(levels, map(f, self.elements)))
+        expected = MultiLevel(zip(levels, map(f, levels, self.elements)))
         self.assertEqual(expected, d.map(f))
 
 

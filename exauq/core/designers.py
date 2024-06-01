@@ -646,14 +646,9 @@ def compute_multi_level_loo_samples(
         )
 
     ml_pei = compute_multi_level_pei(mlgp, domain)
-    delta_costs = MultiLevel.from_sequence(
-        [_compute_delta_cost(costs, level) for level in costs.levels]
-    )
-    maximal_pei_values = MultiLevel.from_sequence(
-        [
-            maximise(lambda x: ml_pei[level].compute(x) / delta_costs[level], domain)
-            for level in ml_pei.levels
-        ]
+    delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
+    maximal_pei_values = ml_pei.map(
+        lambda level, pei: maximise(lambda x: pei.compute(x) / delta_costs[level], domain)
     )
     level, (x, _) = max(maximal_pei_values.items(), key=lambda item: item[1][1])
     design_points = [InputWithLevel(level, *x)]

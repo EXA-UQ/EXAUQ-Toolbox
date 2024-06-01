@@ -1020,10 +1020,10 @@ class MultiLevel(dict[int, T]):
     def __ne__(self, other):
         return not self == other
 
-    def map(self, f: Callable[[T], S]) -> MultiLevel[S]:
+    def map(self, f: Callable[[int, T], S]) -> MultiLevel[S]:
         """Apply a function level-wise."""
 
-        return __class__({level: f(val) for level, val in self.items()})
+        return __class__({level: f(level, val) for level, val in self.items()})
 
 
 class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
