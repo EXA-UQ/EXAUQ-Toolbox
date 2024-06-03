@@ -377,6 +377,23 @@ class Cli(cmd2.Cmd):
         ])
         return self._make_table(data)
 
+    @cmd2.with_argparser(resubmit_parser)
+    def do_resubmit(self, args) -> None:
+        """Resubmit jobs to the simulator."""
+
+        try:
+            kwargs = self._parse_resubmit_args(args)
+            jobs = self._app.get_jobs(**kwargs)
+
+            resubmitted_jobs = []
+            for job in jobs:
+                new_job = self._app.submit([job["input"]])[0]
+                resubmitted_jobs.append((job["job_id"], new_job.id, job["input"]))
+
+            self._render_stdout(self._make_resubmissions_table(resubmitted_jobs))
+        except ParsingError as e:
+            self._render_error(str(e))
+
     def _make_cancel_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of details of cancelled jobs for displaying to the user."""
 
