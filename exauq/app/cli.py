@@ -58,6 +58,43 @@ class Cli(cmd2.Cmd):
         help="A path to a csv file containing inputs to submit to the simulator.",
     )
 
+    resubmit_parser = cmd2.Cmd2ArgumentParser()
+    resubmit_parser.add_argument(
+        "job_ids",
+        nargs="*",
+        type=str,
+        help="Job IDs of the jobs to resubmit.",
+    )
+    resubmit_parser.add_argument(
+        "--twr",
+        action="store_true",
+        help="Resubmit all jobs that have 'terminated without result'.",
+    )
+    resubmit_parser.add_argument(
+        "-s",
+        "--status",
+        nargs="?",
+        default="",
+        const="",
+        metavar="STATUSES",
+        help=(
+            "a comma-separated list of statuses, so that only jobs having one of these "
+            "statuses will be resubmitted (defaults to '%(default)s', which means resubmit all jobs)"
+        ),
+    )
+    resubmit_parser.add_argument(
+        "-S",
+        "--status-not",
+        nargs="?",
+        default="",
+        const="",
+        metavar="STATUSES",
+        help=(
+            "a comma-separated list of statuses, so that only jobs *not* having one of these "
+            "statuses will be resubmitted (defaults to '%(default)s', which means resubmit all jobs)"
+        ),
+    )
+
     cancel_parser = cmd2.Cmd2ArgumentParser()
     cancel_parser.add_argument(
         "job_ids",
