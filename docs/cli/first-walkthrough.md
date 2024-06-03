@@ -345,6 +345,50 @@ For more details on cancelling jobs, consult the
 [Cancelling Jobs](./user-guides/cancelling-jobs.md) guide.
 
 
+### Resubmitting jobs
+
+You may want to resubmit a job for several reasons: perhaps a job failed, was cancelled, 
+or you need to rerun a stochastic simulation with the same inputs to gather more data. 
+The `resubmit` command is designed to easily handle such cases. For instance, consider 
+the scenario where you have jobs that were previously cancelled and now need to be 
+resubmitted.
+
+First, let's check the status of the jobs using the `show` command to identify the job 
+IDs of the cancelled jobs:
+
+```
+(exauq)> show
+JOBID              INPUT                 STATUS     RESULT             
+20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             
+20240419185014637  (1.32, -0.986, 31.4)  Completed  31.74438342        
+20240419185015374  (5.97, -3.09, -3.04)  Completed  -0.1624690000000002
+20240419185015969  (6.98, -8.03, 0.099)  Completed  -0.9515869999999993
+20240419185016560  (-12.0, 9.07, -2.1)   Completed  -5.06375744        
+20240521102800090  (-1.0, 2.0, 3.0)      Cancelled
+20240521102801154  (0.5, 0.32, -3.12)    Cancelled
+```
+
+To resubmit these cancelled jobs, use their job IDs in the `resubmit` command:
+
+```
+(exauq)> resubmit 20240521102800090 20240521102801154
+OLD_JOBID          NEW_JOBID              INPUT               
+20240521102800090  20240603102300450      (-1.0, 2.0, 3.0)
+20240521102801154  20240603102300678      (0.5, 0.32, -3.12)
+
+(exauq)>
+```
+
+Notice that new job IDs are generated for the resubmitted jobs. This feature allows for 
+tracking the new submissions separately while maintaining a record of their origins from 
+previous job IDs.
+
+If you wish to resubmit all jobs that were either cancelled or failed, you can use filters 
+with the `resubmit` command to streamline the process without needing to manually input 
+each job ID. For more details on resubmitting jobs, including the use of filters, consult the
+[Resubmitting Jobs](./user-guides/resubmitting-jobs.md) guide.
+
+
 ### Write the jobs to a CSV file
 
 Finally, the details of the jobs can be written to a file, allowing us to use the
