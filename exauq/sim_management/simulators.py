@@ -707,7 +707,7 @@ class JobManager:
             JobStatus.FAILED: FailedJobStrategy(),
             JobStatus.RUNNING: RunningJobStrategy(),
             JobStatus.SUBMITTED: SubmittedJobStrategy(),
-            JobStatus.PENDING_SUBMIT: NotSubmittedJobStrategy(),
+            JobStatus.PENDING_SUBMIT: PendingSubmitJobStrategy(),
             JobStatus.PENDING_CANCEL: PendingCancelJobStrategy(),
         }
 
@@ -964,7 +964,7 @@ class SubmittedJobStrategy(JobStrategy):
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.SUBMITTED)
 
 
-class NotSubmittedJobStrategy(JobStrategy):
+class PendingSubmitJobStrategy(JobStrategy):
     """
     Strategy for handling jobs that have not yet been submitted.
 
