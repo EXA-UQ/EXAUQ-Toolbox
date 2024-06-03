@@ -346,6 +346,23 @@ class Cli(cmd2.Cmd):
             if isinstance(args.file, TextIOWrapper):
                 args.file.close()
 
+    def _parse_resubmit_args(self, args) -> dict[str, Any]:
+        """Convert command line arguments for the resubmit command to a dict of arguments for
+        the application to process.
+        """
+        if args.twr:
+            statuses = {JobStatus.CANCELLED, JobStatus.FAILED, JobStatus.FAILED_SUBMIT}
+        else:
+            statuses_included = parse_statuses_string_to_set(args.status, empty_to_all=True)
+            statuses_excluded = parse_statuses_string_to_set(args.status_not)
+            statuses = statuses_included - statuses_excluded
+
+        job_ids = parse_job_ids(args.job_ids) if args.job_ids else None
+
+        return {
+            "job_ids": job_ids,
+            "statuses": statuses,
+        }
     def _make_cancel_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of details of cancelled jobs for displaying to the user."""
 
