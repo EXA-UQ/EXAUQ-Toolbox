@@ -63,7 +63,6 @@ TERMINAL_STATUSES = {
     JobStatus.FAILED,
     JobStatus.FAILED_SUBMIT,
     JobStatus.CANCELLED,
-    JobStatus.FAILED_CANCEL,
 }
 """Statuses that define jobs that are no longer running (possibly due to error)."""
 
