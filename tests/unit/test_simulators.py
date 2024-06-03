@@ -426,7 +426,7 @@ class TestSimulationsLog(unittest.TestCase):
         for job_id, message in test_cases:
             with self.subTest(job_id=job_id):
                 try:
-                    log.add_new_record(Input(1), job_id, JobStatus.NOT_SUBMITTED)
+                    log.add_new_record(Input(1), job_id, JobStatus.PENDING_SUBMIT)
                 except ValueError as e:
                     self.fail(f"{message} Failed with ValueError: {e}")
                 except TypeError as e:
@@ -452,7 +452,7 @@ class TestSimulationsLog(unittest.TestCase):
         self.assertEqual(((x, None), (x, None)), log.get_simulations())
 
     def test_add_new_record_default_status(self):
-        """Test that, when a new record is created, it is labelled as NOT_SUBMITTED by default."""
+        """Test that, when a new record is created, it is labelled as PENDING_SUBMIT by default."""
 
         x1 = Input(1)
         x2 = Input(2)
@@ -505,13 +505,13 @@ class TestSimulationsLog(unittest.TestCase):
 
     def test_get_pending_jobs_selects_correct_jobs(self):
         """Test that the jobs selected are those that have a valid pending JobState:
-        SUBMITTED, NOT_SUBMITTED, RUNNING, FAILED_SUBMIT."""
+        SUBMITTED, PENDING_SUBMIT, RUNNING, FAILED_SUBMIT."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
         for x, job_id, y, status in (
             (Input(1), "1", 10.1, JobStatus.COMPLETED),
             (Input(2), "2", None, JobStatus.SUBMITTED),
-            (Input(3), "3", None, JobStatus.NOT_SUBMITTED),
+            (Input(3), "3", None, JobStatus.PENDING_SUBMIT),
             (Input(4), "4", None, JobStatus.CANCELLED),
             (Input(5), "5", None, JobStatus.RUNNING),
             (Input(6), "6", None, JobStatus.FAILED_SUBMIT),

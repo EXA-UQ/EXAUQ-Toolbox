@@ -18,8 +18,8 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
     # Create a job to submit
     job = Job(id_=JobId(1), data=Input(1, 2, 3))
 
-    # First check that the job is NOT_SUBMITTED before submitting
-    assert hardware.get_job_status(job.id) == JobStatus.NOT_SUBMITTED
+    # First check that the job is PENDING_SUBMIT before submitting
+    assert hardware.get_job_status(job.id) == JobStatus.PENDING_SUBMIT
 
     try:
         # Submit the job

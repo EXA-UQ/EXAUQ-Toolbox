@@ -379,7 +379,7 @@ class Cli(cmd2.Cmd):
 
         if args.twr:
             statuses = set(JobStatus) - {
-                JobStatus.NOT_SUBMITTED,
+                JobStatus.PENDING_SUBMIT,
                 JobStatus.SUBMITTED,
                 JobStatus.RUNNING,
             }
@@ -529,10 +529,10 @@ def parse_statuses_string_to_set(
 
     Spaces in the status can be represented as whitespace or underscores:
 
-    >>> cli._parse_statuses_string_to_set("not submitted")
-    {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
-    >>> cli._parse_statuses_string_to_set("not_submitted")
-    {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
+    >>> cli._parse_statuses_string_to_set("pending submit")
+    {<JobStatus.PENDING_SUBMIT: 'Pending submit'>}
+    >>> cli._parse_statuses_string_to_set("pending_submit")
+    {<JobStatus.PENDING_SUBMIT: 'Pending submit'>}
 
     By default, providing an empty string returns the empty set, but setting
     ``empty_to_all = True`` will cause the full set of job statuses to be returned
