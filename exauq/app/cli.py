@@ -363,6 +363,20 @@ class Cli(cmd2.Cmd):
             "job_ids": job_ids,
             "statuses": statuses,
         }
+
+    def _make_resubmissions_table(self, jobs: list[tuple[Any, Any, Any]]) -> str:
+        """Make table of resubmitted jobs for displaying to the user."""
+
+        old_ids = tuple(old_id for old_id, _, _ in jobs)
+        new_ids = tuple(new_id for _, new_id, _ in jobs)
+        inputs = tuple(data for _, _, data in jobs)
+        data = OrderedDict([
+            ("OLD_JOBID", old_ids),
+            ("NEW_JOBID", new_ids),
+            (self._INPUT_HEADER, inputs)
+        ])
+        return self._make_table(data)
+
     def _make_cancel_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of details of cancelled jobs for displaying to the user."""
 
