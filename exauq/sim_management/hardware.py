@@ -57,10 +57,6 @@ class JobStatus(Enum):
     """A job has been requested to be cancelled but the cancellation failed. Has the
     value 'Failed cancel'."""
 
-    PENDING_RESUBMIT = "Pending resubmit"
-    """A job has been requested to be resubmitted but has not yet been resubmitted. Has
-    the value 'Pending resubmit'."""
-
 
 TERMINAL_STATUSES = {
     JobStatus.COMPLETED,
@@ -73,7 +69,6 @@ TERMINAL_STATUSES = {
 
 PENDING_STATUSES = {
     JobStatus.PENDING_CANCEL,
-    JobStatus.PENDING_RESUBMIT,
 }
 """Statuses that define jobs that are in a state of pending action."""
 
