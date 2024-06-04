@@ -10,7 +10,12 @@ from time import sleep
 from typing import Any, Optional, Sequence, Union
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
-from exauq.sim_management.hardware import PENDING_STATUSES, TERMINAL_STATUSES, HardwareInterface, JobStatus
+from exauq.sim_management.hardware import (
+    PENDING_STATUSES,
+    TERMINAL_STATUSES,
+    HardwareInterface,
+    JobStatus,
+)
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
 from exauq.utilities.csv_db import CsvDB, Record
@@ -658,7 +663,9 @@ class JobManager:
         """
 
         job = Job(self._id_generator.generate_id(), x)
-        self._simulations_log.add_new_record(x, str(job.id), job_status=JobStatus.PENDING_SUBMIT)
+        self._simulations_log.add_new_record(
+            x, str(job.id), job_status=JobStatus.PENDING_SUBMIT
+        )
         self.monitor([job])
 
         return job
@@ -770,7 +777,9 @@ class JobManager:
                     return
 
                 status = self._simulations_log.get_job_status(job.id)
-                is_pending_or_failed_submit = status in PENDING_STATUSES | {JobStatus.FAILED_SUBMIT}
+                is_pending_or_failed_submit = status in PENDING_STATUSES | {
+                    JobStatus.FAILED_SUBMIT
+                }
 
                 if not is_pending_or_failed_submit:
                     status = self._interface.get_job_status(job.id)
@@ -948,7 +957,9 @@ class FailedSubmitJobStrategy(JobStrategy):
 
     @staticmethod
     def handle(job: Job, job_manager: JobManager):
-        job_manager.simulations_log.update_job_status(str(job.id), JobStatus.FAILED_SUBMIT)
+        job_manager.simulations_log.update_job_status(
+            str(job.id), JobStatus.FAILED_SUBMIT
+        )
         job_manager.remove_job(job)
 
 
