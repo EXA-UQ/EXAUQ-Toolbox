@@ -948,11 +948,8 @@ class FailedSubmitJobStrategy(JobStrategy):
 
     @staticmethod
     def handle(job: Job, job_manager: JobManager):
-        print("**********FailedSubmitJobStrategy**********")
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.FAILED_SUBMIT)
-        print(f"Job {job.id} failed to submit. Marking as FAILED_SUBMIT.")
         job_manager.remove_job(job)
-        print(f"Job {job.id} removed from monitoring.")
 
 
 class RunningJobStrategy(JobStrategy):
