@@ -385,7 +385,9 @@ class SimulationsLog(object):
         """Return all jobs which don't have results and are in non-terminal states.
 
         A job is considered pending if it is in one of the following states:
-        RUNNING, SUBMITTED, PENDING_SUBMIT, or FAILED_SUBMIT.
+        RUNNING, SUBMITTED, PENDING_SUBMIT, or FAILED_SUBMIT. In the case of a job
+        being in a FAILED_SUBMIT state, submission will be retried by setting its status
+        to PENDING_SUBMIT.
 
         Returns
         -------
@@ -402,10 +404,16 @@ class SimulationsLog(object):
             pending_records = self._simulations_db.query(
                 lambda x: self._get_job_status(x) in pending_statuses
             )
-            return tuple(
+            jobs = tuple(
                 Job(self._get_job_id(record), self._extract_simulation(record)[0])
                 for record in pending_records
             )
+
+        for record in pending_records:
+            if self._get_job_status(record) == JobStatus.FAILED_SUBMIT:
+                self.update_job_status(self._get_job_id(record), JobStatus.PENDING_SUBMIT)
+
+        return jobs
 
     def get_unsubmitted_inputs(self) -> tuple[Input]:
         """Get all simulator inputs that have not been submitted as jobs.
@@ -710,6 +718,7 @@ class JobManager:
             JobStatus.SUBMITTED: SubmittedJobStrategy(),
             JobStatus.PENDING_SUBMIT: PendingSubmitJobStrategy(),
             JobStatus.PENDING_CANCEL: PendingCancelJobStrategy(),
+            JobStatus.FAILED_SUBMIT: FailedSubmitJobStrategy(),
         }
 
         return strategies
@@ -760,9 +769,10 @@ class JobManager:
                 if self._shutdown_event.is_set():
                     return
 
-                if (status := self._simulations_log.get_job_status(job.id)) in PENDING_STATUSES:
-                    self._handle_job(job, status)
-                else:
+                status = self._simulations_log.get_job_status(job.id)
+                is_pending_or_failed_submit = status in PENDING_STATUSES | {JobStatus.FAILED_SUBMIT}
+
+                if not is_pending_or_failed_submit:
                     status = self._interface.get_job_status(job.id)
 
                 self._handle_job(job, status)
@@ -918,6 +928,31 @@ class FailedJobStrategy(JobStrategy):
     def handle(job: Job, job_manager: JobManager):
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.FAILED)
         job_manager.remove_job(job)
+
+
+class FailedSubmitJobStrategy(JobStrategy):
+    """
+    Strategy for handling jobs that have failed to submit.
+
+    This strategy updates the job's status in the simulations log to FAILED_SUBMIT and
+    removes the job from the JobManager's list of active jobs. It encapsulates the actions
+    to be taken when a job fails to submit for execution.
+
+    Parameters
+    ----------
+    job : Job
+        The job that has failed to submit.
+    job_manager : JobManager
+        The manager overseeing the job's lifecycle, including monitoring and logging.
+    """
+
+    @staticmethod
+    def handle(job: Job, job_manager: JobManager):
+        print("**********FailedSubmitJobStrategy**********")
+        job_manager.simulations_log.update_job_status(str(job.id), JobStatus.FAILED_SUBMIT)
+        print(f"Job {job.id} failed to submit. Marking as FAILED_SUBMIT.")
+        job_manager.remove_job(job)
+        print(f"Job {job.id} removed from monitoring.")
 
 
 class RunningJobStrategy(JobStrategy):
