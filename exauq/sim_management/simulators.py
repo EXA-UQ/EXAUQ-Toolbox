@@ -650,7 +650,8 @@ class JobManager:
         """
 
         job = Job(self._id_generator.generate_id(), x)
-        self._handle_job(job, JobStatus.PENDING_SUBMIT)
+        self._simulations_log.add_new_record(x, str(job.id), job_status=JobStatus.PENDING_SUBMIT)
+        self.monitor([job])
 
         return job
 
@@ -960,8 +961,9 @@ class SubmittedJobStrategy(JobStrategy):
 
     @staticmethod
     def handle(job: Job, job_manager: JobManager):
-        job_manager.monitor([job])
-        job_manager.simulations_log.update_job_status(str(job.id), JobStatus.SUBMITTED)
+        # job_manager.monitor([job])
+        # job_manager.simulations_log.update_job_status(str(job.id), JobStatus.SUBMITTED)
+        pass
 
 
 class PendingSubmitJobStrategy(JobStrategy):
@@ -993,15 +995,12 @@ class PendingSubmitJobStrategy(JobStrategy):
         initial_delay = 1
         max_delay = 32
 
-        job_manager.simulations_log.add_new_record(job.data, str(job.id))
-
         while retry_attempts < max_retries:
             try:
                 job_manager.interface.submit_job(job)
                 job_manager.simulations_log.update_job_status(
                     str(job.id), JobStatus.SUBMITTED
                 )
-                job_manager.monitor([job])
                 break
             except Exception as e:
                 retry_attempts += 1
