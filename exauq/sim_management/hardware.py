@@ -68,6 +68,7 @@ TERMINAL_STATUSES = {
 
 PENDING_STATUSES = {
     JobStatus.PENDING_CANCEL,
+    JobStatus.PENDING_SUBMIT,
 }
 """Statuses that define jobs that are in a state of pending action."""
 
