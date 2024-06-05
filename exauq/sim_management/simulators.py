@@ -386,7 +386,7 @@ class SimulationsLog(object):
 
         return job_records
 
-    def get_pending_jobs(self) -> tuple[Job]:
+    def get_pending_jobs(self) -> tuple[Job, ...]:
         """Return all jobs which don't have results and are in non-terminal states.
 
         A job is considered pending if it is in one of the following states:
@@ -410,7 +410,7 @@ class SimulationsLog(object):
                 for record in pending_records
             )
 
-    def get_unsubmitted_inputs(self) -> tuple[Input]:
+    def get_unsubmitted_inputs(self) -> tuple[Input, ...]:
         """Get all simulator inputs that have not been submitted as jobs.
 
         Identifies inputs that are marked as 'PENDING_SUBMIT' in the simulation database,
