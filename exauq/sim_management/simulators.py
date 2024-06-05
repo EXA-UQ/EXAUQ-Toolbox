@@ -400,25 +400,15 @@ class SimulationsLog(object):
             The Jobs that are in a pending state.
         """
         with self._lock:
-            pending_statuses = {
-                JobStatus.RUNNING,
-                JobStatus.SUBMITTED,
-                JobStatus.PENDING_SUBMIT,
-                JobStatus.FAILED_SUBMIT,
-            }
+            non_terminal_statuses = set(JobStatus) - TERMINAL_STATUSES
+
             pending_records = self._simulations_db.query(
-                lambda x: self._get_job_status(x) in pending_statuses
+                lambda x: self._get_job_status(x) in non_terminal_statuses
             )
-            jobs = tuple(
+            return tuple(
                 Job(self._get_job_id(record), self._extract_simulation(record)[0])
                 for record in pending_records
             )
-
-        for record in pending_records:
-            if self._get_job_status(record) == JobStatus.FAILED_SUBMIT:
-                self.update_job_status(self._get_job_id(record), JobStatus.PENDING_SUBMIT)
-
-        return jobs
 
     def get_unsubmitted_inputs(self) -> tuple[Input]:
         """Get all simulator inputs that have not been submitted as jobs.
