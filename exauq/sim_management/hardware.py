@@ -70,7 +70,7 @@ PENDING_STATUSES = {
     JobStatus.PENDING_CANCEL,
     JobStatus.PENDING_SUBMIT,
 }
-"""Statuses that define jobs that are in a state of pending action."""
+"""Statuses that define jobs that are waiting to be run or cancelled."""
 
 
 class HardwareInterface(ABC):
