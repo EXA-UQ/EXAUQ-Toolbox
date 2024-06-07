@@ -13,6 +13,8 @@ from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     Input,
+    LevelTagged,
+    MultiLevel,
     Prediction,
     SimulatorDomain,
     TrainingDatum,
@@ -1566,6 +1568,128 @@ class TestSimulatorDomain(unittest.TestCase):
         )
 
         self.assertTrue(compare_input_tuples(pseudopoints, expected))
+
+
+class TestLevelTagged(ExauqTestCase):
+    def test_get_level(self):
+        """The level tagged onto the object can be obtained from the `level` attribute."""
+
+        class A:
+            def __init__(self, a: int, b=None):
+                self.a = a
+                self.b = b
+
+            def a_plus(self, x: int) -> int:
+                return self.a + x
+
+            def set_b(self, b) -> None:
+                self.b = b
+
+        class TaggedA(LevelTagged, A):
+            pass
+
+        level = 1
+        tagged = TaggedA(level, 99, "b")
+        self.assertEqual(level, tagged.level)
+
+    def test_cannot_modify_level(self):
+        """The level cannot be modified once set."""
+
+        tagged = LevelTagged(1)
+        with self.assertRaisesRegex(
+            AttributeError, "Cannot modify this instance's 'level' attribute."
+        ):
+            tagged.level = 99
+
+    def test_parent_class_has_level_attribute_error(self):
+        """A TypeError is raised if subclassing from LevelTagged would involve masking a
+        `level` attribute from a parent class (as worked out from method resolution
+        order)."""
+
+        class A:
+            def level(self):
+                return "level from A"
+
+        with self.assertRaisesRegex(TypeError, "^Cannot create class"):
+
+            class TaggedA(LevelTagged, A):
+                pass
+
+        class B:
+            def __init__(self):
+                self.level = 99
+
+        with self.assertRaisesRegex(TypeError, "^Cannot initialise object"):
+
+            class TaggedB(LevelTagged, B):
+                pass
+
+            _ = TaggedB(level=10)
+
+
+class TestMultiLevel(ExauqTestCase):
+    def setUp(self) -> None:
+        self.elements = ["a", "b", "c"]
+
+    def test_initialise_like_dict(self):
+        """A MultiLevel collection can be initialised like initialising a dict with
+        integer keys. If keys are not integers then a ValueError is raised. The resulting
+        object derives from `dict`."""
+
+        x1 = zip([1, 2, 3], self.elements)
+        d = MultiLevel(x1)
+        self.assertIsInstance(d, dict)
+
+        x2 = dict(x1)
+        _ = MultiLevel(x2)
+
+        key = "a"
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Key '{key}' of invalid type {type(key)} found: keys should be integers that define levels."
+            ),
+        ):
+            _ = MultiLevel({key: 1})
+
+    def test_from_sequence_has_consecutive_levels(self):
+        """A multi-level collection created from a sequence has levels starting at 1 and
+        going up to the number of elements in the sequence."""
+
+        elements = "abcde"
+        levels = tuple(i + 1 for i in range(len(elements)))
+        expected = MultiLevel(zip(levels, elements))
+        self.assertEqual(expected, MultiLevel.from_sequence(elements))
+
+    def test_equals_detects_class(self):
+        """Two multi-level collections are equal if they are both instances of
+        MultiLevel and are equal as dicts."""
+
+        d_dict = dict(zip([1, 2, 3], self.elements))
+        d1 = MultiLevel(d_dict)
+        self.assertNotEqual(d1, d_dict)
+
+        d2 = MultiLevel(d_dict)
+        self.assertEqual(d1, d2)
+
+    def test_levels(self):
+        """The levels attribute returns the levels as an ordered tuple of ints."""
+
+        self.assertEqual((1, 3, 4), MultiLevel({3: "a", 1: "a", 4: "a"}).levels)
+        self.assertEqual((1, 2, 4), MultiLevel({2: "a", 4: "a", 1: "a"}).levels)
+
+    def test_map_preserves_level_structure(self):
+        """The map method applies a function to the objects at each level and
+        returns the result as a multi-level collection, with the results reflecting
+        the same level structure."""
+
+        def f(level: int, x: str) -> str:
+            return str(level) + "_" + x
+
+        levels = [2, 4, 6]
+        d = MultiLevel(zip(levels, self.elements))
+        expected = MultiLevel(zip(levels, map(f, levels, self.elements)))
+        self.assertEqual(expected, d.map(f))
 
 
 if __name__ == "__main__":

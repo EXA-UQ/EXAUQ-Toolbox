@@ -10,6 +10,9 @@ from scipy.stats import norm
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     Input,
+    InputWithLevel,
+    MultiLevel,
+    MultiLevelGaussianProcess,
     SimulatorDomain,
     TrainingDatum,
 )
@@ -618,3 +621,77 @@ def compute_single_level_loo_samples(
         pei.add_repulsion_point(new_design_point)
 
     return tuple(design_points)
+
+
+def compute_multi_level_pei(
+    mlgp: MultiLevelGaussianProcess, domain: SimulatorDomain
+) -> MultiLevel[PEICalculator]:
+
+    if not all(
+        datum.input in domain
+        for level in mlgp.levels
+        for datum in mlgp.training_data[level]
+    ):
+        raise ValueError(
+            "Expected all training inputs in 'mlgp' to belong to the domain 'domain', but "
+            "this is not the case."
+        )
+
+    return MultiLevel.from_sequence(
+        [PEICalculator(domain, mlgp[level]) for level in mlgp.levels]
+    )
+
+
+def compute_multi_level_loo_samples(
+    mlgp: MultiLevelGaussianProcess,
+    domain: SimulatorDomain,
+    costs: MultiLevel[Real],
+    batch_size: int = 1,
+) -> tuple[InputWithLevel]:
+    """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
+
+    if not isinstance(mlgp, MultiLevelGaussianProcess):
+        raise TypeError(
+            f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess.__name__}, but "
+            f"received {type(mlgp)} instead."
+        )
+    if missing_levels := sorted(set(mlgp.levels) - set(costs.levels)):
+        raise ValueError(
+            f"Level {missing_levels[0]} from 'mlgp' does not have associated level "
+            "from 'costs'."
+        )
+
+    if not isinstance(batch_size, int):
+        raise TypeError(
+            f"Expected 'batch_size' to be an integer, but received {type(batch_size)} instead."
+        )
+
+    if batch_size < 1:
+        raise ValueError(
+            f"Expected batch size to be a positive integer, but received {batch_size} instead."
+        )
+
+    ml_pei = compute_multi_level_pei(mlgp, domain)
+    delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
+    maximal_pei_values = ml_pei.map(
+        lambda level, pei: maximise(lambda x: pei.compute(x) / delta_costs[level], domain)
+    )
+    level, (x, _) = max(maximal_pei_values.items(), key=lambda item: item[1][1])
+    design_points = [InputWithLevel(level, *x)]
+    if batch_size > 1:
+        pei = ml_pei[level]
+        for i in range(batch_size - 1):
+            pei.add_repulsion_point(design_points[i])
+            new_design_pt, _ = maximise(lambda x: pei.compute(x), domain)
+            design_points.append(InputWithLevel(level, *new_design_pt))
+
+    return tuple(design_points)
+
+
+def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:
+    """Compute the cost of computing a successive difference of simulations at a level."""
+
+    if level == 1:
+        return costs[1]
+    else:
+        return costs[level - 1] + costs[level]
