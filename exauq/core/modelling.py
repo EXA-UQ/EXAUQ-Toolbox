@@ -46,7 +46,7 @@ class LevelTagged(metaclass=_LevelTaggedMeta):
     ```
     from exauq.core.modelling import Input
 
-    def f() -> LevelTagged[Input]:
+    def foo() -> LevelTagged[Input]:
         ...
 
     ```
