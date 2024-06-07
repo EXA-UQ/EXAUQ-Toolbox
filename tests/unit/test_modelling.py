@@ -13,12 +13,12 @@ from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     Input,
+    LevelTagged,
     LevelTaggedOld,
     MultiLevel,
     Prediction,
     SimulatorDomain,
     TrainingDatum,
-    _LevelTagged_level_attr_name,
     get_level,
     remove_level,
     set_level,
@@ -1602,6 +1602,16 @@ class TestLevelTagged(ExauqTestCase):
         self.assertEqual(level, get_level(a))
         self.assertIs(a, self.a)
 
+    def test_instance_check(self):
+        """An object is tagged with a level precisely when it is an instance of
+        LevelTagged."""
+
+        obj = A(1)
+        self.assertNotIsInstance(obj, LevelTagged)
+        obj = set_level(obj, 2)
+        self.assertIsInstance(obj, LevelTagged)
+        self.assertIsInstance(obj, A)  # check still an object of type A
+
     def test_set_level_non_int_error(self):
         """A TypeError is raised if a users tries to set a level that is not an integer."""
 
@@ -1620,11 +1630,11 @@ class TestLevelTagged(ExauqTestCase):
     def test_set_level_attribute_already_present(self):
         """A level cannot be set if it would overwrite an existing attributes."""
 
-        setattr(self.a, _LevelTagged_level_attr_name, "foo")
+        setattr(self.a, LevelTagged.level_attr, "foo")
         with self.assertRaisesRegex(
             ValueError,
             f"Cannot set a level on argument 'obj' with value {self.a} as existing attribute "
-            f"'{_LevelTagged_level_attr_name}' would be overwritten.",
+            f"'{LevelTagged.level_attr}' would be overwritten.",
         ):
             _ = set_level(self.a, 99)
 

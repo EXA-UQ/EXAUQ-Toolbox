@@ -10,7 +10,8 @@ import math
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from itertools import product
 from numbers import Real
-from typing import Any, Callable, Generic, NewType, Optional, TypeVar, Union
+from types import GenericAlias
+from typing import Any, Callable, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -21,33 +22,43 @@ from exauq.utilities.csv_db import Path
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 T = TypeVar("T")
 S = TypeVar("S")
-LevelTagged = NewType("LevelTagged", Generic[T])
-_LevelTagged_level_attr_name = f"_{LevelTagged.__name__}_level"
+
+
+class LevelTaggedMeta(type):
+    def __instancecheck__(cls, obj: Any) -> bool:
+        return get_level(obj) is not None
+
+
+class LevelTagged(metaclass=LevelTaggedMeta):
+    level_attr = "_LevelTagged_level"
+
+    def __class_getitem__(cls, key):
+        return GenericAlias(cls, (key,))
 
 
 def set_level(obj: T, level: int) -> LevelTagged[T]:
     if not isinstance(level, int):
         raise TypeError(f"Expected 'level' to be an integer, but received {type(level)}.")
-    elif hasattr(obj, _LevelTagged_level_attr_name):
+    elif hasattr(obj, LevelTagged.level_attr):
         raise ValueError(
             f"Cannot set a level on argument 'obj' with value {obj} as existing attribute "
-            f"'{_LevelTagged_level_attr_name}' would be overwritten."
+            f"'{LevelTagged.level_attr}' would be overwritten."
         )
     else:
-        setattr(obj, _LevelTagged_level_attr_name, level)
-        return LevelTagged(obj)
+        setattr(obj, LevelTagged.level_attr, level)
+        return obj
 
 
 def get_level(obj: LevelTagged[Any]) -> Optional[int]:
-    if not hasattr(obj, _LevelTagged_level_attr_name):
+    if not hasattr(obj, LevelTagged.level_attr):
         return None
     else:
-        return getattr(obj, _LevelTagged_level_attr_name)
+        return getattr(obj, LevelTagged.level_attr)
 
 
 def remove_level(obj: Any) -> None:
-    if get_level(obj) is not None:
-        delattr(obj, _LevelTagged_level_attr_name)
+    if isinstance(obj, LevelTagged):
+        delattr(obj, LevelTagged.level_attr)
         return None
     else:
         return None
