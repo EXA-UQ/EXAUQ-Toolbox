@@ -629,7 +629,7 @@ def compute_multi_level_pei(
 
     if not isinstance(domain, SimulatorDomain):
         raise TypeError(
-            f"Expected 'domain' to be of type {SimulatorDomain.__name__}, but received "
+            f"Expected 'domain' to be of type {SimulatorDomain}, but received "
             f"{type(domain)} instead."
         )
 
@@ -658,7 +658,7 @@ def compute_multi_level_loo_samples(
 
     if not isinstance(mlgp, MultiLevelGaussianProcess):
         raise TypeError(
-            f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess.__name__}, but "
+            f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess}, but "
             f"received {type(mlgp)} instead."
         )
     if missing_levels := sorted(set(mlgp.levels) - set(costs.levels)):

@@ -939,7 +939,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess.__name__}, but received {type(arg)} instead."
+                f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess}, but received {type(arg)} instead."
             ),
         ):
             _ = self.compute_multi_level_loo_samples(mlgp=arg)
@@ -947,7 +947,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'domain' to be of type {SimulatorDomain.__name__}, but received {type(arg)} instead."
+                f"Expected 'domain' to be of type {SimulatorDomain}, but received {type(arg)} instead."
             ),
         ):
             _ = self.compute_multi_level_loo_samples(domain=arg)
