@@ -25,11 +25,51 @@ S = TypeVar("S")
 
 
 class _LevelTaggedMeta(type):
+    """Metaclass used to define custom ``isinstance`` behaviour for ``LevelTagged``."""
+
     def __instancecheck__(cls, obj: Any) -> bool:
         return get_level(obj) is not None
 
 
 class LevelTagged(metaclass=_LevelTaggedMeta):
+    """Represents objects that have a level attached to them.
+
+    This class is not intended to be instantiated directly and exists mainly to support
+    type hinting for objects that have a level attached to them (cf. the `set_level`,
+    `get_level` and `remove_level` functions).
+
+    `LevelTagged` supports class subscripting, so that it behaves a like a generic type
+    for type hinting. (Note however that `LevelTagged` does not derive from
+    `typing.Generic`.) For example, if a function `foo` returns an instance of
+    ``exauq.core.modelling.Input`` with a level attached to it, this can be type-hint as:
+
+    ```
+    from exauq.core.modelling import Input
+
+    def f() -> LevelTagged[Input]:
+        ...
+
+    ```
+
+    `LevelTagged` also provides custom `isinstance` behaviour that can be used to
+    determine whether an object has a level attached to it:
+
+    ```
+    from exauq.core.modelling import set_level
+
+    x = Input(1, 2, 3)
+    assert not isinstance(x, LevelTagged)
+
+    _ = set_level(x, 99)
+    assert isinstance(x, LevelTagged)
+    ```
+
+    Attributes
+    ----------
+    level_attr : str
+        The name of the attribute used when attaching a level to an object.
+    """
+
     level_attr = "_LevelTagged_level"
 
     def __class_getitem__(cls, key):
