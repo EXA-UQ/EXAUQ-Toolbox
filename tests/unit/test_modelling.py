@@ -14,11 +14,11 @@ from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     Input,
     LevelTagged,
-    LevelTaggedOld,
     MultiLevel,
     Prediction,
     SimulatorDomain,
     TrainingDatum,
+    _LevelTaggedOld,
     get_level,
     remove_level,
     set_level,
@@ -1663,7 +1663,7 @@ class TestLevelTaggedOld(ExauqTestCase):
             def set_b(self, b) -> None:
                 self.b = b
 
-        class TaggedA(LevelTaggedOld, A):
+        class TaggedA(_LevelTaggedOld, A):
             pass
 
         level = 1
@@ -1673,7 +1673,7 @@ class TestLevelTaggedOld(ExauqTestCase):
     def test_cannot_modify_level(self):
         """The level cannot be modified once set."""
 
-        tagged = LevelTaggedOld(1)
+        tagged = _LevelTaggedOld(1)
         with self.assertRaisesRegex(
             AttributeError, "Cannot modify this instance's 'level' attribute."
         ):
@@ -1690,7 +1690,7 @@ class TestLevelTaggedOld(ExauqTestCase):
 
         with self.assertRaisesRegex(TypeError, "^Cannot create class"):
 
-            class TaggedA(LevelTaggedOld, A):
+            class TaggedA(_LevelTaggedOld, A):
                 pass
 
         class B:
@@ -1699,7 +1699,7 @@ class TestLevelTaggedOld(ExauqTestCase):
 
         with self.assertRaisesRegex(TypeError, "^Cannot initialise object"):
 
-            class TaggedB(LevelTaggedOld, B):
+            class TaggedB(_LevelTaggedOld, B):
                 pass
 
             _ = TaggedB(level=10)

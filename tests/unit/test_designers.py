@@ -24,11 +24,12 @@ from exauq.core.designers import (
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     Input,
-    InputWithLevel,
+    LevelTagged,
     MultiLevel,
     MultiLevelGaussianProcess,
     SimulatorDomain,
     TrainingDatum,
+    get_level,
 )
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
@@ -912,7 +913,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         domain: Optional[SimulatorDomain] = None,
         costs: Optional[MultiLevel[Real]] = None,
         batch_size: Optional[int] = 1,
-    ) -> tuple[InputWithLevel]:
+    ) -> tuple[LevelTagged[Input]]:
         mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
         costs = self.default_costs if costs is None else costs
@@ -1039,7 +1040,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
                 self.assertIsInstance(design_points, tuple)
                 for x in design_points:
-                    self.assertIn(x.level, costs.levels)
+                    self.assertIn(get_level(x), costs.levels)
                     self.assertIn(x, domain)
 
     def test_returns_design_points_at_same_level(self):
@@ -1047,7 +1048,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         level."""
 
         design_points = self.compute_multi_level_loo_samples(batch_size=2)
-        levels = {x.level for x in design_points}
+        levels = {get_level(x) for x in design_points}
         self.assertEqual(1, len(levels))
 
     def test_single_batch_level_that_maximises_pei(self):
@@ -1089,7 +1090,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             mlgp=mlgp, domain=domain, costs=costs
         )
         self.assertEqual(1, len(design_points))
-        level = design_points[0].level
+        level = get_level(design_points[0])
 
         ml_pei = self.compute_multi_level_pei(mlgp, domain)
         _, max_pei1 = maximise(lambda x: ml_pei[1].compute(x), domain)
@@ -1125,7 +1126,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         distinct from the training data inputs."""
 
         ml_design_points = self.compute_multi_level_loo_samples(batch_size=3)
-        level = ml_design_points[0].level
+        level = get_level(ml_design_points[0])
         design_pts = self.compute_multi_level_loo_samples(
             mlgp=self.default_mlgp, batch_size=3
         )
