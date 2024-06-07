@@ -24,12 +24,12 @@ T = TypeVar("T")
 S = TypeVar("S")
 
 
-class LevelTaggedMeta(type):
+class _LevelTaggedMeta(type):
     def __instancecheck__(cls, obj: Any) -> bool:
         return get_level(obj) is not None
 
 
-class LevelTagged(metaclass=LevelTaggedMeta):
+class LevelTagged(metaclass=_LevelTaggedMeta):
     level_attr = "_LevelTagged_level"
 
     def __class_getitem__(cls, key):
