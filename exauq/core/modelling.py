@@ -10,7 +10,7 @@ import math
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from itertools import product
 from numbers import Real
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Callable, Generic, NewType, Optional, TypeVar, Union
 
 import numpy as np
 
@@ -19,6 +19,38 @@ from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.csv_db import Path
 
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
+T = TypeVar("T")
+S = TypeVar("S")
+LevelTagged = NewType("LevelTagged", Generic[T])
+_LevelTagged_level_attr_name = f"_{LevelTagged.__name__}_level"
+
+
+def set_level(obj: T, level: int) -> LevelTagged[T]:
+    if not isinstance(level, int):
+        raise TypeError(f"Expected 'level' to be an integer, but received {type(level)}.")
+    elif hasattr(obj, _LevelTagged_level_attr_name):
+        raise ValueError(
+            f"Cannot set a level on argument 'obj' with value {obj} as existing attribute "
+            f"'{_LevelTagged_level_attr_name}' would be overwritten."
+        )
+    else:
+        setattr(obj, _LevelTagged_level_attr_name, level)
+        return LevelTagged(obj)
+
+
+def get_level(obj: LevelTagged[Any]) -> Optional[int]:
+    if not hasattr(obj, _LevelTagged_level_attr_name):
+        return None
+    else:
+        return getattr(obj, _LevelTagged_level_attr_name)
+
+
+def remove_level(obj: Any) -> None:
+    if get_level(obj) is not None:
+        delattr(obj, _LevelTagged_level_attr_name)
+        return None
+    else:
+        return None
 
 
 class LevelTaggedOld:
@@ -907,10 +939,6 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         """
 
         raise NotImplementedError
-
-
-T = TypeVar("T")
-S = TypeVar("S")
 
 
 class MultiLevel(dict[int, T]):
