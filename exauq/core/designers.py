@@ -627,6 +627,12 @@ def compute_multi_level_pei(
     mlgp: MultiLevelGaussianProcess, domain: SimulatorDomain
 ) -> MultiLevel[PEICalculator]:
 
+    if not isinstance(domain, SimulatorDomain):
+        raise TypeError(
+            f"Expected 'domain' to be of type {SimulatorDomain.__name__}, but received "
+            f"{type(domain)} instead."
+        )
+
     if not all(
         datum.input in domain
         for level in mlgp.levels
