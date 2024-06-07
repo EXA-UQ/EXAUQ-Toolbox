@@ -13,7 +13,7 @@ from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     Input,
-    LevelTagged,
+    LevelTaggedOld,
     MultiLevel,
     Prediction,
     SimulatorDomain,
@@ -1570,7 +1570,7 @@ class TestSimulatorDomain(unittest.TestCase):
         self.assertTrue(compare_input_tuples(pseudopoints, expected))
 
 
-class TestLevelTagged(ExauqTestCase):
+class TestLevelTaggedOld(ExauqTestCase):
     def test_get_level(self):
         """The level tagged onto the object can be obtained from the `level` attribute."""
 
@@ -1585,7 +1585,7 @@ class TestLevelTagged(ExauqTestCase):
             def set_b(self, b) -> None:
                 self.b = b
 
-        class TaggedA(LevelTagged, A):
+        class TaggedA(LevelTaggedOld, A):
             pass
 
         level = 1
@@ -1595,7 +1595,7 @@ class TestLevelTagged(ExauqTestCase):
     def test_cannot_modify_level(self):
         """The level cannot be modified once set."""
 
-        tagged = LevelTagged(1)
+        tagged = LevelTaggedOld(1)
         with self.assertRaisesRegex(
             AttributeError, "Cannot modify this instance's 'level' attribute."
         ):
@@ -1612,7 +1612,7 @@ class TestLevelTagged(ExauqTestCase):
 
         with self.assertRaisesRegex(TypeError, "^Cannot create class"):
 
-            class TaggedA(LevelTagged, A):
+            class TaggedA(LevelTaggedOld, A):
                 pass
 
         class B:
@@ -1621,7 +1621,7 @@ class TestLevelTagged(ExauqTestCase):
 
         with self.assertRaisesRegex(TypeError, "^Cannot initialise object"):
 
-            class TaggedB(LevelTagged, B):
+            class TaggedB(LevelTaggedOld, B):
                 pass
 
             _ = TaggedB(level=10)

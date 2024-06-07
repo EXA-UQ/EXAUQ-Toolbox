@@ -21,7 +21,7 @@ from exauq.utilities.csv_db import Path
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 
 
-class LevelTagged:
+class LevelTaggedOld:
     """An object with a level attached to it.
 
     This class is not intended to be initialised directly, but rather to be used alongside
@@ -358,7 +358,7 @@ class Input(Sequence):
         return self._value
 
 
-class InputWithLevel(LevelTagged, Input):
+class InputWithLevel(LevelTaggedOld, Input):
     pass
 
 
