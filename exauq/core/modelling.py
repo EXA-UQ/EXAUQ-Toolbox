@@ -635,6 +635,15 @@ class TrainingDatum(object):
         return f"({str(self.input)}, {str(self.output)})"
 
 
+class GaussianRV:
+    def __init__(self, mean: Real, variance: Real):
+        self._mean = mean
+        self._variance = variance
+
+    def nes_error(self):
+        return 1
+
+
 @dataclasses.dataclass(frozen=True)
 class Prediction:
     """Represents a predicted value together with the variance and standard_deviation of the prediction.
@@ -931,6 +940,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         except ZeroDivisionError:
             return 0 if expected_sq_err == 0 else float("inf")
 
+    # TODO: return as a matrix
     def covariance_matrix(self, inputs: Sequence[Input]) -> tuple[tuple[float, ...], ...]:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
@@ -966,6 +976,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             for row in correlations
         )
 
+    # TODO: return as a matrix e.g. np.mat
     @abc.abstractmethod
     def correlation(
         self, inputs1: Sequence[Input], inputs2: Sequence[Input]
@@ -1125,6 +1136,26 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
     @property
     def training_data(self) -> MultiLevel[tuple[TrainingDatum, ...]]:
         return self.map(lambda _, gp: gp.training_data)
+
+    @property
+    def coefficients(self) -> MultiLevel[Real]:
+        # TODO: implement
+        return self.map(lambda level, gp: 1)
+
+    def fit(
+        self,
+        training_data: MultiLevel[Collection[TrainingDatum]],
+        hyperparameters: Optional[
+            Union[
+                GaussianProcessHyperparameters, MultiLevel[GaussianProcessHyperparameters]
+            ]
+        ] = None,
+        hyperparameter_bounds: Optional[
+            Union[Sequence[OptionalFloatPairs], MultiLevel[Sequence[OptionalFloatPairs]]]
+        ] = None,
+    ) -> None:
+        # TODO: implement
+        pass
 
 
 class AbstractHyperparameters(abc.ABC):
