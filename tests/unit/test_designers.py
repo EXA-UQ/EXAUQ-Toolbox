@@ -18,7 +18,6 @@ from exauq.core.designers import (
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_multi_level_loo_samples,
-    compute_multi_level_pei,
     compute_single_level_loo_samples,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
@@ -917,16 +916,8 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
         costs = self.default_costs if costs is None else costs
-        return compute_multi_level_loo_samples(mlgp, domain, costs, batch_size=batch_size)
 
-    def compute_multi_level_pei(
-        self,
-        mlgp: Optional[MultiLevelGaussianProcess] = None,
-        domain: Optional[SimulatorDomain] = None,
-    ) -> MultiLevel[PEICalculator]:
-        mlgp = self.default_mlgp if mlgp is None else mlgp
-        domain = self.default_domain if domain is None else domain
-        return compute_multi_level_pei(mlgp, domain)
+        return compute_multi_level_loo_samples(mlgp, domain, costs, batch_size=batch_size)
 
     def test_arg_type_errors(self):
         """A TypeError is raised if any of the following hold:
@@ -1092,7 +1083,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         self.assertEqual(1, len(design_points))
         level = get_level(design_points[0])
 
-        ml_pei = self.compute_multi_level_pei(mlgp, domain)
+        ml_pei = mlgp.map(lambda _, gp: PEICalculator(domain, gp))
         _, max_pei1 = maximise(lambda x: ml_pei[1].compute(x), domain)
         _, max_pei2 = maximise(lambda x: ml_pei[2].compute(x), domain)
         _, max_pei3 = maximise(lambda x: ml_pei[3].compute(x), domain)

@@ -636,31 +636,6 @@ def compute_single_level_loo_samples(
     return tuple(design_points)
 
 
-def compute_multi_level_pei(
-    mlgp: MultiLevelGaussianProcess, domain: SimulatorDomain
-) -> MultiLevel[PEICalculator]:
-
-    if not isinstance(domain, SimulatorDomain):
-        raise TypeError(
-            f"Expected 'domain' to be of type {SimulatorDomain}, but received "
-            f"{type(domain)} instead."
-        )
-
-    if not all(
-        datum.input in domain
-        for level in mlgp.levels
-        for datum in mlgp.training_data[level]
-    ):
-        raise ValueError(
-            "Expected all training inputs in 'mlgp' to belong to the domain 'domain', but "
-            "this is not the case."
-        )
-
-    return MultiLevel.from_sequence(
-        [PEICalculator(domain, mlgp[level]) for level in mlgp.levels]
-    )
-
-
 def compute_multi_level_loo_gaussian(
     mlgp: MultiLevelGaussianProcess,
     level: int,
