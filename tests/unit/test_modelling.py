@@ -1574,8 +1574,8 @@ class TestSimulatorDomain(unittest.TestCase):
         self.assertTrue(compare_input_tuples(pseudopoints, expected))
 
 
-class A:
-    """A dummy class for testing level tagging."""
+class StubClass:
+    """A stub class for testing level tagging."""
 
     def __init__(self, a: int, b=None):
         self.a = a
@@ -1590,7 +1590,7 @@ class A:
 
 class TestLevelTagged(ExauqTestCase):
     def setUp(self) -> None:
-        self.a = A(1)
+        self.a = StubClass(1)
 
     def test_set_and_get_level(self):
         """An object can be tagged with an integer level and this level can be
@@ -1606,11 +1606,11 @@ class TestLevelTagged(ExauqTestCase):
         """An object is tagged with a level precisely when it is an instance of
         LevelTagged."""
 
-        obj = A(1)
+        obj = StubClass(1)
         self.assertNotIsInstance(obj, LevelTagged)
         obj = set_level(obj, 2)
         self.assertIsInstance(obj, LevelTagged)
-        self.assertIsInstance(obj, A)  # check still an object of type A
+        self.assertIsInstance(obj, StubClass)  # check still an object of type A
 
     def test_set_level_non_int_error(self):
         """A TypeError is raised if a users tries to set a level that is not an integer."""
