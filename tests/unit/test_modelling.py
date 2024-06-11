@@ -10,28 +10,17 @@ from typing import Literal, Sequence
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import (
-    GaussianProcessHyperparameters,
-    Input,
-    LevelTagged,
-    MultiLevel,
-    Prediction,
-    SimulatorDomain,
-    TrainingDatum,
-    _LevelTaggedOld,
-    get_level,
-    remove_level,
-    set_level,
-)
+from exauq.core.modelling import (GaussianProcessHyperparameters, Input,
+                                  LevelTagged, MultiLevel,
+                                  MultiLevelGaussianProcess, Prediction,
+                                  SimulatorDomain, TrainingDatum,
+                                  _LevelTaggedOld, get_level, remove_level,
+                                  set_level)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
-from tests.utilities.utilities import (
-    ExauqTestCase,
-    compare_input_tuples,
-    exact,
-    make_window,
-)
+from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
+                                       exact, make_window)
 
 
 class TestInput(unittest.TestCase):
@@ -1768,6 +1757,27 @@ class TestMultiLevel(ExauqTestCase):
         d = MultiLevel(zip(levels, self.elements))
         expected = MultiLevel(zip(levels, map(f, levels, self.elements)))
         self.assertEqual(expected, d.map(f))
+
+
+class TestMultiLevelGaussianProcess(ExauqTestCase):
+
+    def test_fit_fits_data_to_gps_level_wise(self):
+        """The constituent GPs within a multi-level GP are fit to Training data
+        level-wise."""
+
+        gp1, gp2 = FakeGP(), FakeGP()
+        mlgp = MultiLevelGaussianProcess({1: gp1, 2: gp2})
+        training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0), 1),),
+                2: (TrainingDatum(Input(1), 2),),
+            }
+        )
+
+        mlgp.fit(training_data)
+
+        for level in mlgp.levels:
+            self.assertEqual(training_data[level], mlgp.training_data[level])
 
 
 if __name__ == "__main__":

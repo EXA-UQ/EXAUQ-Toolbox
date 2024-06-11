@@ -1154,8 +1154,8 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
             Union[Sequence[OptionalFloatPairs], MultiLevel[Sequence[OptionalFloatPairs]]]
         ] = None,
     ) -> None:
-        # TODO: implement
-        pass
+        _ = self.map(lambda level, gp: gp.fit(training_data[level]))
+        return None
 
 
 class AbstractHyperparameters(abc.ABC):
