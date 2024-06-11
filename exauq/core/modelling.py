@@ -1154,7 +1154,10 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
             Union[Sequence[OptionalFloatPairs], MultiLevel[Sequence[OptionalFloatPairs]]]
         ] = None,
     ) -> None:
-        _ = self.map(lambda level, gp: gp.fit(training_data[level]))
+        if not isinstance(training_data, MultiLevel):
+            training_data = MultiLevel(training_data)
+
+        _ = training_data.map(lambda level, data: self[level].fit(data))
         return None
 
 

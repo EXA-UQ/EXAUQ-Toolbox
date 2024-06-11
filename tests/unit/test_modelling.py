@@ -10,17 +10,30 @@ from typing import Literal, Sequence
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import (GaussianProcessHyperparameters, Input,
-                                  LevelTagged, MultiLevel,
-                                  MultiLevelGaussianProcess, Prediction,
-                                  SimulatorDomain, TrainingDatum,
-                                  _LevelTaggedOld, get_level, remove_level,
-                                  set_level)
+from exauq.core.modelling import (
+    AbstractGaussianProcess,
+    GaussianProcessHyperparameters,
+    Input,
+    LevelTagged,
+    MultiLevel,
+    MultiLevelGaussianProcess,
+    Prediction,
+    SimulatorDomain,
+    TrainingDatum,
+    _LevelTaggedOld,
+    get_level,
+    remove_level,
+    set_level,
+)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
-from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
-                                       exact, make_window)
+from tests.utilities.utilities import (
+    ExauqTestCase,
+    compare_input_tuples,
+    exact,
+    make_window,
+)
 
 
 class TestInput(unittest.TestCase):
@@ -1760,24 +1773,47 @@ class TestMultiLevel(ExauqTestCase):
 
 
 class TestMultiLevelGaussianProcess(ExauqTestCase):
+    def setUp(self) -> None:
+        self.gps = {1: FakeGP(), 2: FakeGP(), 3: FakeGP()}
+        self.training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0), 1),),
+                2: (TrainingDatum(Input(0.5), 2),),
+                3: (TrainingDatum(Input(1), 3),),
+            }
+        )
+
+    @staticmethod
+    def make_multi_level_gp(gps: dict[AbstractGaussianProcess]):
+        return MultiLevelGaussianProcess(gps)
 
     def test_fit_fits_data_to_gps_level_wise(self):
         """The constituent GPs within a multi-level GP are fit to Training data
         level-wise."""
 
-        gp1, gp2 = FakeGP(), FakeGP()
-        mlgp = MultiLevelGaussianProcess({1: gp1, 2: gp2})
-        training_data = MultiLevel(
-            {
-                1: (TrainingDatum(Input(0), 1),),
-                2: (TrainingDatum(Input(1), 2),),
-            }
-        )
+        mlgp = self.make_multi_level_gp(self.gps)
 
-        mlgp.fit(training_data)
+        mlgp.fit(self.training_data)
 
         for level in mlgp.levels:
-            self.assertEqual(training_data[level], mlgp.training_data[level])
+            self.assertEqual(self.training_data[level], mlgp.training_data[level])
+
+    def test_fit_fits_data_to_gps_level_wise_only_on_given_levels(self):
+        """Only the GPs at levels that appear in the given training data are trained."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        missing_level = 2
+        del self.training_data[missing_level]
+
+        mlgp.fit(self.training_data)
+
+        for level in self.training_data.levels:
+            self.assertEqual(
+                self.training_data[level],
+                mlgp.training_data[level],
+            )
+
+        self.assertEqual(tuple(), mlgp.training_data[missing_level])
 
 
 if __name__ == "__main__":
