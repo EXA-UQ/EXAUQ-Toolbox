@@ -386,18 +386,16 @@ class SimulationsLog(object):
 
         return job_records
 
-    def get_pending_jobs(self) -> tuple[Job, ...]:
+    def get_non_terminated_jobs(self) -> tuple[Job, ...]:
         """Return all jobs which don't have results and are in non-terminal states.
 
-        A job is considered pending if it is in one of the following states:
-        RUNNING, SUBMITTED, PENDING_SUBMIT, or FAILED_SUBMIT. In the case of a job
-        being in a FAILED_SUBMIT state, submission will be retried by setting its status
-        to PENDING_SUBMIT.
+        A job is considered non-terminal if it is in one of the following states:
+        RUNNING, SUBMITTED or PENDING_SUBMIT.
 
         Returns
         -------
         tuple[Job]
-            The Jobs that are in a pending state.
+            The Jobs that are in a non-terminal state.
         """
         with self._lock:
             non_terminal_statuses = set(JobStatus) - TERMINAL_STATUSES
@@ -618,7 +616,7 @@ class JobManager:
 
         self._job_strategies = self._init_job_strategies()
 
-        self.monitor(self._simulations_log.get_pending_jobs())
+        self.monitor(self._simulations_log.get_non_terminated_jobs())
         if wait_for_pending and self._thread is not None:
             self._thread.join()
 

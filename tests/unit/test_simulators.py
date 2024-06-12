@@ -69,7 +69,7 @@ def make_fake_simulations_log_class(
         def insert_result(self, job_id, result):
             pass
 
-        def get_pending_jobs(self):
+        def get_non_terminated_jobs(self):
             """Return an empty list, indicating that there are no outstanding jobs."""
 
             return []
@@ -478,16 +478,16 @@ class TestSimulationsLog(unittest.TestCase):
         ):
             log.insert_result(job_id, 10)
 
-    def test_get_pending_jobs_empty_log_file(self):
-        """Test that an empty tuple of pending jobs is returned if there are no
+    def test_get_non_terminated_jobs_empty_log_file(self):
+        """Test that an empty tuple of non terminated jobs is returned if there are no
         records in the simulations log file."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
-        self.assertEqual(tuple(), log.get_pending_jobs())
+        self.assertEqual(tuple(), log.get_non_terminated_jobs())
 
-    def test_get_pending_jobs_empty_when_all_completed(self):
+    def test_get_non_terminated_jobs_empty_when_all_completed(self):
         """Test that an empty tuple is returned if all jobs in the simulations
-        log file have a non-pending JobStatus i.e. one of COMPLETED, FAILED, CANCELLED."""
+        log file have a terminated JobStatus i.e. one of COMPLETED, FAILED, CANCELLED, FAILED_SUBMIT."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
 
@@ -501,11 +501,13 @@ class TestSimulationsLog(unittest.TestCase):
 
         log.add_new_record(Input(4), job_id="4", job_status=JobStatus.CANCELLED)
 
-        self.assertEqual(tuple(), log.get_pending_jobs())
+        log.add_new_record(Input(5), job_id="5", job_status=JobStatus.FAILED_SUBMIT)
 
-    def test_get_pending_jobs_selects_correct_jobs(self):
-        """Test that the jobs selected are those that have a valid pending JobState:
-        SUBMITTED, PENDING_SUBMIT, RUNNING, FAILED_SUBMIT."""
+        self.assertEqual(tuple(), log.get_non_terminated_jobs())
+
+    def test_get_non_terminated_jobs_selects_correct_jobs(self):
+        """Test that the jobs selected are those that have a valid non-terminal JobState:
+        SUBMITTED, PENDING_SUBMIT or RUNNING."""
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
         for x, job_id, y, status in (
@@ -519,10 +521,10 @@ class TestSimulationsLog(unittest.TestCase):
         ):
             log.add_new_record(x, job_id, status)
 
-        pending_jobs = log.get_pending_jobs()
+        non_terminated_jobs = log.get_non_terminated_jobs()
 
-        pending_job_ids = tuple(str(job.id) for job in pending_jobs)
-        self.assertEqual(("2", "3", "5", "6"), pending_job_ids)
+        non_terminated_job_ids = tuple(str(job.id) for job in non_terminated_jobs)
+        self.assertEqual(("2", "3", "5"), non_terminated_job_ids)
 
     def test_get_unsubmitted_inputs_no_inputs(self):
         """Test that an empty tuple is returned if no inputs have been submitted to the
