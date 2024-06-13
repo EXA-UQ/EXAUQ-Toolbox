@@ -4,6 +4,9 @@ import itertools
 import math
 import unittest
 import unittest.mock
+from collections.abc import Sequence
+from numbers import Real
+from typing import Optional
 from unittest.mock import MagicMock
 
 from scipy.stats import norm
@@ -14,11 +17,21 @@ from exauq.core.designers import (
     SimpleDesigner,
     compute_loo_errors_gp,
     compute_loo_gp,
+    compute_multi_level_loo_samples,
+    compute_multi_level_pei,
     compute_single_level_loo_samples,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import Input, SimulatorDomain, TrainingDatum
+from exauq.core.modelling import (
+    Input,
+    InputWithLevel,
+    MultiLevel,
+    MultiLevelGaussianProcess,
+    SimulatorDomain,
+    TrainingDatum,
+)
 from exauq.core.numerics import equal_within_tolerance
+from exauq.utilities.optimisation import maximise
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -746,6 +759,35 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
                     self.gp, self.domain, batch_size=batch_size
                 )
 
+    def test_unseeded_pei_maximisation_default(self):
+        """The calculation of new design points involves unseeded maximisation of
+        pseudo-expected improvement by default."""
+
+        mock_maximise_return = (self.domain.scale([0.5]), 1)
+        with unittest.mock.patch(
+            "exauq.core.designers.maximise",
+            autospec=True,
+            return_value=mock_maximise_return,
+        ) as mock_maximise:
+            _ = compute_single_level_loo_samples(self.gp, self.domain)
+
+        self.assertDictContainsSubset({"seed": None}, mock_maximise.call_args.kwargs)
+
+    def test_repeated_results_when_seed_set(self):
+        """If a seed is provided, then maximisation of pseudo-expected improvement is
+        performed with this seed."""
+
+        mock_maximise_return = (self.domain.scale([0.5]), 1)
+        seed = 99
+        with unittest.mock.patch(
+            "exauq.core.designers.maximise",
+            autospec=True,
+            return_value=mock_maximise_return,
+        ) as mock_maximise:
+            _ = compute_single_level_loo_samples(self.gp, self.domain, seed=seed)
+
+        self.assertDictContainsSubset({"seed": seed}, mock_maximise.call_args.kwargs)
+
     def test_number_of_new_design_points_matches_batch_number(self):
         """The number of new design points returned is equal to the supplied batch
         number."""
@@ -832,6 +874,279 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
                 self.gp, self.domain, loo_errors_gp=loo_errors_gp
             )
 
+
+class TestComputeMultiLevelLooSamples(ExauqTestCase):
+    @staticmethod
+    def make_level_costs(costs: Sequence[Real]) -> MultiLevel[Real]:
+        return MultiLevel.from_sequence(costs)
+
+    @staticmethod
+    def get_levels(costs: MultiLevel[Real]) -> set[int]:
+        return set(costs.levels)
+
+    def setUp(self) -> None:
+        self.tolerance = 1e-3
+        self.default_domain = SimulatorDomain([(0, 1)])
+        gp1 = MogpEmulator()
+        gp1.fit(
+            [
+                TrainingDatum(Input(0.2), 1),
+                TrainingDatum(Input(0.4), 1),
+                TrainingDatum(Input(0.6), 1),
+            ]
+        )
+        gp2 = MogpEmulator()
+        gp2.fit(
+            [
+                TrainingDatum(Input(0.3), 2),
+                TrainingDatum(Input(0.5), -2),
+                TrainingDatum(Input(0.7), 2),
+            ]
+        )
+        self.default_mlgp = MultiLevelGaussianProcess.from_sequence([gp1, gp2])
+        self.default_costs = MultiLevel.from_sequence([1, 10])
+
+    def compute_multi_level_loo_samples(
+        self,
+        mlgp: Optional[MultiLevelGaussianProcess] = None,
+        domain: Optional[SimulatorDomain] = None,
+        costs: Optional[MultiLevel[Real]] = None,
+        batch_size: Optional[int] = 1,
+    ) -> tuple[InputWithLevel]:
+        mlgp = self.default_mlgp if mlgp is None else mlgp
+        domain = self.default_domain if domain is None else domain
+        costs = self.default_costs if costs is None else costs
+        return compute_multi_level_loo_samples(mlgp, domain, costs, batch_size=batch_size)
+
+    def compute_multi_level_pei(
+        self,
+        mlgp: Optional[MultiLevelGaussianProcess] = None,
+        domain: Optional[SimulatorDomain] = None,
+    ) -> MultiLevel[PEICalculator]:
+        mlgp = self.default_mlgp if mlgp is None else mlgp
+        domain = self.default_domain if domain is None else domain
+        return compute_multi_level_pei(mlgp, domain)
+
+    def test_arg_type_errors(self):
+        """A TypeError is raised if any of the following hold:
+
+        * The input multi-level GP is not of type MultiLevelGaussianProcess.
+        * The domain is not of type SimulatorDomain.
+        * The batch size is not an integer.
+        """
+
+        arg = "a"
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess.__name__}, but received {type(arg)} instead."
+            ),
+        ):
+            _ = self.compute_multi_level_loo_samples(mlgp=arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'domain' to be of type {SimulatorDomain.__name__}, but received {type(arg)} instead."
+            ),
+        ):
+            _ = self.compute_multi_level_loo_samples(domain=arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'batch_size' to be an integer, but received {type(arg)} instead."
+            ),
+        ):
+            _ = self.compute_multi_level_loo_samples(batch_size=arg)
+
+    def test_domain_wrong_dim_error(self):
+        """A ValueError is raised if the supplied domain's dimension does not agree with
+        the dimension of the inputs in the GP's training data."""
+
+        domain_2dim = SimulatorDomain([(0, 1), (0, 1)])
+        with self.assertRaisesRegex(
+            ValueError,
+            "Expected all training inputs in 'mlgp' to belong to the domain 'domain', but this is not the case.",
+        ):
+            _ = self.compute_multi_level_loo_samples(domain=domain_2dim)
+
+    def test_non_positive_batch_size_error(self):
+        """A ValueError is raised if the batch size is not a positive integer."""
+
+        for batch_size in [0, -1]:
+            with self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Expected batch size to be a positive integer, but received {batch_size} instead."
+                ),
+            ):
+                _ = self.compute_multi_level_loo_samples(batch_size=batch_size)
+
+    def test_differing_input_arg_levels_error(self):
+        """A ValueError is raised if the levels found in the multi-level Gaussian
+        process do not also appear in the simulator costs."""
+
+        costs = self.make_level_costs([1])
+        missing_level = (set(self.default_mlgp.levels) - set(costs.levels)).pop()
+        with self.assertRaisesRegex(
+            ValueError,
+            f"Level {missing_level} from 'mlgp' does not have associated level from 'costs'.",
+        ):
+            self.compute_multi_level_loo_samples(costs=costs)
+
+    def test_number_of_design_points_returned_equals_batch_size(self):
+        """Then number of design points (with levels) returned equals the provided batch
+        size.
+        """
+
+        for batch_size in [1, 2, 3]:
+            with self.subTest(batch_size=batch_size):
+                design_points = self.compute_multi_level_loo_samples(
+                    batch_size=batch_size
+                )
+                self.assertEqual(batch_size, len(design_points))
+
+    def test_returns_design_points_from_domain(self):
+        """The return type is a tuple, with each element being an input tagged with a
+        simulator level and belonging to the supplied simulator domain."""
+
+        domains = [SimulatorDomain([(0, 1)]), SimulatorDomain([(2, 3)])]
+        gp1 = MogpEmulator()
+        gp1.fit(
+            [
+                TrainingDatum(Input(0.2), 1),
+                TrainingDatum(Input(0.4), 2),
+                TrainingDatum(Input(0.6), 3),
+            ]
+        )
+        gp2 = MogpEmulator()
+        gp2.fit(
+            [
+                TrainingDatum(Input(2.2), -1),
+                TrainingDatum(Input(2.4), -2),
+                TrainingDatum(Input(2.6), -3),
+            ]
+        )
+        costs = self.make_level_costs([1, 2, 3])
+        gps = [gp1, gp2]
+        for domain, gp in zip(domains, gps):
+            with self.subTest(domain=domain, gp=gp):
+                mlgp = MultiLevelGaussianProcess.from_sequence([gp] * len(costs))
+                design_points = self.compute_multi_level_loo_samples(
+                    mlgp=mlgp, domain=domain, costs=costs, batch_size=2
+                )
+
+                self.assertIsInstance(design_points, tuple)
+                for x in design_points:
+                    self.assertIn(x.level, costs.levels)
+                    self.assertIn(x, domain)
+
+    def test_returns_design_points_at_same_level(self):
+        """Each design point in the returned batch is paired with the same simulator
+        level."""
+
+        design_points = self.compute_multi_level_loo_samples(batch_size=2)
+        levels = {x.level for x in design_points}
+        self.assertEqual(1, len(levels))
+
+    def test_single_batch_level_that_maximises_pei(self):
+        """For a single batch output, the input and level returned are the ones that
+        maximise weighted pseudo-expected improvements across all simulator levels. The
+        weightings are reciprocals of the associated costs for calculating differences
+        of simulator outputs."""
+
+        costs = self.make_level_costs([1, 10, 100])
+        domain = SimulatorDomain([(0, 1)])
+
+        gp1 = MogpEmulator()
+        gp1.fit(
+            [
+                TrainingDatum(Input(0.1), 1),
+                TrainingDatum(Input(0.2), 2),
+                TrainingDatum(Input(0.3), 3),
+            ]
+        )
+        gp2 = MogpEmulator()
+        gp2.fit(
+            [
+                TrainingDatum(Input(0.4), 2),
+                TrainingDatum(Input(0.5), 99),
+                TrainingDatum(Input(0.6), -4),
+            ]
+        )
+        gp3 = MogpEmulator()
+        gp3.fit(
+            [
+                TrainingDatum(Input(0.7), 3),
+                TrainingDatum(Input(0.8), -3),
+                TrainingDatum(Input(0.9), 3),
+            ]
+        )
+
+        mlgp = MultiLevelGaussianProcess.from_sequence([gp1, gp2, gp3])
+        design_points = self.compute_multi_level_loo_samples(
+            mlgp=mlgp, domain=domain, costs=costs
+        )
+        self.assertEqual(1, len(design_points))
+        level = design_points[0].level
+
+        ml_pei = self.compute_multi_level_pei(mlgp, domain)
+        _, max_pei1 = maximise(lambda x: ml_pei[1].compute(x), domain)
+        _, max_pei2 = maximise(lambda x: ml_pei[2].compute(x), domain)
+        _, max_pei3 = maximise(lambda x: ml_pei[3].compute(x), domain)
+
+        expected_level, _ = max(
+            [
+                (1, max_pei1 / costs[1]),
+                (2, max_pei2 / (costs[2] + costs[1])),
+                (3, max_pei3 / (costs[3] + costs[2])),
+            ],
+            key=lambda tup: tup[1],
+        )
+        self.assertEqual(expected_level, level)
+
+    def test_new_design_points_in_batch_distinct(self):
+        """A batch of new design points consists of Input objects that are (likely)
+        all distinct."""
+
+        x1, x2 = self.compute_multi_level_loo_samples(batch_size=2)
+        self.assertFalse(
+            equal_within_tolerance(
+                x1,
+                x2,
+                rel_tol=self.tolerance,
+                abs_tol=self.tolerance,
+            )
+        )
+
+    def test_new_design_points_distinct_from_training_inputs(self):
+        """A batch of new design points consists of Input objects that are (likely)
+        distinct from the training data inputs."""
+
+        ml_design_points = self.compute_multi_level_loo_samples(batch_size=3)
+        level = ml_design_points[0].level
+        design_pts = self.compute_multi_level_loo_samples(
+            mlgp=self.default_mlgp, batch_size=3
+        )
+        training_inputs = [
+            datum.input for datum in self.default_mlgp[level].training_data
+        ]
+
+        for training_x, x in itertools.product(training_inputs, design_pts):
+            with self.subTest(training_input=training_x, design_pt=x):
+                self.assertFalse(
+                    equal_within_tolerance(
+                        training_x,
+                        x,
+                        rel_tol=self.tolerance,
+                        abs_tol=self.tolerance,
+                    )
+                )
+
+
+# TODO: test that repulsion points are updated with previously calculated inputs in
+# batch mode.
 
 if __name__ == "__main__":
     unittest.main()
