@@ -27,7 +27,12 @@ from exauq.core.modelling import (
 )
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
-from tests.unit.fakes import FakeGP, FakeGPHyperparameters
+from tests.unit.fakes import (
+    FakeGP,
+    FakeGPHyperparameters,
+    WhiteNoiseGP,
+    WhiteNoiseGPHyperparameters,
+)
 from tests.utilities.utilities import (
     ExauqTestCase,
     compare_input_tuples,
@@ -1856,6 +1861,31 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
 
         for level in mlgp.levels:
             self.assertEqual(params, mlgp.fit_hyperparameters[level])
+
+    def test_fit_default_hyperparameters_for_missing_levels(self):
+        """If no hyperparameters are provided for some level of the multi-level GP,
+        then the GP at that level has its hyperparameters estimated."""
+
+        noise_level = 11
+        gps = {
+            1: WhiteNoiseGP(noise_level=noise_level),
+            2: WhiteNoiseGP(noise_level=noise_level),
+            3: WhiteNoiseGP(noise_level=noise_level),
+        }
+        mlgp = self.make_multi_level_gp(gps)
+        mlparams = MultiLevel(
+            {
+                1: WhiteNoiseGPHyperparameters(process_var=1),
+                3: WhiteNoiseGPHyperparameters(process_var=3),
+            }
+        )
+
+        mlgp.fit(self.training_data, hyperparameters=mlparams)
+
+        self.assertEqual(
+            WhiteNoiseGPHyperparameters(process_var=noise_level),
+            mlgp.fit_hyperparameters[2],
+        )
 
 
 if __name__ == "__main__":
