@@ -1827,6 +1827,36 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
 
         self.assertEqual(tuple(), mlgp.training_data[missing_level])
 
+    def test_fit_multi_level_hyperparameters_applied_level_wise(self):
+        """If hyperparameters for multiple levels are supplied, these are applied
+        level-wise when fitting the multi-level GP."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        mlparams = MultiLevel(
+            {
+                1: FakeGPHyperparameters(corr_length_scales=[0], process_var=1),
+                2: FakeGPHyperparameters(corr_length_scales=[0], process_var=2),
+                3: FakeGPHyperparameters(corr_length_scales=[0], process_var=3),
+            }
+        )
+        mlgp.fit(self.training_data, hyperparameters=mlparams)
+
+        self.assertEqual(mlparams, mlgp.fit_hyperparameters)
+
+        for level in self.training_data.levels:
+            self.assertEqual(mlparams[level], mlgp[level].fit_hyperparameters)
+
+    def test_fit_single_level_hyperparameters_applied_to_all_levels(self):
+        """If a non-levelled set of hyperparameters is supplied, then these are applied to
+        each level when fitting the multi-level GP."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        params = FakeGPHyperparameters(corr_length_scales=[0], process_var=1, nugget=0.1)
+        mlgp.fit(self.training_data, hyperparameters=params)
+
+        for level in mlgp.levels:
+            self.assertEqual(params, mlgp.fit_hyperparameters[level])
+
 
 if __name__ == "__main__":
     unittest.main()

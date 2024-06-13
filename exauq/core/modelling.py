@@ -1142,6 +1142,10 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
         # TODO: implement
         return self.map(lambda level, gp: 1)
 
+    @property
+    def fit_hyperparameters(self) -> Optional[MultiLevel[AbstractHyperparameters]]:
+        return self.map(lambda _, gp: gp.fit_hyperparameters)
+
     def fit(
         self,
         training_data: MultiLevel[Collection[TrainingDatum]],
@@ -1164,7 +1168,16 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
                 f"Cannot train multi-level Gaussian process on training data containing extra levels {extra_levels_str}."
             )
         else:
-            _ = training_data.map(lambda level, data: self[level].fit(data))
+            hyperparameters = (
+                hyperparameters
+                if isinstance(hyperparameters, MultiLevel)
+                else MultiLevel.from_sequence([hyperparameters] * len(self.levels))
+            )
+            _ = training_data.map(
+                lambda level, data: self[level].fit(
+                    data, hyperparameters=hyperparameters[level]
+                )
+            )
             return None
 
 
