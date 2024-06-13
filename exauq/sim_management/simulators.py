@@ -992,8 +992,6 @@ class SubmittedJobStrategy(JobStrategy):
 
     @staticmethod
     def handle(job: Job, job_manager: JobManager):
-        # job_manager.monitor([job])
-        # job_manager.simulations_log.update_job_status(str(job.id), JobStatus.SUBMITTED)
         pass
 
 
