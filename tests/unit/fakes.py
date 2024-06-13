@@ -1,12 +1,12 @@
 """Contains fakes used to support unit tests
 """
+
 from __future__ import annotations
 
 import dataclasses
 from collections.abc import Collection, Sequence
 from typing import Optional
 
-from exauq.sim_management.hardware import HardwareInterface
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     AbstractSimulator,
@@ -16,6 +16,7 @@ from exauq.core.modelling import (
     Prediction,
     TrainingDatum,
 )
+from exauq.sim_management.hardware import HardwareInterface
 from exauq.sim_management.simulators import SimulationsLog
 
 
@@ -99,7 +100,7 @@ class FakeGP(AbstractGaussianProcess):
         training_data : Collection[TrainingDatum]
             Defines the pairs of inputs and simulator outputs on which to train
             the emulator. Each `TrainingDatum` should have a 1-dim `Input`.
-        hyperparameters : DumbEmulatorHyperparameters, optional
+        hyperparameters : FakeGPHyperparameters, optional
             (Default: ``None``) If not ``None`` then this should define the variance for
             predictions away from inputs defined in `training_data`.
         hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
