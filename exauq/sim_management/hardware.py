@@ -39,7 +39,7 @@ class JobStatus(Enum):
 
     PENDING_SUBMIT = "Pending submit"
     """A job has been set up locally but has not yet been submitted to a remote
-    machine. Has the value 'Not submitted'."""
+    machine. Has the value 'Pending submit'."""
 
     FAILED_SUBMIT = "Failed submit"
     """A job has been set up locally however submission to remote machine failed.
