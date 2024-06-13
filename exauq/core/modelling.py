@@ -1154,11 +1154,18 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
             Union[Sequence[OptionalFloatPairs], MultiLevel[Sequence[OptionalFloatPairs]]]
         ] = None,
     ) -> None:
+        """Fit this multi-level Gaussian process to levelled training data."""
+
         if not isinstance(training_data, MultiLevel):
             training_data = MultiLevel(training_data)
-
-        _ = training_data.map(lambda level, data: self[level].fit(data))
-        return None
+        elif extra_levels := set(training_data.levels) - set(self.levels):
+            extra_levels_str = ", ".join(map(str, sorted(extra_levels)))
+            raise ValueError(
+                f"Cannot train multi-level Gaussian process on training data containing extra levels {extra_levels_str}."
+            )
+        else:
+            _ = training_data.map(lambda level, data: self[level].fit(data))
+            return None
 
 
 class AbstractHyperparameters(abc.ABC):
