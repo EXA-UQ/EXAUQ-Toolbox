@@ -1792,23 +1792,24 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
     def make_multi_level_gp(gps: dict[AbstractGaussianProcess]):
         return MultiLevelGaussianProcess(gps)
 
-    def test_fit_error_if_training_data_has_extra_levels(self):
-        """A ValueError is raised if the training data has levels not contained
-        within the multi-level GP."""
-
-        mlgp = self.make_multi_level_gp({1: FakeGP()})
-        extra_levels = "2, 3"
-        with self.assertRaisesRegex(
-            ValueError,
-            f"Cannot train multi-level Gaussian process on training data containing extra levels {extra_levels}.",
-        ):
-            mlgp.fit(self.training_data)
-
     def test_fit_fits_data_to_gps_level_wise(self):
         """The constituent GPs within a multi-level GP are fit to Training data
         level-wise."""
 
         mlgp = self.make_multi_level_gp(self.gps)
+
+        mlgp.fit(self.training_data)
+
+        for level in mlgp.levels:
+            self.assertEqual(self.training_data[level], mlgp.training_data[level])
+
+    def test_fit_error_if_training_data_has_extra_levels(self):
+        """If the training data has levels that are not in the multi-level GP, then
+        the data at those levels is ignored."""
+
+        mlgp = self.make_multi_level_gp(
+            {1: WhiteNoiseGP(), 3: WhiteNoiseGP()}
+        )  # missing level 2
 
         mlgp.fit(self.training_data)
 

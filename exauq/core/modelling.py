@@ -1212,12 +1212,16 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
 
         if not isinstance(training_data, MultiLevel):
             training_data = MultiLevel(training_data)
-        elif extra_levels := set(training_data.levels) - set(self.levels):
-            extra_levels_str = ", ".join(map(str, sorted(extra_levels)))
-            raise ValueError(
-                f"Cannot train multi-level Gaussian process on training data containing extra levels {extra_levels_str}."
+        else:
+            training_data = MultiLevel(
+                {
+                    level: data
+                    for level, data in training_data.items()
+                    if level in self.levels
+                }
             )
-        elif isinstance(hyperparameters, MultiLevel):
+
+        if isinstance(hyperparameters, MultiLevel):
             hyperparameters = self.map(lambda level, gp: None) | hyperparameters
             _ = training_data.map(
                 lambda level, data: self[level].fit(
@@ -1226,8 +1230,8 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
             )
             return None
         else:
-            hyperparameters = MultiLevel.from_sequence(
-                [hyperparameters] * len(self.levels)
+            hyperparameters = MultiLevel(
+                {level: hyperparameters for level in training_data.levels}
             )
             _ = training_data.map(
                 lambda level, data: self[level].fit(
