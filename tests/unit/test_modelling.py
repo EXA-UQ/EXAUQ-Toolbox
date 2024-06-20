@@ -1792,7 +1792,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
     def make_multi_level_gp(gps: dict[AbstractGaussianProcess]):
         return MultiLevelGaussianProcess(gps)
 
-    def test_error_if_training_data_has_extra_levels(self):
+    def test_fit_error_if_training_data_has_extra_levels(self):
         """A ValueError is raised if the training data has levels not contained
         within the multi-level GP."""
 
@@ -1815,7 +1815,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         for level in mlgp.levels:
             self.assertEqual(self.training_data[level], mlgp.training_data[level])
 
-    def test_fit_fits_data_to_gps_level_wise_only_on_given_levels(self):
+    def test_fit_fits_data_to_gps_level_wise_only_on_training_data_levels(self):
         """Only the GPs at levels that appear in the given training data are trained."""
 
         mlgp = self.make_multi_level_gp(self.gps)
