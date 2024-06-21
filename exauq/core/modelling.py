@@ -1227,9 +1227,17 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
             else MultiLevel({level: hyperparameters for level in training_data.levels})
         )
 
+        hyperparameter_bounds = (
+            self.map(lambda level, gp: None) | hyperparameter_bounds
+            if isinstance(hyperparameter_bounds, MultiLevel)
+            else MultiLevel({level: hyperparameter_bounds for level in training_data.levels})
+        )
+
         _ = training_data.map(
             lambda level, data: self[level].fit(
-                data, hyperparameters=hyperparameters[level]
+                data,
+                hyperparameters=hyperparameters[level],
+                hyperparameter_bounds=hyperparameter_bounds[level],
             )
         )
         return None

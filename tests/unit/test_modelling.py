@@ -17,6 +17,7 @@ from exauq.core.modelling import (
     LevelTagged,
     MultiLevel,
     MultiLevelGaussianProcess,
+    OptionalFloatPairs,
     Prediction,
     SimulatorDomain,
     TrainingDatum,
@@ -1793,10 +1794,24 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
                 for level in self.training_data
             }
         )
+        self.hyperparameter_bounds = MultiLevel(
+            {
+                level: self.make_white_noise_gp_hyperparameter_bounds((level + 10, None))
+                for level in self.training_data
+            }
+        )
 
     @staticmethod
-    def make_multi_level_gp(gps: dict[AbstractGaussianProcess]):
+    def make_multi_level_gp(
+        gps: dict[AbstractGaussianProcess],
+    ) -> MultiLevelGaussianProcess:
         return MultiLevelGaussianProcess(gps)
+
+    @staticmethod
+    def make_white_noise_gp_hyperparameter_bounds(
+        process_var_bounds: OptionalFloatPairs,
+    ):
+        return [(None, None), process_var_bounds]
 
     def test_fit_fits_data_to_gps_level_wise(self):
         """The constituent GPs within a multi-level GP are fit to Training data
@@ -1895,6 +1910,81 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         del self.training_data[missing_level]
 
         mlgp.fit(self.training_data, hyperparameters=self.hyperparameters)
+
+        self.assertIsNone(mlgp.fit_hyperparameters[missing_level])
+
+    def test_fit_multi_level_bounds_applied_level_wise(self):
+        """If hyperparameter bounds for multiple levels are supplied, these are applied
+        level-wise when fitting the multi-level GP."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+
+        mlgp.fit(self.training_data, hyperparameter_bounds=self.hyperparameter_bounds)
+
+        # Expected hyperparams: lower bound on process var for each level
+        expected_params = MultiLevel(
+            {
+                level: WhiteNoiseGPHyperparameters(
+                    process_var=self.hyperparameter_bounds[level][-1][0]
+                )
+                for level in self.training_data
+            }
+        )
+        self.assertEqual(expected_params, mlgp.fit_hyperparameters)
+
+    def test_fit_single_level_bounds_applied_to_all_levels(self):
+        """If a non-levelled set of hyperparameter bounds is supplied, then these are
+        applied to each level when fitting the multi-level GP."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        lower_bnd = 10
+        bounds = self.make_white_noise_gp_hyperparameter_bounds((lower_bnd, None))
+
+        mlgp.fit(self.training_data, hyperparameter_bounds=bounds)
+
+        # Expected hyperparams: lower bound on process var for each level
+        for level in mlgp.levels:
+            self.assertEqual(
+                WhiteNoiseGPHyperparameters(process_var=lower_bnd),
+                mlgp.fit_hyperparameters[level],
+            )
+
+    def test_fit_default_bounds_for_missing_levels(self):
+        """If no hyperparameter bounds are provided for some level of the multi-level GP,
+        then the GP at that level has its hyperparameters estimated without any
+        constraints applied."""
+
+        noise_level = 11
+        gps = {
+            1: WhiteNoiseGP(noise_level=noise_level),
+            2: WhiteNoiseGP(noise_level=noise_level),
+            3: WhiteNoiseGP(noise_level=noise_level),
+        }
+        mlgp = self.make_multi_level_gp(gps)
+        upper_bnd = noise_level - 10
+        bounds = MultiLevel(
+            {
+                1: self.make_white_noise_gp_hyperparameter_bounds((None, upper_bnd)),
+                3: self.make_white_noise_gp_hyperparameter_bounds((None, upper_bnd)),
+            }
+        )
+
+        mlgp.fit(self.training_data, hyperparameter_bounds=bounds)
+
+        self.assertEqual(
+            WhiteNoiseGPHyperparameters(process_var=noise_level),
+            mlgp.fit_hyperparameters[2],
+        )
+
+    def test_fit_ignores_bounds_at_levels_outside_training_data(self):
+        """If the supplied hyperparameter bounds have a level that doesn't feature in the
+        training data, then the bounds at this level are ignored."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        missing_level = 2
+        del self.training_data[missing_level]
+
+        mlgp.fit(self.training_data, hyperparameter_bounds=self.hyperparameter_bounds)
 
         self.assertIsNone(mlgp.fit_hyperparameters[missing_level])
 
