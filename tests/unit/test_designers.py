@@ -1051,36 +1051,34 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
         costs = self.make_level_costs([1, 10, 100])
         domain = SimulatorDomain([(0, 1)])
+        mlgp = MultiLevelGaussianProcess.from_sequence(
+            [MogpEmulator(), MogpEmulator(), MogpEmulator()]
+        )
+        training_data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                ],
+                2: [
+                    TrainingDatum(Input(0.4), 2),
+                    TrainingDatum(Input(0.5), 99),
+                    TrainingDatum(Input(0.6), -4),
+                ],
+                3: [
+                    TrainingDatum(Input(0.7), 3),
+                    TrainingDatum(Input(0.8), -3),
+                    TrainingDatum(Input(0.9), 3),
+                ],
+            }
+        )
+        mlgp.fit(training_data)
 
-        gp1 = MogpEmulator()
-        gp1.fit(
-            [
-                TrainingDatum(Input(0.1), 1),
-                TrainingDatum(Input(0.2), 2),
-                TrainingDatum(Input(0.3), 3),
-            ]
-        )
-        gp2 = MogpEmulator()
-        gp2.fit(
-            [
-                TrainingDatum(Input(0.4), 2),
-                TrainingDatum(Input(0.5), 99),
-                TrainingDatum(Input(0.6), -4),
-            ]
-        )
-        gp3 = MogpEmulator()
-        gp3.fit(
-            [
-                TrainingDatum(Input(0.7), 3),
-                TrainingDatum(Input(0.8), -3),
-                TrainingDatum(Input(0.9), 3),
-            ]
-        )
-
-        mlgp = MultiLevelGaussianProcess.from_sequence([gp1, gp2, gp3])
         design_points = self.compute_multi_level_loo_samples(
             mlgp=mlgp, domain=domain, costs=costs
         )
+
         self.assertEqual(1, len(design_points))
         level = get_level(design_points[0])
 
