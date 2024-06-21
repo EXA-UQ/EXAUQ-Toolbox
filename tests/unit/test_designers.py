@@ -17,7 +17,7 @@ from exauq.core.designers import (
     SimpleDesigner,
     compute_loo_errors_gp,
     compute_loo_gp,
-    compute_multi_level_loo_error_gp,
+    compute_multi_level_loo_errors_gp,
     compute_multi_level_loo_samples,
     compute_single_level_loo_samples,
 )
@@ -1082,7 +1082,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         self.assertEqual(1, len(design_points))
         level = get_level(design_points[0])
 
-        ml_errors_gp = compute_multi_level_loo_error_gp(mlgp, domain)
+        ml_errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain)
         ml_pei = ml_errors_gp.map(lambda _, gp: PEICalculator(domain, gp))
         _, max_pei1 = maximise(lambda x: ml_pei[1].compute(x), domain)
         _, max_pei2 = maximise(lambda x: ml_pei[2].compute(x), domain)

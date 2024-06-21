@@ -688,7 +688,7 @@ def compute_multi_level_loo_errors(
     return error_training_data
 
 
-def compute_multi_level_loo_error_gp(
+def compute_multi_level_loo_errors_gp(
     mlgp: MultiLevelGaussianProcess,
     domain: SimulatorDomain,
     loo_gp: Optional[AbstractGaussianProcess] = None,
@@ -752,7 +752,7 @@ def compute_multi_level_loo_samples(
         )
 
     # Create LOO errors GP for each level
-    ml_errors_gp = compute_multi_level_loo_error_gp(
+    ml_errors_gp = compute_multi_level_loo_errors_gp(
         mlgp, domain, loo_gp=loo_gp, output_gp=None
     )
 
