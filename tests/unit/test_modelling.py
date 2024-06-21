@@ -1803,7 +1803,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
 
     @staticmethod
     def make_multi_level_gp(
-        gps: dict[AbstractGaussianProcess],
+        gps: dict[int, AbstractGaussianProcess],
     ) -> MultiLevelGaussianProcess:
         return MultiLevelGaussianProcess(gps)
 
@@ -1812,6 +1812,58 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         process_var_bounds: OptionalFloatPairs,
     ):
         return [(None, None), process_var_bounds]
+
+    def test_fit_invalid_training_data_error(self):
+        """A TypeError is raised if the training data is not an instance of MultiLevel
+        or if the objects at each level do not define a valid type for training a
+        single-level GP."""
+
+        mlgp = self.make_multi_level_gp({1: MogpEmulator(), 2: MogpEmulator()})
+        bad_data = [TrainingDatum(Input(0.5), 1)]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'training_data' to be an instance of MultiLevel, but received {type(bad_data)}."
+            ),
+        ):
+            mlgp.fit(bad_data)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            "^Could not train Gaussian process at level 2:",
+        ):
+            mlgp.fit(MultiLevel({1: [TrainingDatum(Input(0.5), 1)], 2: "a"}))
+
+    def test_fit_invalid_hyperparameters_error(self):
+        """An error is raised if the hyperparameters do not define an appropriate object
+        for fitting a Gaussian process with."""
+
+        mlgp = self.make_multi_level_gp({1: MogpEmulator(), 2: MogpEmulator()})
+        bad_params = "a"
+        with self.assertRaisesRegex(
+            TypeError,
+            "^Could not train Gaussian process at level 1:",
+        ):
+            mlgp.fit(self.training_data, hyperparameters=bad_params)
+
+    def test_fit_invalid_bounds_error(self):
+        """An error is raised if the hyperparameter bounds do not define an appropriate
+        object for fitting a Gaussian process with."""
+
+        mlgp = self.make_multi_level_gp({1: MogpEmulator(), 2: MogpEmulator()})
+        bad_bounds = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            "^Could not train Gaussian process at level 1:",
+        ):
+            mlgp.fit(self.training_data, hyperparameter_bounds=bad_bounds)
+
+        bad_bounds = [(None, None), (None, -1)]
+        with self.assertRaisesRegex(
+            ValueError,
+            "^Could not train Gaussian process at level 1:",
+        ):
+            mlgp.fit(self.training_data, hyperparameter_bounds=bad_bounds)
 
     def test_fit_fits_data_to_gps_level_wise(self):
         """The constituent GPs within a multi-level GP are fit to Training data

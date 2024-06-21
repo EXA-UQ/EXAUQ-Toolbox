@@ -1211,7 +1211,10 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
         """Fit this multi-level Gaussian process to levelled training data."""
 
         if not isinstance(training_data, MultiLevel):
-            training_data = MultiLevel(training_data)
+            raise TypeError(
+                "Expected 'training_data' to be an instance of MultiLevel, but received "
+                f"{type(training_data)}."
+            )
         else:
             training_data = MultiLevel(
                 {
@@ -1225,13 +1228,18 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
         hyperparameter_bounds = self._fill_out(
             hyperparameter_bounds, training_data.levels
         )
-        _ = training_data.map(
-            lambda level, data: self[level].fit(
-                data,
-                hyperparameters=hyperparameters[level],
-                hyperparameter_bounds=hyperparameter_bounds[level],
-            )
-        )
+        for level, data in training_data.items():
+            try:
+                self[level].fit(
+                    data,
+                    hyperparameters=hyperparameters[level],
+                    hyperparameter_bounds=hyperparameter_bounds[level],
+                )
+            except (TypeError, ValueError) as e:
+                raise e.__class__(
+                    f"Could not train Gaussian process at level {level}: {e}"
+                )
+
         return None
 
     @staticmethod
