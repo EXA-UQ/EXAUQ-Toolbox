@@ -1221,18 +1221,10 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
                 }
             )
 
-        hyperparameters = (
-            self.map(lambda level, gp: None) | hyperparameters
-            if isinstance(hyperparameters, MultiLevel)
-            else MultiLevel({level: hyperparameters for level in training_data.levels})
+        hyperparameters = self._fill_out(hyperparameters, training_data.levels)
+        hyperparameter_bounds = self._fill_out(
+            hyperparameter_bounds, training_data.levels
         )
-
-        hyperparameter_bounds = (
-            self.map(lambda level, gp: None) | hyperparameter_bounds
-            if isinstance(hyperparameter_bounds, MultiLevel)
-            else MultiLevel({level: hyperparameter_bounds for level in training_data.levels})
-        )
-
         _ = training_data.map(
             lambda level, data: self[level].fit(
                 data,
@@ -1241,6 +1233,24 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
             )
         )
         return None
+
+    @staticmethod
+    def _fill_out(
+        base: Union[T, MultiLevel[T]], levels: Sequence[int]
+    ) -> MultiLevel[Optional[T]]:
+        """Create a multi-level collection with given levels and filled given objects.
+
+        If `base` is a multi-level collection, then objects at the given `levels` will be
+        taken from `base` and any remaining levels will be assigned the value None. If
+        `base` is not a multi-level collection then each level in the output collection
+        will contain the value `base`.
+        """
+
+        if isinstance(base, MultiLevel):
+            values = map(lambda level: base[level] if level in base else None, levels)
+            return MultiLevel(zip(levels, values))
+        else:
+            return MultiLevel({level: base for level in levels})
 
 
 class AbstractHyperparameters(abc.ABC):
