@@ -1804,8 +1804,9 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
     @staticmethod
     def make_multi_level_gp(
         gps: dict[int, AbstractGaussianProcess],
+        coefficients: dict[int, float] = 1,
     ) -> MultiLevelGaussianProcess:
-        return MultiLevelGaussianProcess(gps)
+        return MultiLevelGaussianProcess(gps, coefficients=coefficients)
 
     @staticmethod
     def make_white_noise_gp_hyperparameter_bounds(
@@ -2039,6 +2040,68 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         mlgp.fit(self.training_data, hyperparameter_bounds=self.hyperparameter_bounds)
 
         self.assertIsNone(mlgp.fit_hyperparameters[missing_level])
+
+    def test_predict_arg_error(self):
+        """A TypeError is raised if the input is not an instance of Input."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        mlgp.fit(self.training_data)
+        x = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'x' to be of type {Input.__name__}, but received {type(x)}."
+            ),
+        ):
+            _ = mlgp.predict(x)
+
+    def test_predict_estimate(self):
+        """The predicted mean is equal to the sum of the means from the constituent GPs
+        multiplied by the corresponding coefficients."""
+
+        coefficients = MultiLevel.from_sequence([1, 10, 100])
+        gps = {level: WhiteNoiseGP(prior_mean=-1, noise_level=2) for level in [1, 2, 3]}
+        mlgp = self.make_multi_level_gp(gps, coefficients=coefficients)
+        mlgp.fit(self.training_data)
+        inputs = [
+            self.training_data[level][0].input for level in self.training_data.levels
+        ] + [
+            Input(0.2),
+            Input(0.8),
+        ]  # add extra points not seen at any of the levels
+
+        for x in inputs:
+            level_estimates = mlgp.map(
+                lambda level, gp: coefficients[level] * gp.predict(x).estimate
+            )
+            self.assertEqual(
+                sum(level_estimates.values()),
+                mlgp.predict(x).estimate,
+            )
+
+    def test_predict_variance(self):
+        """The predicted variance is equal to the sum of the variances from the
+        constituent GPs multiplied by the squares of the corresponding coefficients."""
+
+        coefficients = MultiLevel.from_sequence([1, 10, 100])
+        gps = {level: WhiteNoiseGP(prior_mean=-1, noise_level=2) for level in [1, 2, 3]}
+        mlgp = self.make_multi_level_gp(gps, coefficients=coefficients)
+        mlgp.fit(self.training_data)
+        inputs = [
+            self.training_data[level][0].input for level in self.training_data.levels
+        ] + [
+            Input(0.2),
+            Input(0.8),
+        ]  # add extra points not seen at any of the levels
+
+        for x in inputs:
+            level_variances = mlgp.map(
+                lambda level, gp: (coefficients[level] ** 2) * gp.predict(x).variance
+            )
+            self.assertEqual(
+                sum(level_variances.values()),
+                mlgp.predict(x).variance,
+            )
 
 
 if __name__ == "__main__":

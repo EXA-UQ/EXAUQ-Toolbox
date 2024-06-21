@@ -1181,7 +1181,17 @@ class MultiLevel(dict[int, T]):
         return __class__({level: f(level, val) for level, val in self.items()})
 
 
-class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
+class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmulator):
+    def __init__(
+        self,
+        gps: Union[
+            Mapping[int, AbstractGaussianProcess],
+            Iterable[tuple[int, AbstractGaussianProcess]],
+        ],
+        coefficients: Union[Mapping[int, float], Iterable[tuple[int, float]], float],
+    ):
+        super().__init__(gps)
+        self._coefficients = coefficients
 
     @property
     def training_data(self) -> MultiLevel[tuple[TrainingDatum, ...]]:
@@ -1189,8 +1199,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
 
     @property
     def coefficients(self) -> MultiLevel[Real]:
-        # TODO: implement
-        return self.map(lambda level, gp: 1)
+        return self._coefficients.map(lambda level, coeff: coeff)
 
     @property
     def fit_hyperparameters(self) -> Optional[MultiLevel[AbstractHyperparameters]]:
@@ -1259,6 +1268,47 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
             return MultiLevel(zip(levels, values))
         else:
             return MultiLevel({level: base for level in levels})
+
+    def predict(self, x: Input) -> Prediction:
+        """Predict a simulator output for a given input.
+
+        Parameters
+        ----------
+        x : Input
+            A simulator input.
+
+        Returns
+        -------
+        Prediction
+            The emulator's prediction of the simulator output from the given the input.
+
+        Notes
+        -----
+        The prediction for the whole multi-level Gaussian process (GP) is calculated in
+        terms of the predictions of the Gaussian processes at each level, together with
+        their coefficients in `self.coefficients`, making use of the assumption that the
+        GPs at each level are independent of each other. As such, the predicted mean at
+        the input `x` is equal to the sum of the predicted means from the level-wise GPs
+        multiplied by the corresponding coefficients, while the predicted variance is
+        equal to the sum of the predicted variances of the level-wise GPs multiplied by
+        the squares of the coefficients.
+        """
+
+        if not isinstance(x, Input):
+            raise TypeError(
+                f"Expected 'x' to be of type {Input.__name__}, but received {type(x)}."
+            )
+
+        level_predictions = self.map(lambda level, gp: gp.predict(x))
+        estimate = sum(
+            p.estimate * self._coefficients[level]
+            for level, p in level_predictions.items()
+        )
+        variance = sum(
+            p.variance * (self._coefficients[level] ** 2)
+            for level, p in level_predictions.items()
+        )
+        return Prediction(estimate, variance)
 
 
 class AbstractHyperparameters(abc.ABC):
