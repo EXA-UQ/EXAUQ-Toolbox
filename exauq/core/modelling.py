@@ -1271,7 +1271,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         """Create a multi-level collection with given levels and filled given objects.
 
         If `base` is a multi-level collection, then objects at the given `levels` will be
-        taken from `base` and any remaining levels will be assigned the value None. If
+        taken from `base` and any remaining levels will be assigned the value `fill`. If
         `base` is not a multi-level collection then each level in the output collection
         will contain the value `base`.
         """
