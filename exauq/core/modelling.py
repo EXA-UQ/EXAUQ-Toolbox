@@ -1188,7 +1188,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
             Mapping[int, AbstractGaussianProcess],
             Iterable[tuple[int, AbstractGaussianProcess]],
         ],
-        coefficients: Union[Mapping[int, float], Iterable[tuple[int, float]], float],
+        coefficients: Union[Mapping[int, float], Iterable[tuple[int, float]], float] = 1,
     ):
         super().__init__(gps)
         self._coefficients = self._parse_coefficients(coefficients)
