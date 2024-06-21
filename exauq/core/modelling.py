@@ -1212,7 +1212,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
 
         if not isinstance(training_data, MultiLevel):
             raise TypeError(
-                "Expected 'training_data' to be an instance of MultiLevel, but received "
+                f"Expected 'training_data' to be an instance of {MultiLevel.__name__}, but received "
                 f"{type(training_data)}."
             )
         else:
