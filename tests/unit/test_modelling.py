@@ -1803,7 +1803,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         for level in mlgp.levels:
             self.assertEqual(self.training_data[level], mlgp.training_data[level])
 
-    def test_fit_error_if_training_data_has_extra_levels(self):
+    def test_fit_ignores_extra_levels_in_training_data(self):
         """If the training data has levels that are not in the multi-level GP, then
         the data at those levels is ignored."""
 
