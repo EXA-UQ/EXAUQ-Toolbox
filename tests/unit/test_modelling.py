@@ -1787,6 +1787,12 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
                 3: (TrainingDatum(Input(1), 3),),
             }
         )
+        self.hyperparameters = MultiLevel(
+            {
+                level: WhiteNoiseGPHyperparameters(process_var=level)
+                for level in self.training_data
+            }
+        )
 
     @staticmethod
     def make_multi_level_gp(gps: dict[AbstractGaussianProcess]):
@@ -1837,15 +1843,12 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         level-wise when fitting the multi-level GP."""
 
         mlgp = self.make_multi_level_gp(self.gps)
-        mlparams = MultiLevel(
-            {level: WhiteNoiseGPHyperparameters(process_var=level) for level in [1, 2, 3]}
-        )
-        mlgp.fit(self.training_data, hyperparameters=mlparams)
 
-        self.assertEqual(mlparams, mlgp.fit_hyperparameters)
+        mlgp.fit(self.training_data, hyperparameters=self.hyperparameters)
+        self.assertEqual(self.hyperparameters, mlgp.fit_hyperparameters)
 
         for level in self.training_data.levels:
-            self.assertEqual(mlparams[level], mlgp[level].fit_hyperparameters)
+            self.assertEqual(self.hyperparameters[level], mlgp[level].fit_hyperparameters)
 
     def test_fit_single_level_hyperparameters_applied_to_all_levels(self):
         """If a non-levelled set of hyperparameters is supplied, then these are applied to
@@ -1882,6 +1885,18 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
             WhiteNoiseGPHyperparameters(process_var=noise_level),
             mlgp.fit_hyperparameters[2],
         )
+
+    def test_fit_ignores_hyperparameters_at_levels_outside_training_data(self):
+        """If the supplied hyperparameters has a level that doesn't feature in the
+        training data, then the parameters at this level are ignored."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        missing_level = 2
+        del self.training_data[missing_level]
+
+        mlgp.fit(self.training_data, hyperparameters=self.hyperparameters)
+
+        self.assertIsNone(mlgp.fit_hyperparameters[missing_level])
 
 
 if __name__ == "__main__":
