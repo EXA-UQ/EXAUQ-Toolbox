@@ -1191,7 +1191,20 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         coefficients: Union[Mapping[int, float], Iterable[tuple[int, float]], float],
     ):
         super().__init__(gps)
-        self._coefficients = coefficients
+        self._coefficients = self._parse_coefficients(coefficients)
+
+    def _parse_coefficients(self, coefficients) -> MultiLevel[float]:
+        if isinstance(coefficients, Real):
+            return self._fill_out(float(coefficients), self.levels)
+        else:
+            coefficients = MultiLevel(coefficients)
+            if missing_levels := (set(self.levels) - set(coefficients.levels)):
+                missing_levels_str = ", ".join(map(str, sorted(missing_levels)))
+                raise ValueError(
+                    f"Missing coefficients for levels: {missing_levels_str}."
+                )
+            else:
+                return self._fill_out(coefficients, self.levels)
 
     @property
     def training_data(self) -> MultiLevel[tuple[TrainingDatum, ...]]:
@@ -1253,7 +1266,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
     @staticmethod
     def _fill_out(
-        base: Union[T, MultiLevel[T]], levels: Sequence[int]
+        base: Union[T, MultiLevel[T]], levels: Sequence[int], fill: Optional[T] = None
     ) -> MultiLevel[Optional[T]]:
         """Create a multi-level collection with given levels and filled given objects.
 
@@ -1264,7 +1277,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         """
 
         if isinstance(base, MultiLevel):
-            values = map(lambda level: base[level] if level in base else None, levels)
+            values = map(lambda level: base[level] if level in base else fill, levels)
             return MultiLevel(zip(levels, values))
         else:
             return MultiLevel({level: base for level in levels})

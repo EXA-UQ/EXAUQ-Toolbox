@@ -1814,6 +1814,45 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
     ):
         return [(None, None), process_var_bounds]
 
+    def test_coefficients_single_value_used_at_each_level(self):
+        """If a single float is given for the coefficients, then this value is used at
+        the coefficient at each level."""
+
+        coefficient = 2
+        mlgp = self.make_multi_level_gp(self.gps, coefficients=coefficient)
+
+        expected_coefficients = mlgp.map(lambda level, gp: coefficient)
+        self.assertEqual(expected_coefficients, mlgp.coefficients)
+
+    def test_init_error_coefficients_levels_differ_to_gp_levels(self):
+        """If multi-level coefficients are supplied at initialisation of a multi-level GP,
+        then a ValueError is raised if there is a level from the GPs missing in the levels
+        of the coefficients."""
+
+        gps = {1: WhiteNoiseGP(), 3: WhiteNoiseGP()}
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact("Missing coefficients for levels: 3."),
+        ):
+            _ = MultiLevelGaussianProcess(gps, coefficients={1: 1})
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact("Missing coefficients for levels: 1, 3."),
+        ):
+            _ = MultiLevelGaussianProcess(gps, coefficients={2: 2})
+
+    def test_init_ignores_coefficients_for_extra_levels(self):
+        """If coefficients are supplied for levels that don't feature in the GPs, then
+        these coefficients are ignored."""
+
+        gps = {1: WhiteNoiseGP(), 3: WhiteNoiseGP()}
+
+        mlgp = MultiLevelGaussianProcess(gps, coefficients={1: 1, 2: 2, 3: 3, 4: 4})
+
+        self.assertEqual(MultiLevel({1: 1, 3: 3}), mlgp.coefficients)
+
     def test_fit_invalid_training_data_error(self):
         """A TypeError is raised if the training data is not an instance of MultiLevel
         or if the objects at each level do not define a valid type for training a
