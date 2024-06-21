@@ -131,10 +131,16 @@ class WhiteNoiseGP(AbstractGaussianProcess):
             return None
         elif hyperparameter_bounds is not None:
             lower, upper = hyperparameter_bounds[-1]
-            if self._noise_level <= lower:
+            if lower is not None and upper is not None and lower > upper:
+                raise ValueError(
+                    "Process variance upper bound must be greater than lower bound"
+                )
+            elif lower is not None and self._noise_level <= lower:
                 process_var = lower
+            elif upper is not None and self._noise_level >= upper:
+                process_var = upper
             else:
-                process_var = min(self._noise_level, upper)
+                process_var = self._noise_level
 
             self._fit_hyperparameters = WhiteNoiseGPHyperparameters(
                 process_var=process_var
