@@ -1221,24 +1221,18 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
                 }
             )
 
-        if isinstance(hyperparameters, MultiLevel):
-            hyperparameters = self.map(lambda level, gp: None) | hyperparameters
-            _ = training_data.map(
-                lambda level, data: self[level].fit(
-                    data, hyperparameters=hyperparameters[level]
-                )
+        hyperparameters = (
+            self.map(lambda level, gp: None) | hyperparameters
+            if isinstance(hyperparameters, MultiLevel)
+            else MultiLevel({level: hyperparameters for level in training_data.levels})
+        )
+
+        _ = training_data.map(
+            lambda level, data: self[level].fit(
+                data, hyperparameters=hyperparameters[level]
             )
-            return None
-        else:
-            hyperparameters = MultiLevel(
-                {level: hyperparameters for level in training_data.levels}
-            )
-            _ = training_data.map(
-                lambda level, data: self[level].fit(
-                    data, hyperparameters=hyperparameters[level]
-                )
-            )
-            return None
+        )
+        return None
 
 
 class AbstractHyperparameters(abc.ABC):
