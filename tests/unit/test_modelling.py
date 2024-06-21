@@ -1779,7 +1779,7 @@ class TestMultiLevel(ExauqTestCase):
 
 class TestMultiLevelGaussianProcess(ExauqTestCase):
     def setUp(self) -> None:
-        self.gps = {1: FakeGP(), 2: FakeGP(), 3: FakeGP()}
+        self.gps = {1: WhiteNoiseGP(), 2: WhiteNoiseGP(), 3: WhiteNoiseGP()}
         self.training_data = MultiLevel(
             {
                 1: (TrainingDatum(Input(0), 1),),
@@ -1807,9 +1807,8 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         """If the training data has levels that are not in the multi-level GP, then
         the data at those levels is ignored."""
 
-        mlgp = self.make_multi_level_gp(
-            {1: WhiteNoiseGP(), 3: WhiteNoiseGP()}
-        )  # missing level 2
+        mlgp = self.make_multi_level_gp(self.gps)
+        del mlgp[2]
 
         mlgp.fit(self.training_data)
 
@@ -1839,11 +1838,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
 
         mlgp = self.make_multi_level_gp(self.gps)
         mlparams = MultiLevel(
-            {
-                1: FakeGPHyperparameters(corr_length_scales=[0], process_var=1),
-                2: FakeGPHyperparameters(corr_length_scales=[0], process_var=2),
-                3: FakeGPHyperparameters(corr_length_scales=[0], process_var=3),
-            }
+            {level: WhiteNoiseGPHyperparameters(process_var=level) for level in [1, 2, 3]}
         )
         mlgp.fit(self.training_data, hyperparameters=mlparams)
 
@@ -1857,7 +1852,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         each level when fitting the multi-level GP."""
 
         mlgp = self.make_multi_level_gp(self.gps)
-        params = FakeGPHyperparameters(corr_length_scales=[0], process_var=1, nugget=0.1)
+        params = WhiteNoiseGPHyperparameters(process_var=2)
         mlgp.fit(self.training_data, hyperparameters=params)
 
         for level in mlgp.levels:
