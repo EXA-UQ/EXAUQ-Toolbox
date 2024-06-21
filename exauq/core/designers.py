@@ -751,13 +751,9 @@ def compute_multi_level_loo_samples(
             f"Expected batch size to be a positive integer, but received {batch_size} instead."
         )
 
-    # Create LOO errors for each level
-    error_training_data = compute_multi_level_loo_errors(mlgp, loo_gp=loo_gp)
-
-    # Train GP on the LOO errors
-    ml_errors_gp = copy.deepcopy(mlgp)  # or a ml_errors_gp supplied by user?
-    ml_errors_gp.fit(
-        error_training_data, hyperparameter_bounds=_compute_loo_error_bounds(domain)
+    # Create LOO errors GP for each level
+    ml_errors_gp = compute_multi_level_loo_error_gp(
+        mlgp, domain, loo_gp=loo_gp, output_gp=None
     )
 
     # Get the PEI calculator for each level
