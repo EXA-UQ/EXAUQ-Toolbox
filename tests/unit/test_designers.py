@@ -17,6 +17,7 @@ from exauq.core.designers import (
     SimpleDesigner,
     compute_loo_errors_gp,
     compute_loo_gp,
+    compute_multi_level_loo_error_gp,
     compute_multi_level_loo_samples,
     compute_single_level_loo_samples,
 )
@@ -1044,9 +1045,9 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
     def test_single_batch_level_that_maximises_pei(self):
         """For a single batch output, the input and level returned are the ones that
-        maximise weighted pseudo-expected improvements across all simulator levels. The
-        weightings are reciprocals of the associated costs for calculating differences
-        of simulator outputs."""
+        maximise weighted pseudo-expected improvements for the leave-one-out error GPs
+        across all simulator levels. The weightings are reciprocals of the associated
+        costs for calculating differences of simulator outputs."""
 
         costs = self.make_level_costs([1, 10, 100])
         domain = SimulatorDomain([(0, 1)])
@@ -1083,7 +1084,8 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         self.assertEqual(1, len(design_points))
         level = get_level(design_points[0])
 
-        ml_pei = mlgp.map(lambda _, gp: PEICalculator(domain, gp))
+        ml_errors_gp = compute_multi_level_loo_error_gp(mlgp, domain)
+        ml_pei = ml_errors_gp.map(lambda _, gp: PEICalculator(domain, gp))
         _, max_pei1 = maximise(lambda x: ml_pei[1].compute(x), domain)
         _, max_pei2 = maximise(lambda x: ml_pei[2].compute(x), domain)
         _, max_pei3 = maximise(lambda x: ml_pei[3].compute(x), domain)

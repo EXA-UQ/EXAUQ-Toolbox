@@ -688,6 +688,23 @@ def compute_multi_level_loo_errors(
     return error_training_data
 
 
+def compute_multi_level_loo_error_gp(
+    mlgp: MultiLevelGaussianProcess,
+    domain: SimulatorDomain,
+    loo_gp: Optional[AbstractGaussianProcess] = None,
+    output_gp: Optional[MultiLevelGaussianProcess] = None,
+):
+    # Create LOO errors for each level
+    error_training_data = compute_multi_level_loo_errors(mlgp, loo_gp=loo_gp)
+
+    # Train GP on the LOO errors
+    ml_errors_gp = output_gp if output_gp is not None else copy.deepcopy(mlgp)
+    ml_errors_gp.fit(
+        error_training_data, hyperparameter_bounds=_compute_loo_error_bounds(domain)
+    )
+    return ml_errors_gp
+
+
 def compute_multi_level_loo_samples(
     mlgp: MultiLevelGaussianProcess,
     domain: SimulatorDomain,
