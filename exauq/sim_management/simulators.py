@@ -878,9 +878,8 @@ class JobManager:
         """
         Removes a job from the internal list of jobs being monitored.
 
-        This method ensures thread-safe removal of a job from the monitoring list,
-        allowing for dynamic management of the jobs currently under monitoring by
-        the JobManager.
+        This method ensures thread-safe deallocation of the job's associated hardware interface
+        and removal of the job from monitoring.
 
         Parameters
         ----------
@@ -891,8 +890,11 @@ class JobManager:
         --------
         >>> job_manager.remove_job(job)
 
-        This will remove the specified `job` from the JobManager's internal list, ceasing its monitoring.
+        This will remove the specified `job` from the JobManager's internal list, deallocating
+        its associated hardware interface and stopping its monitoring.
         """
+        self._deallocate_interface(job.interface_tag)
+
         with self._lock:
             self._jobs.remove(job)
 
