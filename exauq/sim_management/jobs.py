@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Union
+from typing import Union, Optional
 
 from exauq.core.modelling import Input
 
