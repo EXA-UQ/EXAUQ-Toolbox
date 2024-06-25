@@ -1197,7 +1197,7 @@ class PendingCancelJobStrategy(JobStrategy):
                         status=job_status,
                     )
                 else:
-                    job_manager.interface.cancel_job(job.id)
+                    interface.cancel_job(job.id)
                     job_manager.simulations_log.update_job_status(
                         str(job.id), JobStatus.CANCELLED
                     )
