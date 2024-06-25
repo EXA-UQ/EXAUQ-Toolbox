@@ -424,7 +424,7 @@ class SimulationsLog(object):
                 lambda x: self._get_job_status(x) in non_terminal_statuses
             )
             return tuple(
-                Job(self._get_job_id(record), self._extract_simulation(record)[0])
+                Job(self._get_job_id(record), self._extract_simulation(record)[0], self._get_job_level(record), self._get_interface_tag(record))
                 for record in pending_records
             )
 
