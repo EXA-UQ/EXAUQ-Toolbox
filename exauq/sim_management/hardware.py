@@ -89,6 +89,10 @@ class HardwareInterface(ABC):
     cancel jobs, and wait for jobs across all types of hardware resources. This enables
     writing hardware-agnostic code for running simulations or performing other computational tasks.
 
+    The class also includes two attributes: `level` and `tag`. `level` is an integer that
+    represents the level of the hardware interface, and `tag` is a string that can be used
+    to tag or label the hardware interface.
+
     Implementations should provide the following methods:
     - submit_job
     - get_job_status
