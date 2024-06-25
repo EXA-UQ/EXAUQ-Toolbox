@@ -120,6 +120,21 @@ class Job:
         """(Read-only) The simulator input for the job."""
         return self._data
 
+    @property
+    def level(self) -> int:
+        """(Read-only) The level of the job."""
+        return self._level
+
+    @property
+    def interface_tag(self) -> Optional[str]:
+        """(Read-only) The interface tag of the job."""
+        return self._interface_tag
+
+    @interface_tag.setter
+    def interface_tag(self, value: Optional[str]) -> None:
+        """Set the interface tag of the job."""
+        self._interface_tag = self._validate_interface_tag(value)
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id_={repr(self.id)}, data={repr(self.data)})"
 
