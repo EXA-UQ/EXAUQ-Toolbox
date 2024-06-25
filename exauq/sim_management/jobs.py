@@ -63,11 +63,17 @@ class Job:
         (Read-only) The ID of the job.
     data : Input
         (Read-only) The simulator input for the job.
+    level : int
+        (Read-only) The level of the job.
+    interface_tag : Optional[str]
+        (Read-only) The interface tag of the job.
     """
 
-    def __init__(self, id_: Union[JobId, str, int], data: Input) -> None:
+    def __init__(self, id_: Union[JobId, str, int], data: Input, level: int = 0, interface_tag: Optional[str] = None) -> None:
         self._id = self._parse_id(id_)
         self._data = self._validate_data(data)
+        self._level = self._validate_level(level)
+        self._interface_tag = self._validate_interface_tag(interface_tag)
 
     @staticmethod
     def _parse_id(id_) -> JobId:
@@ -87,6 +93,22 @@ class Job:
             )
         else:
             return data
+
+    @staticmethod
+    def _validate_level(level: int) -> int:
+        if not isinstance(level, int):
+            raise TypeError(
+                f"Expected 'level' to be of type {int} but received {type(level)} instead."
+            )
+        return level
+
+    @staticmethod
+    def _validate_interface_tag(interface_tag: Optional[str]) -> Optional[str]:
+        if interface_tag is not None and not isinstance(interface_tag, str):
+            raise TypeError(
+                f"Expected 'interface_tag' to be of type {str} or None but received {type(interface_tag)} instead."
+            )
+        return interface_tag
 
     @property
     def id(self) -> JobId:
