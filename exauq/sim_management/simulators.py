@@ -989,7 +989,8 @@ class CompletedJobStrategy(JobStrategy):
 
     @staticmethod
     def handle(job: Job, job_manager: JobManager):
-        result = job_manager.interface.get_job_output(job.id)
+        interface = job_manager.get_interface(job.interface_tag)
+        result = interface.get_job_output(job.id)
         job_manager.simulations_log.insert_result(str(job.id), result)
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.COMPLETED)
         job_manager.remove_job(job)
