@@ -642,7 +642,7 @@ class JobManager:
         if wait_for_pending and self._thread is not None:
             self._thread.join()
 
-    def submit(self, x: Input) -> Job:
+    def submit(self, x: Input, level: int = 0) -> Job:
         """
         Submits a new simulation job. This method creates a job with a unique ID,
         logs it with a PENDING_SUBMIT status, and schedules it for submission through the appropriate
@@ -657,6 +657,8 @@ class JobManager:
         ----------
         x : Input
             The input data for the simulation job.
+        level : int, optional
+            The level of the job. Defaults to 0.
 
         Returns
         -------
@@ -672,10 +674,11 @@ class JobManager:
         obtaining its unique ID. The job is prepared for submission through the job handling strategies.
         """
 
-        job = Job(self._id_generator.generate_id(), x)
-        self._simulations_log.add_new_record(
-            x, str(job.id), job_status=JobStatus.PENDING_SUBMIT
-        )
+        job_id = self._id_generator.generate_id()
+        interface_tag = self._allocate_interface(level)
+        job = Job(job_id, x, level, interface_tag)
+
+        self._simulations_log.add_new_record(x, str(job_id), job_status=JobStatus.PENDING_SUBMIT, job_level=level, interface_tag=interface_tag)
         self.monitor([job])
 
         return job
