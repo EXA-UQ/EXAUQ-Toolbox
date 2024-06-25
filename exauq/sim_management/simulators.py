@@ -1115,9 +1115,11 @@ class PendingSubmitJobStrategy(JobStrategy):
         initial_delay = 1
         max_delay = 32
 
+        interface = job_manager.get_interface(job.interface_tag)
+
         while retry_attempts < max_retries:
             try:
-                job_manager.interface.submit_job(job)
+                interface.submit_job(job)
                 job_manager.simulations_log.update_job_status(
                     str(job.id), JobStatus.SUBMITTED
                 )
