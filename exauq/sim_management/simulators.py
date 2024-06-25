@@ -843,11 +843,29 @@ class JobManager:
 
                 self._handle_job(job, status)
 
-    @property
-    def interface(self):
-        """Provides read-only access to the hardware interface used for job execution."""
+    def get_interface(self, interface_tag: str) -> HardwareInterface:
+        """Get the hardware interface with the given tag.
 
-        return self._interface
+        Parameters
+        ----------
+        interface_tag : str
+            The tag of the hardware interface to retrieve.
+
+        Returns
+        -------
+        HardwareInterface
+            The hardware interface with the given tag.
+
+        Raises
+        ------
+        ValueError
+            If no interface with the given tag is found.
+        """
+        for interface in self._interfaces:
+            if interface.tag == interface_tag:
+                return interface
+
+        raise ValueError(f"No interface found with tag '{interface_tag}'.")
 
     @property
     def simulations_log(self):
