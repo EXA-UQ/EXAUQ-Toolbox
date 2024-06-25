@@ -340,6 +340,8 @@ class SimulationsLog(object):
                 **dict(zip(self._input_keys, x)),
                 self._job_id_key: str(job_id),
                 self._job_status_key: job_status.value,
+                self._job_level_key: str(job_level),
+                self._interface_tag_key: interface_tag or "",
             }
 
             self._simulations_db.create(record)
