@@ -86,7 +86,7 @@ class HardwareInterface(ABC):
     Whether the hardware is local or remote is also abstracted away by this interface.
 
     The goal is to provide a unified way to submit jobs, query job status, fetch job output,
-    cancel jobs, and wait for jobs across all types of hardware resources. This enables
+    and cancel jobs across all types of hardware resources. This enables
     writing hardware-agnostic code for running simulations or performing other computational tasks.
 
     The class also includes two attributes: `level` and `tag`. `level` is an integer that
