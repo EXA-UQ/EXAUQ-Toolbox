@@ -242,6 +242,14 @@ class SimulationsLog(object):
         status_str = record[self._job_status_key]
         return JobStatus(status_str)
 
+    def _get_job_level(self, record: Record) -> int:
+        """Get the level of a job from a database record"""
+        return int(record[self._job_level_key])
+
+    def _get_interface_tag(self, record: Record) -> str:
+        """Get the interface tag of a job from a database record"""
+        return record[self._interface_tag_key]
+
     def get_simulations(self) -> tuple[Simulation]:
         """
         Get all simulations contained in the log file.
