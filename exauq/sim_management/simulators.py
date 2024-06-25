@@ -678,6 +678,25 @@ class JobManager:
 
         return job
 
+    @staticmethod
+    def _validate_interfaces(interfaces: Sequence[HardwareInterface]):
+        """Check that the supplied argument is a sequence of hardware interfaces and that
+        each interface's tag is not None and unique."""
+        if not all(isinstance(interface, HardwareInterface) for interface in interfaces):
+            raise TypeError(
+                "Expected 'interfaces' to be a sequence of HardwareInterface instances, but "
+                f"received {type(interfaces)} instead."
+            )
+
+        if any(interface.tag is None for interface in interfaces):
+            raise ValueError("Interface tag not set.")
+
+        interface_tags = [interface.tag for interface in interfaces]
+        if len(interface_tags) != len(set(interface_tags)):
+            raise ValueError("Each interface must have a unique tag.")
+
+        return interfaces
+
     def cancel(self, job_id: JobId) -> Job:
         """Cancels a job with the given ID.
 
