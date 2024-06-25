@@ -620,12 +620,12 @@ class JobManager:
     def __init__(
         self,
         simulations_log: SimulationsLog,
-        interface: HardwareInterface,
+        interfaces: list[HardwareInterface],
         polling_interval: int = 10,
         wait_for_pending: bool = True,
     ):
         self._simulations_log = simulations_log
-        self._interface = interface
+        self._interfaces = self._validate_interfaces(interfaces)
         self._polling_interval = polling_interval
         self._jobs = []
         self._lock = Lock()
@@ -696,6 +696,31 @@ class JobManager:
             raise ValueError("Each interface must have a unique tag.")
 
         return interfaces
+
+    def _allocate_interface(self, level: int) -> str:
+        """Allocates a hardware interface for a job based on its level. The interface is chosen
+        based on the number of jobs currently assigned to each interface, ensuring a balanced
+        distribution of jobs across available hardware."""
+
+        with self._lock:
+            matching_interfaces = [interface for interface in self._interfaces if
+                                   interface.level == level]
+
+            if not matching_interfaces:
+                raise ValueError(f"No interfaces found for level {level}")
+
+            interface_tag = min(
+                matching_interfaces, key=lambda interface: self._interface_job_counts[interface.tag]
+            ).tag
+
+            self._interface_job_counts[interface_tag] += 1
+
+            return interface_tag
+
+    def _deallocate_interface(self, interface_tag: str):
+        """Deallocates a hardware interface by decrementing the number of jobs assigned to it."""
+        with self._lock:
+            self._interface_job_counts[interface_tag] -= 1
 
     def cancel(self, job_id: JobId) -> Job:
         """Cancels a job with the given ID.
