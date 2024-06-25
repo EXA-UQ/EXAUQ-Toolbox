@@ -1181,12 +1181,14 @@ class PendingCancelJobStrategy(JobStrategy):
         initial_delay = 1
         max_delay = 32
 
+        interface = job_manager.get_interface(job.interface_tag)
+
         while retry_attempts < max_retries:
             try:
                 # First check the latest status from the hardware, in case the job
                 # has reached a terminal status before the job manager has had a chance
                 # to pick this up.
-                job_status = job_manager.interface.get_job_status(job.id)
+                job_status = interface.get_job_status(job.id)
                 if job_status in TERMINAL_STATUSES:
                     job_manager.simulations_log.update_job_status(str(job.id), job_status)
                     job_manager.remove_job(job)
