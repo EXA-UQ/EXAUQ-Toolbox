@@ -289,6 +289,8 @@ class SimulationsLog(object):
         x: Input,
         job_id: Union[str, JobId, int],
         job_status: JobStatus = JobStatus.PENDING_SUBMIT,
+        job_level: int = 0,
+        interface_tag: Optional[str] = None,
     ) -> None:
         """
         Record a new simulation job in the log file.
@@ -306,6 +308,10 @@ class SimulationsLog(object):
         job_status : JobStatus, optional
             The status of the job to be recorded alongside the input `x`.
             Defaults to JobStatus.PENDING_SUBMIT.
+        job_level : int, optional
+            The level of the job. Defaults to 0.
+        interface_tag : Optional[str], optional
+            The tag of the interface that the job is assigned to. Defaults to None.
 
         Raises
         ------
