@@ -136,11 +136,13 @@ class Job:
         self._interface_tag = self._validate_interface_tag(value)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(id_={repr(self.id)}, data={repr(self.data)})"
+        return f"{self.__class__.__name__}(id_={repr(self.id)}, data={repr(self.data)}, level={self.level}, interface_tag={self.interface_tag})"
 
     def __eq__(self, other) -> bool:
         return (
             isinstance(other, self.__class__)
             and self.id == other.id
             and self.data == other.data
+            and self.level == other.level
+            and self.interface_tag == other.interface_tag
         )
