@@ -95,6 +95,33 @@ class HardwareInterface(ABC):
     - get_job_output
     - cancel_job
     """
+    def __init__(self):
+        self._level = 0
+        self._tag = None
+
+    @property
+    def level(self) -> int:
+        """(Read-only) The level of the hardware interface."""
+        return self._level
+
+    @property
+    def tag(self) -> Optional[str]:
+        """(Read-only) The tag of the hardware interface."""
+        return self._tag
+
+    @level.setter
+    def level(self, value: int):
+        if not isinstance(value, int):
+            raise TypeError(f"Expected level ({value}) to be of type int. Got {type(value)} instead.")
+
+        self._level = value
+
+    @tag.setter
+    def tag(self, value: str):
+        if not isinstance(value, str):
+            raise TypeError(f"Expected tag ({value}) to be of type str. Got {type(value)} instead.")
+
+        self._tag = value
 
     @abstractmethod
     def submit_job(self, job: Job):
