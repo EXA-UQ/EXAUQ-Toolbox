@@ -622,7 +622,7 @@ class JobManager:
         simulations_log: SimulationsLog,
         interfaces: list[HardwareInterface],
         polling_interval: int = 10,
-        wait_for_pending: bool = True,
+        wait_for_pending: bool = False,
     ):
         self._simulations_log = simulations_log
         self._interfaces = self._validate_interfaces(interfaces)
