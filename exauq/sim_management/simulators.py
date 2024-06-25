@@ -839,7 +839,8 @@ class JobManager:
                 }
 
                 if not is_pending_or_failed_submit:
-                    status = self._interface.get_job_status(job.id)
+                    interface = self.get_interface(job.interface_tag)
+                    status = interface.get_job_status(job.id)
 
                 self._handle_job(job, status)
 
