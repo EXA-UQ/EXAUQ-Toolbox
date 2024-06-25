@@ -636,6 +636,8 @@ class JobManager:
 
         self._job_strategies = self._init_job_strategies()
 
+        self._interface_job_counts = {interface.tag: 0 for interface in self._interfaces}
+
         self.monitor(self._simulations_log.get_non_terminated_jobs())
         if wait_for_pending and self._thread is not None:
             self._thread.join()
