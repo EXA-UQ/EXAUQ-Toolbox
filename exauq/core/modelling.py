@@ -10,6 +10,7 @@ import math
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from itertools import product
 from numbers import Real
+from types import GenericAlias
 from typing import Any, Callable, Optional, TypeVar, Union
 
 import numpy as np
@@ -19,9 +20,140 @@ from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.csv_db import Path
 
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
+T = TypeVar("T")
+S = TypeVar("S")
 
 
-class LevelTagged:
+class _LevelTaggedMeta(type):
+    """Metaclass used to define custom ``isinstance`` behaviour for ``LevelTagged``."""
+
+    def __instancecheck__(cls, obj: Any) -> bool:
+        return get_level(obj) is not None
+
+
+class LevelTagged(metaclass=_LevelTaggedMeta):
+    """Represents objects that have a level attached to them.
+
+    This class is not intended to be instantiated directly, but instead exists mainly to
+    support type hinting for objects that have a level attached to them (cf. the
+    `set_level`, `get_level` and `remove_level` functions).
+
+    `LevelTagged` supports class subscripting, so that it behaves a like a generic type
+    for type hinting. (Note however that `LevelTagged` does not derive from
+    `typing.Generic`.) For example, if a function `foo` returns an instance of
+    ``exauq.core.modelling.Input`` with a level attached to it, this can be type-hint as:
+
+    ```
+    from exauq.core.modelling import Input
+
+    def foo() -> LevelTagged[Input]:
+        ...
+
+    ```
+
+    `LevelTagged` also provides custom `isinstance` behaviour that can be used to
+    determine whether an object has a level attached to it:
+
+    ```
+    from exauq.core.modelling import set_level
+
+    x = Input(1, 2, 3)
+    assert not isinstance(x, LevelTagged)
+
+    _ = set_level(x, 99)
+    assert isinstance(x, LevelTagged)
+    ```
+
+    Attributes
+    ----------
+    level_attr : str
+        The name of the attribute used when attaching a level to an object.
+    """
+
+    level_attr = "_LevelTagged_level"
+
+    def __class_getitem__(cls, key):
+        return GenericAlias(cls, (key,))
+
+
+def set_level(obj: T, level: int) -> LevelTagged[T]:
+    """Assign a level to an object.
+
+    This creates a new attribute in the supplied object and assigns the given level to
+    it. The attribute name is given by ``LevelTagged.level_attr``, but should not be
+    accessed directly: to retrieve the level, use ``get_level`` and to remove the level
+    use ``remove_level``.
+
+    Parameters
+    ----------
+    obj : T
+        The object to assign a level to.
+    level : int
+        The level to assign.
+
+    Returns
+    -------
+    LevelTagged[T]
+        The same object `obj` but with the given level attached to it (which can be
+        retrieved with ``get_level``).
+
+    Raises
+    ------
+    ValueError
+        If an attribute of `obj` would be overwritten by assigning a level to `obj`.
+    """
+
+    if not isinstance(level, int):
+        raise TypeError(f"Expected 'level' to be an integer, but received {type(level)}.")
+    elif hasattr(obj, LevelTagged.level_attr):
+        raise ValueError(
+            f"Cannot set a level on argument 'obj' with value {obj} as existing attribute "
+            f"'{LevelTagged.level_attr}' would be overwritten."
+        )
+    else:
+        setattr(obj, LevelTagged.level_attr, level)
+        return obj
+
+
+def get_level(obj: Union[LevelTagged[Any], Any]) -> Optional[int]:
+    """Get the level attached to an object.
+
+    Parameters
+    ----------
+    obj : LevelTagged[Any] or Any
+        An object, possibly with a level assigned to it.
+
+    Returns
+    -------
+    Optional[int]
+        The level attached to the object, if present, or else ``None``.
+    """
+
+    if not hasattr(obj, LevelTagged.level_attr):
+        return None
+    else:
+        return getattr(obj, LevelTagged.level_attr)
+
+
+def remove_level(obj: Any) -> None:
+    """Remove the level assigned to an object, if present.
+
+    If an object has a level assigned to it, the attribute containing the level is deleted
+    from the object. If the object does not have a level assigned to it then no action
+    is taken.
+
+    Parameters
+    ----------
+    obj : Any
+        An object.
+    """
+    if isinstance(obj, LevelTagged):
+        delattr(obj, LevelTagged.level_attr)
+
+    return None
+
+
+class _LevelTaggedOld:
     """An object with a level attached to it.
 
     This class is not intended to be initialised directly, but rather to be used alongside
@@ -358,7 +490,7 @@ class Input(Sequence):
         return self._value
 
 
-class InputWithLevel(LevelTagged, Input):
+class _InputWithLevel(_LevelTaggedOld, Input):
     pass
 
 
@@ -907,10 +1039,6 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         """
 
         raise NotImplementedError
-
-
-T = TypeVar("T")
-S = TypeVar("S")
 
 
 class MultiLevel(dict[int, T]):
