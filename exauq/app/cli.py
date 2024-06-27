@@ -65,13 +65,9 @@ class Cli(cmd2.Cmd):
         type=str,
         help="Job IDs of the jobs to resubmit.",
     )
+    status_opt_short = "-s"
     resubmit_parser.add_argument(
-        "--twr",
-        action="store_true",
-        help="Resubmit all jobs that have 'terminated without result'.",
-    )
-    resubmit_parser.add_argument(
-        "-s",
+        status_opt_short,
         "--status",
         nargs="?",
         default="",
@@ -82,8 +78,9 @@ class Cli(cmd2.Cmd):
             "statuses will be resubmitted (defaults to '%(default)s', which means resubmit all jobs)"
         ),
     )
+    status_not_opt_short = "-S"
     resubmit_parser.add_argument(
-        "-S",
+        status_not_opt_short,
         "--status-not",
         nargs="?",
         default="",
@@ -92,6 +89,16 @@ class Cli(cmd2.Cmd):
         help=(
             "a comma-separated list of statuses, so that only jobs *not* having one of these "
             "statuses will be resubmitted (defaults to '%(default)s', which means resubmit all jobs)"
+        ),
+    )
+    resubmit_parser.add_argument(
+        "-x",
+        "--twr",
+        action="store_true",
+        help=(
+            "Resubmit all jobs that have 'terminated without result'."
+            "This overrides any filters applied to statuses with the arguments "
+            f"{status_opt_short} and {status_not_opt_short}."
         ),
     )
 
@@ -137,9 +144,8 @@ class Cli(cmd2.Cmd):
             f"overrides the {n_jobs_opt_short} argument."
         ),
     )
-    status_opt_short = "-s"
     show_parser.add_argument(
-        "-s",
+        status_opt_short,
         "--status",
         nargs="?",
         default="",
@@ -150,9 +156,8 @@ class Cli(cmd2.Cmd):
             "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
         ),
     )
-    status_not_opt_short = "-S"
     show_parser.add_argument(
-        "-S",
+        status_not_opt_short,
         "--status-not",
         nargs="?",
         default="",

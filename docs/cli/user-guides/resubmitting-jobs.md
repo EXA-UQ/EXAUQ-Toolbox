@@ -31,10 +31,10 @@ with the command assigning new job IDs to each. This allows you to track the res
 jobs separately from their original submissions.
 
 ```
-(exauq)> resubmit 20240521102800090 20240521102801154
+(exauq)> resubmit 20240424185432857 20240424185529714
 OLD_JOBID          NEW_JOBID              INPUT               
-20240521102800090  20240425120013456      (1.1, 2.2, 3.3)
-20240521102801154  20240425123045879      (2.1, -1.2, 0.3) 
+20240424185432857  20240425120013456      (-1.0, 2.0, 3.0)
+20240424185529714  20240425123045879      (0.5, 0.32, -3.12)
 ```
 
 If we now run the `show` command again, we can see the new job IDs and their status:
@@ -47,14 +47,14 @@ JOBID              INPUT               STATUS     RESULT
 20240424175049647  (8.0, 4.0, 8.0)     Completed  20.0
 20240424185432857  (-1.0, 2.0, 3.0)    Failed
 20240424185529714  (0.5, 0.32, -3.12)  Failed
-20240425120013456  (1.1, 2.2, 3.3)     Submitted
-20240425123045879  (2.1, -1.2, 0.3)    Submitted
+20240425120013456  (-1.0, 2.0, 3.0)    Submitted
+20240425123045879  (0.5, 0.32, -3.12)  Submitted
 ```
 
 ## Using Filters to Select Jobs for Resubmission
 
 To effectively manage job resubmissions, you may need to filter jobs based on their status. 
-Here's an initial set of jobs to illustrate this process:
+Here's an initial set of jobs that will be used in the next few sections to illustrate how this can be achieved:
 
 ```
 (exauq)> show
@@ -64,15 +64,15 @@ JOBID              INPUT               STATUS     RESULT
 20240424175049647  (8.0, 4.0, 8.0)     Completed  20.0
 20240424185432857  (-1.0, 2.0, 3.0)    Failed
 20240424185529714  (0.5, 0.32, -3.12)  Failed
-20240425120013456  (1.1, 2.2, 3.3)     Cancelled
-20240425123045879  (2.1, -1.2, 0.3)    Cancelled
+20240425120013456  (-1.0, 2.0, 3.0)    Cancelled
+20240425123045879  (0.5, 0.32, -3.12)  Cancelled
 20240425124567890  (3.3, 3.3, 3.3)     Running
 ```
 
 ### Resubmitting Based on Status
 
 If you want to resubmit jobs based on their status, such as all 'Cancelled' or 
-'Failed' jobs, you can use the `--status` option with the `resubmit` command. 
+'Failed' jobs, you can use the `--status` (or `-s`) option with the `resubmit` command. 
 For example, to resubmit all jobs that have failed:
 
 ```
@@ -90,30 +90,28 @@ can provide both statuses with the `--status` option:
 OLD_JOBID          NEW_JOBID              INPUT               
 20240424185432857  20240603102300450      (-1.0, 2.0, 3.0)
 20240424185529714  20240603102300678      (0.5, 0.32, -3.12)
-20240425120013456  20240603102300901      (1.1, 2.2, 3.3)
-20240425123045879  20240603102301234      (2.1, -1.2, 0.3)
+20240425120013456  20240603102300901      (-1.0, 2.0, 3.0)
+20240425123045879  20240603102301234      (0.5, 0.32, -3.12)
 ```
 
-This command resubmits all jobs that have either failed or been cancelled, 
-assigning new job IDs to each for separate tracking.
+This command resubmits all jobs that have either failed or been cancelled.
 
 ### Excluding Certain Statuses
 
 Alternatively, if you want to resubmit all jobs except those in certain statuses, use 
-the `--status-not` option. For example, to resubmit all jobs that are not 'Completed':
+the `--status-not` (or `-S`) option. For example, to resubmit all jobs that are not 'Completed':
 
 ```
 (exauq)> resubmit --status-not=completed
 OLD_JOBID          NEW_JOBID              INPUT               
 20240424185432857  20240603103501234      (-1.0, 2.0, 3.0)
 20240424185529714  20240603103501789      (0.5, 0.32, -3.12)
-20240425120013456  20240603103502156      (1.1, 2.2, 3.3)
-20240425123045879  20240603103502567      (2.1, -1.2, 0.3)
+20240425120013456  20240603103502156      (-1.0, 2.0, 3.0)
+20240425123045879  20240603103502567      (0.5, 0.32, -3.12)
 20240425124567890  20240603103502978      (3.3, 3.3, 3.3)
 ```
 
-This command resubmits all jobs that are not completed, assigning new job IDs to each for 
-separate tracking.
+This command resubmits all jobs that are not completed.
 
 !!! note
     The `--status` and `--status-not` options can be used together to filter jobs based on 
@@ -131,7 +129,7 @@ separate tracking.
 ### Resubmitting Jobs That Terminated Without Result
 
 For jobs that have ended (i.e., are no longer running) but have not produced a result, 
-the `--twr` (terminated without result) option is especially valuable. This option 
+the `--twr` (or `-x`) (terminated without result) option is especially valuable. This option 
 specifically targets jobs with terminal statuses that did not generate results, such 
 as 'Failed', 'Cancelled', and 'Failed Submit'.
 
@@ -145,8 +143,8 @@ JOBID              INPUT               STATUS          RESULT
 20240424175049647  (8.0, 4.0, 8.0)     Completed       20.0
 20240424185432857  (-1.0, 2.0, 3.0)    Failed
 20240424185529714  (0.5, 0.32, -3.12)  Failed
-20240425120013456  (1.1, 2.2, 3.3)     Cancelled
-20240425123045879  (2.1, -1.2, 0.3)    Cancelled
+20240425120013456  (-1.0, 2.0, 3.0)    Cancelled
+20240425123045879  (0.5, 0.32, -3.12)  Cancelled
 20240425124567890  (3.3, 3.3, 3.3)     Running
 20240426120013457  (4.4, 4.4, 4.4)     Failed Submit
 20240426123045880  (5.5, 5.5, 5.5)     Failed Submit
@@ -160,8 +158,8 @@ a result:
 OLD_JOBID          NEW_JOBID              INPUT               
 20240424185432857  20240603103500456      (-1.0, 2.0, 3.0)
 20240424185529714  20240603103501984      (0.5, 0.32, -3.12)
-20240425120013456  20240603103502457      (1.1, 2.2, 3.3)
-20240425123045879  20240603103502912      (2.1, -1.2, 0.3)
+20240425120013456  20240603103502457      (-1.0, 2.0, 3.0)
+20240425123045879  20240603103502912      (0.5, 0.32, -3.12)
 20240426120013457  20240603103503345      (4.4, 4.4, 4.4)
 20240426123045880  20240603103503789      (5.5, 5.5, 5.5)
 ```

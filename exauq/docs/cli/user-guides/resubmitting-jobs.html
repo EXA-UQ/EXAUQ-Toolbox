@@ -14,7 +14,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.22">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.25">
     
     
       
@@ -22,7 +22,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.732c4fb1.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6543a935.min.css">
       
       
 
@@ -636,10 +636,10 @@ results, or were cancelled but need to be rerun. In this case, we provide the jo
 of the two failed jobs. The example below shows how these failed jobs are resubmitted, 
 with the command assigning new job IDs to each. This allows you to track the resubmitted 
 jobs separately from their original submissions.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>(exauq)&gt; resubmit 20240521102800090 20240521102801154
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>(exauq)&gt; resubmit 20240424185432857 20240424185529714
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>OLD_JOBID          NEW_JOBID              INPUT               
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>20240521102800090  20240425120013456      (1.1, 2.2, 3.3)
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>20240521102801154  20240425123045879      (2.1, -1.2, 0.3) 
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>20240424185432857  20240425120013456      (-1.0, 2.0, 3.0)
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>20240424185529714  20240425123045879      (0.5, 0.32, -3.12)
 </span></code></pre></div>
 <p>If we now run the <code>show</code> command again, we can see the new job IDs and their status:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>(exauq)&gt; show
@@ -649,12 +649,12 @@ jobs separately from their original submissions.</p>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>20240424175049647  (8.0, 4.0, 8.0)     Completed  20.0
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>20240424185432857  (-1.0, 2.0, 3.0)    Failed
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>20240424185529714  (0.5, 0.32, -3.12)  Failed
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>20240425120013456  (1.1, 2.2, 3.3)     Submitted
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>20240425123045879  (2.1, -1.2, 0.3)    Submitted
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>20240425120013456  (-1.0, 2.0, 3.0)    Submitted
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>20240425123045879  (0.5, 0.32, -3.12)  Submitted
 </span></code></pre></div>
 <h2 id="using-filters-to-select-jobs-for-resubmission">Using Filters to Select Jobs for Resubmission</h2>
 <p>To effectively manage job resubmissions, you may need to filter jobs based on their status. 
-Here's an initial set of jobs to illustrate this process:</p>
+Here's an initial set of jobs that will be used in the next few sections to illustrate how this can be achieved:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>(exauq)&gt; show
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>JOBID              INPUT               STATUS     RESULT
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>20240424163258474  (5.0, 5.0, 5.0)     Completed  15.0  
@@ -662,13 +662,13 @@ Here's an initial set of jobs to illustrate this process:</p>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>20240424175049647  (8.0, 4.0, 8.0)     Completed  20.0
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>20240424185432857  (-1.0, 2.0, 3.0)    Failed
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>20240424185529714  (0.5, 0.32, -3.12)  Failed
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>20240425120013456  (1.1, 2.2, 3.3)     Cancelled
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>20240425123045879  (2.1, -1.2, 0.3)    Cancelled
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>20240425120013456  (-1.0, 2.0, 3.0)    Cancelled
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>20240425123045879  (0.5, 0.32, -3.12)  Cancelled
 </span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>20240425124567890  (3.3, 3.3, 3.3)     Running
 </span></code></pre></div>
 <h3 id="resubmitting-based-on-status">Resubmitting Based on Status</h3>
 <p>If you want to resubmit jobs based on their status, such as all 'Cancelled' or 
-'Failed' jobs, you can use the <code>--status</code> option with the <code>resubmit</code> command. 
+'Failed' jobs, you can use the <code>--status</code> (or <code>-s</code>) option with the <code>resubmit</code> command. 
 For example, to resubmit all jobs that have failed:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>(exauq)&gt; resubmit --status=failed
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>OLD_JOBID          NEW_JOBID              INPUT               
@@ -681,24 +681,22 @@ can provide both statuses with the <code>--status</code> option:</p>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>OLD_JOBID          NEW_JOBID              INPUT               
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>20240424185432857  20240603102300450      (-1.0, 2.0, 3.0)
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>20240424185529714  20240603102300678      (0.5, 0.32, -3.12)
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>20240425120013456  20240603102300901      (1.1, 2.2, 3.3)
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>20240425123045879  20240603102301234      (2.1, -1.2, 0.3)
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>20240425120013456  20240603102300901      (-1.0, 2.0, 3.0)
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>20240425123045879  20240603102301234      (0.5, 0.32, -3.12)
 </span></code></pre></div>
-<p>This command resubmits all jobs that have either failed or been cancelled, 
-assigning new job IDs to each for separate tracking.</p>
+<p>This command resubmits all jobs that have either failed or been cancelled.</p>
 <h3 id="excluding-certain-statuses">Excluding Certain Statuses</h3>
 <p>Alternatively, if you want to resubmit all jobs except those in certain statuses, use 
-the <code>--status-not</code> option. For example, to resubmit all jobs that are not 'Completed':</p>
+the <code>--status-not</code> (or <code>-S</code>) option. For example, to resubmit all jobs that are not 'Completed':</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>(exauq)&gt; resubmit --status-not=completed
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>OLD_JOBID          NEW_JOBID              INPUT               
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>20240424185432857  20240603103501234      (-1.0, 2.0, 3.0)
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>20240424185529714  20240603103501789      (0.5, 0.32, -3.12)
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>20240425120013456  20240603103502156      (1.1, 2.2, 3.3)
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>20240425123045879  20240603103502567      (2.1, -1.2, 0.3)
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>20240425120013456  20240603103502156      (-1.0, 2.0, 3.0)
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>20240425123045879  20240603103502567      (0.5, 0.32, -3.12)
 </span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>20240425124567890  20240603103502978      (3.3, 3.3, 3.3)
 </span></code></pre></div>
-<p>This command resubmits all jobs that are not completed, assigning new job IDs to each for 
-separate tracking.</p>
+<p>This command resubmits all jobs that are not completed.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The <code>--status</code> and <code>--status-not</code> options can be used together to filter jobs based on 
@@ -715,7 +713,7 @@ range of statuses when using this option.</p>
 </div>
 <h3 id="resubmitting-jobs-that-terminated-without-result">Resubmitting Jobs That Terminated Without Result</h3>
 <p>For jobs that have ended (i.e., are no longer running) but have not produced a result, 
-the <code>--twr</code> (terminated without result) option is especially valuable. This option 
+the <code>--twr</code> (or <code>-x</code>) (terminated without result) option is especially valuable. This option 
 specifically targets jobs with terminal statuses that did not generate results, such 
 as 'Failed', 'Cancelled', and 'Failed Submit'.</p>
 <p>Here is the initial set of jobs, including some that terminated without result:</p>
@@ -726,8 +724,8 @@ as 'Failed', 'Cancelled', and 'Failed Submit'.</p>
 </span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>20240424175049647  (8.0, 4.0, 8.0)     Completed       20.0
 </span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>20240424185432857  (-1.0, 2.0, 3.0)    Failed
 </span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>20240424185529714  (0.5, 0.32, -3.12)  Failed
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>20240425120013456  (1.1, 2.2, 3.3)     Cancelled
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>20240425123045879  (2.1, -1.2, 0.3)    Cancelled
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>20240425120013456  (-1.0, 2.0, 3.0)    Cancelled
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>20240425123045879  (0.5, 0.32, -3.12)  Cancelled
 </span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>20240425124567890  (3.3, 3.3, 3.3)     Running
 </span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>20240426120013457  (4.4, 4.4, 4.4)     Failed Submit
 </span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>20240426123045880  (5.5, 5.5, 5.5)     Failed Submit
@@ -738,8 +736,8 @@ a result:</p>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>OLD_JOBID          NEW_JOBID              INPUT               
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>20240424185432857  20240603103500456      (-1.0, 2.0, 3.0)
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>20240424185529714  20240603103501984      (0.5, 0.32, -3.12)
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>20240425120013456  20240603103502457      (1.1, 2.2, 3.3)
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>20240425123045879  20240603103502912      (2.1, -1.2, 0.3)
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>20240425120013456  20240603103502457      (-1.0, 2.0, 3.0)
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>20240425123045879  20240603103502912      (0.5, 0.32, -3.12)
 </span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>20240426120013457  20240603103503345      (4.4, 4.4, 4.4)
 </span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>20240426123045880  20240603103503789      (5.5, 5.5, 5.5)
 </span></code></pre></div>
@@ -803,7 +801,7 @@ a result.</p>
     <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.5cfa9459.min.js"></script>
+      <script src="../../assets/javascripts/bundle.081f42fc.min.js"></script>
       
     
   </body>

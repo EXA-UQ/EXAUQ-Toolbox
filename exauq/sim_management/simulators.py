@@ -407,15 +407,15 @@ class SimulationsLog(object):
         return job_records
 
     def get_non_terminated_jobs(self) -> tuple[Job, ...]:
-        """Return all jobs which don't have results and are in non-terminal states.
+        """Return all jobs which don't have results and have a non-terminal status.
 
-        A job is considered non-terminal if it is in one of the following states:
-        RUNNING, SUBMITTED or PENDING_SUBMIT.
+        A job is considered non-terminal if it has one of the following statuses:
+        ``RUNNING``, ``SUBMITTED`` or ``PENDING_SUBMIT``.
 
         Returns
         -------
         tuple[Job]
-            The Jobs that are in a non-terminal state.
+            The Jobs that have a non-terminal status.
         """
         with self._lock:
             non_terminal_statuses = set(JobStatus) - TERMINAL_STATUSES

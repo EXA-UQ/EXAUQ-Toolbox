@@ -10,11 +10,12 @@ from scipy.stats import norm
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     Input,
-    InputWithLevel,
+    LevelTagged,
     MultiLevel,
     MultiLevelGaussianProcess,
     SimulatorDomain,
     TrainingDatum,
+    set_level,
 )
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
@@ -627,6 +628,12 @@ def compute_multi_level_pei(
     mlgp: MultiLevelGaussianProcess, domain: SimulatorDomain
 ) -> MultiLevel[PEICalculator]:
 
+    if not isinstance(domain, SimulatorDomain):
+        raise TypeError(
+            f"Expected 'domain' to be of type {SimulatorDomain}, but received "
+            f"{type(domain)} instead."
+        )
+
     if not all(
         datum.input in domain
         for level in mlgp.levels
@@ -647,12 +654,12 @@ def compute_multi_level_loo_samples(
     domain: SimulatorDomain,
     costs: MultiLevel[Real],
     batch_size: int = 1,
-) -> tuple[InputWithLevel]:
+) -> tuple[LevelTagged[Input]]:
     """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
 
     if not isinstance(mlgp, MultiLevelGaussianProcess):
         raise TypeError(
-            f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess.__name__}, but "
+            f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess}, but "
             f"received {type(mlgp)} instead."
         )
     if missing_levels := sorted(set(mlgp.levels) - set(costs.levels)):
@@ -677,13 +684,13 @@ def compute_multi_level_loo_samples(
         lambda level, pei: maximise(lambda x: pei.compute(x) / delta_costs[level], domain)
     )
     level, (x, _) = max(maximal_pei_values.items(), key=lambda item: item[1][1])
-    design_points = [InputWithLevel(level, *x)]
+    design_points = [set_level(x, level)]
     if batch_size > 1:
         pei = ml_pei[level]
         for i in range(batch_size - 1):
             pei.add_repulsion_point(design_points[i])
             new_design_pt, _ = maximise(lambda x: pei.compute(x), domain)
-            design_points.append(InputWithLevel(level, *new_design_pt))
+            design_points.append(set_level(new_design_pt, level))
 
     return tuple(design_points)
 
