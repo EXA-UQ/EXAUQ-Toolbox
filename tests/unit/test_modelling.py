@@ -1717,17 +1717,14 @@ class TestMultiLevel(ExauqTestCase):
     def setUp(self) -> None:
         self.elements = ["a", "b", "c"]
 
-    def test_initialise_like_dict(self):
-        """A MultiLevel collection can be initialised like initialising a dict with
+    def test_initialise_from_mapping_with_int_keys(self):
+        """A MultiLevel collection can be initialised from a mapping with
         integer keys. If keys are not integers then a ValueError is raised. The resulting
         object derives from `dict`."""
 
-        x1 = zip([1, 2, 3], self.elements)
-        d = MultiLevel(x1)
-        self.assertIsInstance(d, dict)
-
-        x2 = dict(x1)
-        _ = MultiLevel(x2)
+        d = dict(zip([2, 4, 5], self.elements))
+        ml = MultiLevel(d)
+        self.assertIsInstance(ml, dict)
 
         key = "a"
         with self.assertRaisesRegex(
@@ -1738,14 +1735,39 @@ class TestMultiLevel(ExauqTestCase):
         ):
             _ = MultiLevel({key: 1})
 
-    def test_from_sequence_has_consecutive_levels(self):
-        """A multi-level collection created from a sequence has levels starting at 1 and
-        going up to the number of elements in the sequence."""
+    def test_initialise_from_sequence(self):
+        """If a sequence is supplied, then a multi-level collection is initialised with
+        levels starting at 1 and going up to the number of elements in the sequence. The
+        values are the corresponding elements of the sequence.
+        """
 
         elements = "abcde"
         levels = tuple(i + 1 for i in range(len(elements)))
-        expected = MultiLevel(zip(levels, elements))
-        self.assertEqual(expected, MultiLevel.from_sequence(elements))
+        expected = MultiLevel(dict(zip(levels, elements)))
+        self.assertEqual(expected, MultiLevel(elements))
+
+    def test_initialise_from_non_sequence_error(self):
+        """A TypeError is raised if something other than a Mapping or a sequence is
+        supplied for the elements at initialisation."""
+
+        elems = zip([1, 2, 3], self.elements)
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Argument 'elements' must be a mapping with int keys or an iterable of "
+                f"finite length, but received object of type {type(elems)}."
+            ),
+        ):
+            _ = MultiLevel(elems)
+
+    # def test_from_sequence_has_consecutive_levels(self):
+    #     """A multi-level collection created from a sequence has levels starting at 1 and
+    #     going up to the number of elements in the sequence."""
+
+    #     elements = "abcde"
+    #     levels = tuple(i + 1 for i in range(len(elements)))
+    #     expected = MultiLevel(zip(levels, elements))
+    #     self.assertEqual(expected, MultiLevel.from_sequence(elements))
 
     def test_equals_detects_class(self):
         """Two multi-level collections are equal if they are both instances of
@@ -1773,9 +1795,12 @@ class TestMultiLevel(ExauqTestCase):
             return str(level) + "_" + x
 
         levels = [2, 4, 6]
-        d = MultiLevel(zip(levels, self.elements))
-        expected = MultiLevel(zip(levels, map(f, levels, self.elements)))
-        self.assertEqual(expected, d.map(f))
+        d = dict(zip(levels, self.elements))
+        ml = MultiLevel(d)
+        expected = MultiLevel(
+            {level: f(level, x) for level, x in zip(levels, self.elements)}
+        )
+        self.assertEqual(expected, ml.map(f))
 
 
 class TestMultiLevelGaussianProcess(ExauqTestCase):

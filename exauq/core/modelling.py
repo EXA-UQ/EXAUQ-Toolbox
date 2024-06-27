@@ -694,6 +694,7 @@ class GaussianRV:
         return 1
 
 
+# TODO: consider adding nes method?
 @dataclasses.dataclass(frozen=True)
 class Prediction:
     """Represents a predicted value together with the variance and standard_deviation of the prediction.
@@ -1108,13 +1109,26 @@ class MultiLevel(dict[int, T]):
     True
     """
 
-    def __init__(self, labelled_elems: Union[Mapping[int, T], Iterable[tuple[int, T]]]):
-        super().__init__(labelled_elems)
-        if invalid_keys := [k for k in self.keys() if not isinstance(k, int)]:
-            key = invalid_keys[0]
-            raise ValueError(
-                f"Key '{key}' of invalid type {type(key)} found: keys should be integers "
-                "that define levels."
+    def __init__(self, elements: Union[Mapping[int, T], Sequence[T]]):
+        super().__init__(self._parse_elements(elements))
+
+    def _parse_elements(self, elements: Any) -> dict[int, Any]:
+        if isinstance(elements, Mapping):
+            d = dict(elements)
+            if invalid_keys := [k for k in d.keys() if not isinstance(k, int)]:
+                key = invalid_keys[0]
+                raise ValueError(
+                    f"Key '{key}' of invalid type {type(key)} found: keys should be integers "
+                    "that define levels."
+                )
+            else:
+                return d
+        elif isinstance(elements, Iterable) and hasattr(elements, "__len__"):
+            return {i + 1: elem for i, elem in enumerate(elements)}
+        else:
+            raise TypeError(
+                "Argument 'elements' must be a mapping with int keys or an iterable of "
+                f"finite length, but received object of type {type(elements)}."
             )
 
     @classmethod
@@ -1182,6 +1196,8 @@ class MultiLevel(dict[int, T]):
 
 
 class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmulator):
+    # TODO: add ability to specify gps and coeffs as sequences (of same length)
+    # TODO: add type checking
     def __init__(
         self,
         gps: Union[
@@ -1278,7 +1294,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         if isinstance(base, MultiLevel):
             values = map(lambda level: base[level] if level in base else fill, levels)
-            return MultiLevel(zip(levels, values))
+            return MultiLevel(dict(zip(levels, values)))
         else:
             return MultiLevel({level: base for level in levels})
 
