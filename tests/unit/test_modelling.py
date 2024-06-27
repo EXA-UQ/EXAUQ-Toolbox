@@ -10,20 +10,36 @@ from typing import Literal, Sequence
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import (AbstractGaussianProcess,
-                                  GaussianProcessHyperparameters, Input,
-                                  LevelTagged, MultiLevel,
-                                  MultiLevelGaussianProcess,
-                                  OptionalFloatPairs, Prediction,
-                                  SimulatorDomain, TrainingDatum,
-                                  _LevelTaggedOld, get_level, remove_level,
-                                  set_level)
+from exauq.core.modelling import (
+    AbstractGaussianProcess,
+    GaussianProcessHyperparameters,
+    Input,
+    LevelTagged,
+    MultiLevel,
+    MultiLevelGaussianProcess,
+    OptionalFloatPairs,
+    Prediction,
+    SimulatorDomain,
+    TrainingDatum,
+    _LevelTaggedOld,
+    get_level,
+    remove_level,
+    set_level,
+)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
-from tests.unit.fakes import (FakeGP, FakeGPHyperparameters, WhiteNoiseGP,
-                              WhiteNoiseGPHyperparameters)
-from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
-                                       exact, make_window)
+from tests.unit.fakes import (
+    FakeGP,
+    FakeGPHyperparameters,
+    WhiteNoiseGP,
+    WhiteNoiseGPHyperparameters,
+)
+from tests.utilities.utilities import (
+    ExauqTestCase,
+    compare_input_tuples,
+    exact,
+    make_window,
+)
 
 
 class TestInput(unittest.TestCase):
@@ -1814,6 +1830,23 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
     ):
         return [(None, None), process_var_bounds]
 
+    def test_init_type_errors(self):
+        """A TypeError is raised if:
+        * 'gps' is not a mapping with GPs as values and not a sequence of GPs.
+        * 'coefficients' is not a mapping with real number values, not a sequence of
+          real numbers and not a real number.
+        """
+
+        some_bad_gps = [{1: WhiteNoiseGP, 2: "a"}, [WhiteNoiseGP(), "a"]]
+        for bad_gps in some_bad_gps:
+            with self.assertRaises(TypeError):
+                _ = self.make_multi_level_gp(bad_gps, coefficients=[1, 2])
+
+        some_bad_coeffs = [{1: 1, 2: "a"}, [1, [1]], "a"]
+        for bad_coeffs in some_bad_coeffs:
+            with self.assertRaises(TypeError):
+                _ = self.make_multi_level_gp([WhiteNoiseGP(), WhiteNoiseGP()], bad_coeffs)
+
     def test_coefficients_single_value_used_at_each_level(self):
         """If a single float is given for the coefficients, then this value is used at
         the coefficient at each level."""
@@ -1837,6 +1870,23 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         levels = [1, 2, 3]
         expected = MultiLevelGaussianProcess(
             gps=dict(zip(levels, gps)), coefficients=dict(zip(levels, coefficients))
+        )
+        self.assertTrue(all(mlgp[level] == expected[level] for level in levels))
+        self.assertEqual(mlgp.coefficients, expected.coefficients)
+
+    def test_init_from_gps_with_different_levels_and_seq_of_coefficients(self):
+        """If the GPs have levels different to 1, 2, ... and a sequence of coefficients is
+        supplied, then the coefficients are assigned to the GPs in increasing order of
+        level."""
+
+        levels = [2, 4, 6]
+        gps = {level: WhiteNoiseGP() for level in levels}
+        coefficients = [1, 10, 100]
+
+        mlgp = self.make_multi_level_gp(gps, coefficients)
+
+        expected = MultiLevelGaussianProcess(
+            gps=gps, coefficients=dict(zip(levels, coefficients))
         )
         self.assertTrue(all(mlgp[level] == expected[level] for level in levels))
         self.assertEqual(mlgp.coefficients, expected.coefficients)

@@ -1178,8 +1178,20 @@ class MultiLevel(dict[int, T]):
         return __class__({level: f(level, val) for level, val in self.items()})
 
 
+def _can_instantiate_multi_level(elements: Any, tp: type) -> bool:
+    if isinstance(elements, Sequence) and all(
+        isinstance(coeff, tp) for coeff in elements
+    ):
+        return True
+    elif isinstance(elements, Mapping) and all(
+        isinstance(k, int) and isinstance(v, tp) for k, v in elements.items()
+    ):
+        return True
+    else:
+        return False
+
+
 class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmulator):
-    # TODO: add type checking
     def __init__(
         self,
         gps: Union[
@@ -1187,17 +1199,41 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         ],
         coefficients: Union[Mapping[int, Real], Sequence[Real], Real] = 1,
     ):
-        super().__init__(gps)
+        super().__init__(self._parse_gps(gps))
         self._coefficients = self._parse_coefficients(coefficients)
 
+    @staticmethod
+    def _parse_gps(
+        gps,
+    ) -> Union[Mapping[Any, AbstractGaussianProcess], Sequence[AbstractGaussianProcess]]:
+        if not _can_instantiate_multi_level(gps, AbstractGaussianProcess):
+            raise TypeError(
+                "Expected 'gps' to be a mapping of integers to "
+                f"{AbstractGaussianProcess.__name__} or a sequence of "
+                f"{AbstractGaussianProcess.__name__}, but received object of "
+                f"type {type(gps)} instead."
+            )
+        else:
+            return gps
+
     def _parse_coefficients(self, coefficients) -> MultiLevel[float]:
-        if isinstance(coefficients, Real):
+        if not isinstance(coefficients, Real) and not _can_instantiate_multi_level(
+            coefficients, Real
+        ):
+            raise TypeError(
+                "Expected 'coefficients' to be a mapping of integers to real numbers, "
+                "a sequence of real numbers, or a real number."
+            )
+        elif isinstance(coefficients, Real):
             return self._fill_out(float(coefficients), self.levels)
         elif isinstance(coefficients, Sequence) and len(coefficients) != len(self):
             raise ValueError(
                 "Expected the same number of coefficients as Gaussian processes (got "
                 f"{len(coefficients)} coefficients but expected {len(self)})."
             )
+        elif isinstance(coefficients, Sequence):
+            coefficients = map(float, coefficients)
+            return MultiLevel(dict(zip(self.levels, coefficients)))
         else:
             coefficients = MultiLevel(coefficients).map(lambda level, coeff: float(coeff))
             if missing_levels := (set(self.levels) - set(coefficients.levels)):
