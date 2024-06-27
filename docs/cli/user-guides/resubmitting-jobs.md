@@ -54,7 +54,7 @@ JOBID              INPUT               STATUS     RESULT
 ## Using Filters to Select Jobs for Resubmission
 
 To effectively manage job resubmissions, you may need to filter jobs based on their status. 
-Here's an initial set of jobs to illustrate this process:
+Here's an initial set of jobs that will be used in the next few sections to illustrate how this can be achieved:
 
 ```
 (exauq)> show
@@ -94,8 +94,7 @@ OLD_JOBID          NEW_JOBID              INPUT
 20240425123045879  20240603102301234      (0.5, 0.32, -3.12)
 ```
 
-This command resubmits all jobs that have either failed or been cancelled, 
-assigning new job IDs to each for separate tracking.
+This command resubmits all jobs that have either failed or been cancelled.
 
 ### Excluding Certain Statuses
 
@@ -112,8 +111,7 @@ OLD_JOBID          NEW_JOBID              INPUT
 20240425124567890  20240603103502978      (3.3, 3.3, 3.3)
 ```
 
-This command resubmits all jobs that are not completed, assigning new job IDs to each for 
-separate tracking.
+This command resubmits all jobs that are not completed.
 
 !!! note
     The `--status` and `--status-not` options can be used together to filter jobs based on 
