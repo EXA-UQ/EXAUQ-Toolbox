@@ -675,7 +675,7 @@ def _zero_mean_prediction(gp: AbstractGaussianProcess, x: Input) -> Prediction:
 def compute_multi_level_loo_errors(
     mlgp: MultiLevelGaussianProcess, loo_gp: Optional[AbstractGaussianProcess] = None
 ) -> MultiLevel[list[TrainingDatum]]:
-    error_training_data = MultiLevel.from_sequence([[] for _ in mlgp.levels])
+    error_training_data = MultiLevel([[] for _ in mlgp.levels])
     for level in mlgp.levels:
         for leave_out_index, datum in enumerate(mlgp[level].training_data):
             gaussian = compute_multi_level_loo_gaussian(

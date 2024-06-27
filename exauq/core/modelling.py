@@ -1068,10 +1068,11 @@ class MultiLevel(dict[int, T]):
 
     Parameters
     ----------
-    labelled_elems :
-        Either a mapping of integers to objects, or a collection that can create such a
-        mapping when ``dict`` is applied to it (e.g. an iterable of tuples ``(l, x)``
-        where ``l`` is an integer).
+    elements : Mapping[int, T] or Sequence[T]
+        Either a mapping of integers to objects, or another sequence of objects. If a
+        sequence is provided that isn't a mapping, then the returned multi-level
+        collection will have levels enumerating the objects from the sequence in order,
+        starting at level 1.
 
     Attributes
     ----------
@@ -1088,14 +1089,24 @@ class MultiLevel(dict[int, T]):
     --------
     Create a multi-level collection of strings:
     >>> ml: MultiLevel[str]
-    >>> levels = [2, 4, 6, 8]
-    >>> elements = ["the", "quick", "brown", "fox"]
-    >>> ml = MultiLevel(zip(levels, elements))
+    >>> d = {2: "the", 4: "quick", 6: "brown", 8: "fox"}
+    >>> ml = MultiLevel(d)
     >>> ml.levels
     (2, 4, 6, 8)
     >>> ml[2]
     'the'
     >>> ml[8]
+    'fox'
+
+    Alternatively, a sequence of elements can be provided, in which case the levels will
+    enumerate the sequence in order:
+    >>> words = ["the", "quick", "brown", "fox"]
+    >>> ml = MultiLevel(d)
+    >>> ml.levels
+    (1, 2, 3, 4)
+    >>> ml[1]
+    'the'
+    >>> ml[4]
     'fox'
 
     Note that a MultiLevel collection is not equal to another mapping if the other object
@@ -1130,34 +1141,6 @@ class MultiLevel(dict[int, T]):
                 "Argument 'elements' must be a mapping with int keys or an iterable of "
                 f"finite length, but received object of type {type(elements)}."
             )
-
-    @classmethod
-    def from_sequence(cls, elements: Sequence[T]) -> MultiLevel[T]:
-        """Create a multi-level collection of objects from a sequence.
-
-        Creates a multi-level collection of objects, with levels enumerating the objects
-        from the sequence in order, starting at level 1.
-
-        Parameters
-        ----------
-        elements : Sequence
-            Objects that are considered belonging to levels 1, 2, ..., n, where 'n' is the
-            number of objects supplied.
-
-        Examples
-        --------
-        Create a multi-level collection of strings:
-        >>> ml: MultiLevel[str]
-        >>> ml = MultiLevel.from_sequence(["the", "quick", "brown", "fox"])
-        >>> ml.levels
-        (1, 2, 3, 4)
-        >>> ml[1]
-        'the'
-        >>> ml[4]
-        'fox'
-        """
-
-        return cls({i + 1: elem for i, elem in enumerate(elements)})
 
     @property
     def levels(self) -> tuple[int, ...]:

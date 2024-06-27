@@ -2123,7 +2123,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         """The predicted mean is equal to the sum of the means from the constituent GPs
         multiplied by the corresponding coefficients."""
 
-        coefficients = MultiLevel.from_sequence([1, 10, 100])
+        coefficients = MultiLevel([1, 10, 100])
         gps = {level: WhiteNoiseGP(prior_mean=-1, noise_level=2) for level in [1, 2, 3]}
         mlgp = self.make_multi_level_gp(gps, coefficients=coefficients)
         mlgp.fit(self.training_data)
@@ -2147,7 +2147,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         """The predicted variance is equal to the sum of the variances from the
         constituent GPs multiplied by the squares of the corresponding coefficients."""
 
-        coefficients = MultiLevel.from_sequence([1, 10, 100])
+        coefficients = MultiLevel([1, 10, 100])
         gps = {level: WhiteNoiseGP(prior_mean=-1, noise_level=2) for level in [1, 2, 3]}
         mlgp = self.make_multi_level_gp(gps, coefficients=coefficients)
         mlgp.fit(self.training_data)
