@@ -7,7 +7,7 @@ import csv
 import dataclasses
 import functools
 import math
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from itertools import product
 from numbers import Real
 from types import GenericAlias
@@ -1183,11 +1183,8 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
     # TODO: add type checking
     def __init__(
         self,
-        gps: Union[
-            Mapping[int, AbstractGaussianProcess],
-            Iterable[tuple[int, AbstractGaussianProcess]],
-        ],
-        coefficients: Union[Mapping[int, float], Iterable[tuple[int, float]], float] = 1,
+        gps: Mapping[int, AbstractGaussianProcess],
+        coefficients: Union[Mapping[int, float], float] = 1,
     ):
         super().__init__(gps)
         self._coefficients = self._parse_coefficients(coefficients)
