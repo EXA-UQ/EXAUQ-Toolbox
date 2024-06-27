@@ -149,9 +149,8 @@ def remove_level(obj: Any) -> None:
     """
     if isinstance(obj, LevelTagged):
         delattr(obj, LevelTagged.level_attr)
-        return None
-    else:
-        return None
+
+    return None
 
 
 class _LevelTaggedOld:

@@ -37,9 +37,9 @@ class JobStatus(Enum):
     SUBMITTED = "Submitted"
     """A job has been successfully sent to a remote machine. Has the value 'Submitted'."""
 
-    NOT_SUBMITTED = "Not submitted"
+    PENDING_SUBMIT = "Pending submit"
     """A job has been set up locally but has not yet been submitted to a remote
-    machine. Has the value 'Not submitted'."""
+    machine. Has the value 'Pending submit'."""
 
     FAILED_SUBMIT = "Failed submit"
     """A job has been set up locally however submission to remote machine failed.
@@ -49,6 +49,14 @@ class JobStatus(Enum):
     """A job has been cancelled from a locally issued request or intervention. Has the
     value 'Cancelled'."""
 
+    PENDING_CANCEL = "Pending cancel"
+    """A job has been requested to be cancelled but has not yet been cancelled. Has the 
+    value 'Pending cancel'."""
+
+    FAILED_CANCEL = "Failed cancel"
+    """A job has been requested to be cancelled but the cancellation failed. Has the
+    value 'Failed cancel'."""
+
 
 TERMINAL_STATUSES = {
     JobStatus.COMPLETED,
@@ -57,6 +65,12 @@ TERMINAL_STATUSES = {
     JobStatus.CANCELLED,
 }
 """Statuses that define jobs that are no longer running (possibly due to error)."""
+
+PENDING_STATUSES = {
+    JobStatus.PENDING_CANCEL,
+    JobStatus.PENDING_SUBMIT,
+}
+"""Statuses that define jobs that are waiting to be run or cancelled."""
 
 
 class HardwareInterface(ABC):
@@ -386,7 +400,7 @@ class UnixServerScriptInterface(SSHInterface):
             return tuple()
 
     def _make_job_settings(
-        self, job_id: JobId, status: JobStatus = JobStatus.NOT_SUBMITTED
+        self, job_id: JobId, status: JobStatus = JobStatus.PENDING_SUBMIT
     ) -> dict[str, Any]:
         """Make settings for specifying a job on the server.
 
@@ -638,7 +652,7 @@ class UnixServerScriptInterface(SSHInterface):
             echo "$(ps -p "${1}" -o user=),$(ps -p "${1}" -o pid=),$(ps -p "${1}" -o lstart=)"
         }
 
-        NOT_SUBMITTED="NOT_SUBMITTED"
+        PENDING_SUBMIT="PENDING_SUBMIT"
         RUNNING="RUNNING"
         STOPPED="STOPPED"
         COMPLETED="COMPLETED"
@@ -678,7 +692,7 @@ class UnixServerScriptInterface(SSHInterface):
         get_status() {
             if [ ! -e $pid_file ]
             then
-                echo $NOT_SUBMITTED
+                echo $PENDING_SUBMIT
             elif [ -e $stopped_flag_file ]
             then
                 echo $STOPPED
@@ -799,7 +813,7 @@ class UnixServerScriptInterface(SSHInterface):
         """Get the status of a job with given job ID.
 
         Any jobs that have not been submitted with `submit_job` will return a status of
-        `JobStatus.NOT_SUBMITTED`.
+        `JobStatus.PENDING_SUBMIT`.
 
         A job that has successfully been started on the server will have a status of
         `JobStatus.RUNNING` (which, in this case, is equivalent to `JobStatus.SUBMITTED`).
@@ -832,7 +846,7 @@ class UnixServerScriptInterface(SSHInterface):
             the job.
         """
         if not self._job_has_been_submitted(job_id):
-            return JobStatus.NOT_SUBMITTED
+            return JobStatus.PENDING_SUBMIT
         elif self._job_log[job_id]["status"] in {JobStatus.RUNNING, JobStatus.SUBMITTED}:
             self._update_status_from_remote(job_id)
             return self._job_log[job_id]["status"]
@@ -1011,7 +1025,7 @@ class UnixServerScriptInterface(SSHInterface):
         """
 
         job_status = self.get_job_status(job_id)
-        if job_status == JobStatus.NOT_SUBMITTED:
+        if job_status == JobStatus.PENDING_SUBMIT:
             raise ValueError(
                 f"Cannot delete directory for job ID {job_id}: job has not been submitted."
             )

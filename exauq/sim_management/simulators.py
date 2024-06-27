@@ -10,7 +10,12 @@ from time import sleep
 from typing import Any, Optional, Sequence, Union
 
 from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
-from exauq.sim_management.hardware import TERMINAL_STATUSES, HardwareInterface, JobStatus
+from exauq.sim_management.hardware import (
+    PENDING_STATUSES,
+    TERMINAL_STATUSES,
+    HardwareInterface,
+    JobStatus,
+)
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
 from exauq.utilities.csv_db import CsvDB, Record
@@ -271,7 +276,7 @@ class SimulationsLog(object):
         self,
         x: Input,
         job_id: Union[str, JobId, int],
-        job_status: JobStatus = JobStatus.NOT_SUBMITTED,
+        job_status: JobStatus = JobStatus.PENDING_SUBMIT,
     ) -> None:
         """
         Record a new simulation job in the log file.
@@ -288,7 +293,7 @@ class SimulationsLog(object):
             The ID for the job of evaluating the simulator at `x`. Must consist only of digits and cannot be None.
         job_status : JobStatus, optional
             The status of the job to be recorded alongside the input `x`.
-            Defaults to JobStatus.NOT_SUBMITTED.
+            Defaults to JobStatus.PENDING_SUBMIT.
 
         Raises
         ------
@@ -381,36 +386,32 @@ class SimulationsLog(object):
 
         return job_records
 
-    def get_pending_jobs(self) -> tuple[Job]:
-        """Return all jobs which don't have results and are in non-terminal states.
+    def get_non_terminated_jobs(self) -> tuple[Job, ...]:
+        """Return all jobs which don't have results and have a non-terminal status.
 
-        A job is considered pending if it is in one of the following states:
-        RUNNING, SUBMITTED, NOT_SUBMITTED, or FAILED_SUBMIT.
+        A job is considered non-terminal if it has one of the following statuses:
+        ``RUNNING``, ``SUBMITTED`` or ``PENDING_SUBMIT``.
 
         Returns
         -------
         tuple[Job]
-            The Jobs that are in a pending state.
+            The Jobs that have a non-terminal status.
         """
         with self._lock:
-            pending_statuses = {
-                JobStatus.RUNNING,
-                JobStatus.SUBMITTED,
-                JobStatus.NOT_SUBMITTED,
-                JobStatus.FAILED_SUBMIT,
-            }
+            non_terminal_statuses = set(JobStatus) - TERMINAL_STATUSES
+
             pending_records = self._simulations_db.query(
-                lambda x: self._get_job_status(x) in pending_statuses
+                lambda x: self._get_job_status(x) in non_terminal_statuses
             )
             return tuple(
                 Job(self._get_job_id(record), self._extract_simulation(record)[0])
                 for record in pending_records
             )
 
-    def get_unsubmitted_inputs(self) -> tuple[Input]:
+    def get_unsubmitted_inputs(self) -> tuple[Input, ...]:
         """Get all simulator inputs that have not been submitted as jobs.
 
-        Identifies inputs that are marked as 'NOT_SUBMITTED' in the simulation database,
+        Identifies inputs that are marked as 'PENDING_SUBMIT' in the simulation database,
         signaling they have not been dispatched for execution.
 
         Returns
@@ -420,7 +421,7 @@ class SimulationsLog(object):
         """
         with self._lock:
             unsubmitted_records = self._simulations_db.query(
-                lambda x: self._get_job_status(x) == JobStatus.NOT_SUBMITTED
+                lambda x: self._get_job_status(x) == JobStatus.PENDING_SUBMIT
             )
             return tuple(
                 self._extract_simulation(record)[0] for record in unsubmitted_records
@@ -576,7 +577,7 @@ class JobManager:
     -------
     submit(x: Input)
         Submits a new job based on the provided simulation input. Handles initial job
-        logging and status setting to NOT_SUBMITTED.
+        logging and status setting to PENDING_SUBMIT.
     monitor(jobs: list[Job])
         Initiates or continues monitoring of job statuses in a separate background thread.
 
@@ -615,18 +616,18 @@ class JobManager:
 
         self._job_strategies = self._init_job_strategies()
 
-        self.monitor(self._simulations_log.get_pending_jobs())
+        self.monitor(self._simulations_log.get_non_terminated_jobs())
         if wait_for_pending and self._thread is not None:
             self._thread.join()
 
     def submit(self, x: Input) -> Job:
         """
         Submits a new simulation job. This method creates a job with a unique ID,
-        logs it with a NOT_SUBMITTED status, and schedules it for submission through the appropriate
+        logs it with a PENDING_SUBMIT status, and schedules it for submission through the appropriate
         job handling strategy.
 
         Upon initialisation, the job is assigned a unique ID and recorded in the simulations log with a
-        NOT_SUBMITTED status. It is then passed to a job handling strategy, which is tasked with
+        PENDING_SUBMIT status. It is then passed to a job handling strategy, which is tasked with
         submitting the job to the simulation hardware. The method returns the Job instance, allowing for
         further interaction or querying of its status.
 
@@ -650,7 +651,10 @@ class JobManager:
         """
 
         job = Job(self._id_generator.generate_id(), x)
-        self._handle_job(job, JobStatus.NOT_SUBMITTED)
+        self._simulations_log.add_new_record(
+            x, str(job.id), job_status=JobStatus.PENDING_SUBMIT
+        )
+        self.monitor([job])
 
         return job
 
@@ -694,10 +698,8 @@ class JobManager:
             # If here, then last known status of the job is that it's not terminated,
             # so issue cancellation.
             job = jobs_to_cancel[0]
-            try:
-                self._handle_job(job, JobStatus.CANCELLED)
-            except InvalidJobStatusError:
-                raise
+            self._simulations_log.update_job_status(str(job.id), JobStatus.PENDING_CANCEL)
+
             return job
 
     @staticmethod
@@ -709,8 +711,9 @@ class JobManager:
             JobStatus.FAILED: FailedJobStrategy(),
             JobStatus.RUNNING: RunningJobStrategy(),
             JobStatus.SUBMITTED: SubmittedJobStrategy(),
-            JobStatus.NOT_SUBMITTED: NotSubmittedJobStrategy(),
-            JobStatus.CANCELLED: CancelledJobStrategy(),
+            JobStatus.PENDING_SUBMIT: PendingSubmitJobStrategy(),
+            JobStatus.PENDING_CANCEL: PendingCancelJobStrategy(),
+            JobStatus.FAILED_SUBMIT: FailedSubmitJobStrategy(),
         }
 
         return strategies
@@ -761,7 +764,14 @@ class JobManager:
                 if self._shutdown_event.is_set():
                     return
 
-                status = self._interface.get_job_status(job.id)
+                status = self._simulations_log.get_job_status(job.id)
+                is_pending_or_failed_submit = status in PENDING_STATUSES | {
+                    JobStatus.FAILED_SUBMIT
+                }
+
+                if not is_pending_or_failed_submit:
+                    status = self._interface.get_job_status(job.id)
+
                 self._handle_job(job, status)
 
     @property
@@ -917,6 +927,30 @@ class FailedJobStrategy(JobStrategy):
         job_manager.remove_job(job)
 
 
+class FailedSubmitJobStrategy(JobStrategy):
+    """
+    Strategy for handling jobs that have failed to submit.
+
+    This strategy updates the job's status in the simulations log to FAILED_SUBMIT and
+    removes the job from the JobManager's list of active jobs. It encapsulates the actions
+    to be taken when a job fails to submit for execution.
+
+    Parameters
+    ----------
+    job : Job
+        The job that has failed to submit.
+    job_manager : JobManager
+        The manager overseeing the job's lifecycle, including monitoring and logging.
+    """
+
+    @staticmethod
+    def handle(job: Job, job_manager: JobManager):
+        job_manager.simulations_log.update_job_status(
+            str(job.id), JobStatus.FAILED_SUBMIT
+        )
+        job_manager.remove_job(job)
+
+
 class RunningJobStrategy(JobStrategy):
     """
     Strategy for handling jobs that are currently running.
@@ -958,11 +992,10 @@ class SubmittedJobStrategy(JobStrategy):
 
     @staticmethod
     def handle(job: Job, job_manager: JobManager):
-        job_manager.monitor([job])
-        job_manager.simulations_log.update_job_status(str(job.id), JobStatus.SUBMITTED)
+        pass
 
 
-class NotSubmittedJobStrategy(JobStrategy):
+class PendingSubmitJobStrategy(JobStrategy):
     """
     Strategy for handling jobs that have not yet been submitted.
 
@@ -991,15 +1024,12 @@ class NotSubmittedJobStrategy(JobStrategy):
         initial_delay = 1
         max_delay = 32
 
-        job_manager.simulations_log.add_new_record(job.data, str(job.id))
-
         while retry_attempts < max_retries:
             try:
                 job_manager.interface.submit_job(job)
                 job_manager.simulations_log.update_job_status(
                     str(job.id), JobStatus.SUBMITTED
                 )
-                job_manager.monitor([job])
                 break
             except Exception as e:
                 retry_attempts += 1
@@ -1023,7 +1053,7 @@ class NotSubmittedJobStrategy(JobStrategy):
                 sleep(delay + jitter)
 
 
-class CancelledJobStrategy(JobStrategy):
+class PendingCancelJobStrategy(JobStrategy):
     """
     Strategy for handling jobs that have been cancelled.
 

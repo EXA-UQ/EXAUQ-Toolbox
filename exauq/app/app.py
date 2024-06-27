@@ -140,7 +140,7 @@ class App:
                     {
                         "job_id": cancelled_job.id,
                         "input": cancelled_job.data,
-                        "status": JobStatus.CANCELLED,
+                        "status": JobStatus.PENDING_CANCEL,
                     }
                 )
             except UnknownJobIdError:
