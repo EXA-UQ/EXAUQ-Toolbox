@@ -1134,12 +1134,12 @@ class MultiLevel(dict[int, T]):
                 )
             else:
                 return d
-        elif isinstance(elements, Iterable) and hasattr(elements, "__len__"):
+        elif hasattr(elements, "__getitem__") and hasattr(elements, "__len__"):
             return {i + 1: elem for i, elem in enumerate(elements)}
         else:
             raise TypeError(
-                "Argument 'elements' must be a mapping with int keys or an iterable of "
-                f"finite length, but received object of type {type(elements)}."
+                "Argument 'elements' must be a mapping with int keys or a sequence, "
+                f"but received object of type {type(elements)}."
             )
 
     @property

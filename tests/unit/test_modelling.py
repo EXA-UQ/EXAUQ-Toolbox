@@ -1750,15 +1750,15 @@ class TestMultiLevel(ExauqTestCase):
         """A TypeError is raised if something other than a Mapping or a sequence is
         supplied for the elements at initialisation."""
 
-        elems = zip([1, 2, 3], self.elements)
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                "Argument 'elements' must be a mapping with int keys or an iterable of "
-                f"finite length, but received object of type {type(elems)}."
-            ),
-        ):
-            _ = MultiLevel(elems)
+        for elems in [{"a", "b"}, zip([1, 2, 3], self.elements)]:
+            with self.assertRaisesRegex(
+                TypeError,
+                exact(
+                    "Argument 'elements' must be a mapping with int keys or a sequence, "
+                    f"but received object of type {type(elems)}."
+                ),
+            ):
+                _ = MultiLevel(elems)
 
     # def test_from_sequence_has_consecutive_levels(self):
     #     """A multi-level collection created from a sequence has levels starting at 1 and
