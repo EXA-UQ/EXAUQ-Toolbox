@@ -33,9 +33,9 @@ def run(ssh_config: dict[str, Any], remote_script_config: dict[str, Any]) -> Non
             ssh_config, remote_script_config, workspace_dir=hardware1.workspace_dir
         )
 
-        # Check that the job statuses are not NOT_SUBMITTED
-        assert (not hardware2.get_job_status(job1.id) == JobStatus.NOT_SUBMITTED) and (
-            not hardware2.get_job_status(job2.id) == JobStatus.NOT_SUBMITTED
+        # Check that the job statuses are not PENDING_SUBMIT
+        assert (not hardware2.get_job_status(job1.id) == JobStatus.PENDING_SUBMIT) and (
+            not hardware2.get_job_status(job2.id) == JobStatus.PENDING_SUBMIT
         )
 
     finally:

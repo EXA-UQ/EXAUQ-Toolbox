@@ -58,6 +58,50 @@ class Cli(cmd2.Cmd):
         help="A path to a csv file containing inputs to submit to the simulator.",
     )
 
+    resubmit_parser = cmd2.Cmd2ArgumentParser()
+    resubmit_parser.add_argument(
+        "job_ids",
+        nargs="*",
+        type=str,
+        help="Job IDs of the jobs to resubmit.",
+    )
+    status_opt_short = "-s"
+    resubmit_parser.add_argument(
+        status_opt_short,
+        "--status",
+        nargs="?",
+        default="",
+        const="",
+        metavar="STATUSES",
+        help=(
+            "a comma-separated list of statuses, so that only jobs having one of these "
+            "statuses will be resubmitted (defaults to '%(default)s', which means resubmit all jobs)"
+        ),
+    )
+    status_not_opt_short = "-S"
+    resubmit_parser.add_argument(
+        status_not_opt_short,
+        "--status-not",
+        nargs="?",
+        default="",
+        const="",
+        metavar="STATUSES",
+        help=(
+            "a comma-separated list of statuses, so that only jobs *not* having one of these "
+            "statuses will be resubmitted (defaults to '%(default)s', which means resubmit all jobs)"
+        ),
+    )
+    resubmit_parser.add_argument(
+        "-x",
+        "--twr",
+        action="store_true",
+        help=(
+            "Resubmit all jobs that have 'terminated without result'."
+            "This overrides any filters applied to statuses with the arguments "
+            f"{status_opt_short} and {status_not_opt_short}."
+        ),
+    )
+
     cancel_parser = cmd2.Cmd2ArgumentParser()
     cancel_parser.add_argument(
         "job_ids",
@@ -100,9 +144,8 @@ class Cli(cmd2.Cmd):
             f"overrides the {n_jobs_opt_short} argument."
         ),
     )
-    status_opt_short = "-s"
     show_parser.add_argument(
-        "-s",
+        status_opt_short,
         "--status",
         nargs="?",
         default="",
@@ -113,9 +156,8 @@ class Cli(cmd2.Cmd):
             "statuses will be shown (defaults to '%(default)s', which means show all jobs)"
         ),
     )
-    status_not_opt_short = "-S"
     show_parser.add_argument(
-        "-S",
+        status_not_opt_short,
         "--status-not",
         nargs="?",
         default="",
@@ -309,6 +351,54 @@ class Cli(cmd2.Cmd):
             if isinstance(args.file, TextIOWrapper):
                 args.file.close()
 
+    def _parse_resubmit_args(self, args) -> dict[str, Any]:
+        """Convert command line arguments for the resubmit command to a dict of arguments for
+        the application to process.
+        """
+        if args.twr:
+            statuses = {JobStatus.CANCELLED, JobStatus.FAILED, JobStatus.FAILED_SUBMIT}
+        else:
+            statuses_included = parse_statuses_string_to_set(args.status, empty_to_all=True)
+            statuses_excluded = parse_statuses_string_to_set(args.status_not)
+            statuses = statuses_included - statuses_excluded
+
+        job_ids = parse_job_ids(args.job_ids) if args.job_ids else None
+
+        return {
+            "job_ids": job_ids,
+            "statuses": statuses,
+        }
+
+    def _make_resubmissions_table(self, jobs: list[tuple[Any, Any, Any]]) -> str:
+        """Make table of resubmitted jobs for displaying to the user."""
+
+        old_ids = tuple(old_id for old_id, _, _ in jobs)
+        new_ids = tuple(new_id for _, new_id, _ in jobs)
+        inputs = tuple(data for _, _, data in jobs)
+        data = OrderedDict([
+            ("OLD_JOBID", old_ids),
+            ("NEW_JOBID", new_ids),
+            (self._INPUT_HEADER, inputs)
+        ])
+        return self._make_table(data)
+
+    @cmd2.with_argparser(resubmit_parser)
+    def do_resubmit(self, args) -> None:
+        """Resubmit jobs to the simulator."""
+
+        try:
+            kwargs = self._parse_resubmit_args(args)
+            jobs = self._app.get_jobs(**kwargs)
+
+            resubmitted_jobs = []
+            for job in jobs:
+                new_job = self._app.submit([job["input"]])[0]
+                resubmitted_jobs.append((job["job_id"], new_job.id, job["input"]))
+
+            self._render_stdout(self._make_resubmissions_table(resubmitted_jobs))
+        except ParsingError as e:
+            self._render_error(str(e))
+
     def _make_cancel_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of details of cancelled jobs for displaying to the user."""
 
@@ -379,7 +469,7 @@ class Cli(cmd2.Cmd):
 
         if args.twr:
             statuses = set(JobStatus) - {
-                JobStatus.NOT_SUBMITTED,
+                JobStatus.PENDING_SUBMIT,
                 JobStatus.SUBMITTED,
                 JobStatus.RUNNING,
             }
@@ -529,10 +619,10 @@ def parse_statuses_string_to_set(
 
     Spaces in the status can be represented as whitespace or underscores:
 
-    >>> cli._parse_statuses_string_to_set("not submitted")
-    {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
-    >>> cli._parse_statuses_string_to_set("not_submitted")
-    {<JobStatus.NOT_SUBMITTED: 'Not submitted'>}
+    >>> cli._parse_statuses_string_to_set("pending submit")
+    {<JobStatus.PENDING_SUBMIT: 'Pending submit'>}
+    >>> cli._parse_statuses_string_to_set("pending_submit")
+    {<JobStatus.PENDING_SUBMIT: 'Pending submit'>}
 
     By default, providing an empty string returns the empty set, but setting
     ``empty_to_all = True`` will cause the full set of job statuses to be returned

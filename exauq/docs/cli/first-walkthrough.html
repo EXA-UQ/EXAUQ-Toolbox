@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.22">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.25">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.732c4fb1.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
       
       
 
@@ -375,6 +375,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#resubmitting-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Resubmitting jobs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#write-the-jobs-to-a-csv-file" class="md-nav__link">
     <span class="md-ellipsis">
       Write the jobs to a CSV file
@@ -408,6 +417,8 @@
       
         
           
+        
+      
         
       
         
@@ -510,6 +521,27 @@
   
   <span class="md-ellipsis">
     Cancelling Jobs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="user-guides/resubmitting-jobs.html" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Resubmitting Jobs
   </span>
   
 
@@ -646,6 +678,15 @@
   <a href="#cancelling-jobs" class="md-nav__link">
     <span class="md-ellipsis">
       Cancelling jobs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resubmitting-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Resubmitting jobs
     </span>
   </a>
   
@@ -949,11 +990,44 @@ their cancellation:</p>
 cancelled.</p>
 <p>For more details on cancelling jobs, consult the
 <a href="user-guides/cancelling-jobs.html">Cancelling Jobs</a> guide.</p>
+<h3 id="resubmitting-jobs">Resubmitting jobs</h3>
+<p>You may want to resubmit a job for several reasons: perhaps a job failed, was cancelled, 
+or you need to rerun a stochastic simulation with the same inputs to gather more data. 
+The <code>resubmit</code> command is designed to easily handle such cases. For instance, consider 
+the scenario where you have jobs that were previously cancelled and now need to be 
+resubmitted.</p>
+<p>First, let's check the status of the jobs using the <code>show</code> command to identify the job 
+IDs of the cancelled jobs:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>(exauq)&gt; show
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>JOBID              INPUT                 STATUS     RESULT             
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>20240419185014637  (1.32, -0.986, 31.4)  Completed  31.74438342        
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>20240419185015374  (5.97, -3.09, -3.04)  Completed  -0.1624690000000002
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>20240419185015969  (6.98, -8.03, 0.099)  Completed  -0.9515869999999993
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>20240419185016560  (-12.0, 9.07, -2.1)   Completed  -5.06375744        
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>20240521102800090  (-1.0, 2.0, 3.0)      Cancelled
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>20240521102801154  (0.5, 0.32, -3.12)    Cancelled
+</span></code></pre></div>
+<p>To resubmit these cancelled jobs, use their job IDs in the <code>resubmit</code> command:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>(exauq)&gt; resubmit 20240521102800090 20240521102801154
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>OLD_JOBID          NEW_JOBID              INPUT               
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>20240521102800090  20240603102300450      (-1.0, 2.0, 3.0)
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>20240521102801154  20240603102300678      (0.5, 0.32, -3.12)
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>(exauq)&gt;
+</span></code></pre></div>
+<p>Notice that new job IDs are generated for the resubmitted jobs. This feature allows for 
+tracking the new submissions separately while maintaining a record of their origins from 
+previous job IDs.</p>
+<p>If you wish to resubmit all jobs that were either cancelled or failed, you can use filters 
+with the <code>resubmit</code> command to streamline the process without needing to manually input 
+each job ID. For more details on resubmitting jobs, including the use of filters, consult the
+<a href="user-guides/resubmitting-jobs.html">Resubmitting Jobs</a> guide.</p>
 <h3 id="write-the-jobs-to-a-csv-file">Write the jobs to a CSV file</h3>
 <p>Finally, the details of the jobs can be written to a file, allowing us to use the
 output of simulations in our own analysis. This is done using the <code>write</code> command:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>(exauq)&gt; write jobs.csv
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>(exauq)&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>(exauq)&gt; write jobs.csv
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>(exauq)&gt;
 </span></code></pre></div>
 <p>Note that the full precision of simulation inputs and outputs will be written to the
 file. The output CSV has the same column headings that appear in the <code>show</code> command, with
@@ -967,9 +1041,9 @@ if we were to supply <code>foo/bar/jobs.csv</code> to <code>write</code>, then t
 </div>
 <p>If we quit the application and list to contents of the working directory, we see that
 the <code>jobs.csv</code> file has been created:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>(exauq)&gt; quit
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>$ ls -a
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>.  ..  .exauq-ws  jobs.csv
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>(exauq)&gt; quit
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>$ ls -a
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>.  ..  .exauq-ws  jobs.csv
 </span></code></pre></div>
 
 
@@ -1020,7 +1094,7 @@ the <code>jobs.csv</code> file has been created:</p>
     <script id="__config" type="application/json">{"base": "..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.5cfa9459.min.js"></script>
+      <script src="../assets/javascripts/bundle.081f42fc.min.js"></script>
       
     
   </body>
