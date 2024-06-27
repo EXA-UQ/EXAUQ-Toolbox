@@ -72,7 +72,7 @@ JOBID              INPUT               STATUS     RESULT
 ### Resubmitting Based on Status
 
 If you want to resubmit jobs based on their status, such as all 'Cancelled' or 
-'Failed' jobs, you can use the `--status` option with the `resubmit` command. 
+'Failed' jobs, you can use the `--status` (or `-s`) option with the `resubmit` command. 
 For example, to resubmit all jobs that have failed:
 
 ```
@@ -99,7 +99,7 @@ This command resubmits all jobs that have either failed or been cancelled.
 ### Excluding Certain Statuses
 
 Alternatively, if you want to resubmit all jobs except those in certain statuses, use 
-the `--status-not` option. For example, to resubmit all jobs that are not 'Completed':
+the `--status-not` (or `-S`) option. For example, to resubmit all jobs that are not 'Completed':
 
 ```
 (exauq)> resubmit --status-not=completed
@@ -129,7 +129,7 @@ This command resubmits all jobs that are not completed.
 ### Resubmitting Jobs That Terminated Without Result
 
 For jobs that have ended (i.e., are no longer running) but have not produced a result, 
-the `--twr` (terminated without result) option is especially valuable. This option 
+the `--twr` (or `-x`) (terminated without result) option is especially valuable. This option 
 specifically targets jobs with terminal statuses that did not generate results, such 
 as 'Failed', 'Cancelled', and 'Failed Submit'.
 
