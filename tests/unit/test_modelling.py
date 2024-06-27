@@ -10,36 +10,20 @@ from typing import Literal, Sequence
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import (
-    AbstractGaussianProcess,
-    GaussianProcessHyperparameters,
-    Input,
-    LevelTagged,
-    MultiLevel,
-    MultiLevelGaussianProcess,
-    OptionalFloatPairs,
-    Prediction,
-    SimulatorDomain,
-    TrainingDatum,
-    _LevelTaggedOld,
-    get_level,
-    remove_level,
-    set_level,
-)
+from exauq.core.modelling import (AbstractGaussianProcess,
+                                  GaussianProcessHyperparameters, Input,
+                                  LevelTagged, MultiLevel,
+                                  MultiLevelGaussianProcess,
+                                  OptionalFloatPairs, Prediction,
+                                  SimulatorDomain, TrainingDatum,
+                                  _LevelTaggedOld, get_level, remove_level,
+                                  set_level)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
-from tests.unit.fakes import (
-    FakeGP,
-    FakeGPHyperparameters,
-    WhiteNoiseGP,
-    WhiteNoiseGPHyperparameters,
-)
-from tests.utilities.utilities import (
-    ExauqTestCase,
-    compare_input_tuples,
-    exact,
-    make_window,
-)
+from tests.unit.fakes import (FakeGP, FakeGPHyperparameters, WhiteNoiseGP,
+                              WhiteNoiseGPHyperparameters)
+from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
+                                       exact, make_window)
 
 
 class TestInput(unittest.TestCase):
@@ -1840,7 +1824,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         expected_coefficients = mlgp.map(lambda level, gp: coefficient)
         self.assertEqual(expected_coefficients, mlgp.coefficients)
 
-    def test_init_error_coefficients_levels_differ_to_gp_levels(self):
+    def test_init_from_mappings_error_gp_level_missing_from_coefficients_levels(self):
         """If multi-level coefficients are supplied at initialisation of a multi-level GP,
         then a ValueError is raised if there is a level from the GPs missing in the levels
         of the coefficients."""
@@ -1859,7 +1843,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         ):
             _ = MultiLevelGaussianProcess(gps, coefficients={2: 2})
 
-    def test_init_ignores_coefficients_for_extra_levels(self):
+    def test_init_from_mappings_ignores_coefficients_for_extra_levels(self):
         """If coefficients are supplied for levels that don't feature in the GPs, then
         these coefficients are ignored."""
 
