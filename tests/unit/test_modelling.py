@@ -1824,6 +1824,39 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         expected_coefficients = mlgp.map(lambda level, gp: coefficient)
         self.assertEqual(expected_coefficients, mlgp.coefficients)
 
+    def test_init_from_sequences(self):
+        """If a sequence of GPs and a sequence of coefficients are supplied that have the
+        same length, then these define the GPs and coefficients at successive levels,
+        starting at level 1, in order of the sequences supplied."""
+
+        gps = [WhiteNoiseGP()] * 3
+        coefficients = [1, 10, 100]
+
+        mlgp = self.make_multi_level_gp(gps, coefficients)
+
+        levels = [1, 2, 3]
+        expected = MultiLevelGaussianProcess(
+            gps=dict(zip(levels, gps)), coefficients=dict(zip(levels, coefficients))
+        )
+        self.assertTrue(all(mlgp[level] == expected[level] for level in levels))
+        self.assertEqual(mlgp.coefficients, expected.coefficients)
+
+    def test_init_from_sequences_different_lengths_error(self):
+        """A ValueError is raised if the lengths of sequences of GPs and coefficients
+        differ at initialisation."""
+
+        gps = [WhiteNoiseGP()] * 2
+        coefficients = [1, 10, 100]
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "Expected the same number of coefficients as Gaussian processes (got "
+                f"{len(coefficients)} coefficients but expected {len(gps)})."
+            ),
+        ):
+            _ = self.make_multi_level_gp(gps, coefficients)
+
     def test_init_from_mappings_error_gp_level_missing_from_coefficients_levels(self):
         """If multi-level coefficients are supplied at initialisation of a multi-level GP,
         then a ValueError is raised if there is a level from the GPs missing in the levels

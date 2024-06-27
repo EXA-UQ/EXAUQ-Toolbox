@@ -1134,7 +1134,7 @@ class MultiLevel(dict[int, T]):
                 )
             else:
                 return d
-        elif hasattr(elements, "__getitem__") and hasattr(elements, "__len__"):
+        elif isinstance(elements, Sequence):
             return {i + 1: elem for i, elem in enumerate(elements)}
         else:
             raise TypeError(
@@ -1179,12 +1179,13 @@ class MultiLevel(dict[int, T]):
 
 
 class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmulator):
-    # TODO: add ability to specify gps and coeffs as sequences (of same length)
     # TODO: add type checking
     def __init__(
         self,
-        gps: Mapping[int, AbstractGaussianProcess],
-        coefficients: Union[Mapping[int, float], float] = 1,
+        gps: Union[
+            Mapping[int, AbstractGaussianProcess], Sequence[AbstractGaussianProcess]
+        ],
+        coefficients: Union[Mapping[int, Real], Sequence[Real], Real] = 1,
     ):
         super().__init__(gps)
         self._coefficients = self._parse_coefficients(coefficients)
@@ -1192,8 +1193,13 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
     def _parse_coefficients(self, coefficients) -> MultiLevel[float]:
         if isinstance(coefficients, Real):
             return self._fill_out(float(coefficients), self.levels)
+        elif isinstance(coefficients, Sequence) and len(coefficients) != len(self):
+            raise ValueError(
+                "Expected the same number of coefficients as Gaussian processes (got "
+                f"{len(coefficients)} coefficients but expected {len(self)})."
+            )
         else:
-            coefficients = MultiLevel(coefficients)
+            coefficients = MultiLevel(coefficients).map(lambda level, coeff: float(coeff))
             if missing_levels := (set(self.levels) - set(coefficients.levels)):
                 missing_levels_str = ", ".join(map(str, sorted(missing_levels)))
                 raise ValueError(
