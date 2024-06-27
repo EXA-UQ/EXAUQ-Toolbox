@@ -1760,15 +1760,6 @@ class TestMultiLevel(ExauqTestCase):
             ):
                 _ = MultiLevel(elems)
 
-    # def test_from_sequence_has_consecutive_levels(self):
-    #     """A multi-level collection created from a sequence has levels starting at 1 and
-    #     going up to the number of elements in the sequence."""
-
-    #     elements = "abcde"
-    #     levels = tuple(i + 1 for i in range(len(elements)))
-    #     expected = MultiLevel(zip(levels, elements))
-    #     self.assertEqual(expected, MultiLevel.from_sequence(elements))
-
     def test_equals_detects_class(self):
         """Two multi-level collections are equal if they are both instances of
         MultiLevel and are equal as dicts."""
