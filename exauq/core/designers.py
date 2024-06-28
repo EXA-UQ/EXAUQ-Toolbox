@@ -643,10 +643,8 @@ def compute_multi_level_pei(
             "Expected all training inputs in 'mlgp' to belong to the domain 'domain', but "
             "this is not the case."
         )
-
-    return MultiLevel.from_sequence(
-        [PEICalculator(domain, mlgp[level]) for level in mlgp.levels]
-    )
+    return mlgp.map(lambda level, gp: PEICalculator(domain, gp))
+    # return MultiLevel([PEICalculator(domain, mlgp[level]) for level in mlgp.levels])
 
 
 def compute_multi_level_loo_samples(
