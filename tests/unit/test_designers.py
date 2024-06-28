@@ -17,8 +17,8 @@ from exauq.core.designers import (
     SimpleDesigner,
     compute_loo_errors_gp,
     compute_loo_gp,
-    compute_multi_level_loo_errors_gp,
     compute_multi_level_loo_samples,
+    compute_multi_level_pei,
     compute_single_level_loo_samples,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
@@ -879,7 +879,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
 class TestComputeMultiLevelLooSamples(ExauqTestCase):
     @staticmethod
     def make_level_costs(costs: Sequence[Real]) -> MultiLevel[Real]:
-        return MultiLevel(costs)
+        return MultiLevel.from_sequence(costs)
 
     @staticmethod
     def get_levels(costs: MultiLevel[Real]) -> set[int]:
@@ -904,8 +904,8 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                 TrainingDatum(Input(0.7), 2),
             ]
         )
-        self.default_mlgp = MultiLevelGaussianProcess([gp1, gp2])
-        self.default_costs = MultiLevel([1, 10])
+        self.default_mlgp = MultiLevelGaussianProcess.from_sequence([gp1, gp2])
+        self.default_costs = MultiLevel.from_sequence([1, 10])
 
     def compute_multi_level_loo_samples(
         self,
@@ -917,8 +917,16 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
         costs = self.default_costs if costs is None else costs
-
         return compute_multi_level_loo_samples(mlgp, domain, costs, batch_size=batch_size)
+
+    def compute_multi_level_pei(
+        self,
+        mlgp: Optional[MultiLevelGaussianProcess] = None,
+        domain: Optional[SimulatorDomain] = None,
+    ) -> MultiLevel[PEICalculator]:
+        mlgp = self.default_mlgp if mlgp is None else mlgp
+        domain = self.default_domain if domain is None else domain
+        return compute_multi_level_pei(mlgp, domain)
 
     def test_arg_type_errors(self):
         """A TypeError is raised if any of the following hold:
@@ -1025,7 +1033,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         gps = [gp1, gp2]
         for domain, gp in zip(domains, gps):
             with self.subTest(domain=domain, gp=gp):
-                mlgp = MultiLevelGaussianProcess([gp] * len(costs))
+                mlgp = MultiLevelGaussianProcess.from_sequence([gp] * len(costs))
                 design_points = self.compute_multi_level_loo_samples(
                     mlgp=mlgp, domain=domain, costs=costs, batch_size=2
                 )
@@ -1045,43 +1053,46 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
     def test_single_batch_level_that_maximises_pei(self):
         """For a single batch output, the input and level returned are the ones that
-        maximise weighted pseudo-expected improvements for the leave-one-out error GPs
-        across all simulator levels. The weightings are reciprocals of the associated
-        costs for calculating differences of simulator outputs."""
+        maximise weighted pseudo-expected improvements across all simulator levels. The
+        weightings are reciprocals of the associated costs for calculating differences
+        of simulator outputs."""
 
         costs = self.make_level_costs([1, 10, 100])
         domain = SimulatorDomain([(0, 1)])
-        mlgp = MultiLevelGaussianProcess([MogpEmulator(), MogpEmulator(), MogpEmulator()])
-        training_data = MultiLevel(
-            {
-                1: [
-                    TrainingDatum(Input(0.1), 1),
-                    TrainingDatum(Input(0.2), 2),
-                    TrainingDatum(Input(0.3), 3),
-                ],
-                2: [
-                    TrainingDatum(Input(0.4), 2),
-                    TrainingDatum(Input(0.5), 99),
-                    TrainingDatum(Input(0.6), -4),
-                ],
-                3: [
-                    TrainingDatum(Input(0.7), 3),
-                    TrainingDatum(Input(0.8), -3),
-                    TrainingDatum(Input(0.9), 3),
-                ],
-            }
-        )
-        mlgp.fit(training_data)
 
+        gp1 = MogpEmulator()
+        gp1.fit(
+            [
+                TrainingDatum(Input(0.1), 1),
+                TrainingDatum(Input(0.2), 2),
+                TrainingDatum(Input(0.3), 3),
+            ]
+        )
+        gp2 = MogpEmulator()
+        gp2.fit(
+            [
+                TrainingDatum(Input(0.4), 2),
+                TrainingDatum(Input(0.5), 99),
+                TrainingDatum(Input(0.6), -4),
+            ]
+        )
+        gp3 = MogpEmulator()
+        gp3.fit(
+            [
+                TrainingDatum(Input(0.7), 3),
+                TrainingDatum(Input(0.8), -3),
+                TrainingDatum(Input(0.9), 3),
+            ]
+        )
+
+        mlgp = MultiLevelGaussianProcess.from_sequence([gp1, gp2, gp3])
         design_points = self.compute_multi_level_loo_samples(
             mlgp=mlgp, domain=domain, costs=costs
         )
-
         self.assertEqual(1, len(design_points))
         level = get_level(design_points[0])
 
-        ml_errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain)
-        ml_pei = ml_errors_gp.map(lambda _, gp: PEICalculator(domain, gp))
+        ml_pei = self.compute_multi_level_pei(mlgp, domain)
         _, max_pei1 = maximise(lambda x: ml_pei[1].compute(x), domain)
         _, max_pei2 = maximise(lambda x: ml_pei[2].compute(x), domain)
         _, max_pei3 = maximise(lambda x: ml_pei[3].compute(x), domain)
