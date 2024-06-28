@@ -684,16 +684,6 @@ class TrainingDatum(object):
         return f"({str(self.input)}, {str(self.output)})"
 
 
-class GaussianRV:
-    def __init__(self, mean: Real, variance: Real):
-        self._mean = mean
-        self._variance = variance
-
-    def nes_error(self):
-        return 1
-
-
-# TODO: consider adding nes method?
 @dataclasses.dataclass(frozen=True)
 class Prediction:
     """Represents a predicted value together with the variance and standard_deviation of the prediction.
