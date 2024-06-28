@@ -6,7 +6,7 @@ import dataclasses
 import itertools
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Callable, Literal, Optional
+from typing import Any, Callable, Literal, Optional
 
 import mogp_emulator as mogp
 import numpy as np
@@ -257,7 +257,10 @@ class MogpEmulator(AbstractGaussianProcess):
         return None
 
     @staticmethod
-    def _parse_training_data(training_data) -> tuple[TrainingDatum]:
+    def _parse_training_data(training_data: Any) -> tuple[TrainingDatum]:
+        """Check that a collection of training data has been provided and return as a
+        tuple if so."""
+
         if training_data is None:
             return tuple()
 
@@ -273,7 +276,12 @@ class MogpEmulator(AbstractGaussianProcess):
                 f"Expected a finite collection of TrainingDatum, but received {type(training_data)}."
             )
 
-    def _validate_hyperparameter_bounds(self, hyperparameter_bounds) -> None:
+    def _validate_hyperparameter_bounds(
+        self, hyperparameter_bounds: Sequence[OptionalFloatPairs]
+    ) -> None:
+        """Validate that each pair of bounds is ordered correctly in a sequence of
+        hyperparameter bounds."""
+
         if hyperparameter_bounds is None:
             return None
         else:
@@ -287,7 +295,10 @@ class MogpEmulator(AbstractGaussianProcess):
             return None
 
     @staticmethod
-    def _validate_bound_pair(bounds):
+    def _validate_bound_pair(bounds: Sequence):
+        """Check that a sequence of bounds defines a pair of bounds that are ordered
+        correctly."""
+
         try:
             if not len(bounds) == 2:
                 raise ValueError(

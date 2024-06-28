@@ -1178,6 +1178,9 @@ class MultiLevel(dict[int, T]):
 
 
 def _can_instantiate_multi_level(elements: Any, tp: type) -> bool:
+    """Whether a collection of elements can be used to construct a `MultiLevel` instance
+    of objects of type `tp`."""
+
     if isinstance(elements, Sequence) and all(
         isinstance(coeff, tp) for coeff in elements
     ):
@@ -1191,6 +1194,37 @@ def _can_instantiate_multi_level(elements: Any, tp: type) -> bool:
 
 
 class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmulator):
+    """A multi-level Gaussian process (GP) emulator for simulators.
+
+    A multi-level GP is a weighted sum of Gaussian processes, where each GP in the sum is
+    considered to be at a particular integer level, and each level only has one GP.
+    Training the multi-level GP consists of training each GP independently of the others,
+    by supplying training data for specific levels. A key assumption of this class is that
+    the constituent GPs are independent of each other, in the probabilistic sense. This
+    assumption is used when making predictions for the overall multi-level GP at simulator
+    inputs (see the `predict` method for details).
+
+    Parameters
+    ----------
+    gps : Mapping[int, AbstractGaussianProcess] or Sequence[AbstractGaussianProcess]
+        The Gaussian processes for each level in this multi-level GP. If provided as a
+        mapping of integers to Gaussian processes, then the levels for this multi-level
+        GP will be the keys of this mapping (note these don't need to be sequential or
+        start from 1). If provided as a sequence of Gaussian processes, then these will
+        be assigned to levels 1, 2, ... in the order provided by the sequence.
+    coefficients : Mapping[int, Real] or Sequence[Real] or Real, optional
+        (Default: 1) The coefficients to multiply the Gaussian processes at each level by,
+        when considering this multi-level GP as a weighted sum of the Gaussian processes.
+        If provided as a mapping of integers to real numbers, then the keys will be
+        considered as levels, and there must be a coefficient supplied for each level
+        defined by `gps` (coefficients for extra levels are ignored). If provided as a
+        sequence of real numbers, then the length of the sequence must be equal to the
+        number of levels defined by `gps`, in which case the coefficients will be assigned
+        to the levels in ascending order, as defined by the ordering of the coefficient
+        sequence. If provided as a single real number then this coefficient is assigned to
+        each level defined by `gps`.
+    """
+
     def __init__(
         self,
         gps: Union[
@@ -1205,6 +1239,9 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
     def _parse_gps(
         gps,
     ) -> Union[Mapping[Any, AbstractGaussianProcess], Sequence[AbstractGaussianProcess]]:
+        """Validate a collection of Gaussian processes for constructing a multi-level GP,
+        returning as a multi-level collection or else raising an exception."""
+
         if not _can_instantiate_multi_level(gps, AbstractGaussianProcess):
             raise TypeError(
                 "Expected 'gps' to be a mapping of integers to "
@@ -1216,6 +1253,10 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
             return gps
 
     def _parse_coefficients(self, coefficients) -> MultiLevel[float]:
+        """Validate a collection of coefficients for constructing a multi-level GP,
+        returning as a multi-level collection with appropriate levels or else raising
+        an exception."""
+
         if not isinstance(coefficients, Real) and not _can_instantiate_multi_level(
             coefficients, Real
         ):
@@ -1245,14 +1286,25 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
     @property
     def training_data(self) -> MultiLevel[tuple[TrainingDatum, ...]]:
+        """(Read-only) The data on which the Gaussian processes at each level have been
+        trained."""
+
         return self.map(lambda _, gp: gp.training_data)
 
     @property
     def coefficients(self) -> MultiLevel[Real]:
-        return self._coefficients.map(lambda level, coeff: coeff)
+        """(Read-only) The coefficients that multiply the Gaussian processes level-wise,
+        when considering this multi-level GP as a weighted sum of the Gaussian processes
+        at each level."""
+
+        return self._coefficients.map(lambda _, coeff: coeff)
 
     @property
-    def fit_hyperparameters(self) -> Optional[MultiLevel[AbstractHyperparameters]]:
+    def fit_hyperparameters(self) -> MultiLevel[Optional[AbstractHyperparameters]]:
+        """(Read-only) The hyperparameters of the underlying fitted Gaussian process for
+        each level. A value of ``None`` for a level indicates that the Gaussian process
+        for the level hasn't been fitted to data."""
+
         return self.map(lambda _, gp: gp.fit_hyperparameters)
 
     def fit(
@@ -1260,14 +1312,53 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         training_data: MultiLevel[Collection[TrainingDatum]],
         hyperparameters: Optional[
             Union[
-                GaussianProcessHyperparameters, MultiLevel[GaussianProcessHyperparameters]
+                MultiLevel[GaussianProcessHyperparameters], GaussianProcessHyperparameters
             ]
         ] = None,
         hyperparameter_bounds: Optional[
-            Union[Sequence[OptionalFloatPairs], MultiLevel[Sequence[OptionalFloatPairs]]]
+            Union[MultiLevel[Sequence[OptionalFloatPairs]], Sequence[OptionalFloatPairs]]
         ] = None,
     ) -> None:
-        """Fit this multi-level Gaussian process to levelled training data."""
+        """Fit this multi-level Gaussian process to levelled training data.
+
+        The Gaussian process at each level within this multi-level GP is trained on the
+        data supplied at the corresponding level. By default, hyperparameters for each
+        level's Gaussian process are estimated, although specific hyperparameters can be
+        supplied for some or all of the levels to be used when training instead.
+        Similarly, bounds on hyperparameter estimation can be supplied for some or all of
+        the levels.
+
+        In general, if any of the training data, hyperparameters or bounds contain levels
+        not featuring within this multi-level GP, then the data for these extra levels is
+        simply ignored.
+
+        Parameters
+        ----------
+        training_data : MultiLevel[Collection[TrainingDatum]]
+            A level-wise collection of pairs of simulator inputs and outputs for training
+            the Gaussian processes by level. If data is not supplied for a level featuring
+            in `self.levels` then no training is performed at that level.
+        hyperparameters : MultiLevel[GaussianProcessHyperparameters] or GaussianProcessHyperparameters, optional
+            (Default: None) Either a level-wise collection of hyperparameters to use
+            directly when fitting each level's Gaussian process, or a single set of
+            hyperparameters to use on each of the levels. If ``None`` then the
+            hyperparameters will be estimated at each level when fitting. If a
+            ``MultiLevel`` collection is supplied and a level from `self.levels` is
+            missing from the collection, then the hyperparameters at that level will be
+            estimated when training the corresponding Gaussian process.
+        hyperparameter_bounds : MultiLevel[Sequence[OptionalFloatPairs]]] or Sequence[OptionalFloatPairs], optional
+            (Default: None) Either a level-wise collection of bounds to apply to
+            hyperparameters during estimation, or a single collection of bounds to use on
+            each of the levels. If a ``MultiLevel`` collection is supplied and a level
+            from `self.levels` is missing from the collection, then the hyperparameters at
+            that level will be estimated without any bounding constraints. See the
+            documentation for the `fit` method of `AbstractGaussianProcess` for details on
+            how bounds should be constructed for each level's Gaussian process.
+
+        See Also
+        --------
+        AbstractGaussianProcess.fit : Fitting individual Gaussian processes.
+        """
 
         if not isinstance(training_data, MultiLevel):
             raise TypeError(
