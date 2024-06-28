@@ -1,5 +1,6 @@
 import copy
 import math
+from collections.abc import Sequence
 from numbers import Real
 from typing import Any, Optional, Type, Union
 
@@ -9,10 +10,13 @@ from scipy.stats import norm
 
 from exauq.core.modelling import (
     AbstractGaussianProcess,
+    GaussianRV,
     Input,
     LevelTagged,
     MultiLevel,
     MultiLevelGaussianProcess,
+    OptionalFloatPairs,
+    Prediction,
     SimulatorDomain,
     TrainingDatum,
     set_level,
@@ -163,6 +167,14 @@ def compute_loo_errors_gp(
     ]
     gp_e.fit(error_training_data, hyperparameter_bounds=bounds)
     return gp_e
+
+
+def _compute_loo_error_bounds(domain: SimulatorDomain) -> Sequence[OptionalFloatPairs]:
+    # Note: the following is a simplification of sqrt(-0.5 / log(10 ** (-8))) from paper
+    bound_scale = 0.25 / math.sqrt(math.log(10))
+    return [(bound_scale * (bnd[1] - bnd[0]), None) for bnd in domain.bounds] + [
+        (None, None)
+    ]
 
 
 def compute_loo_gp(
@@ -624,10 +636,89 @@ def compute_single_level_loo_samples(
     return tuple(design_points)
 
 
-def compute_multi_level_pei(
-    mlgp: MultiLevelGaussianProcess, domain: SimulatorDomain
-) -> MultiLevel[PEICalculator]:
+def compute_multi_level_loo_gaussian(
+    mlgp: MultiLevelGaussianProcess,
+    level: int,
+    leave_out_idx: int,
+    loo_gp: Optional[AbstractGaussianProcess] = None,
+) -> GaussianRV:
 
+    p_l = mlgp.coefficients[level]
+    x_i = mlgp[level].training_data[leave_out_idx].input
+    g_l = mlgp[level].training_data[leave_out_idx].output
+    loo_prediction = compute_loo_gp(mlgp[level], leave_out_idx, loo_gp).predict(x_i)
+    other_level_coeffs = [mlgp.coefficients[j] for j in mlgp.levels if not j == level]
+    other_level_predictions = [
+        _zero_mean_prediction(mlgp[j], x_i) for j in mlgp.levels if not j == level
+    ]
+    mean_other_level_sum = sum(
+        coeff * prediction.estimate
+        for coeff, prediction in zip(other_level_coeffs, other_level_predictions)
+    )
+    mean = p_l * (loo_prediction.estimate - g_l) + mean_other_level_sum
+    variance_other_level_sum = sum(
+        (coeff**2) * prediction.variance
+        for coeff, prediction in zip(other_level_coeffs, other_level_predictions)
+    )
+    variance = (p_l**2) * loo_prediction.variance + variance_other_level_sum
+
+    return GaussianRV(mean, variance)
+
+
+def _zero_mean_prediction(gp: AbstractGaussianProcess, x: Input) -> Prediction:
+    """Make a prediction at an input with a GP having zero mean and variance equal to other."""
+    mean = 1  # TODO: replace with m_e^{(j)}(x) formula from paper
+    variance = gp.predict(x).variance
+    return Prediction(mean, variance)
+
+
+def compute_multi_level_loo_errors(
+    mlgp: MultiLevelGaussianProcess, loo_gp: Optional[AbstractGaussianProcess] = None
+) -> MultiLevel[list[TrainingDatum]]:
+    error_training_data = MultiLevel([[] for _ in mlgp.levels])
+    for level in mlgp.levels:
+        for leave_out_index, datum in enumerate(mlgp[level].training_data):
+            gaussian = compute_multi_level_loo_gaussian(
+                mlgp, level, leave_out_index, loo_gp=loo_gp
+            )
+            error_training_data[level].append(
+                TrainingDatum(datum.input, gaussian.nes_error())
+            )
+
+    return error_training_data
+
+
+def compute_multi_level_loo_errors_gp(
+    mlgp: MultiLevelGaussianProcess,
+    domain: SimulatorDomain,
+    loo_gp: Optional[AbstractGaussianProcess] = None,
+    output_gp: Optional[MultiLevelGaussianProcess] = None,
+):
+    # Create LOO errors for each level
+    error_training_data = compute_multi_level_loo_errors(mlgp, loo_gp=loo_gp)
+
+    # Train GP on the LOO errors
+    ml_errors_gp = output_gp if output_gp is not None else copy.deepcopy(mlgp)
+    ml_errors_gp.fit(
+        error_training_data, hyperparameter_bounds=_compute_loo_error_bounds(domain)
+    )
+    return ml_errors_gp
+
+
+def compute_multi_level_loo_samples(
+    mlgp: MultiLevelGaussianProcess,
+    domain: SimulatorDomain,
+    costs: MultiLevel[Real],
+    batch_size: int = 1,
+    loo_gp: Optional[AbstractGaussianProcess] = None,
+) -> tuple[LevelTagged[Input]]:
+    """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
+
+    if not isinstance(mlgp, MultiLevelGaussianProcess):
+        raise TypeError(
+            f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess}, but "
+            f"received {type(mlgp)} instead."
+        )
     if not isinstance(domain, SimulatorDomain):
         raise TypeError(
             f"Expected 'domain' to be of type {SimulatorDomain}, but received "
@@ -644,24 +735,6 @@ def compute_multi_level_pei(
             "this is not the case."
         )
 
-    return MultiLevel.from_sequence(
-        [PEICalculator(domain, mlgp[level]) for level in mlgp.levels]
-    )
-
-
-def compute_multi_level_loo_samples(
-    mlgp: MultiLevelGaussianProcess,
-    domain: SimulatorDomain,
-    costs: MultiLevel[Real],
-    batch_size: int = 1,
-) -> tuple[LevelTagged[Input]]:
-    """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
-
-    if not isinstance(mlgp, MultiLevelGaussianProcess):
-        raise TypeError(
-            f"Expected 'mlgp' to be of type {MultiLevelGaussianProcess}, but "
-            f"received {type(mlgp)} instead."
-        )
     if missing_levels := sorted(set(mlgp.levels) - set(costs.levels)):
         raise ValueError(
             f"Level {missing_levels[0]} from 'mlgp' does not have associated level "
@@ -678,11 +751,22 @@ def compute_multi_level_loo_samples(
             f"Expected batch size to be a positive integer, but received {batch_size} instead."
         )
 
-    ml_pei = compute_multi_level_pei(mlgp, domain)
+    # Create LOO errors GP for each level
+    ml_errors_gp = compute_multi_level_loo_errors_gp(
+        mlgp, domain, loo_gp=loo_gp, output_gp=None
+    )
+
+    # Get the PEI calculator for each level
+    ml_pei = ml_errors_gp.map(lambda _, gp: PEICalculator(domain, gp))
+
+    # Find PEI argmax, with (weighted) PEI value, for each level
     delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
     maximal_pei_values = ml_pei.map(
         lambda level, pei: maximise(lambda x: pei.compute(x) / delta_costs[level], domain)
     )
+
+    # Create batch at maximising level by iteratively adding new design points as
+    # repulsion points and re-maximising PEI
     level, (x, _) = max(maximal_pei_values.items(), key=lambda item: item[1][1])
     design_points = [set_level(x, level)]
     if batch_size > 1:
