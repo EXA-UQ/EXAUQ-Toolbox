@@ -644,7 +644,6 @@ def compute_multi_level_pei(
             "this is not the case."
         )
     return mlgp.map(lambda level, gp: PEICalculator(domain, gp))
-    # return MultiLevel([PEICalculator(domain, mlgp[level]) for level in mlgp.levels])
 
 
 def compute_multi_level_loo_samples(
