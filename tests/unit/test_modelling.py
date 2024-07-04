@@ -81,7 +81,7 @@ class TestInput(unittest.TestCase):
         self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
-            _ = Input(1.1, np.NINF)  # negative inf
+            _ = Input(1.1, -np.inf)
 
         self.assertEqual(msg, str(cm.exception))
 
@@ -271,7 +271,7 @@ class TestInput(unittest.TestCase):
         self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
-            _ = Input.from_array(np.array([1.1, np.NINF]))  # negative inf
+            _ = Input.from_array(np.array([1.1, -np.inf]))
 
         self.assertEqual(msg, str(cm.exception))
 
@@ -338,7 +338,7 @@ class TestTrainingDatum(unittest.TestCase):
         self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
-            _ = TrainingDatum(Input(1), np.NINF)  # negative inf
+            _ = TrainingDatum(Input(1), -np.inf)
 
         self.assertEqual(msg, str(cm.exception))
 
@@ -656,7 +656,7 @@ class TestGaussianProcessPrediction(ExauqTestCase):
 
         prediction = GaussianProcessPrediction(estimate=1, variance=1)
 
-        for observed_output in [np.nan, np.inf, np.NINF]:
+        for observed_output in [np.nan, np.inf, -np.inf]:
             with self.subTest(observed_output=observed_output), self.assertRaisesRegex(
                 ValueError,
                 exact(
