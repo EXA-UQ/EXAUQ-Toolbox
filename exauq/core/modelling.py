@@ -1010,16 +1010,16 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    # TODO: return as a matrix
     def covariance_matrix(self, inputs: Sequence[Input]) -> NDArray:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
-        In pseudocode, the covariance matrix for a given collection
-        `inputs` of simulator inputs is defined in terms of the correlation matrix as
-        ``sigma^2 * correlation(training_inputs, inputs)``, where ``sigma^2`` is the
-        process variance for this Gaussian process (which was determined or supplied
-        during training) and ``training_inputs`` are the simulator inputs used in
-        training.
+        In pseudocode, the covariance matrix for a given collection `inputs` of simulator
+        inputs is defined in terms of the correlation matrix as ``sigma^2 *
+        correlation(training_inputs, inputs)``, where ``sigma^2`` is the process variance
+        for this Gaussian process (which was determined or supplied during training) and
+        ``training_inputs`` are the simulator inputs used in training. The only exceptions
+        to this are when the supplied `inputs` is empty or if this emulator hasn't been
+        trained on data: in these cases an empty array should be returned.
 
         The default implementation of this method does no more than call the `correlation`
         method with the training data simulator inputs stored in this instance and the
@@ -1034,10 +1034,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         Returns
         -------
         numpy.ndarray
-        TODO: correct the following for arrays
-            The covariance matrix for the sequence of inputs. The outer tuple
-            consists of ``n`` tuples of length ``len(inputs)``, where ``n`` is the
-            number of training data points for this Gaussian process.
+            The covariance matrix for the sequence of inputs, as an array of shape
+            ``(n, n)`` where ``n`` is the number of training data points for this Gaussian
+            process.
         """
 
         training_inputs = tuple(datum.input for datum in self.training_data)
@@ -1049,15 +1048,16 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             )
         )
 
-    # TODO: return as a matrix e.g. np.mat
     @abc.abstractmethod
     def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
         """Compute the correlation matrix for two sequences of simulator inputs.
 
-        If ``corr_matrix`` is the output of this method, then the ordering of the
-        nested tuples in ``corr_matrix`` should be such that ``corr_matrix[i][j]``
-        is equal to the correlation between ``inputs1[i]`` and ``inputs2[j]`` (or, in
-        pseudocode, ``corr_matrix[i][j] = correlation(inputs1[i], inputs2[j])``).
+        If ``corr_matrix`` is the Numpy array output by this method, the its should be a
+        2-dimensional array of shape ``(len(inputs1), len(inputs2))`` such that
+        ``corr_matrix[i, j]`` is equal to the correlation between ``inputs1[i]`` and
+        ``inputs2[j]`` (or, in pseudocode, ``corr_matrix[i, j] = correlation(inputs1[i],
+        inputs2[j])``). The only exception to this is when either of the sequence of
+        inputs is empty, in which case an empty array should be returned.
 
         Parameters
         ----------
@@ -1067,9 +1067,8 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         Returns
         -------
         numpy.ndarray
-        TODO: correct the following for arrays
-            The correlation matrix for the two sequences of inputs. The outer tuple
-            consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
+            The correlation matrix for the two sequences of inputs, as an array of shape
+            ``(len(inputs1), len(inputs2))``.
         """
 
         raise NotImplementedError
