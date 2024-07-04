@@ -766,6 +766,53 @@ class Prediction:
         ) and equal_within_tolerance(self.variance, other.variance)
 
     def nes_error(self, observed_output: Real) -> float:
+        """Calculate the normalised expected squared (NES) error.
+
+        This is defined as the expectation of the squared error divided by the standard
+        deviation of the squared error, for a given observed simulation output.
+        Mathematically, the denominator of this fraction is zero precisely when this
+        prediction's variance is zero; in this case, the NES error is defined to be zero
+        if the observed output is equal to this prediction's estimate and ``inf``
+        otherwise. However, the implementation of this method checks for whether the
+        numerator (i.e. squared error) and/or the denominator (i.e. the standard deviation
+        of the squared error) are zero; furthermore, these are done with exact equality
+        checks on the floating point numbers involved, rather than a check up to some
+        numerical tolerance.
+
+        Parameters
+        ----------
+        observed_output : Real
+            The output of a simulator to compare this prediction with. Must be a finite
+            number.
+
+        Returns
+        -------
+        float
+            The normalised expected squared error for this prediction at the given
+            simulator output.
+
+        Notes
+        -----
+
+        For Gaussian process emulators, the NES error can be computed from the predictive
+        variance and squared error of the emulator's prediction at the simulator input:
+
+        ```
+        sq_error = (m - observed_output) ** 2
+        expected_sq_error = var + sq_error
+        std_sq_error = sqrt((2 * (var**2) + 4 * var * sq_error)
+        nes_error = expected_sq_error / std_sq_error
+        ```
+
+        where `m` is the point estimate of the Gaussian process prediction at `x` and
+        `var` is the predictive variance of this estimate.[1]_
+
+        References
+        ----------
+        .. [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
+           Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+        """
+
         validation.check_real(
             observed_output,
             TypeError(
