@@ -10,20 +10,31 @@ from typing import Literal, Sequence
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import (AbstractGaussianProcess,
-                                  GaussianProcessHyperparameters, Input,
-                                  LevelTagged, MultiLevel,
-                                  MultiLevelGaussianProcess,
-                                  OptionalFloatPairs, Prediction,
-                                  SimulatorDomain, TrainingDatum,
-                                  _LevelTaggedOld, get_level, remove_level,
-                                  set_level)
+from exauq.core.modelling import (
+    AbstractGaussianProcess,
+    GaussianProcessHyperparameters,
+    Input,
+    LevelTagged,
+    MultiLevel,
+    MultiLevelGaussianProcess,
+    OptionalFloatPairs,
+    Prediction,
+    SimulatorDomain,
+    TrainingDatum,
+    _LevelTaggedOld,
+    get_level,
+    remove_level,
+    set_level,
+)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
-from tests.unit.fakes import (FakeGP, FakeGPHyperparameters, WhiteNoiseGP,
-                              WhiteNoiseGPHyperparameters)
-from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
-                                       exact, make_window)
+from tests.unit.fakes import FakeGP, WhiteNoiseGP, WhiteNoiseGPHyperparameters
+from tests.utilities.utilities import (
+    ExauqTestCase,
+    compare_input_tuples,
+    exact,
+    make_window,
+)
 
 
 class TestInput(unittest.TestCase):
@@ -702,107 +713,6 @@ class TestAbstractGaussianProcess(ExauqTestCase):
 
         self.inputs = [Input(0), Input(0.25), Input(1)]
         self.outputs = [-1, np.int32(1), 2.1, np.float16(3)]
-
-    def test_nes_error_arg_type_errors(self):
-        """A TypeError is raised when computing the normalised expected square error if:
-
-        * making a prediction from the input 'x' raises a TypeError; or
-        * the observed output is not a Real number.
-        """
-
-        x = 1
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Expected 'x' to be of type {Input.__name__} but received type {type(x)}."
-            ),
-        ):
-            self.emulator.nes_error(x, 0)
-
-        observed_output = "1"
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Expected 'observed_output' to be of type {Real} but received type {type(observed_output)}."
-            ),
-        ):
-            self.emulator.nes_error(Input(1), observed_output)
-
-    def test_nes_error_assertion_error_raised_if_emulator_not_trained_on_data(self):
-        """An AssertionError is raised if an attempt is made to compute the normalised
-        expected square error with an emulator that hasn't been trained on data."""
-
-        emulator = FakeGP()
-        with self.assertRaisesRegex(
-            AssertionError,
-            exact(
-                "Could not compute normalised expected squared error: emulator hasn't been fit to data."
-            ),
-        ):
-            emulator.nes_error(Input(0), 1)
-
-    def test_nes_error_value_error_raised_if_observed_output_is_infinite(self):
-        """A ValueError is raised if the observed output is an infinite value or NaN."""
-
-        for observed_output in [np.nan, np.inf, np.NINF]:
-            with self.subTest(observed_output=observed_output), self.assertRaisesRegex(
-                ValueError,
-                exact(
-                    f"'observed_output' must be a finite real number, but received {observed_output}."
-                ),
-            ):
-                self.emulator.nes_error(Input(1), observed_output)
-
-    def test_nes_error_formula(self):
-        """The normalised expected square error is given by the expected square error
-        divided by the standard deviation of the square error, as described in
-        Mohammadi et al (2022).
-        """
-
-        variances = [0.1, 0.2, 0.3]
-        for var, x, observed_output in itertools.product(
-            variances, self.inputs, self.outputs
-        ):
-            with self.subTest(var=var, x=x, observed_output=observed_output):
-                hyperparameters = FakeGPHyperparameters(
-                    corr_length_scales=[1], process_var=var, nugget=None
-                )
-                self.emulator.fit(self.training_data, hyperparameters=hyperparameters)
-
-                prediction = self.emulator.predict(x)
-                square_err = (prediction.estimate - observed_output) ** 2
-                expected_sq_err = prediction.variance + square_err
-                standard_deviation_sq_err = math.sqrt(
-                    2 * (prediction.variance**2) + 4 * prediction.variance * square_err
-                )
-
-                self.assertEqualWithinTolerance(
-                    expected_sq_err / standard_deviation_sq_err,
-                    self.emulator.nes_error(x, observed_output),
-                )
-
-    def test_nes_error_zero_variance_cases(self):
-        """The normalised expected square error is equal to
-
-        * zero if both the standard deviation (denominator) and expectation (numerator) of
-          the square error are zero
-        * inf if the standard deviation is zero and the expectation is nonzero.
-        """
-
-        # Consider case where we calculate at a training input - expectation and variance of
-        # square error both zero.
-        datum = self.emulator.training_data[0]
-        self.assertEqual(0, self.emulator.nes_error(datum.input, datum.output))
-
-        # Force predictive variance to be zero even for unseen inputs
-        emulator = FakeGP()
-        emulator.fit(
-            [TrainingDatum(Input(0.5), 1)],
-            hyperparameters=FakeGPHyperparameters(
-                corr_length_scales=[1], process_var=0, nugget=None
-            ),
-        )
-        self.assertEqual(float("inf"), emulator.nes_error(Input(0.4), 1e-5))
 
     def test_covariance_matrix_correlations_with_training_data(self):
         """The covariance matrix consists of the correlations of the supplied inputs

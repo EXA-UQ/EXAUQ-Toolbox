@@ -154,7 +154,8 @@ def compute_loo_errors_gp(
         _ = compute_loo_gp(gp, leave_out_idx, loo_gp=loo_gp)
 
         # Add training input and nes error
-        nes_loo_error = loo_gp.nes_error(datum.input, datum.output)
+        loo_prediction = loo_gp.predict(datum.input)
+        nes_loo_error = loo_prediction.nes_error(datum.output)
         error_training_data.append(TrainingDatum(datum.input, nes_loo_error))
 
     gp_e = loo_errors_gp if loo_errors_gp is not None else copy.deepcopy(gp)

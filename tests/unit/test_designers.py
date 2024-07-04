@@ -150,8 +150,9 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         loo_errors_training_data = []
         for leave_out_idx, datum in enumerate(self.gp.training_data):
             loo_gp = compute_loo_gp(self.gp, leave_out_idx)
+            loo_prediction = loo_gp.predict(datum.input)
             loo_errors_training_data.append(
-                TrainingDatum(datum.input, loo_gp.nes_error(datum.input, datum.output))
+                TrainingDatum(datum.input, loo_prediction.nes_error(datum.output))
             )
 
         # Check actual LOO error GP training data is as expected
