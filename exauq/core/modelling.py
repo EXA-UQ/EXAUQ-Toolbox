@@ -1039,13 +1039,12 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             process.
         """
 
+        if not self.training_data:
+            return np.array([])
+
         training_inputs = tuple(datum.input for datum in self.training_data)
-        correlations = self.correlation(training_inputs, inputs)
-        return np.array(
-            tuple(
-                tuple(self.fit_hyperparameters.process_var * z for z in row)
-                for row in correlations
-            )
+        return self.fit_hyperparameters.process_var * self.correlation(
+            training_inputs, inputs
         )
 
     @abc.abstractmethod

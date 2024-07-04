@@ -6,7 +6,7 @@ import dataclasses
 import itertools
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Literal, Optional
 
 import mogp_emulator as mogp
 import numpy as np
@@ -85,9 +85,9 @@ class MogpEmulator(AbstractGaussianProcess):
         self._gp_kwargs = self._remove_entries(kwargs, "inputs", "targets")
         self._validate_kernel(self._gp_kwargs)
         self._kernel = (
-            self._make_kernel_function(self._gp_kwargs["kernel"])
+            self._kernel_funcs[self._gp_kwargs["kernel"]]
             if "kernel" in self._gp_kwargs
-            else self._make_kernel_function()
+            else self._kernel_funcs["SquaredExponential"]
         )
         self._gp = self._make_gp(**self._gp_kwargs)
 
@@ -139,19 +139,6 @@ class MogpEmulator(AbstractGaussianProcess):
                 "initialisation of MogpEmulator"
             )
             raise RuntimeError(msg)
-
-    @classmethod
-    def _make_kernel_function(
-        cls,
-        kernel: str = "SquaredExponential",
-    ) -> Callable[[Input, Input, NDArray], float]:
-
-        def kernel_f(x1: Input, x2: Input, corr_raw: NDArray) -> float:
-            return float(
-                cls._kernel_funcs[kernel](np.array(x1), np.array(x2), corr_raw)[0, 0]
-            )
-
-        return kernel_f
 
     @property
     def gp(self) -> GaussianProcess:
@@ -452,37 +439,34 @@ class MogpEmulator(AbstractGaussianProcess):
             If the dimension of any of the supplied simulator inputs doesn't match the
             dimension of training data inputs for this emulator.
         """
-
         try:
-            correlations = tuple(
-                tuple(self._kernel(xi, xj, self._corr_transformed) for xj in inputs2)
-                for xi in inputs1
-            )
-            if any(len(row) > 0 for row in correlations):
-                return np.array(correlations)
-            else:
+            if len(inputs1) == 0 or len(inputs2) == 0:
                 return np.array([])
-
         except TypeError:
             # Raised if inputs1 or inputs2 not iterable
             raise TypeError(
                 "Expected 'inputs1' and 'inputs2' to be sequences of Input objects, "
                 f"but received {type(inputs1)} and {type(inputs2)} instead."
             )
+
+        if not (
+            all(isinstance(x, Input) for x in inputs1)
+            and all(isinstance(x, Input) for x in inputs2)
+        ):
+            raise TypeError(
+                "Expected 'inputs1' and 'inputs2' to only contain Input objects."
+            )
+
+        try:
+            return self._kernel(inputs1, inputs2, self._corr_transformed)
         except AssertionError:
+            # mogp-emulator arg validation errors typically seem to be raised as
+            # AssertionErrors - these get bubbled up through self._kernel
             assert self._corr_transformed is not None, (
                 f"Cannot calculate correlations for this instance of {self.__class__} "
                 "because it hasn't yet been trained on data."
             )
-            # mogp-emulator arg validation errors typically seem to be raised as
-            # AssertionErrors - these get bubbled up through self._kernel
-            if not (
-                all(isinstance(x, Input) for x in inputs1)
-                and all(isinstance(x, Input) for x in inputs2)
-            ):
-                raise TypeError(
-                    "Expected 'inputs1' and 'inputs2' to only contain Input objects."
-                )
+
         except ValueError:
             expected_dim = len(self.training_data[0].input)
             wrong_dims = list(
