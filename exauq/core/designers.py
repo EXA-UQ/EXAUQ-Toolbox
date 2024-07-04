@@ -681,7 +681,7 @@ def compute_multi_level_loo_errors(
                 mlgp, level, leave_out_index, loo_gp=loo_gp
             )
             error_training_data[level].append(
-                TrainingDatum(datum.input, loo_prediction.nes_error())
+                TrainingDatum(datum.input, loo_prediction.nes_error(datum.output))
             )
 
     return error_training_data

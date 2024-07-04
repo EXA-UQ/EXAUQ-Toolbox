@@ -765,8 +765,31 @@ class Prediction:
             self.estimate, other.estimate
         ) and equal_within_tolerance(self.variance, other.variance)
 
-    def nes_error(self) -> float:
-        return 1
+    def nes_error(self, observed_output: Real) -> float:
+        validation.check_real(
+            observed_output,
+            TypeError(
+                f"Expected 'observed_output' to be of type {Real} but received type "
+                f"{type(observed_output)}."
+            ),
+        )
+
+        validation.check_finite(
+            observed_output,
+            ValueError(
+                f"'observed_output' must be a finite real number, but received {observed_output}."
+            ),
+        )
+
+        square_err = (self.estimate - observed_output) ** 2
+        expected_sq_err = self.variance + square_err
+        standard_deviation_sq_err = math.sqrt(
+            2 * (self.variance**2) + 4 * self.variance * square_err
+        )
+        try:
+            return float(expected_sq_err / standard_deviation_sq_err)
+        except ZeroDivisionError:
+            return 0 if expected_sq_err == 0 else float("inf")
 
 
 class AbstractEmulator(abc.ABC):

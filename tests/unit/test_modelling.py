@@ -10,36 +10,20 @@ from typing import Literal, Sequence
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import (
-    AbstractGaussianProcess,
-    GaussianProcessHyperparameters,
-    Input,
-    LevelTagged,
-    MultiLevel,
-    MultiLevelGaussianProcess,
-    OptionalFloatPairs,
-    Prediction,
-    SimulatorDomain,
-    TrainingDatum,
-    _LevelTaggedOld,
-    get_level,
-    remove_level,
-    set_level,
-)
+from exauq.core.modelling import (AbstractGaussianProcess,
+                                  GaussianProcessHyperparameters, Input,
+                                  LevelTagged, MultiLevel,
+                                  MultiLevelGaussianProcess,
+                                  OptionalFloatPairs, Prediction,
+                                  SimulatorDomain, TrainingDatum,
+                                  _LevelTaggedOld, get_level, remove_level,
+                                  set_level)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
-from tests.unit.fakes import (
-    FakeGP,
-    FakeGPHyperparameters,
-    WhiteNoiseGP,
-    WhiteNoiseGPHyperparameters,
-)
-from tests.utilities.utilities import (
-    ExauqTestCase,
-    compare_input_tuples,
-    exact,
-    make_window,
-)
+from tests.unit.fakes import (FakeGP, FakeGPHyperparameters, WhiteNoiseGP,
+                              WhiteNoiseGPHyperparameters)
+from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
+                                       exact, make_window)
 
 
 class TestInput(unittest.TestCase):
@@ -635,6 +619,79 @@ class TestPrediction(ExauqTestCase):
         """Test that the standard_deviation is zero when variance is zero."""
         prediction = Prediction(estimate=5, variance=0)
         self.assertEqual(prediction.standard_deviation, 0)
+
+    def test_nes_error_arg_type_error(self):
+        """A TypeError is raised when computing the normalised expected square error if
+        the observed output is not a Real number.
+        """
+
+        observed_output = "1"
+
+        prediction = Prediction(estimate=1, variance=1)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'observed_output' to be of type {Real} but received type {type(observed_output)}."
+            ),
+        ):
+            prediction.nes_error(observed_output)
+
+    def test_nes_error_value_error_raised_if_observed_output_is_infinite(self):
+        """A ValueError is raised if the observed output is an infinite value or NaN."""
+
+        prediction = Prediction(estimate=1, variance=1)
+
+        for observed_output in [np.nan, np.inf, np.NINF]:
+            with self.subTest(observed_output=observed_output), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"'observed_output' must be a finite real number, but received {observed_output}."
+                ),
+            ):
+                prediction.nes_error(observed_output)
+
+    def test_nes_error_formula(self):
+        """The normalised expected square error is given by the expected square error
+        divided by the standard deviation of the square error, as described in
+        Mohammadi et al (2022).
+        """
+
+        variances = [0.1, 0.2, 0.3]
+        means = [-1, 0, 1]
+        observed_outputs = [0.9, -0.1, 0, 10]
+        for mean, var, observed_output in itertools.product(
+            means, variances, observed_outputs
+        ):
+            with self.subTest(mean=mean, var=var, observed_output=observed_output):
+                prediction = Prediction(estimate=1, variance=var)
+                square_err = (prediction.estimate - observed_output) ** 2
+                expected_sq_err = prediction.variance + square_err
+                standard_deviation_sq_err = math.sqrt(
+                    2 * (prediction.variance**2) + 4 * prediction.variance * square_err
+                )
+
+                self.assertEqualWithinTolerance(
+                    expected_sq_err / standard_deviation_sq_err,
+                    prediction.nes_error(observed_output),
+                )
+
+    def test_nes_error_zero_variance_cases(self):
+        """The normalised expected square error is equal to
+
+        * zero if the variance of the prediction is zero and the observed output is equal
+          to the prediction's estimate.
+        * inf if the variance of the prediction is zero and the observed output is not
+          equal to the prediction's estimate.
+        """
+
+        mean = 1
+
+        self.assertEqual(0, Prediction(estimate=mean, variance=0).nes_error(mean))
+
+        self.assertEqual(
+            float("inf"), Prediction(estimate=mean, variance=0).nes_error(mean + 1e-5)
+        )
 
 
 class TestAbstractGaussianProcess(ExauqTestCase):
