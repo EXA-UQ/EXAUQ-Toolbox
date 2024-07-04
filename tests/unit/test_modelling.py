@@ -10,28 +10,16 @@ from typing import Literal, Sequence
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import (
-    GaussianProcessHyperparameters,
-    Input,
-    LevelTagged,
-    MultiLevel,
-    Prediction,
-    SimulatorDomain,
-    TrainingDatum,
-    _LevelTaggedOld,
-    get_level,
-    remove_level,
-    set_level,
-)
+from exauq.core.modelling import (GaussianProcessHyperparameters, Input,
+                                  LevelTagged, MultiLevel, Prediction,
+                                  SimulatorDomain, TrainingDatum,
+                                  _LevelTaggedOld, get_level, remove_level,
+                                  set_level)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
 from tests.unit.fakes import FakeGP, FakeGPHyperparameters
-from tests.utilities.utilities import (
-    ExauqTestCase,
-    compare_input_tuples,
-    exact,
-    make_window,
-)
+from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
+                                       exact, make_window)
 
 
 class TestInput(unittest.TestCase):
@@ -679,7 +667,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
     def test_nes_error_value_error_raised_if_observed_output_is_infinite(self):
         """A ValueError is raised if the observed output is an infinite value or NaN."""
 
-        for observed_output in [np.nan, np.inf, np.NINF]:
+        for observed_output in [np.nan, np.inf, -np.inf]:
             with self.subTest(observed_output=observed_output), self.assertRaisesRegex(
                 ValueError,
                 exact(
