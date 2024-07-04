@@ -85,7 +85,7 @@ class TestInput(unittest.TestCase):
         self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
-            _ = Input(1.1, np.NINF)  # negative inf
+            _ = Input(1.1, -np.inf)
 
         self.assertEqual(msg, str(cm.exception))
 
@@ -275,7 +275,7 @@ class TestInput(unittest.TestCase):
         self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
-            _ = Input.from_array(np.array([1.1, np.NINF]))  # negative inf
+            _ = Input.from_array(np.array([1.1, -np.inf]))
 
         self.assertEqual(msg, str(cm.exception))
 
@@ -342,7 +342,7 @@ class TestTrainingDatum(unittest.TestCase):
         self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
-            _ = TrainingDatum(Input(1), np.NINF)  # negative inf
+            _ = TrainingDatum(Input(1), -np.inf)
 
         self.assertEqual(msg, str(cm.exception))
 
@@ -687,7 +687,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
     def test_nes_error_value_error_raised_if_observed_output_is_infinite(self):
         """A ValueError is raised if the observed output is an infinite value or NaN."""
 
-        for observed_output in [np.nan, np.inf, np.NINF]:
+        for observed_output in [np.nan, np.inf, -np.inf]:
             with self.subTest(observed_output=observed_output), self.assertRaisesRegex(
                 ValueError,
                 exact(
