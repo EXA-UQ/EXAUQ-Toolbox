@@ -13,6 +13,7 @@ from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     GaussianProcessHyperparameters,
+    GaussianProcessPrediction,
     Input,
     LevelTagged,
     MultiLevel,
@@ -631,6 +632,8 @@ class TestPrediction(ExauqTestCase):
         prediction = Prediction(estimate=5, variance=0)
         self.assertEqual(prediction.standard_deviation, 0)
 
+
+class TestGaussianProcessPrediction(ExauqTestCase):
     def test_nes_error_arg_type_error(self):
         """A TypeError is raised when computing the normalised expected square error if
         the observed output is not a Real number.
@@ -638,7 +641,7 @@ class TestPrediction(ExauqTestCase):
 
         observed_output = "1"
 
-        prediction = Prediction(estimate=1, variance=1)
+        prediction = GaussianProcessPrediction(estimate=1, variance=1)
 
         with self.assertRaisesRegex(
             TypeError,
@@ -651,7 +654,7 @@ class TestPrediction(ExauqTestCase):
     def test_nes_error_value_error_raised_if_observed_output_is_infinite(self):
         """A ValueError is raised if the observed output is an infinite value or NaN."""
 
-        prediction = Prediction(estimate=1, variance=1)
+        prediction = GaussianProcessPrediction(estimate=1, variance=1)
 
         for observed_output in [np.nan, np.inf, np.NINF]:
             with self.subTest(observed_output=observed_output), self.assertRaisesRegex(
@@ -675,7 +678,7 @@ class TestPrediction(ExauqTestCase):
             means, variances, observed_outputs
         ):
             with self.subTest(mean=mean, var=var, observed_output=observed_output):
-                prediction = Prediction(estimate=1, variance=var)
+                prediction = GaussianProcessPrediction(estimate=1, variance=var)
                 square_err = (prediction.estimate - observed_output) ** 2
                 expected_sq_err = prediction.variance + square_err
                 standard_deviation_sq_err = math.sqrt(
@@ -698,10 +701,13 @@ class TestPrediction(ExauqTestCase):
 
         mean = 1
 
-        self.assertEqual(0, Prediction(estimate=mean, variance=0).nes_error(mean))
+        self.assertEqual(
+            0, GaussianProcessPrediction(estimate=mean, variance=0).nes_error(mean)
+        )
 
         self.assertEqual(
-            float("inf"), Prediction(estimate=mean, variance=0).nes_error(mean + 1e-5)
+            float("inf"),
+            GaussianProcessPrediction(estimate=mean, variance=0).nes_error(mean + 1e-5),
         )
 
 

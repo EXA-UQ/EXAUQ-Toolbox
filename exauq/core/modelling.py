@@ -686,12 +686,15 @@ class TrainingDatum(object):
 
 @dataclasses.dataclass(frozen=True)
 class Prediction:
-    """Represents a predicted value together with the variance and standard_deviation of the prediction.
-    The standard deviation is computed as the square root of the variance.
+    """Represents the prediction of an emulator at a simulator input.
 
-    Two predictions are considered equal if their estimated values and variances agree,
-    to within the standard tolerance `exauq.core.numerics.FLOAT_TOLERANCE` as defined
-    by the default parameters for `exauq.core.numerics.equal_within_tolerance`.
+    The prediction consists of a predicted value together with the variance of the
+    prediction, which gives a measure of the uncertainty in the prediction. The standard
+    deviation is also provided, as the square root of the variance.
+
+    Two predictions are considered equal if their estimated values and variances agree, to
+    within the standard tolerance `exauq.core.numerics.FLOAT_TOLERANCE` as defined by the
+    default parameters for `exauq.core.numerics.equal_within_tolerance`.
 
 
     Parameters
@@ -708,7 +711,8 @@ class Prediction:
     variance : numbers.Real
         (Read-only) The variance of the prediction.
     standard_deviation : numbers.Real
-        (Read-only) The standard deviation of the prediction, calculated as the square root of the variance.
+        (Read-only) The standard deviation of the prediction, calculated as the square
+        root of the variance.
 
     See Also
     --------
@@ -764,6 +768,25 @@ class Prediction:
         return equal_within_tolerance(
             self.estimate, other.estimate
         ) and equal_within_tolerance(self.variance, other.variance)
+
+
+class GaussianProcessPrediction(Prediction):
+    """Represents a prediction arising from a Gaussian process.
+
+    In addition to the functionality provided by ``Prediction``, instances of this class
+    include the method `nes_error` for computing the normalised expected square (NES)
+    error at a simulator output, utilising the Gaussian assumption.
+
+    Parameters
+    ----------
+    estimate : numbers.Real
+        The estimated value of the prediction.
+    variance : numbers.Real
+        The variance of the prediction.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def nes_error(self, observed_output: Real) -> float:
         """Calculate the normalised expected squared (NES) error.
