@@ -10,7 +10,6 @@ from scipy.stats import norm
 
 from exauq.core.modelling import (
     AbstractGaussianProcess,
-    GaussianRV,
     Input,
     LevelTagged,
     MultiLevel,
@@ -636,12 +635,12 @@ def compute_single_level_loo_samples(
     return tuple(design_points)
 
 
-def compute_multi_level_loo_gaussian(
+def compute_multi_level_loo_prediction(
     mlgp: MultiLevelGaussianProcess,
     level: int,
     leave_out_idx: int,
     loo_gp: Optional[AbstractGaussianProcess] = None,
-) -> GaussianRV:
+) -> Prediction:
 
     p_l = mlgp.coefficients[level]
     x_i = mlgp[level].training_data[leave_out_idx].input
@@ -662,7 +661,7 @@ def compute_multi_level_loo_gaussian(
     )
     variance = (p_l**2) * loo_prediction.variance + variance_other_level_sum
 
-    return GaussianRV(mean, variance)
+    return Prediction(mean, variance)
 
 
 def _zero_mean_prediction(gp: AbstractGaussianProcess, x: Input) -> Prediction:
@@ -678,11 +677,11 @@ def compute_multi_level_loo_errors(
     error_training_data = MultiLevel([[] for _ in mlgp.levels])
     for level in mlgp.levels:
         for leave_out_index, datum in enumerate(mlgp[level].training_data):
-            gaussian = compute_multi_level_loo_gaussian(
+            loo_prediction = compute_multi_level_loo_prediction(
                 mlgp, level, leave_out_index, loo_gp=loo_gp
             )
             error_training_data[level].append(
-                TrainingDatum(datum.input, gaussian.nes_error())
+                TrainingDatum(datum.input, loo_prediction.nes_error())
             )
 
     return error_training_data

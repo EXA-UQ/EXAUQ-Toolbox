@@ -765,6 +765,9 @@ class Prediction:
             self.estimate, other.estimate
         ) and equal_within_tolerance(self.variance, other.variance)
 
+    def nes_error(self) -> float:
+        return 1
+
 
 class AbstractEmulator(abc.ABC):
     """Represents an abstract emulator for simulators.
