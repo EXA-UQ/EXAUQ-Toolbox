@@ -6,7 +6,7 @@ import dataclasses
 import itertools
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Callable, Literal, Optional
+from typing import Any, Callable, Literal, Optional
 
 import mogp_emulator as mogp
 import numpy as np
@@ -223,6 +223,16 @@ class MogpEmulator(AbstractGaussianProcess):
         if not training_data:
             return None
 
+        if not (
+            hyperparameters is None or isinstance(hyperparameters, MogpHyperparameters)
+        ):
+            raise TypeError(
+                "Expected 'hyperparameters' to be None or of type "
+                f"{MogpHyperparameters.__name__}, but received {type(hyperparameters)}."
+            )
+
+        self._validate_hyperparameter_bounds(hyperparameter_bounds)
+
         inputs = np.array([datum.input.value for datum in training_data])
         targets = np.array([datum.output for datum in training_data])
         if hyperparameters is None:
@@ -247,7 +257,10 @@ class MogpEmulator(AbstractGaussianProcess):
         return None
 
     @staticmethod
-    def _parse_training_data(training_data) -> tuple[TrainingDatum]:
+    def _parse_training_data(training_data: Any) -> tuple[TrainingDatum]:
+        """Check that a collection of training data has been provided and return as a
+        tuple if so."""
+
         if training_data is None:
             return tuple()
 
@@ -261,6 +274,52 @@ class MogpEmulator(AbstractGaussianProcess):
         except TypeError:
             raise TypeError(
                 f"Expected a finite collection of TrainingDatum, but received {type(training_data)}."
+            )
+
+    def _validate_hyperparameter_bounds(
+        self, hyperparameter_bounds: Sequence[OptionalFloatPairs]
+    ) -> None:
+        """Validate that each pair of bounds is ordered correctly in a sequence of
+        hyperparameter bounds."""
+
+        if hyperparameter_bounds is None:
+            return None
+        else:
+            for i, bound in enumerate(hyperparameter_bounds):
+                try:
+                    self._validate_bound_pair(bound)
+                except (TypeError, ValueError) as e:
+                    raise e.__class__(
+                        f"Invalid bound {bound} at index {i} of 'hyperparameter_bounds': {e}"
+                    )
+            return None
+
+    @staticmethod
+    def _validate_bound_pair(bounds: Sequence):
+        """Check that a sequence of bounds defines a pair of bounds that are ordered
+        correctly."""
+
+        try:
+            if not len(bounds) == 2:
+                raise ValueError(
+                    "Expected 'bounds' to be a sequence of length 2, but "
+                    f"got length {len(bounds)}."
+                )
+        except TypeError:
+            raise TypeError(
+                f"Expected 'bounds' to be a sequence, but received {type(bounds)}."
+            )
+
+        if not all(bound is None or isinstance(bound, Real) for bound in bounds):
+            raise TypeError(
+                f"Expected each bound in {bounds} to be None or of type {Real}."
+            )
+
+        lower, upper = bounds
+        if lower is not None and upper is not None and upper < lower:
+            raise ValueError(
+                "Lower bound must be less than or equal to upper bound, but received "
+                f"lower bound = {lower} and upper bound = {upper}."
             )
 
     def _fit_gp_with_estimation(

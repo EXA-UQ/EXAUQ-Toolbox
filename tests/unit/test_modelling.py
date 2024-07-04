@@ -10,16 +10,36 @@ from typing import Literal, Sequence
 import numpy as np
 
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
-from exauq.core.modelling import (GaussianProcessHyperparameters, Input,
-                                  LevelTagged, MultiLevel, Prediction,
-                                  SimulatorDomain, TrainingDatum,
-                                  _LevelTaggedOld, get_level, remove_level,
-                                  set_level)
+from exauq.core.modelling import (
+    AbstractGaussianProcess,
+    GaussianProcessHyperparameters,
+    Input,
+    LevelTagged,
+    MultiLevel,
+    MultiLevelGaussianProcess,
+    OptionalFloatPairs,
+    Prediction,
+    SimulatorDomain,
+    TrainingDatum,
+    _LevelTaggedOld,
+    get_level,
+    remove_level,
+    set_level,
+)
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
-from tests.unit.fakes import FakeGP, FakeGPHyperparameters
-from tests.utilities.utilities import (ExauqTestCase, compare_input_tuples,
-                                       exact, make_window)
+from tests.unit.fakes import (
+    FakeGP,
+    FakeGPHyperparameters,
+    WhiteNoiseGP,
+    WhiteNoiseGPHyperparameters,
+)
+from tests.utilities.utilities import (
+    ExauqTestCase,
+    compare_input_tuples,
+    exact,
+    make_window,
+)
 
 
 class TestInput(unittest.TestCase):
@@ -1562,8 +1582,8 @@ class TestSimulatorDomain(unittest.TestCase):
         self.assertTrue(compare_input_tuples(pseudopoints, expected))
 
 
-class A:
-    """A dummy class for testing level tagging."""
+class StubClass:
+    """A stub class for testing level tagging."""
 
     def __init__(self, a: int, b=None):
         self.a = a
@@ -1578,7 +1598,7 @@ class A:
 
 class TestLevelTagged(ExauqTestCase):
     def setUp(self) -> None:
-        self.a = A(1)
+        self.a = StubClass(1)
 
     def test_set_and_get_level(self):
         """An object can be tagged with an integer level and this level can be
@@ -1594,11 +1614,11 @@ class TestLevelTagged(ExauqTestCase):
         """An object is tagged with a level precisely when it is an instance of
         LevelTagged."""
 
-        obj = A(1)
+        obj = StubClass(1)
         self.assertNotIsInstance(obj, LevelTagged)
         obj = set_level(obj, 2)
         self.assertIsInstance(obj, LevelTagged)
-        self.assertIsInstance(obj, A)  # check still an object of type A
+        self.assertIsInstance(obj, StubClass)  # check still an object of type A
 
     def test_set_level_non_int_error(self):
         """A TypeError is raised if a users tries to set a level that is not an integer."""
@@ -1697,17 +1717,14 @@ class TestMultiLevel(ExauqTestCase):
     def setUp(self) -> None:
         self.elements = ["a", "b", "c"]
 
-    def test_initialise_like_dict(self):
-        """A MultiLevel collection can be initialised like initialising a dict with
+    def test_initialise_from_mapping_with_int_keys(self):
+        """A MultiLevel collection can be initialised from a mapping with
         integer keys. If keys are not integers then a ValueError is raised. The resulting
         object derives from `dict`."""
 
-        x1 = zip([1, 2, 3], self.elements)
-        d = MultiLevel(x1)
-        self.assertIsInstance(d, dict)
-
-        x2 = dict(x1)
-        _ = MultiLevel(x2)
+        d = dict(zip([2, 4, 5], self.elements))
+        ml = MultiLevel(d)
+        self.assertIsInstance(ml, dict)
 
         key = "a"
         with self.assertRaisesRegex(
@@ -1718,14 +1735,30 @@ class TestMultiLevel(ExauqTestCase):
         ):
             _ = MultiLevel({key: 1})
 
-    def test_from_sequence_has_consecutive_levels(self):
-        """A multi-level collection created from a sequence has levels starting at 1 and
-        going up to the number of elements in the sequence."""
+    def test_initialise_from_sequence(self):
+        """If a sequence is supplied, then a multi-level collection is initialised with
+        levels starting at 1 and going up to the number of elements in the sequence. The
+        values are the corresponding elements of the sequence.
+        """
 
         elements = "abcde"
         levels = tuple(i + 1 for i in range(len(elements)))
-        expected = MultiLevel(zip(levels, elements))
-        self.assertEqual(expected, MultiLevel.from_sequence(elements))
+        expected = MultiLevel(dict(zip(levels, elements)))
+        self.assertEqual(expected, MultiLevel(elements))
+
+    def test_initialise_from_non_sequence_error(self):
+        """A TypeError is raised if something other than a Mapping or a sequence is
+        supplied for the elements at initialisation."""
+
+        for elems in [{"a", "b"}, zip([1, 2, 3], self.elements)]:
+            with self.assertRaisesRegex(
+                TypeError,
+                exact(
+                    "Argument 'elements' must be a mapping with int keys or a sequence, "
+                    f"but received object of type {type(elems)}."
+                ),
+            ):
+                _ = MultiLevel(elems)
 
     def test_equals_detects_class(self):
         """Two multi-level collections are equal if they are both instances of
@@ -1753,9 +1786,444 @@ class TestMultiLevel(ExauqTestCase):
             return str(level) + "_" + x
 
         levels = [2, 4, 6]
-        d = MultiLevel(zip(levels, self.elements))
-        expected = MultiLevel(zip(levels, map(f, levels, self.elements)))
-        self.assertEqual(expected, d.map(f))
+        d = dict(zip(levels, self.elements))
+        ml = MultiLevel(d)
+        expected = MultiLevel(
+            {level: f(level, x) for level, x in zip(levels, self.elements)}
+        )
+        self.assertEqual(expected, ml.map(f))
+
+
+class TestMultiLevelGaussianProcess(ExauqTestCase):
+    def setUp(self) -> None:
+        self.gps = {1: WhiteNoiseGP(), 2: WhiteNoiseGP(), 3: WhiteNoiseGP()}
+        self.training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0), 1),),
+                2: (TrainingDatum(Input(0.5), 2),),
+                3: (TrainingDatum(Input(1), 3),),
+            }
+        )
+        self.hyperparameters = MultiLevel(
+            {
+                level: WhiteNoiseGPHyperparameters(process_var=level)
+                for level in self.training_data
+            }
+        )
+        self.hyperparameter_bounds = MultiLevel(
+            {
+                level: self.make_white_noise_gp_hyperparameter_bounds((level + 10, None))
+                for level in self.training_data
+            }
+        )
+
+    @staticmethod
+    def make_multi_level_gp(
+        gps: dict[int, AbstractGaussianProcess],
+        coefficients: dict[int, float] = 1,
+    ) -> MultiLevelGaussianProcess:
+        return MultiLevelGaussianProcess(gps, coefficients=coefficients)
+
+    @staticmethod
+    def make_white_noise_gp_hyperparameter_bounds(
+        process_var_bounds: OptionalFloatPairs,
+    ):
+        return [(None, None), process_var_bounds]
+
+    def test_init_type_errors(self):
+        """A TypeError is raised if:
+        * 'gps' is not a mapping with GPs as values and not a sequence of GPs.
+        * 'coefficients' is not a mapping with real number values, not a sequence of
+          real numbers and not a real number.
+        """
+
+        some_bad_gps = [{1: WhiteNoiseGP, 2: "a"}, [WhiteNoiseGP(), "a"]]
+        for bad_gps in some_bad_gps:
+            with self.assertRaises(TypeError):
+                _ = self.make_multi_level_gp(bad_gps, coefficients=[1, 2])
+
+        some_bad_coeffs = [{1: 1, 2: "a"}, [1, [1]], "a"]
+        for bad_coeffs in some_bad_coeffs:
+            with self.assertRaises(TypeError):
+                _ = self.make_multi_level_gp([WhiteNoiseGP(), WhiteNoiseGP()], bad_coeffs)
+
+    def test_coefficients_single_value_used_at_each_level(self):
+        """If a single float is given for the coefficients, then this value is used at
+        the coefficient at each level."""
+
+        coefficient = 2
+        mlgp = self.make_multi_level_gp(self.gps, coefficients=coefficient)
+
+        expected_coefficients = mlgp.map(lambda level, gp: coefficient)
+        self.assertEqual(expected_coefficients, mlgp.coefficients)
+
+    def test_init_from_sequences(self):
+        """If a sequence of GPs and a sequence of coefficients are supplied that have the
+        same length, then these define the GPs and coefficients at successive levels,
+        starting at level 1, in order of the sequences supplied."""
+
+        gps = [WhiteNoiseGP()] * 3
+        coefficients = [1, 10, 100]
+
+        mlgp = self.make_multi_level_gp(gps, coefficients)
+
+        levels = [1, 2, 3]
+        expected = MultiLevelGaussianProcess(
+            gps=dict(zip(levels, gps)), coefficients=dict(zip(levels, coefficients))
+        )
+        self.assertTrue(all(mlgp[level] == expected[level] for level in levels))
+        self.assertEqual(mlgp.coefficients, expected.coefficients)
+
+    def test_init_from_gps_with_different_levels_and_seq_of_coefficients(self):
+        """If the GPs have levels different to 1, 2, ... and a sequence of coefficients is
+        supplied, then the coefficients are assigned to the GPs in increasing order of
+        level."""
+
+        levels = [2, 4, 6]
+        gps = {level: WhiteNoiseGP() for level in levels}
+        coefficients = [1, 10, 100]
+
+        mlgp = self.make_multi_level_gp(gps, coefficients)
+
+        expected = MultiLevelGaussianProcess(
+            gps=gps, coefficients=dict(zip(levels, coefficients))
+        )
+        self.assertTrue(all(mlgp[level] == expected[level] for level in levels))
+        self.assertEqual(mlgp.coefficients, expected.coefficients)
+
+    def test_init_from_sequences_different_lengths_error(self):
+        """A ValueError is raised if the lengths of sequences of GPs and coefficients
+        differ at initialisation."""
+
+        gps = [WhiteNoiseGP()] * 2
+        coefficients = [1, 10, 100]
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "Expected the same number of coefficients as Gaussian processes (got "
+                f"{len(coefficients)} coefficients but expected {len(gps)})."
+            ),
+        ):
+            _ = self.make_multi_level_gp(gps, coefficients)
+
+    def test_init_from_mappings_error_gp_level_missing_from_coefficients_levels(self):
+        """If multi-level coefficients are supplied at initialisation of a multi-level GP,
+        then a ValueError is raised if there is a level from the GPs missing in the levels
+        of the coefficients."""
+
+        gps = {1: WhiteNoiseGP(), 3: WhiteNoiseGP()}
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact("Missing coefficients for levels: 3."),
+        ):
+            _ = MultiLevelGaussianProcess(gps, coefficients={1: 1})
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact("Missing coefficients for levels: 1, 3."),
+        ):
+            _ = MultiLevelGaussianProcess(gps, coefficients={2: 2})
+
+    def test_init_from_mappings_ignores_coefficients_for_extra_levels(self):
+        """If coefficients are supplied for levels that don't feature in the GPs, then
+        these coefficients are ignored."""
+
+        gps = {1: WhiteNoiseGP(), 3: WhiteNoiseGP()}
+
+        mlgp = MultiLevelGaussianProcess(gps, coefficients={1: 1, 2: 2, 3: 3, 4: 4})
+
+        self.assertEqual(MultiLevel({1: 1, 3: 3}), mlgp.coefficients)
+
+    def test_fit_invalid_training_data_error(self):
+        """A TypeError is raised if the training data is not an instance of MultiLevel
+        or if the objects at each level do not define a valid type for training a
+        single-level GP."""
+
+        mlgp = self.make_multi_level_gp({1: MogpEmulator(), 2: MogpEmulator()})
+        bad_data = [TrainingDatum(Input(0.5), 1)]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'training_data' to be an instance of MultiLevel, but received {type(bad_data)}."
+            ),
+        ):
+            mlgp.fit(bad_data)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            "^Could not train Gaussian process at level 2:",
+        ):
+            mlgp.fit(MultiLevel({1: [TrainingDatum(Input(0.5), 1)], 2: "a"}))
+
+    def test_fit_invalid_hyperparameters_error(self):
+        """An error is raised if the hyperparameters do not define an appropriate object
+        for fitting a Gaussian process with."""
+
+        mlgp = self.make_multi_level_gp({1: MogpEmulator(), 2: MogpEmulator()})
+        bad_params = "a"
+        with self.assertRaisesRegex(
+            TypeError,
+            "^Could not train Gaussian process at level 1:",
+        ):
+            mlgp.fit(self.training_data, hyperparameters=bad_params)
+
+    def test_fit_invalid_bounds_error(self):
+        """An error is raised if the hyperparameter bounds do not define an appropriate
+        object for fitting a Gaussian process with."""
+
+        mlgp = self.make_multi_level_gp({1: MogpEmulator(), 2: MogpEmulator()})
+        bad_bounds = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            "^Could not train Gaussian process at level 1:",
+        ):
+            mlgp.fit(self.training_data, hyperparameter_bounds=bad_bounds)
+
+        bad_bounds = [(None, None), (None, -1)]
+        with self.assertRaisesRegex(
+            ValueError,
+            "^Could not train Gaussian process at level 1:",
+        ):
+            mlgp.fit(self.training_data, hyperparameter_bounds=bad_bounds)
+
+    def test_fit_fits_data_to_gps_level_wise(self):
+        """The constituent GPs within a multi-level GP are fit to Training data
+        level-wise."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+
+        mlgp.fit(self.training_data)
+
+        for level in mlgp.levels:
+            self.assertEqual(self.training_data[level], mlgp.training_data[level])
+
+    def test_fit_ignores_extra_levels_in_training_data(self):
+        """If the training data has levels that are not in the multi-level GP, then
+        the data at those levels is ignored."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        del mlgp[2]
+
+        mlgp.fit(self.training_data)
+
+        for level in mlgp.levels:
+            self.assertEqual(self.training_data[level], mlgp.training_data[level])
+
+    def test_fit_fits_data_to_gps_level_wise_only_on_training_data_levels(self):
+        """Only the GPs at levels that appear in the given training data are trained."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        missing_level = 2
+        del self.training_data[missing_level]
+
+        mlgp.fit(self.training_data)
+
+        for level in self.training_data.levels:
+            self.assertEqual(
+                self.training_data[level],
+                mlgp.training_data[level],
+            )
+
+        self.assertEqual(tuple(), mlgp.training_data[missing_level])
+
+    def test_fit_multi_level_hyperparameters_applied_level_wise(self):
+        """If hyperparameters for multiple levels are supplied, these are applied
+        level-wise when fitting the multi-level GP."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+
+        mlgp.fit(self.training_data, hyperparameters=self.hyperparameters)
+        self.assertEqual(self.hyperparameters, mlgp.fit_hyperparameters)
+
+        for level in self.training_data.levels:
+            self.assertEqual(self.hyperparameters[level], mlgp[level].fit_hyperparameters)
+
+    def test_fit_single_level_hyperparameters_applied_to_all_levels(self):
+        """If a non-levelled set of hyperparameters is supplied, then these are applied to
+        each level when fitting the multi-level GP."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        params = WhiteNoiseGPHyperparameters(process_var=2)
+        mlgp.fit(self.training_data, hyperparameters=params)
+
+        for level in mlgp.levels:
+            self.assertEqual(params, mlgp.fit_hyperparameters[level])
+
+    def test_fit_default_hyperparameters_for_missing_levels(self):
+        """If no hyperparameters are provided for some level of the multi-level GP,
+        then the GP at that level has its hyperparameters estimated."""
+
+        noise_level = 11
+        gps = {
+            1: WhiteNoiseGP(noise_level=noise_level),
+            2: WhiteNoiseGP(noise_level=noise_level),
+            3: WhiteNoiseGP(noise_level=noise_level),
+        }
+        mlgp = self.make_multi_level_gp(gps)
+        mlparams = MultiLevel(
+            {
+                1: WhiteNoiseGPHyperparameters(process_var=1),
+                3: WhiteNoiseGPHyperparameters(process_var=3),
+            }
+        )
+
+        mlgp.fit(self.training_data, hyperparameters=mlparams)
+
+        self.assertEqual(
+            WhiteNoiseGPHyperparameters(process_var=noise_level),
+            mlgp.fit_hyperparameters[2],
+        )
+
+    def test_fit_ignores_hyperparameters_at_levels_outside_training_data(self):
+        """If the supplied hyperparameters has a level that doesn't feature in the
+        training data, then the parameters at this level are ignored."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        missing_level = 2
+        del self.training_data[missing_level]
+
+        mlgp.fit(self.training_data, hyperparameters=self.hyperparameters)
+
+        self.assertIsNone(mlgp.fit_hyperparameters[missing_level])
+
+    def test_fit_multi_level_bounds_applied_level_wise(self):
+        """If hyperparameter bounds for multiple levels are supplied, these are applied
+        level-wise when fitting the multi-level GP."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+
+        mlgp.fit(self.training_data, hyperparameter_bounds=self.hyperparameter_bounds)
+
+        # Expected hyperparams: lower bound on process var for each level
+        expected_params = MultiLevel(
+            {
+                level: WhiteNoiseGPHyperparameters(
+                    process_var=self.hyperparameter_bounds[level][-1][0]
+                )
+                for level in self.training_data
+            }
+        )
+        self.assertEqual(expected_params, mlgp.fit_hyperparameters)
+
+    def test_fit_single_level_bounds_applied_to_all_levels(self):
+        """If a non-levelled set of hyperparameter bounds is supplied, then these are
+        applied to each level when fitting the multi-level GP."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        lower_bnd = 10
+        bounds = self.make_white_noise_gp_hyperparameter_bounds((lower_bnd, None))
+
+        mlgp.fit(self.training_data, hyperparameter_bounds=bounds)
+
+        # Expected hyperparams: lower bound on process var for each level
+        for level in mlgp.levels:
+            self.assertEqual(
+                WhiteNoiseGPHyperparameters(process_var=lower_bnd),
+                mlgp.fit_hyperparameters[level],
+            )
+
+    def test_fit_default_bounds_for_missing_levels(self):
+        """If no hyperparameter bounds are provided for some level of the multi-level GP,
+        then the GP at that level has its hyperparameters estimated without any
+        constraints applied."""
+
+        noise_level = 11
+        gps = {
+            1: WhiteNoiseGP(noise_level=noise_level),
+            2: WhiteNoiseGP(noise_level=noise_level),
+            3: WhiteNoiseGP(noise_level=noise_level),
+        }
+        mlgp = self.make_multi_level_gp(gps)
+        upper_bnd = noise_level - 10
+        bounds = MultiLevel(
+            {
+                1: self.make_white_noise_gp_hyperparameter_bounds((None, upper_bnd)),
+                3: self.make_white_noise_gp_hyperparameter_bounds((None, upper_bnd)),
+            }
+        )
+
+        mlgp.fit(self.training_data, hyperparameter_bounds=bounds)
+
+        self.assertEqual(
+            WhiteNoiseGPHyperparameters(process_var=noise_level),
+            mlgp.fit_hyperparameters[2],
+        )
+
+    def test_fit_ignores_bounds_at_levels_outside_training_data(self):
+        """If the supplied hyperparameter bounds have a level that doesn't feature in the
+        training data, then the bounds at this level are ignored."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        missing_level = 2
+        del self.training_data[missing_level]
+
+        mlgp.fit(self.training_data, hyperparameter_bounds=self.hyperparameter_bounds)
+
+        self.assertIsNone(mlgp.fit_hyperparameters[missing_level])
+
+    def test_predict_arg_error(self):
+        """A TypeError is raised if the input is not an instance of Input."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        mlgp.fit(self.training_data)
+        x = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'x' to be of type {Input.__name__}, but received {type(x)}."
+            ),
+        ):
+            _ = mlgp.predict(x)
+
+    def test_predict_estimate(self):
+        """The predicted mean is equal to the sum of the means from the constituent GPs
+        multiplied by the corresponding coefficients."""
+
+        coefficients = MultiLevel([1, 10, 100])
+        gps = {level: WhiteNoiseGP(prior_mean=-1, noise_level=2) for level in [1, 2, 3]}
+        mlgp = self.make_multi_level_gp(gps, coefficients=coefficients)
+        mlgp.fit(self.training_data)
+        inputs = [
+            self.training_data[level][0].input for level in self.training_data.levels
+        ] + [
+            Input(0.2),
+            Input(0.8),
+        ]  # add extra points not seen at any of the levels
+
+        for x in inputs:
+            level_estimates = mlgp.map(
+                lambda level, gp: coefficients[level] * gp.predict(x).estimate
+            )
+            self.assertEqual(
+                sum(level_estimates.values()),
+                mlgp.predict(x).estimate,
+            )
+
+    def test_predict_variance(self):
+        """The predicted variance is equal to the sum of the variances from the
+        constituent GPs multiplied by the squares of the corresponding coefficients."""
+
+        coefficients = MultiLevel([1, 10, 100])
+        gps = {level: WhiteNoiseGP(prior_mean=-1, noise_level=2) for level in [1, 2, 3]}
+        mlgp = self.make_multi_level_gp(gps, coefficients=coefficients)
+        mlgp.fit(self.training_data)
+        inputs = [
+            self.training_data[level][0].input for level in self.training_data.levels
+        ] + [
+            Input(0.2),
+            Input(0.8),
+        ]  # add extra points not seen at any of the levels
+
+        for x in inputs:
+            level_variances = mlgp.map(
+                lambda level, gp: (coefficients[level] ** 2) * gp.predict(x).variance
+            )
+            self.assertEqual(
+                sum(level_variances.values()),
+                mlgp.predict(x).variance,
+            )
 
 
 if __name__ == "__main__":
