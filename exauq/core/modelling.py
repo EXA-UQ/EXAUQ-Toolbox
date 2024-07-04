@@ -929,7 +929,7 @@ class AbstractEmulator(abc.ABC):
         Returns
         -------
         Prediction
-            The emulator's prediction of the simulator output from the given the input.
+            The emulator's prediction of the simulator output from the given input.
         """
 
         raise NotImplementedError
@@ -987,6 +987,24 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             length scale parameters, in the same order as the ordering of the
             corresponding input coordinates, while the last tuple should
             represent bounds for the process variance.
+        """
+
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def predict(self, x: Input) -> GaussianProcessPrediction:
+        """Make a prediction of a simulator output for a given input.
+
+        Parameters
+        ----------
+        x : Input
+            A simulator input.
+
+        Returns
+        -------
+        GaussianProcessPrediction
+            This Gaussian process's prediction of the simulator output from the given
+            input.
         """
 
         raise NotImplementedError
@@ -1411,7 +1429,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         else:
             return MultiLevel({level: base for level in levels})
 
-    def predict(self, x: Input) -> Prediction:
+    def predict(self, x: Input) -> GaussianProcessPrediction:
         """Predict a simulator output for a given input.
 
         Parameters
@@ -1421,7 +1439,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         Returns
         -------
-        Prediction
+        GaussianProcessPrediction
             The emulator's prediction of the simulator output from the given the input.
 
         Notes
@@ -1450,7 +1468,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
             p.variance * (self._coefficients[level] ** 2)
             for level, p in level_predictions.items()
         )
-        return Prediction(estimate, variance)
+        return GaussianProcessPrediction(estimate, variance)
 
 
 class AbstractHyperparameters(abc.ABC):

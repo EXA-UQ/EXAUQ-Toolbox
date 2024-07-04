@@ -10,12 +10,12 @@ from scipy.stats import norm
 
 from exauq.core.modelling import (
     AbstractGaussianProcess,
+    GaussianProcessPrediction,
     Input,
     LevelTagged,
     MultiLevel,
     MultiLevelGaussianProcess,
     OptionalFloatPairs,
-    Prediction,
     SimulatorDomain,
     TrainingDatum,
     set_level,
@@ -641,7 +641,7 @@ def compute_multi_level_loo_prediction(
     level: int,
     leave_out_idx: int,
     loo_gp: Optional[AbstractGaussianProcess] = None,
-) -> Prediction:
+) -> GaussianProcessPrediction:
 
     p_l = mlgp.coefficients[level]
     x_i = mlgp[level].training_data[leave_out_idx].input
@@ -662,14 +662,16 @@ def compute_multi_level_loo_prediction(
     )
     variance = (p_l**2) * loo_prediction.variance + variance_other_level_sum
 
-    return Prediction(mean, variance)
+    return GaussianProcessPrediction(mean, variance)
 
 
-def _zero_mean_prediction(gp: AbstractGaussianProcess, x: Input) -> Prediction:
+def _zero_mean_prediction(
+    gp: AbstractGaussianProcess, x: Input
+) -> GaussianProcessPrediction:
     """Make a prediction at an input with a GP having zero mean and variance equal to other."""
     mean = 1  # TODO: replace with m_e^{(j)}(x) formula from paper
     variance = gp.predict(x).variance
-    return Prediction(mean, variance)
+    return GaussianProcessPrediction(mean, variance)
 
 
 def compute_multi_level_loo_errors(

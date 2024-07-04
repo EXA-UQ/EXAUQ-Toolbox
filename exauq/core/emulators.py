@@ -17,9 +17,9 @@ from numpy.typing import NDArray
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     GaussianProcessHyperparameters,
+    GaussianProcessPrediction,
     Input,
     OptionalFloatPairs,
-    Prediction,
     TrainingDatum,
 )
 from exauq.utilities.mogp_fitting import fit_GP_MAP
@@ -542,7 +542,7 @@ class MogpEmulator(AbstractGaussianProcess):
                     "Expected 'inputs' to only contain Input objects."
                 ) from None
 
-    def predict(self, x: Input) -> Prediction:
+    def predict(self, x: Input) -> GaussianProcessPrediction:
         """Make a prediction of a simulator output for a given input.
 
         Parameters
@@ -552,8 +552,9 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Returns
         -------
-        Prediction
-            The emulator's prediction of the simulator output from the given the input.
+        GaussianProcessPrediction
+            The Gaussian process's prediction of the simulator output from the given
+            input.
 
         Raises
         ------
@@ -587,12 +588,12 @@ class MogpEmulator(AbstractGaussianProcess):
             return None
 
     @staticmethod
-    def _to_prediction(mogp_predict_result) -> Prediction:
-        """Convert an MOGP ``PredictResult`` to a ``Prediction`` object.
+    def _to_prediction(mogp_predict_result) -> GaussianProcessPrediction:
+        """Convert an MOGP ``PredictResult`` to a ``GaussianProcessPrediction`` object.
 
         See https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#the-predictresult-class
         """
-        return Prediction(
+        return GaussianProcessPrediction(
             estimate=mogp_predict_result.mean[0], variance=mogp_predict_result.unc[0]
         )
 

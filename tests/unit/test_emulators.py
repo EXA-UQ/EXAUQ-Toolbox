@@ -9,8 +9,8 @@ import numpy as np
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     GaussianProcessHyperparameters,
+    GaussianProcessPrediction,
     Input,
-    Prediction,
     TrainingDatum,
 )
 from tests.utilities.utilities import ExauqTestCase, exact
@@ -717,12 +717,13 @@ class TestMogpEmulator(ExauqTestCase):
             emulator.fit(self.training_data, hyperparameters=hyperparameters)
 
     def test_predict_returns_prediction_object(self):
-        """Given a trained emulator, check that predict() returns a Prediction object."""
+        """Given a trained emulator, check that predict() returns a
+        GaussianProcessPrediction object."""
 
         emulator = MogpEmulator()
         emulator.fit(self.training_data)
 
-        self.assertIsInstance(emulator.predict(self.x), Prediction)
+        self.assertIsInstance(emulator.predict(self.x), GaussianProcessPrediction)
 
     def test_predict_non_input_error(self):
         """Given an emulator, test that a TypeError is raised when trying to predict on
@@ -777,7 +778,7 @@ class TestMogpEmulator(ExauqTestCase):
         emulator.fit(self.training_data)
         for datum in self.training_data:
             self.assertEqual(
-                Prediction(estimate=datum.output, variance=0),
+                GaussianProcessPrediction(estimate=datum.output, variance=0),
                 emulator.predict(datum.input),
             )
 

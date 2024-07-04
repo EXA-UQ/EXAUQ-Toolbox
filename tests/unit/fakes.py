@@ -11,9 +11,9 @@ from exauq.core.modelling import (
     AbstractGaussianProcess,
     AbstractSimulator,
     GaussianProcessHyperparameters,
+    GaussianProcessPrediction,
     Input,
     OptionalFloatPairs,
-    Prediction,
     TrainingDatum,
 )
 from exauq.sim_management.hardware import HardwareInterface
@@ -191,7 +191,7 @@ class WhiteNoiseGP(AbstractGaussianProcess):
             tuple(self._indicator_fn(xi, xj) for xj in inputs2) for xi in inputs1
         )
 
-    def predict(self, x: Input) -> Prediction:
+    def predict(self, x: Input) -> GaussianProcessPrediction:
         """Estimate the simulator output for a given input.
 
         The emulator will predict the correct simulator output, with zero variance, for
@@ -206,7 +206,7 @@ class WhiteNoiseGP(AbstractGaussianProcess):
 
         Returns
         -------
-        Prediction
+        GaussianProcessPrediction
             This GP's prediction of the simulator output from the given the input.
         """
         if not isinstance(x, Input):
@@ -214,9 +214,9 @@ class WhiteNoiseGP(AbstractGaussianProcess):
 
         for datum in self._training_data:
             if datum.input == x:
-                return Prediction(estimate=datum.output, variance=0)
+                return GaussianProcessPrediction(estimate=datum.output, variance=0)
 
-        return Prediction(
+        return GaussianProcessPrediction(
             estimate=self._prior_mean, variance=self.fit_hyperparameters.process_var
         )
 
@@ -343,7 +343,7 @@ class FakeGP(AbstractGaussianProcess):
 
         return tuple(tuple(0.5 for xj in inputs2) for xi in inputs1)
 
-    def predict(self, x: Input) -> Prediction:
+    def predict(self, x: Input) -> GaussianProcessPrediction:
         """Estimate the simulator output for a given input.
 
         The emulator will predict the correct simulator output for `x` which
@@ -357,17 +357,17 @@ class FakeGP(AbstractGaussianProcess):
 
         Returns
         -------
-        Prediction
-            The emulator's prediction of the simulator output from the given the input.
+        GaussianProcessPrediction
+            This GP's prediction of the simulator output from the given the input.
         """
         if not isinstance(x, Input):
             raise TypeError
 
         for datum in self._training_data:
             if datum.input == x:
-                return Prediction(estimate=datum.output, variance=0)
+                return GaussianProcessPrediction(estimate=datum.output, variance=0)
 
-        return Prediction(
+        return GaussianProcessPrediction(
             estimate=self._predictive_mean, variance=self._predictive_variance
         )
 
