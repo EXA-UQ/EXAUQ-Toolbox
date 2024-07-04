@@ -7,7 +7,7 @@ import csv
 import dataclasses
 import functools
 import math
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from itertools import product
 from numbers import Real
 from types import GenericAlias
@@ -980,6 +980,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         except ZeroDivisionError:
             return 0 if expected_sq_err == 0 else float("inf")
 
+    # TODO: return as a matrix
     def covariance_matrix(self, inputs: Sequence[Input]) -> tuple[tuple[float, ...], ...]:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
@@ -1015,6 +1016,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             for row in correlations
         )
 
+    # TODO: return as a matrix e.g. np.mat
     @abc.abstractmethod
     def correlation(
         self, inputs1: Sequence[Input], inputs2: Sequence[Input]
@@ -1055,10 +1057,11 @@ class MultiLevel(dict[int, T]):
 
     Parameters
     ----------
-    labelled_elems :
-        Either a mapping of integers to objects, or a collection that can create such a
-        mapping when ``dict`` is applied to it (e.g. an iterable of tuples ``(l, x)``
-        where ``l`` is an integer).
+    elements : Mapping[int, T] or Sequence[T]
+        Either a mapping of integers to objects, or another sequence of objects. If a
+        sequence is provided that isn't a mapping, then the returned multi-level
+        collection will have levels enumerating the objects from the sequence in order,
+        starting at level 1.
 
     Attributes
     ----------
@@ -1075,14 +1078,24 @@ class MultiLevel(dict[int, T]):
     --------
     Create a multi-level collection of strings:
     >>> ml: MultiLevel[str]
-    >>> levels = [2, 4, 6, 8]
-    >>> elements = ["the", "quick", "brown", "fox"]
-    >>> ml = MultiLevel(zip(levels, elements))
+    >>> d = {2: "the", 4: "quick", 6: "brown", 8: "fox"}
+    >>> ml = MultiLevel(d)
     >>> ml.levels
     (2, 4, 6, 8)
     >>> ml[2]
     'the'
     >>> ml[8]
+    'fox'
+
+    Alternatively, a sequence of elements can be provided, in which case the levels will
+    enumerate the sequence in order:
+    >>> words = ["the", "quick", "brown", "fox"]
+    >>> ml = MultiLevel(d)
+    >>> ml.levels
+    (1, 2, 3, 4)
+    >>> ml[1]
+    'the'
+    >>> ml[4]
     'fox'
 
     Note that a MultiLevel collection is not equal to another mapping if the other object
@@ -1096,42 +1109,27 @@ class MultiLevel(dict[int, T]):
     True
     """
 
-    def __init__(self, labelled_elems: Union[Mapping[int, T], Iterable[tuple[int, T]]]):
-        super().__init__(labelled_elems)
-        if invalid_keys := [k for k in self.keys() if not isinstance(k, int)]:
-            key = invalid_keys[0]
-            raise ValueError(
-                f"Key '{key}' of invalid type {type(key)} found: keys should be integers "
-                "that define levels."
+    def __init__(self, elements: Union[Mapping[int, T], Sequence[T]]):
+        super().__init__(self._parse_elements(elements))
+
+    def _parse_elements(self, elements: Any) -> dict[int, Any]:
+        if isinstance(elements, Mapping):
+            d = dict(elements)
+            if invalid_keys := [k for k in d.keys() if not isinstance(k, int)]:
+                key = invalid_keys[0]
+                raise ValueError(
+                    f"Key '{key}' of invalid type {type(key)} found: keys should be integers "
+                    "that define levels."
+                )
+            else:
+                return d
+        elif isinstance(elements, Sequence):
+            return {i + 1: elem for i, elem in enumerate(elements)}
+        else:
+            raise TypeError(
+                "Argument 'elements' must be a mapping with int keys or a sequence, "
+                f"but received object of type {type(elements)}."
             )
-
-    @classmethod
-    def from_sequence(cls, elements: Sequence[T]) -> MultiLevel[T]:
-        """Create a multi-level collection of objects from a sequence.
-
-        Creates a multi-level collection of objects, with levels enumerating the objects
-        from the sequence in order, starting at level 1.
-
-        Parameters
-        ----------
-        elements : Sequence
-            Objects that are considered belonging to levels 1, 2, ..., n, where 'n' is the
-            number of objects supplied.
-
-        Examples
-        --------
-        Create a multi-level collection of strings:
-        >>> ml: MultiLevel[str]
-        >>> ml = MultiLevel.from_sequence(["the", "quick", "brown", "fox"])
-        >>> ml.levels
-        (1, 2, 3, 4)
-        >>> ml[1]
-        'the'
-        >>> ml[4]
-        'fox'
-        """
-
-        return cls({i + 1: elem for i, elem in enumerate(elements)})
 
     @property
     def levels(self) -> tuple[int, ...]:
@@ -1169,11 +1167,279 @@ class MultiLevel(dict[int, T]):
         return __class__({level: f(level, val) for level, val in self.items()})
 
 
-class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess]):
+def _can_instantiate_multi_level(elements: Any, tp: type) -> bool:
+    """Whether a collection of elements can be used to construct a `MultiLevel` instance
+    of objects of type `tp`."""
+
+    if isinstance(elements, Sequence) and all(
+        isinstance(coeff, tp) for coeff in elements
+    ):
+        return True
+    elif isinstance(elements, Mapping) and all(
+        isinstance(k, int) and isinstance(v, tp) for k, v in elements.items()
+    ):
+        return True
+    else:
+        return False
+
+
+class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmulator):
+    """A multi-level Gaussian process (GP) emulator for simulators.
+
+    A multi-level GP is a weighted sum of Gaussian processes, where each GP in the sum is
+    considered to be at a particular integer level, and each level only has one GP.
+    Training the multi-level GP consists of training each GP independently of the others,
+    by supplying training data for specific levels. A key assumption of this class is that
+    the constituent GPs are independent of each other, in the probabilistic sense. This
+    assumption is used when making predictions for the overall multi-level GP at simulator
+    inputs (see the `predict` method for details).
+
+    Parameters
+    ----------
+    gps : Mapping[int, AbstractGaussianProcess] or Sequence[AbstractGaussianProcess]
+        The Gaussian processes for each level in this multi-level GP. If provided as a
+        mapping of integers to Gaussian processes, then the levels for this multi-level
+        GP will be the keys of this mapping (note these don't need to be sequential or
+        start from 1). If provided as a sequence of Gaussian processes, then these will
+        be assigned to levels 1, 2, ... in the order provided by the sequence.
+    coefficients : Mapping[int, Real] or Sequence[Real] or Real, optional
+        (Default: 1) The coefficients to multiply the Gaussian processes at each level by,
+        when considering this multi-level GP as a weighted sum of the Gaussian processes.
+        If provided as a mapping of integers to real numbers, then the keys will be
+        considered as levels, and there must be a coefficient supplied for each level
+        defined by `gps` (coefficients for extra levels are ignored). If provided as a
+        sequence of real numbers, then the length of the sequence must be equal to the
+        number of levels defined by `gps`, in which case the coefficients will be assigned
+        to the levels in ascending order, as defined by the ordering of the coefficient
+        sequence. If provided as a single real number then this coefficient is assigned to
+        each level defined by `gps`.
+    """
+
+    def __init__(
+        self,
+        gps: Union[
+            Mapping[int, AbstractGaussianProcess], Sequence[AbstractGaussianProcess]
+        ],
+        coefficients: Union[Mapping[int, Real], Sequence[Real], Real] = 1,
+    ):
+        super().__init__(self._parse_gps(gps))
+        self._coefficients = self._parse_coefficients(coefficients)
+
+    @staticmethod
+    def _parse_gps(
+        gps,
+    ) -> Union[Mapping[Any, AbstractGaussianProcess], Sequence[AbstractGaussianProcess]]:
+        """Validate a collection of Gaussian processes for constructing a multi-level GP,
+        returning as a multi-level collection or else raising an exception."""
+
+        if not _can_instantiate_multi_level(gps, AbstractGaussianProcess):
+            raise TypeError(
+                "Expected 'gps' to be a mapping of integers to "
+                f"{AbstractGaussianProcess.__name__} or a sequence of "
+                f"{AbstractGaussianProcess.__name__}, but received object of "
+                f"type {type(gps)} instead."
+            )
+        else:
+            return gps
+
+    def _parse_coefficients(self, coefficients) -> MultiLevel[float]:
+        """Validate a collection of coefficients for constructing a multi-level GP,
+        returning as a multi-level collection with appropriate levels or else raising
+        an exception."""
+
+        if not isinstance(coefficients, Real) and not _can_instantiate_multi_level(
+            coefficients, Real
+        ):
+            raise TypeError(
+                "Expected 'coefficients' to be a mapping of integers to real numbers, "
+                "a sequence of real numbers, or a real number."
+            )
+        elif isinstance(coefficients, Real):
+            return self._fill_out(float(coefficients), self.levels)
+        elif isinstance(coefficients, Sequence) and len(coefficients) != len(self):
+            raise ValueError(
+                "Expected the same number of coefficients as Gaussian processes (got "
+                f"{len(coefficients)} coefficients but expected {len(self)})."
+            )
+        elif isinstance(coefficients, Sequence):
+            coefficients = map(float, coefficients)
+            return MultiLevel(dict(zip(self.levels, coefficients)))
+        else:
+            coefficients = MultiLevel(coefficients).map(lambda level, coeff: float(coeff))
+            if missing_levels := (set(self.levels) - set(coefficients.levels)):
+                missing_levels_str = ", ".join(map(str, sorted(missing_levels)))
+                raise ValueError(
+                    f"Missing coefficients for levels: {missing_levels_str}."
+                )
+            else:
+                return self._fill_out(coefficients, self.levels)
 
     @property
     def training_data(self) -> MultiLevel[tuple[TrainingDatum, ...]]:
+        """(Read-only) The data on which the Gaussian processes at each level have been
+        trained."""
+
         return self.map(lambda _, gp: gp.training_data)
+
+    @property
+    def coefficients(self) -> MultiLevel[Real]:
+        """(Read-only) The coefficients that multiply the Gaussian processes level-wise,
+        when considering this multi-level GP as a weighted sum of the Gaussian processes
+        at each level."""
+
+        return self._coefficients.map(lambda _, coeff: coeff)
+
+    @property
+    def fit_hyperparameters(self) -> MultiLevel[Optional[AbstractHyperparameters]]:
+        """(Read-only) The hyperparameters of the underlying fitted Gaussian process for
+        each level. A value of ``None`` for a level indicates that the Gaussian process
+        for the level hasn't been fitted to data."""
+
+        return self.map(lambda _, gp: gp.fit_hyperparameters)
+
+    def fit(
+        self,
+        training_data: MultiLevel[Collection[TrainingDatum]],
+        hyperparameters: Optional[
+            Union[
+                MultiLevel[GaussianProcessHyperparameters], GaussianProcessHyperparameters
+            ]
+        ] = None,
+        hyperparameter_bounds: Optional[
+            Union[MultiLevel[Sequence[OptionalFloatPairs]], Sequence[OptionalFloatPairs]]
+        ] = None,
+    ) -> None:
+        """Fit this multi-level Gaussian process to levelled training data.
+
+        The Gaussian process at each level within this multi-level GP is trained on the
+        data supplied at the corresponding level. By default, hyperparameters for each
+        level's Gaussian process are estimated, although specific hyperparameters can be
+        supplied for some or all of the levels to be used when training instead.
+        Similarly, bounds on hyperparameter estimation can be supplied for some or all of
+        the levels.
+
+        In general, if any of the training data, hyperparameters or bounds contain levels
+        not featuring within this multi-level GP, then the data for these extra levels is
+        simply ignored.
+
+        Parameters
+        ----------
+        training_data : MultiLevel[Collection[TrainingDatum]]
+            A level-wise collection of pairs of simulator inputs and outputs for training
+            the Gaussian processes by level. If data is not supplied for a level featuring
+            in `self.levels` then no training is performed at that level.
+        hyperparameters : MultiLevel[GaussianProcessHyperparameters] or GaussianProcessHyperparameters, optional
+            (Default: None) Either a level-wise collection of hyperparameters to use
+            directly when fitting each level's Gaussian process, or a single set of
+            hyperparameters to use on each of the levels. If ``None`` then the
+            hyperparameters will be estimated at each level when fitting. If a
+            ``MultiLevel`` collection is supplied and a level from `self.levels` is
+            missing from the collection, then the hyperparameters at that level will be
+            estimated when training the corresponding Gaussian process.
+        hyperparameter_bounds : MultiLevel[Sequence[OptionalFloatPairs]]] or Sequence[OptionalFloatPairs], optional
+            (Default: None) Either a level-wise collection of bounds to apply to
+            hyperparameters during estimation, or a single collection of bounds to use on
+            each of the levels. If a ``MultiLevel`` collection is supplied and a level
+            from `self.levels` is missing from the collection, then the hyperparameters at
+            that level will be estimated without any bounding constraints. See the
+            documentation for the `fit` method of `AbstractGaussianProcess` for details on
+            how bounds should be constructed for each level's Gaussian process.
+
+        See Also
+        --------
+        AbstractGaussianProcess.fit : Fitting individual Gaussian processes.
+        """
+
+        if not isinstance(training_data, MultiLevel):
+            raise TypeError(
+                f"Expected 'training_data' to be an instance of {MultiLevel.__name__}, but received "
+                f"{type(training_data)}."
+            )
+        else:
+            training_data = MultiLevel(
+                {
+                    level: data
+                    for level, data in training_data.items()
+                    if level in self.levels
+                }
+            )
+
+        hyperparameters = self._fill_out(hyperparameters, training_data.levels)
+        hyperparameter_bounds = self._fill_out(
+            hyperparameter_bounds, training_data.levels
+        )
+        for level, data in training_data.items():
+            try:
+                self[level].fit(
+                    data,
+                    hyperparameters=hyperparameters[level],
+                    hyperparameter_bounds=hyperparameter_bounds[level],
+                )
+            except (TypeError, ValueError) as e:
+                raise e.__class__(
+                    f"Could not train Gaussian process at level {level}: {e}"
+                )
+
+        return None
+
+    @staticmethod
+    def _fill_out(
+        base: Union[T, MultiLevel[T]], levels: Sequence[int], fill: Optional[T] = None
+    ) -> MultiLevel[Optional[T]]:
+        """Create a multi-level collection with given levels and filled given objects.
+
+        If `base` is a multi-level collection, then objects at the given `levels` will be
+        taken from `base` and any remaining levels will be assigned the value `fill`. If
+        `base` is not a multi-level collection then each level in the output collection
+        will contain the value `base`.
+        """
+
+        if isinstance(base, MultiLevel):
+            values = map(lambda level: base[level] if level in base else fill, levels)
+            return MultiLevel(dict(zip(levels, values)))
+        else:
+            return MultiLevel({level: base for level in levels})
+
+    def predict(self, x: Input) -> Prediction:
+        """Predict a simulator output for a given input.
+
+        Parameters
+        ----------
+        x : Input
+            A simulator input.
+
+        Returns
+        -------
+        Prediction
+            The emulator's prediction of the simulator output from the given the input.
+
+        Notes
+        -----
+        The prediction for the whole multi-level Gaussian process (GP) is calculated in
+        terms of the predictions of the Gaussian processes at each level, together with
+        their coefficients in `self.coefficients`, making use of the assumption that the
+        GPs at each level are independent of each other. As such, the predicted mean at
+        the input `x` is equal to the sum of the predicted means from the level-wise GPs
+        multiplied by the corresponding coefficients, while the predicted variance is
+        equal to the sum of the predicted variances of the level-wise GPs multiplied by
+        the squares of the coefficients.
+        """
+
+        if not isinstance(x, Input):
+            raise TypeError(
+                f"Expected 'x' to be of type {Input.__name__}, but received {type(x)}."
+            )
+
+        level_predictions = self.map(lambda level, gp: gp.predict(x))
+        estimate = sum(
+            p.estimate * self._coefficients[level]
+            for level, p in level_predictions.items()
+        )
+        variance = sum(
+            p.variance * (self._coefficients[level] ** 2)
+            for level, p in level_predictions.items()
+        )
+        return Prediction(estimate, variance)
 
 
 class AbstractHyperparameters(abc.ABC):

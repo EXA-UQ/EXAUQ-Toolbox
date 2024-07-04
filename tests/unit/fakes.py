@@ -1,12 +1,12 @@
 """Contains fakes used to support unit tests
 """
+
 from __future__ import annotations
 
 import dataclasses
 from collections.abc import Collection, Sequence
 from typing import Optional
 
-from exauq.sim_management.hardware import HardwareInterface
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     AbstractSimulator,
@@ -16,7 +16,214 @@ from exauq.core.modelling import (
     Prediction,
     TrainingDatum,
 )
+from exauq.sim_management.hardware import HardwareInterface
 from exauq.sim_management.simulators import SimulationsLog
+
+
+class WhiteNoiseGP(AbstractGaussianProcess):
+    """A Gaussian process emulator with a white noise kernel.
+
+    The 'white noise' kernel is the function that takes in a pair of simulator inputs
+    ``x1, x2`` and returns a positive constant ``noise_level`` if ``x1 == x2`` and zero
+    otherwise. The process variance for this GP is equal to the noise level.
+
+    Parameters
+    ----------
+    prior_mean : float, default 0
+        The prior mean value for the GP at simulator inputs (effectively a constant
+        function).
+    noise_level : float, default 1
+        The noise level defining the kernel function (equivalently, the process variance).
+
+    Attributes
+    ----------
+    predictive_mean : float
+        The prior mean value for the GP at simulator inputs.
+    training_data : tuple[TrainingDatum]
+        Defines the pairs of inputs and simulator outputs on which the emulator
+        has been trained.
+    fit_hyperparameters : WhiteNoiseGPHyperparameters or None
+        The hyperparameters of the fit for this GP, or ``None`` if this emulator
+        has not been fitted to data. Note that the correlation length scale parameters and
+        nugget are irrelevant in this context and are not used by this GP.
+    hyperparameter_bounds : Sequence[OptionalFloatPairs] or None
+        The hyperparameter bounds that were supplied when fitting this emulator to
+        data, or ``None`` if none were. Note that the bounds for the correlation length
+        scale parameters are irrelevant in this context.
+    """
+
+    def __init__(self, prior_mean: float = 0, noise_level: float = 1):
+        super()
+        self._training_data = tuple()
+        self._prior_mean = prior_mean
+        self._noise_level = noise_level
+        self._fit_hyperparameters = None
+        self._hyperparameter_bounds = None
+
+    @property
+    def prior_mean(self) -> float:
+        """The prior mean value for the GP at simulator inputs."""
+
+        return self._prior_mean
+
+    @property
+    def training_data(self) -> tuple[TrainingDatum]:
+        """Get the data on which the emulator has been trained."""
+
+        return self._training_data
+
+    @property
+    def fit_hyperparameters(self) -> WhiteNoiseGPHyperparameters:
+        """The hyperparameters of the fit for this emulator, or ``None`` if this emulator
+        has not been fitted to data. Note that the correlation length scale parameters and
+        nugget are irrelevant in this context and are not used by this GP."""
+
+        return self._fit_hyperparameters
+
+    @property
+    def hyperparameter_bounds(self) -> Optional[Sequence[OptionalFloatPairs]]:
+        """The hyperparameter bounds that were supplied when fitting this emulator to
+        data, or ``None`` if none were. Note that the bounds for the correlation length
+        scale parameters are irrelevant in this context."""
+
+        return self._hyperparameter_bounds
+
+    def fit(
+        self,
+        training_data: Collection[TrainingDatum],
+        hyperparameters: Optional[WhiteNoiseGPHyperparameters] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+    ) -> None:
+        """Fits the GP on the given data.
+
+        The effect of fitting this GP to the training data is to update the mean function
+        so that the training outputs are returned at training inputs, while the prior
+        mean is still returned at inputs not in the training data. The kernel function
+        is also updated so that it returns zero when applied to pairs of training data
+        inputs (i.e. ``kernel(x, x) == 0`` for training inputs ``x``).
+
+        If no hyperparameters are provided then the kernel function will continue to use
+        the noise level supplied at this GP's initialisation, so long at this falls
+        within any supplied bounds given in `hyperparameter_bounds`. (If the noise level
+        falls outside of the bounds, then kernel will instead use the value of the bound
+        nearest the noise level.)
+
+        Parameters
+        ----------
+        training_data : Collection[TrainingDatum]
+            Defines the pairs of inputs and simulator outputs on which to train
+            this GP.
+        hyperparameters : WhiteNoiseGPHyperparameters, optional
+            (Default: ``None``) If not ``None`` then this should define the
+            process variance that will be used as the new noise level in the kernel
+            function (the other hyperparameters are not used in this context). If ``None``
+            ]then the noise level supplied at the creation of this GP will continue to be
+            used, subject to any bounds supplied in `hyperparameter_bounds`.
+        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
+            (Default: ``None``) If not ``None``, then the bounds on the process variance
+            (i.e. noise level) will be respected if fitting this GP without a specified
+            collection of hyperparameters.
+        """
+
+        self._training_data = tuple(training_data)
+        if hyperparameters is not None:
+            self._fit_hyperparameters = hyperparameters
+            return None
+        elif hyperparameter_bounds is not None:
+            lower, upper = hyperparameter_bounds[-1]
+            if lower is not None and upper is not None and lower > upper:
+                raise ValueError(
+                    "Process variance upper bound must be greater than lower bound"
+                )
+            elif lower is not None and self._noise_level <= lower:
+                process_var = lower
+            elif upper is not None and self._noise_level >= upper:
+                process_var = upper
+            else:
+                process_var = self._noise_level
+
+            self._fit_hyperparameters = WhiteNoiseGPHyperparameters(
+                process_var=process_var
+            )
+            self._hyperparameter_bounds = tuple(hyperparameter_bounds)
+            return None
+        else:
+            self._fit_hyperparameters = WhiteNoiseGPHyperparameters(
+                process_var=self._noise_level
+            )
+            self._hyperparameter_bounds = None
+            return None
+
+    def _indicator_fn(self, x1: Input, x2: Input) -> int:
+        """Returns 1 if the two inputs are equal and zero otherwise."""
+
+        if x1 == x2:
+            return 1
+        else:
+            return 0
+
+    def _kernel(self, x1: Input, x2: Input) -> float:
+        """The (prior) kernel function."""
+
+        return self._noise_level * self._indicator_fn(x1, x2)
+
+    def correlation(
+        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
+    ) -> tuple[tuple[float, ...], ...]:
+        """Compute the (prior) correlation matrix for two sequences of simulator inputs.
+
+        The matrix entry at position `(i, j)` is equal to 1 if
+        ``inputs1[i] == inputs2[j]`` and zero otherwise.
+
+        Parameters
+        ----------
+        inputs1, inputs2 : Sequence[Input]
+            Sequences of simulator inputs.
+
+        Returns
+        -------
+        tuple[tuple[float, ...], ...]
+            The correlation matrix for the two sequences of inputs. The outer tuple
+            consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
+        """
+
+        return tuple(
+            tuple(self._indicator_fn(xi, xj) for xj in inputs2) for xi in inputs1
+        )
+
+    def predict(self, x: Input) -> Prediction:
+        """Estimate the simulator output for a given input.
+
+        The emulator will predict the correct simulator output, with zero variance, for
+        `x` which feature in the training data. For new `x`, the prediction will be equal
+        to prior mean supplied at this GP's initialisation and its variance will be equal
+        to the fitted noise level (i.e. the fitted process variance).
+
+        Parameters
+        ----------
+        x : Input
+            An input to a simulator.
+
+        Returns
+        -------
+        Prediction
+            This GP's prediction of the simulator output from the given the input.
+        """
+        if not isinstance(x, Input):
+            raise TypeError
+
+        for datum in self._training_data:
+            if datum.input == x:
+                return Prediction(estimate=datum.output, variance=0)
+
+        return Prediction(
+            estimate=self._prior_mean, variance=self.fit_hyperparameters.process_var
+        )
+
+
+class WhiteNoiseGPHyperparameters(GaussianProcessHyperparameters):
+    def __init__(self, process_var: float):
+        super().__init__(corr_length_scales=[1], process_var=process_var)
 
 
 class FakeGP(AbstractGaussianProcess):
@@ -99,7 +306,7 @@ class FakeGP(AbstractGaussianProcess):
         training_data : Collection[TrainingDatum]
             Defines the pairs of inputs and simulator outputs on which to train
             the emulator. Each `TrainingDatum` should have a 1-dim `Input`.
-        hyperparameters : DumbEmulatorHyperparameters, optional
+        hyperparameters : FakeGPHyperparameters, optional
             (Default: ``None``) If not ``None`` then this should define the variance for
             predictions away from inputs defined in `training_data`.
         hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
