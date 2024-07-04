@@ -420,9 +420,7 @@ class MogpEmulator(AbstractGaussianProcess):
     def _transform_cov(cov: Optional[Real]) -> Optional[Real]:
         return MogpHyperparameters.transform_cov(cov) if cov is not None else None
 
-    def correlation(
-        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
-    ) -> tuple[tuple[float, ...], ...]:
+    def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
         """Compute the correlation matrix for two sequences of simulator inputs.
 
         If ``corr_matrix`` is the output of this method, then the ordering of the nested
@@ -443,7 +441,8 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Returns
         -------
-        tuple[tuple[float, ...], ...]
+        numpy.ndarray
+        TODO: correct for arrays
             The correlation matrix for the two sequences of inputs. The outer tuple
             consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
 
@@ -462,9 +461,9 @@ class MogpEmulator(AbstractGaussianProcess):
                 for xi in inputs1
             )
             if any(len(row) > 0 for row in correlations):
-                return correlations
+                return np.array(correlations)
             else:
-                return tuple()
+                return np.array([])
 
         except TypeError:
             # Raised if inputs1 or inputs2 not iterable
@@ -499,7 +498,7 @@ class MogpEmulator(AbstractGaussianProcess):
                     f"received input of dimension {wrong_dims[0]}."
                 ) from None
 
-    def covariance_matrix(self, inputs: Sequence[Input]) -> tuple[tuple[float, ...], ...]:
+    def covariance_matrix(self, inputs: Sequence[Input]) -> NDArray:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
         In pseudocode, the covariance matrix for a given collection
@@ -518,7 +517,8 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Returns
         -------
-        tuple[tuple[float, ...], ...]
+        numpy.ndarray
+        # TODO: correct for arrays
             The covariance matrix for the sequence of inputs. The outer tuple
             consists of ``n`` tuples of length ``len(inputs)``, where ``n`` is the
             number of training data points for this Gaussian process.

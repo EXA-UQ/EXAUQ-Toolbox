@@ -735,7 +735,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         )
         inputs = [Input(0.2, 1), Input(0.8, -0.5)]
 
-        self.assertEqual(
+        self.assertArraysEqual(
             emulator.correlation(training_inputs, inputs),
             emulator.covariance_matrix(inputs),
         )

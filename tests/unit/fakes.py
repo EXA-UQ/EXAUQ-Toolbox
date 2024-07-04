@@ -7,6 +7,9 @@ import dataclasses
 from collections.abc import Collection, Sequence
 from typing import Optional
 
+import numpy as np
+from numpy.typing import NDArray
+
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     AbstractSimulator,
@@ -167,9 +170,7 @@ class WhiteNoiseGP(AbstractGaussianProcess):
 
         return self._noise_level * self._indicator_fn(x1, x2)
 
-    def correlation(
-        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
-    ) -> tuple[tuple[float, ...], ...]:
+    def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
         """Compute the (prior) correlation matrix for two sequences of simulator inputs.
 
         The matrix entry at position `(i, j)` is equal to 1 if
@@ -182,13 +183,13 @@ class WhiteNoiseGP(AbstractGaussianProcess):
 
         Returns
         -------
-        tuple[tuple[float, ...], ...]
-            The correlation matrix for the two sequences of inputs. The outer tuple
-            consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
+        numpy.ndarray
+            The correlation matrix for the two sequences of inputs, as a 2-dim Numpy array
+            of shape ``(len(inputs1), len(inputs2))``.
         """
 
-        return tuple(
-            tuple(self._indicator_fn(xi, xj) for xj in inputs2) for xi in inputs1
+        return np.array(
+            tuple(tuple(self._indicator_fn(xi, xj) for xj in inputs2) for xi in inputs1)
         )
 
     def predict(self, x: Input) -> GaussianProcessPrediction:

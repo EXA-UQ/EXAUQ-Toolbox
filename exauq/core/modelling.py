@@ -14,6 +14,7 @@ from types import GenericAlias
 from typing import Any, Callable, Optional, TypeVar, Union
 
 import numpy as np
+from numpy.typing import NDArray
 
 import exauq.utilities.validation as validation
 from exauq.core.numerics import equal_within_tolerance
@@ -1010,7 +1011,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     # TODO: return as a matrix
-    def covariance_matrix(self, inputs: Sequence[Input]) -> tuple[tuple[float, ...], ...]:
+    def covariance_matrix(self, inputs: Sequence[Input]) -> NDArray:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
         In pseudocode, the covariance matrix for a given collection
@@ -1032,7 +1033,8 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Returns
         -------
-        tuple[tuple[float, ...], ...]
+        numpy.ndarray
+        TODO: correct the following for arrays
             The covariance matrix for the sequence of inputs. The outer tuple
             consists of ``n`` tuples of length ``len(inputs)``, where ``n`` is the
             number of training data points for this Gaussian process.
@@ -1040,16 +1042,16 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         training_inputs = tuple(datum.input for datum in self.training_data)
         correlations = self.correlation(training_inputs, inputs)
-        return tuple(
-            tuple(self.fit_hyperparameters.process_var * z for z in row)
-            for row in correlations
+        return np.array(
+            tuple(
+                tuple(self.fit_hyperparameters.process_var * z for z in row)
+                for row in correlations
+            )
         )
 
     # TODO: return as a matrix e.g. np.mat
     @abc.abstractmethod
-    def correlation(
-        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
-    ) -> tuple[tuple[float, ...], ...]:
+    def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
         """Compute the correlation matrix for two sequences of simulator inputs.
 
         If ``corr_matrix`` is the output of this method, then the ordering of the
@@ -1064,7 +1066,8 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Returns
         -------
-        tuple[tuple[float, ...], ...]
+        numpy.ndarray
+        TODO: correct the following for arrays
             The correlation matrix for the two sequences of inputs. The outer tuple
             consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
         """
