@@ -77,7 +77,7 @@ class TestInput(unittest.TestCase):
         self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
-            _ = Input(1.1, np.NINF)  # negative inf
+            _ = Input(1.1, -np.inf)
 
         self.assertEqual(msg, str(cm.exception))
 
@@ -267,7 +267,7 @@ class TestInput(unittest.TestCase):
         self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
-            _ = Input.from_array(np.array([1.1, np.NINF]))  # negative inf
+            _ = Input.from_array(np.array([1.1, -np.inf]))
 
         self.assertEqual(msg, str(cm.exception))
 
@@ -334,7 +334,7 @@ class TestTrainingDatum(unittest.TestCase):
         self.assertEqual(msg, str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
-            _ = TrainingDatum(Input(1), np.NINF)  # negative inf
+            _ = TrainingDatum(Input(1), -np.inf)
 
         self.assertEqual(msg, str(cm.exception))
 
