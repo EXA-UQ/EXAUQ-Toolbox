@@ -722,6 +722,13 @@ def compute_multi_level_loo_errors_gp(
     return ml_errors_gp
 
 
+def compute_multi_level_pei(
+    mlgp: MultiLevelGaussianProcess,
+    domain: SimulatorDomain,
+) -> MultiLevel[PEICalculator]:
+    return mlgp.map(lambda level, gp: PEICalculator(domain, gp))
+
+
 def compute_multi_level_loo_samples(
     mlgp: MultiLevelGaussianProcess,
     domain: SimulatorDomain,

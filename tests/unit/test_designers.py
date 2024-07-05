@@ -19,6 +19,7 @@ from exauq.core.designers import (
     compute_loo_gp,
     compute_multi_level_loo_errors_gp,
     compute_multi_level_loo_samples,
+    compute_multi_level_pei,
     compute_single_level_loo_samples,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
@@ -875,6 +876,28 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             mock.assert_called_once_with(
                 self.gp, self.domain, loo_errors_gp=loo_errors_gp
             )
+
+
+class TestComputeMultiLevelPei(ExauqTestCase):
+    def test_pei_at_each_level_has_same_domain(self):
+        """The domains used to calculate each level's pseudo-expected improvements are
+        the same."""
+
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP()] * 3)
+        domain = SimulatorDomain([(0, 1), (-1, 1)])
+        training_data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.2, 0), 1)],
+                2: [TrainingDatum(Input(0.4, 0), 1)],
+                3: [TrainingDatum(Input(0.6, 0), 1)],
+            }
+        )
+        mlgp.fit(training_data)
+
+        mlpei = compute_multi_level_pei(mlgp, domain)
+
+        for level in mlpei.levels:
+            self.assertEqual(domain.bounds, mlpei[level].domain.bounds)
 
 
 class TestComputeMultiLevelLooSamples(ExauqTestCase):
