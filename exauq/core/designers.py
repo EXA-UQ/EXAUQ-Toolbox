@@ -529,15 +529,15 @@ class PEICalculator:
         correlations = (
             np.array(covariance_matrix) / self._gp.fit_hyperparameters.process_var
         )
-        inputs_term = np.prod(1 - correlations, axis=0)[0]
+        inputs_term = np.prod(1 - correlations, axis=1)
 
         other_repulsion_pts_term = np.prod(
             1
             - np.array(self._gp.correlation([validated_x], self._other_repulsion_points)),
             axis=1,
-        )[0]
+        )
 
-        return inputs_term * other_repulsion_pts_term
+        return float(inputs_term * other_repulsion_pts_term)
 
 
 def compute_single_level_loo_samples(
@@ -669,7 +669,13 @@ def _zero_mean_prediction(
     gp: AbstractGaussianProcess, x: Input
 ) -> GaussianProcessPrediction:
     """Make a prediction at an input with a GP having zero mean and variance equal to other."""
-    mean = 1  # TODO: replace with m_e^{(j)}(x) formula from paper
+    training_inputs = [datum.input for datum in gp.training_data]
+    training_outputs = np.array([[datum.output] for datum in gp.training_data])
+    mean = float(
+        gp.covariance_matrix([x])
+        @ np.linalg.inv(gp.covariance_matrix(training_inputs))
+        @ training_outputs
+    )
     variance = gp.predict(x).variance
     return GaussianProcessPrediction(mean, variance)
 
