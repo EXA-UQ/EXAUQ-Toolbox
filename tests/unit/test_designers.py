@@ -657,7 +657,7 @@ class TestPEICalculator(ExauqTestCase):
 
         x = Input(0.5)
         repulsion_pts = domain.calculate_pseudopoints([]) + tuple(training_inputs)
-        expected = product([1 - gp.correlation([x], [y])[0][0] for y in repulsion_pts])
+        expected = product([1 - float(gp.correlation([x], [y])) for y in repulsion_pts])
         calculator = PEICalculator(domain, gp)
         self.assertEqual(expected, calculator.repulsion(x))
 

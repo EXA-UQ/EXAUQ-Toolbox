@@ -370,7 +370,7 @@ class TestMogpEmulator(ExauqTestCase):
         emulator.fit(self.training_data, hyperparameters=params)
         inputs = [Input(0.1, 0.9), Input(0.2, 0.2)]
         self.assertArraysEqual(
-            emulator.correlation([d.input for d in self.training_data], inputs),
+            emulator.correlation(inputs, [d.input for d in self.training_data]),
             emulator.covariance_matrix(inputs),
         )
 

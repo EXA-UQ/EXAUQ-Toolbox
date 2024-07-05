@@ -1015,16 +1015,15 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         In pseudocode, the covariance matrix for a given collection `inputs` of simulator
         inputs is defined in terms of the correlation matrix as ``sigma^2 *
-        correlation(training_inputs, inputs)``, where ``sigma^2`` is the process variance
+        correlation(inputs, training_inputs)``, where ``sigma^2`` is the process variance
         for this Gaussian process (which was determined or supplied during training) and
         ``training_inputs`` are the simulator inputs used in training. The only exceptions
         to this are when the supplied `inputs` is empty or if this emulator hasn't been
         trained on data: in these cases an empty array should be returned.
 
-        The default implementation of this method does no more than call the `correlation`
-        method with the training data simulator inputs stored in this instance and the
-        supplied inputs; in particular, there is no error handling. Users requiring error
-        handling should override this method.
+        The default implementation of this method calls the `correlation` method with the
+        simulator inputs used for training and the given `inputs`. There is no additional
+        error handling, so users requiring error handling should override this method.
 
         Parameters
         ----------
@@ -1035,8 +1034,8 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         -------
         numpy.ndarray
             The covariance matrix for the sequence of inputs, as an array of shape
-            ``(n, n)`` where ``n`` is the number of training data points for this Gaussian
-            process.
+            ``(len(inputs), n)`` where ``n`` is the number of training data points for
+            this Gaussian process.
         """
 
         if not self.training_data:
@@ -1044,7 +1043,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         training_inputs = tuple(datum.input for datum in self.training_data)
         return self.fit_hyperparameters.process_var * self.correlation(
-            training_inputs, inputs
+            inputs, training_inputs
         )
 
     @abc.abstractmethod

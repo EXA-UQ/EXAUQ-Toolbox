@@ -485,7 +485,7 @@ class MogpEmulator(AbstractGaussianProcess):
 
         In pseudocode, the covariance matrix for a given collection `inputs` of simulator
         inputs is defined in terms of the correlation matrix as ``sigma^2 *
-        correlation(training_inputs, inputs)``, where ``sigma^2`` is the process variance
+        correlation(inputs, training_inputs)``, where ``sigma^2`` is the process variance
         for this Gaussian process (which was determined or supplied during training) and
         ``training_inputs`` are the simulator inputs used in training. The only exceptions
         to this are when the supplied `inputs` is empty or if this emulator hasn't been
@@ -500,8 +500,8 @@ class MogpEmulator(AbstractGaussianProcess):
         -------
         numpy.ndarray
             The covariance matrix for the sequence of inputs, as an array of shape
-            ``(n, n)`` where ``n`` is the number of training data points for this Gaussian
-            process.
+            ``(len(inputs), n)`` where ``n`` is the number of training data points for
+            this Gaussian process.
 
         Raises
         ------
