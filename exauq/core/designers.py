@@ -643,26 +643,35 @@ def compute_multi_level_loo_prediction(
     loo_gp: Optional[AbstractGaussianProcess] = None,
 ) -> GaussianProcessPrediction:
 
-    p_l = mlgp.coefficients[level]
-    x_i = mlgp[level].training_data[leave_out_idx].input
-    g_l = mlgp[level].training_data[leave_out_idx].output
-    loo_prediction = compute_loo_gp(mlgp[level], leave_out_idx, loo_gp).predict(x_i)
+    # Get left-out training data
+    loo_input = mlgp[level].training_data[leave_out_idx].input
+    loo_output = mlgp[level].training_data[leave_out_idx].output
+
+    # Make leave-one-out prediction at supplied level
+    loo_prediction = compute_loo_gp(mlgp[level], leave_out_idx, loo_gp).predict(loo_input)
+
+    # Get mean and variance contributions at supplied level
+    mean_at_level = mlgp.coefficients[level] * (loo_prediction.estimate - loo_output)
+    variance_at_level = (mlgp.coefficients[level] ** 2) * loo_prediction.variance
+
+    # Get mean and variance contributions at other levels
     other_level_coeffs = [mlgp.coefficients[j] for j in mlgp.levels if not j == level]
     other_level_predictions = [
-        _zero_mean_prediction(mlgp[j], x_i) for j in mlgp.levels if not j == level
+        _zero_mean_prediction(mlgp[j], loo_input) for j in mlgp.levels if not j == level
     ]
-    mean_other_level_sum = sum(
+    mean_other_levels = sum(
         coeff * prediction.estimate
         for coeff, prediction in zip(other_level_coeffs, other_level_predictions)
     )
-    mean = p_l * (loo_prediction.estimate - g_l) + mean_other_level_sum
-    variance_other_level_sum = sum(
+    variance_other_levels = sum(
         (coeff**2) * prediction.variance
         for coeff, prediction in zip(other_level_coeffs, other_level_predictions)
     )
-    variance = (p_l**2) * loo_prediction.variance + variance_other_level_sum
 
-    return GaussianProcessPrediction(mean, variance)
+    # Aggregate predictions across levels
+    return GaussianProcessPrediction(
+        mean_at_level + mean_other_levels, variance_at_level + variance_other_levels
+    )
 
 
 def _zero_mean_prediction(
