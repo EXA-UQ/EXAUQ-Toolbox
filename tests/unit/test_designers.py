@@ -17,7 +17,7 @@ from exauq.core.designers import (
     SimpleDesigner,
     compute_loo_errors_gp,
     compute_loo_gp,
-    compute_multi_level_loo_errors,
+    compute_multi_level_loo_error_data,
     compute_multi_level_loo_errors_gp,
     compute_multi_level_loo_samples,
     compute_single_level_loo_samples,
@@ -896,7 +896,9 @@ class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
         mlgp.fit(training_data)
 
         errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain)
-        self.assertEqual(compute_multi_level_loo_errors(mlgp), errors_gp.training_data)
+        self.assertEqual(
+            compute_multi_level_loo_error_data(mlgp), errors_gp.training_data
+        )
 
 
 class TestComputeMultiLevelLooSamples(ExauqTestCase):

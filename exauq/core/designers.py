@@ -689,7 +689,7 @@ def _zero_mean_prediction(
     return GaussianProcessPrediction(mean, variance)
 
 
-def compute_multi_level_loo_errors(
+def compute_multi_level_loo_error_data(
     mlgp: MultiLevelGaussianProcess, loo_gp: Optional[AbstractGaussianProcess] = None
 ) -> MultiLevel[tuple[TrainingDatum]]:
 
@@ -712,7 +712,7 @@ def compute_multi_level_loo_errors_gp(
     output_gp: Optional[MultiLevelGaussianProcess] = None,
 ):
     # Create LOO errors for each level
-    error_training_data = compute_multi_level_loo_errors(mlgp, loo_gp=loo_gp)
+    error_training_data = compute_multi_level_loo_error_data(mlgp, loo_gp=loo_gp)
 
     # Train GP on the LOO errors
     ml_errors_gp = output_gp if output_gp is not None else copy.deepcopy(mlgp)
