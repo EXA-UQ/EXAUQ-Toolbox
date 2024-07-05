@@ -42,6 +42,9 @@ class WhiteNoiseGP(AbstractGaussianProcess):
     ----------
     predictive_mean : float
         The prior mean value for the GP at simulator inputs.
+    noise_level : float
+        The noise level used to define the kernel function (equivalently, the process
+        variance).
     training_data : tuple[TrainingDatum]
         Defines the pairs of inputs and simulator outputs on which the emulator
         has been trained.
@@ -68,6 +71,13 @@ class WhiteNoiseGP(AbstractGaussianProcess):
         """The prior mean value for the GP at simulator inputs."""
 
         return self._prior_mean
+
+    @property
+    def noise_level(self) -> float:
+        """The noise level used to define the kernel function (equivalently, the process
+        variance)."""
+
+        return self._noise_level
 
     @property
     def training_data(self) -> tuple[TrainingDatum]:

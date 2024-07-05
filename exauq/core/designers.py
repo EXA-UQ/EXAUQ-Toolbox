@@ -709,13 +709,15 @@ def compute_multi_level_loo_errors_gp(
     mlgp: MultiLevelGaussianProcess,
     domain: SimulatorDomain,
     loo_gp: Optional[AbstractGaussianProcess] = None,
-    output_gp: Optional[MultiLevelGaussianProcess] = None,
+    output_mlgp: Optional[MultiLevelGaussianProcess] = None,
 ):
+    # TODO: validate output_mlgp has same levels as mlgp
+
     # Create LOO errors for each level
     error_training_data = compute_multi_level_loo_error_data(mlgp, loo_gp=loo_gp)
 
     # Train GP on the LOO errors
-    ml_errors_gp = output_gp if output_gp is not None else copy.deepcopy(mlgp)
+    ml_errors_gp = output_mlgp if output_mlgp is not None else copy.deepcopy(mlgp)
     ml_errors_gp.fit(
         error_training_data, hyperparameter_bounds=_compute_loo_error_bounds(domain)
     )
@@ -770,7 +772,7 @@ def compute_multi_level_loo_samples(
 
     # Create LOO errors GP for each level
     ml_errors_gp = compute_multi_level_loo_errors_gp(
-        mlgp, domain, loo_gp=loo_gp, output_gp=None
+        mlgp, domain, loo_gp=loo_gp, output_mlgp=None
     )
 
     # Get the PEI calculator for each level

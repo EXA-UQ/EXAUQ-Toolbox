@@ -879,26 +879,61 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
 
 
 class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
-    def test_returned_multi_level_gp_trained_on_loo_errors(self):
-        """The multi-level GP returned is trained on multi-level data consisting
-        of the normalised expectation squared leave-one-out errors for each of the
-        training inputs, at each level."""
-
-        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in range(3)])
-        domain = SimulatorDomain([(0, 1)])
-        training_data = MultiLevel(
+    def setUp(self) -> None:
+        self.domain = SimulatorDomain([(0, 1)])
+        self.training_data = MultiLevel(
             {
                 1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
                 2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
                 3: (TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.6), 1)),
             }
         )
-        mlgp.fit(training_data)
 
-        errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain)
+    def test_returned_multi_level_gp_trained_on_loo_errors(self):
+        """The multi-level GP returned is trained on multi-level data consisting
+        of the normalised expectation squared leave-one-out errors for each of the
+        training inputs, at each level."""
+
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in range(3)])
+        mlgp.fit(self.training_data)
+
+        errors_gp = compute_multi_level_loo_errors_gp(mlgp, self.domain)
         self.assertEqual(
             compute_multi_level_loo_error_data(mlgp), errors_gp.training_data
         )
+
+    def test_default_case_same_settings_as_input_gp(self):
+        """By default, the returned multi-level GP will be constructed with the same
+        settings used to initialise the input multi-level GP."""
+
+        means = [10, 20, 30]
+        noise_levels = [1, 2, 3]
+        mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP(mean, noise) for mean, noise in zip(means, noise_levels)]
+        )
+        mlgp.fit(self.training_data)
+
+        errors_gp = compute_multi_level_loo_errors_gp(mlgp, self.domain)
+
+        for level in mlgp.levels:
+            mlgp_params = (mlgp[level].prior_mean, mlgp[level].noise_level)
+            errors_gp_params = (errors_gp[level].prior_mean, errors_gp[level].noise_level)
+            self.assertEqual(mlgp_params, errors_gp_params)
+
+    def test_use_given_mlgp_for_returned_mlgp(self):
+        """The returned multi-level GP will use a particular multi-level GP if supplied."""
+
+        other_mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP(99, 100) for _ in range(3)]
+        )
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in range(3)])
+        mlgp.fit(self.training_data)
+
+        errors_gp = compute_multi_level_loo_errors_gp(
+            mlgp, self.domain, output_mlgp=other_mlgp
+        )
+
+        self.assertIs(errors_gp, other_mlgp)
 
 
 class TestComputeMultiLevelLooSamples(ExauqTestCase):
