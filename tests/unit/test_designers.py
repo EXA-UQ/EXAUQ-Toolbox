@@ -129,7 +129,7 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         ):
             _ = compute_loo_errors_gp(self.gp, self.domain, loo_errors_gp=arg)
 
-    def test_compute_loo_errors_domain_wrong_dim_error(self):
+    def test_compute_loo_errors_gp_domain_wrong_dim_error(self):
         """A ValueError is raised if the supplied domain's dimension does not agree with
         the dimension of the inputs in the GP's training data."""
 
@@ -140,7 +140,7 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         ):
             _ = compute_loo_errors_gp(self.gp, domain_2dim)
 
-    def test_compute_loo_errors_gp_returned_gp_trainied_on_loo_errors(self):
+    def test_compute_loo_errors_gp_returned_gp_trained_on_loo_errors(self):
         """The GP returned is trained on data consisting of the normalised expected square
         leave-one-out errors for each of the simulator inputs used to train the supplied
         GP."""
