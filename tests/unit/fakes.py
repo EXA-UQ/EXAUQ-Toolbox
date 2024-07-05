@@ -120,7 +120,7 @@ class WhiteNoiseGP(AbstractGaussianProcess):
             (Default: ``None``) If not ``None`` then this should define the
             process variance that will be used as the new noise level in the kernel
             function (the other hyperparameters are not used in this context). If ``None``
-            ]then the noise level supplied at the creation of this GP will continue to be
+            then the noise level supplied at the creation of this GP will continue to be
             used, subject to any bounds supplied in `hyperparameter_bounds`.
         hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
             (Default: ``None``) If not ``None``, then the bounds on the process variance
