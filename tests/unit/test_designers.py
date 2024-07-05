@@ -17,9 +17,9 @@ from exauq.core.designers import (
     SimpleDesigner,
     compute_loo_errors_gp,
     compute_loo_gp,
+    compute_multi_level_loo_errors,
     compute_multi_level_loo_errors_gp,
     compute_multi_level_loo_samples,
-    compute_multi_level_pei,
     compute_single_level_loo_samples,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
@@ -878,26 +878,25 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             )
 
 
-class TestComputeMultiLevelPei(ExauqTestCase):
-    def test_pei_at_each_level_has_same_domain(self):
-        """The domains used to calculate each level's pseudo-expected improvements are
-        the same."""
+class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
+    def test_returned_multi_level_gp_trained_on_loo_errors(self):
+        """The multi-level GP returned is trained on multi-level data consisting
+        of the normalised expectation squared leave-one-out errors for each of the
+        training inputs, at each level."""
 
-        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP()] * 3)
-        domain = SimulatorDomain([(0, 1), (-1, 1)])
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in range(3)])
+        domain = SimulatorDomain([(0, 1)])
         training_data = MultiLevel(
             {
-                1: [TrainingDatum(Input(0.2, 0), 1)],
-                2: [TrainingDatum(Input(0.4, 0), 1)],
-                3: [TrainingDatum(Input(0.6, 0), 1)],
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
+                3: (TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.6), 1)),
             }
         )
         mlgp.fit(training_data)
 
-        mlpei = compute_multi_level_pei(mlgp, domain)
-
-        for level in mlpei.levels:
-            self.assertEqual(domain.bounds, mlpei[level].domain.bounds)
+        errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain)
+        self.assertEqual(compute_multi_level_loo_errors(mlgp), errors_gp.training_data)
 
 
 class TestComputeMultiLevelLooSamples(ExauqTestCase):

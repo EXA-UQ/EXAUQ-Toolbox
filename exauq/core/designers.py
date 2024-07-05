@@ -691,7 +691,8 @@ def _zero_mean_prediction(
 
 def compute_multi_level_loo_errors(
     mlgp: MultiLevelGaussianProcess, loo_gp: Optional[AbstractGaussianProcess] = None
-) -> MultiLevel[list[TrainingDatum]]:
+) -> MultiLevel[tuple[TrainingDatum]]:
+
     error_training_data = MultiLevel([[] for _ in mlgp.levels])
     for level in mlgp.levels:
         for leave_out_index, datum in enumerate(mlgp[level].training_data):
@@ -701,8 +702,7 @@ def compute_multi_level_loo_errors(
             error_training_data[level].append(
                 TrainingDatum(datum.input, loo_prediction.nes_error(datum.output))
             )
-
-    return error_training_data
+    return error_training_data.map(lambda level, data: tuple(data))
 
 
 def compute_multi_level_loo_errors_gp(
@@ -720,13 +720,6 @@ def compute_multi_level_loo_errors_gp(
         error_training_data, hyperparameter_bounds=_compute_loo_error_bounds(domain)
     )
     return ml_errors_gp
-
-
-def compute_multi_level_pei(
-    mlgp: MultiLevelGaussianProcess,
-    domain: SimulatorDomain,
-) -> MultiLevel[PEICalculator]:
-    return mlgp.map(lambda level, gp: PEICalculator(domain, gp))
 
 
 def compute_multi_level_loo_samples(
