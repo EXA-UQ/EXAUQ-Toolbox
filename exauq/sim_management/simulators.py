@@ -247,7 +247,7 @@ class SimulationsLog(object):
         return int(record[self._job_level_key])
 
     def _get_interface_name(self, record: Record) -> str:
-        """Get the interface tag of a job from a database record"""
+        """Get the interface name of a job from a database record"""
         return record[self._interface_name_key]
 
     def get_simulations(self) -> tuple[Simulation]:
@@ -290,7 +290,7 @@ class SimulationsLog(object):
         job_id: Union[str, JobId, int],
         job_status: JobStatus = JobStatus.PENDING_SUBMIT,
         job_level: int = 1,
-        interface_tag: Optional[str] = None,
+        interface_name: Optional[str] = None,
     ) -> None:
         """
         Record a new simulation job in the log file.
@@ -310,8 +310,8 @@ class SimulationsLog(object):
             Defaults to JobStatus.PENDING_SUBMIT.
         job_level : int, optional
             The level of the job. Defaults to 0.
-        interface_tag : Optional[str], optional
-            The tag of the interface that the job is assigned to. Defaults to None.
+        interface_name : Optional[str], optional
+            The name of the interface that the job is assigned to. Defaults to None.
 
         Raises
         ------
@@ -341,7 +341,7 @@ class SimulationsLog(object):
                 self._job_id_key: str(job_id),
                 self._job_status_key: job_status.value,
                 self._job_level_key: str(job_level),
-                self._interface_name_key: interface_tag or "",
+                self._interface_name_key: interface_name or "",
             }
 
             self._simulations_db.create(record)
@@ -676,10 +676,10 @@ class JobManager:
         """
 
         job_id = self._id_generator.generate_id()
-        interface_tag = self._allocate_interface(level)
-        job = Job(job_id, x, level, interface_tag)
+        interface_name = self._select_interface(level)
+        job = Job(job_id, x, level, interface_name)
 
-        self._simulations_log.add_new_record(x, str(job_id), job_status=JobStatus.PENDING_SUBMIT, job_level=level, interface_tag=interface_tag)
+        self._simulations_log.add_new_record(x, str(job_id), job_status=JobStatus.PENDING_SUBMIT, job_level=level, interface_name=interface_name)
         self.monitor([job])
 
         return job
@@ -687,19 +687,19 @@ class JobManager:
     @staticmethod
     def _validate_interfaces(interfaces: Sequence[HardwareInterface]):
         """Check that the supplied argument is a sequence of hardware interfaces and that
-        each interface's tag is not None and unique."""
+        each interface's name is not None and unique."""
         if not all(isinstance(interface, HardwareInterface) for interface in interfaces):
             raise TypeError(
                 "Expected 'interfaces' to be a sequence of HardwareInterface instances, but "
                 f"received {type(interfaces)} instead."
             )
 
-        if any(interface.tag is None for interface in interfaces):
-            raise ValueError("Interface tag not set.")
+        interface_names = [interface.name for interface in interfaces]
+        if any(name is None for name in interface_names):
+            raise ValueError("Interface name not set.")
 
-        interface_tags = [interface.tag for interface in interfaces]
-        if len(interface_tags) != len(set(interface_tags)):
-            raise ValueError("Each interface must have a unique tag.")
+        if len(interface_names) != len(set(interface_names)):
+            raise ValueError("Each interface must have a unique name.")
 
         return interfaces
 
@@ -852,34 +852,33 @@ class JobManager:
                 }
 
                 if not is_pending_or_failed_submit:
-                    interface = self.get_interface(job.interface_tag)
+                    interface = self.get_interface(job.interface_name)
                     status = interface.get_job_status(job.id)
 
                 self._handle_job(job, status)
 
-    def get_interface(self, interface_tag: str) -> HardwareInterface:
-        """Get the hardware interface with the given tag.
+    def get_interface(self, interface_name: str) -> HardwareInterface:
+        """Get the hardware interface with the given name.
 
         Parameters
         ----------
-        interface_tag : str
-            The tag of the hardware interface to retrieve.
+        interface_name : str
+            The name of the hardware interface to retrieve.
 
         Returns
         -------
         HardwareInterface
-            The hardware interface with the given tag.
+            The hardware interface with the given name.
 
         Raises
         ------
         ValueError
-            If no interface with the given tag is found.
+            If no interface with the given name is found.
         """
-        for interface in self._interfaces:
-            if interface.tag == interface_tag:
-                return interface
+        if interface_name in self._name_index:
+            return self._name_index[interface_name]
 
-        raise ValueError(f"No interface found with tag '{interface_tag}'.")
+        raise ValueError(f"No interface found with name '{interface_name}'.")
 
     @property
     def simulations_log(self):
@@ -1005,7 +1004,7 @@ class CompletedJobStrategy(JobStrategy):
 
     @staticmethod
     def handle(job: Job, job_manager: JobManager):
-        interface = job_manager.get_interface(job.interface_tag)
+        interface = job_manager.get_interface(job.interface_name)
         result = interface.get_job_output(job.id)
         job_manager.simulations_log.insert_result(str(job.id), result)
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.COMPLETED)
@@ -1131,7 +1130,7 @@ class PendingSubmitJobStrategy(JobStrategy):
         initial_delay = 1
         max_delay = 32
 
-        interface = job_manager.get_interface(job.interface_tag)
+        interface = job_manager.get_interface(job.interface_name)
 
         while retry_attempts < max_retries:
             try:
@@ -1197,7 +1196,7 @@ class PendingCancelJobStrategy(JobStrategy):
         initial_delay = 1
         max_delay = 32
 
-        interface = job_manager.get_interface(job.interface_tag)
+        interface = job_manager.get_interface(job.interface_name)
 
         while retry_attempts < max_retries:
             try:
