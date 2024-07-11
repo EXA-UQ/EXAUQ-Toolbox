@@ -71,7 +71,7 @@ class Simulator(AbstractSimulator):
         self._simulations_log = self._make_simulations_log(
             simulations_log_file, domain.dim
         )
-        self._manager = JobManager(self._simulations_log, interface)
+        self._manager = JobManager(self._simulations_log, [interface])
 
     @staticmethod
     def _check_arg_types(domain: Any, interface: Any):
