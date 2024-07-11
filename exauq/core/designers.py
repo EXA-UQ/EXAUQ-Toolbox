@@ -713,7 +713,7 @@ def compute_multi_level_loo_error_data(
                 mlgp, level, leave_out_index, loo_mlgp=loo_mlgp
             )
             error_training_data[level].append(
-                TrainingDatum(datum.input, loo_prediction.nes_error(datum.output))
+                TrainingDatum(datum.input, loo_prediction.nes_error(0))
             )
     return error_training_data.map(lambda level, data: tuple(data))
 

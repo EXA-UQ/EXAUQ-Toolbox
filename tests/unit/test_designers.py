@@ -19,6 +19,7 @@ from exauq.core.designers import (
     compute_loo_gp,
     compute_multi_level_loo_error_data,
     compute_multi_level_loo_errors_gp,
+    compute_multi_level_loo_prediction,
     compute_multi_level_loo_samples,
     compute_single_level_loo_samples,
 )
@@ -876,6 +877,39 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             mock.assert_called_once_with(
                 self.gp, self.domain, loo_errors_gp=loo_errors_gp
             )
+
+
+class TestComputeMultiLevelLooErrorData(ExauqTestCase):
+    def setUp(self) -> None:
+        self.domain = SimulatorDomain([(0, 1)])
+        self.training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
+                3: (TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.6), 1)),
+            }
+        )
+        self.mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP() for _ in self.training_data]
+        )
+        self.mlgp.fit(self.training_data)
+
+    def test_calculation_of_loo_prediction_errors(self):
+        """Each level of the returned data consists of normalised estimated square errors
+        of multi-level leave-one-out predictions."""
+
+        ml_loo_error_data = compute_multi_level_loo_error_data(self.mlgp)
+
+        for level, loo_error_data in ml_loo_error_data.items():
+            training_inputs = [datum.input for datum in self.mlgp.training_data[level]]
+            for leave_out_idx, loo_error_datum in enumerate(loo_error_data):
+                loo_prediction = compute_multi_level_loo_prediction(
+                    self.mlgp, level, leave_out_idx
+                )
+                expected = TrainingDatum(
+                    training_inputs[leave_out_idx], loo_prediction.nes_error(0)
+                )
+                self.assertEqual(expected, loo_error_datum)
 
 
 class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
