@@ -15,10 +15,10 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
     SimpleDesigner,
+    _zero_mean_prediction,
     compute_loo_errors_gp,
     compute_loo_gp,
-    compute_loo_prediction_level_term,
-    compute_loo_prediction_other_levels_term,
+    compute_loo_prediction,
     compute_multi_level_loo_error_data,
     compute_multi_level_loo_errors_gp,
     compute_multi_level_loo_prediction,
@@ -897,16 +897,60 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
         )
         self.mlgp.fit(self.training_data)
 
+    @staticmethod
+    def compute_loo_prediction_level_term(
+        mlgp: MultiLevelGaussianProcess, level: int, leave_out_idx: int
+    ):
+        # Get left-out training data
+        loo_input = mlgp[level].training_data[leave_out_idx].input
+        loo_output = mlgp[level].training_data[leave_out_idx].output
+
+        # Make leave-one-out prediction at supplied level
+        loo_prediction = compute_loo_gp(mlgp[level], leave_out_idx).predict(loo_input)
+
+        # Get mean and variance contributions at supplied level
+        mean_at_level = mlgp.coefficients[level] * (loo_prediction.estimate - loo_output)
+        variance_at_level = (mlgp.coefficients[level] ** 2) * loo_prediction.variance
+
+        return GaussianProcessPrediction(mean_at_level, variance_at_level)
+
+    @staticmethod
+    def compute_loo_prediction_other_levels_term(
+        mlgp: MultiLevelGaussianProcess,
+        level: int,
+        leave_out_idx: int,
+    ) -> GaussianProcessPrediction:
+        # Get left-out training inputs
+        loo_input = mlgp[level].training_data[leave_out_idx].input
+
+        # Get mean and variance contributions at other levels
+        other_level_coeffs = [mlgp.coefficients[j] for j in mlgp.levels if not j == level]
+        other_level_predictions = [
+            _zero_mean_prediction(mlgp[j], loo_input)
+            for j in mlgp.levels
+            if not j == level
+        ]
+        mean_other_levels = sum(
+            coeff * prediction.estimate
+            for coeff, prediction in zip(other_level_coeffs, other_level_predictions)
+        )
+        variance_other_levels = sum(
+            (coeff**2) * prediction.variance
+            for coeff, prediction in zip(other_level_coeffs, other_level_predictions)
+        )
+
+        return GaussianProcessPrediction(mean_other_levels, variance_other_levels)
+
     def test_prediction_combination_loo_prediction_at_level_and_at_other_levels(self):
         """The overall multi-level leave-one-out (LOO) prediction for a given level is a
         sum of a term for the level and a term for the other levels."""
 
         for level in self.mlgp.levels:
             for leave_out_idx, _ in enumerate(self.mlgp.training_data[level]):
-                level_term = compute_loo_prediction_level_term(
+                level_term = self.compute_loo_prediction_level_term(
                     self.mlgp, level, leave_out_idx
                 )
-                other_term = compute_loo_prediction_other_levels_term(
+                other_term = self.compute_loo_prediction_other_levels_term(
                     self.mlgp, level, leave_out_idx
                 )
                 expected = GaussianProcessPrediction(
@@ -918,6 +962,61 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
                     self.mlgp, level, leave_out_idx
                 )
                 self.assertEqual(expected, loo_prediction)
+
+
+class TestComputeLooPrediction(ExauqTestCase):
+    def test_calculation_mean_and_variance(self):
+        training_data = (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), -1))
+        prior_mean = 10
+        noise_level = 100  # same as process variance
+        gp = fakes.WhiteNoiseGP(prior_mean, noise_level)
+
+        gp.fit(training_data)
+
+        for leave_out_idx, datum in enumerate(training_data):
+            prediction_level_term = compute_loo_prediction(gp, leave_out_idx)
+
+            # For White Noise GP, LOO mean is the prior mean and LOO variance is the noise
+            # level.
+            expected_term = GaussianProcessPrediction(
+                estimate=(prior_mean - datum.output),
+                variance=noise_level,
+            )
+            self.assertEqual(expected_term, prediction_level_term)
+
+
+class TestZeroMeanPrediction(ExauqTestCase):
+    def test_calculation_mean_and_variance(self):
+        training_data = (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), -1))
+        prior_mean = 10
+        noise_level = 100  # same as process variance
+        gp = fakes.WhiteNoiseGP(prior_mean, noise_level)
+
+        gp.fit(training_data)
+
+        # Case where new input not in training data
+        x = Input(0.3)
+        prediction = _zero_mean_prediction(gp, x)
+        self.assertEqual(
+            GaussianProcessPrediction(
+                estimate=0,  # because correlation = 0 at new point (for White Noise GP)
+                variance=noise_level,
+            ),
+            prediction,
+        )
+
+        # Cases where new input is in training data
+        for datum in training_data:
+            x = datum.input
+            y = datum.output
+            prediction = _zero_mean_prediction(gp, x)
+            self.assertEqual(
+                GaussianProcessPrediction(
+                    estimate=y,  # because kernel = 1 at x and zero elsewhere (for White Noise GP)
+                    variance=0,  # because estimating at training input
+                ),
+                prediction,
+            )
 
 
 class TestComputeMultiLevelLooErrorData(ExauqTestCase):
