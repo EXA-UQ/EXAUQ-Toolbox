@@ -9,7 +9,7 @@ from threading import Event, Lock, Thread
 from time import sleep
 from typing import Any, Optional, Sequence, Union
 
-from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain, MultiLevel
+from exauq.core.modelling import AbstractSimulator, Input, MultiLevel, SimulatorDomain
 from exauq.sim_management.hardware import (
     PENDING_STATUSES,
     TERMINAL_STATUSES,
@@ -424,7 +424,12 @@ class SimulationsLog(object):
                 lambda x: self._get_job_status(x) in non_terminal_statuses
             )
             return tuple(
-                Job(self._get_job_id(record), self._extract_simulation(record)[0], self._get_job_level(record), self._get_interface_name(record))
+                Job(
+                    self._get_job_id(record),
+                    self._extract_simulation(record)[0],
+                    self._get_job_level(record),
+                    self._get_interface_name(record),
+                )
                 for record in pending_records
             )
 
@@ -654,7 +659,9 @@ class JobManager:
 
         self._job_strategies = self._init_job_strategies()
 
-        self._interface_job_monitor_counts = {interface.name: 0 for interface in interfaces}
+        self._interface_job_monitor_counts = {
+            interface.name: 0 for interface in interfaces
+        }
 
         self.monitor(self._simulations_log.get_non_terminated_jobs())
         if wait_for_pending and self._thread is not None:
@@ -696,7 +703,13 @@ class JobManager:
         interface_name = self._select_interface(level)
         job = Job(job_id, x, level, interface_name)
 
-        self._simulations_log.add_new_record(x, str(job_id), job_status=JobStatus.PENDING_SUBMIT, job_level=level, interface_name=interface_name)
+        self._simulations_log.add_new_record(
+            x,
+            str(job_id),
+            job_status=JobStatus.PENDING_SUBMIT,
+            job_level=level,
+            interface_name=interface_name,
+        )
         self.monitor([job])
 
         return job
@@ -707,8 +720,8 @@ class JobManager:
         each interface's name is not None and unique."""
         if not all(isinstance(interface, HardwareInterface) for interface in interfaces):
             raise TypeError(
-                "Expected 'interfaces' to be a sequence of HardwareInterface instances, but "
-                f"received {type(interfaces)} instead."
+                "Expected 'interfaces' to be a sequence of HardwareInterface instances, "
+                f"but received {type(interfaces)} instead."
             )
 
         interface_names = [interface.name for interface in interfaces]
@@ -720,7 +733,9 @@ class JobManager:
 
         return interfaces
 
-    def _init_multi_level_interfaces(self, interfaces: list[HardwareInterface]) -> MultiLevel[list[HardwareInterface]]:
+    def _init_multi_level_interfaces(
+        self, interfaces: list[HardwareInterface]
+    ) -> MultiLevel[list[HardwareInterface]]:
         """Initialises a MultiLevel object with the provided hardware interfaces."""
         self._validate_interfaces(interfaces)
         levels = sorted({interface.level for interface in interfaces})
@@ -750,7 +765,8 @@ class JobManager:
                 raise ValueError(f"No interfaces found for level {level}")
 
             interface_name = min(
-                matching_interfaces, key=lambda interface: self._interface_job_monitor_counts[interface.name]
+                matching_interfaces,
+                key=lambda interface: self._interface_job_monitor_counts[interface.name],
             ).name
 
             return interface_name
@@ -899,7 +915,10 @@ class JobManager:
 
     @property
     def simulations_log(self):
-        """Provides read-only access to the simulations log object for job recording and retrieval."""
+        """
+        Provides read-only access to the simulations log object for job recording and
+        retrieval.
+        """
 
         return self._simulations_log
 
@@ -907,8 +926,8 @@ class JobManager:
         """
         Removes a job from the internal list of jobs being monitored.
 
-        This method ensures thread-safe deallocation of the job's associated hardware interface
-        and removal of the job from monitoring.
+        This method ensures thread-safe deallocation of the job's associated hardware
+        interface and removal of the job from monitoring.
 
         Parameters
         ----------
@@ -919,10 +938,9 @@ class JobManager:
         --------
         >>> job_manager.remove_job(job)
 
-        This will remove the specified `job` from the JobManager's internal list, deallocating
-        its associated hardware interface and stopping its monitoring.
+        This will remove the specified `job` from the JobManager's internal list,
+        deallocating its associated hardware interface and stopping its monitoring.
         """
-        self._deallocate_interface(job.interface_tag)
 
         with self._lock:
             if job in self._monitored_jobs:
@@ -932,24 +950,26 @@ class JobManager:
 
     def shutdown(self):
         """
-        Cleanly terminates the monitoring thread and ensures all resources are properly released.
+        Cleanly terminates the monitoring thread and ensures all resources are properly
+        released.
 
-        This method signals the monitoring thread to stop by setting a shutdown event. It waits
-        for the monitoring thread to terminate, ensuring that the job manager is cleanly shut down.
-        This is particularly useful to call before exiting an application to ensure that no threads
-        remain running in the background.
+        This method signals the monitoring thread to stop by setting a shutdown event.
+        It waits for the monitoring thread to terminate, ensuring that the job manager
+        is cleanly shut down. This is particularly useful to call before exiting an
+        application to ensure that no threads remain running in the background.
 
         Notes
         -----
-        If the monitoring thread is not active, this method will return immediately. It ensures
-        thread-safe shutdown operations and can be called from any thread.
+        If the monitoring thread is not active, this method will return immediately.
+        It ensures thread-safe shutdown operations and can be called from any thread.
 
         Examples
         --------
         >>> job_manager.shutdown()
 
-        This example demonstrates how to properly shut down the JobManager's monitoring capabilities,
-        ensuring that the application can be closed without leaving orphaned threads.
+        This example demonstrates how to properly shut down the JobManager's monitoring
+        capabilities, ensuring that the application can be closed without leaving
+        orphaned threads.
         """
         with self._lock:
             self._shutdown_event.set()
@@ -968,14 +988,15 @@ class JobStrategy(ABC):
     """
     Defines a template for job handling strategies in the simulation job management system.
 
-    This abstract base class outlines the required interface for all job handling strategies.
-    Concrete implementations of this class will define specific actions to be taken based
-    on the job's current status.
+    This abstract base class outlines the required interface for all job handling
+    strategies. Concrete implementations of this class will define specific actions to
+    be taken based on the job's current status.
 
     Methods
     -------
     handle(job: Job, job_manager: JobManager)
-        Executes the strategy's actions for a given job within the context of the provided job manager.
+        Executes the strategy's actions for a given job within the context of the provided
+        job manager.
     """
 
     @staticmethod
@@ -985,15 +1006,16 @@ class JobStrategy(ABC):
         Handle a job according to the strategy's specific actions.
 
         This method should be implemented by subclasses to define how a job should be
-        processed, based on its status or other criteria. It may involve submitting the job,
-        updating its status, or performing cleanup actions.
+        processed, based on its status or other criteria. It may involve submitting the
+        job, updating its status, or performing cleanup actions.
 
         Parameters
         ----------
         job : Job
             The job to be handled, which contains the necessary information for processing.
         job_manager : JobManager
-            The job manager instance, providing context and access to job management functionalities.
+            The job manager instance, providing context and access to job management
+            functionalities.
 
         Raises
         ------
@@ -1041,7 +1063,8 @@ class FailedJobStrategy(JobStrategy):
     job : Job
         The job that has failed.
     job_manager : JobManager
-        The manager overseeing the job's lifecycle and responsible for its monitoring and logging.
+        The manager overseeing the job's lifecycle and responsible for its monitoring and
+        logging.
     """
 
     @staticmethod
@@ -1101,16 +1124,18 @@ class SubmittedJobStrategy(JobStrategy):
     """
     Strategy for handling jobs that have been submitted.
 
-    Upon handling, this strategy updates the job's status in the simulations log to SUBMITTED
-    and initiates monitoring of the job. This ensures that once a job is submitted, its
-    status is accurately recorded, and the job is actively monitored for completion or failure.
+    Upon handling, this strategy updates the job's status in the simulations log to
+    SUBMITTED and initiates monitoring of the job. This ensures that once a job is
+    submitted, its status is accurately recorded, and the job is actively monitored for
+    completion or failure.
 
     Parameters
     ----------
     job : Job
         The job that has been submitted for execution.
     job_manager : JobManager
-        The manager overseeing the job's lifecycle, responsible for its submission, monitoring, and logging.
+        The manager overseeing the job's lifecycle, responsible for its submission,
+        monitoring, and logging.
     """
 
     @staticmethod
