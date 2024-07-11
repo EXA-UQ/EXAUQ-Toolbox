@@ -300,7 +300,9 @@ class TestSimulationsLog(unittest.TestCase):
         """Test that an existing simulator log file is not opened for writing upon
         initialisation."""
 
-        self.simulations_file.write_text("Input_1,Output,Job_ID,Job_Status,Job_Level,Interface_Name\n")
+        self.simulations_file.write_text(
+            "Input_1,Output,Job_ID,Job_Status,Job_Level,Interface_Name\n"
+        )
         self.simulations_file.touch(mode=0o400)  # read-only
         try:
             _ = SimulationsLog(self.simulations_file, input_dim=1)
@@ -488,7 +490,8 @@ class TestSimulationsLog(unittest.TestCase):
 
     def test_get_non_terminated_jobs_empty_when_all_completed(self):
         """Test that an empty tuple is returned if all jobs in the simulations
-        log file have a terminated JobStatus i.e. one of COMPLETED, FAILED, CANCELLED, FAILED_SUBMIT."""
+        log file have a terminated JobStatus i.e. one of COMPLETED, FAILED, CANCELLED, FAILED_SUBMIT.
+        """
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
 
