@@ -9,7 +9,7 @@ from threading import Event, Lock, Thread
 from time import sleep
 from typing import Any, Optional, Sequence, Union
 
-from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
+from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain, MultiLevel
 from exauq.sim_management.hardware import (
     PENDING_STATUSES,
     TERMINAL_STATUSES,
@@ -625,7 +625,8 @@ class JobManager:
         wait_for_pending: bool = False,
     ):
         self._simulations_log = simulations_log
-        self._interfaces = self._validate_interfaces(interfaces)
+        self._interfaces = self._init_multi_level_interfaces(interfaces)
+        self._name_index = self._create_name_index()
         self._polling_interval = polling_interval
         self._jobs = []
         self._lock = Lock()
@@ -702,30 +703,40 @@ class JobManager:
 
         return interfaces
 
-    def _allocate_interface(self, level: int) -> str:
-        """Allocates a hardware interface for a job based on its level. The interface is chosen
-        based on the number of jobs currently assigned to each interface, ensuring a balanced
-        distribution of jobs across available hardware."""
+    def _init_multi_level_interfaces(self, interfaces: list[HardwareInterface]) -> MultiLevel[list[HardwareInterface]]:
+        """Initialises a MultiLevel object with the provided hardware interfaces."""
+        self._validate_interfaces(interfaces)
+        levels = sorted({interface.level for interface in interfaces})
+        level_to_interfaces = {level: [] for level in levels}
+
+        for interface in interfaces:
+            level_to_interfaces[interface.level].append(interface)
+
+        return MultiLevel(level_to_interfaces.items())
+
+    def _create_name_index(self) -> dict[str, HardwareInterface]:
+        """Creates an index of hardware interface names to interface objects."""
+        name_index = {}
+        for interfaces in self._interfaces.values():
+            for interface in interfaces:
+                name_index[interface.name] = interface
+        return name_index
+
+    def _select_interface(self, level: int) -> str:
+        """Selects a hardware interface for a job based on the level and the number of jobs
+        assigned to each interface."""
 
         with self._lock:
-            matching_interfaces = [interface for interface in self._interfaces if
-                                   interface.level == level]
+            matching_interfaces = self._interfaces.get(level, None)
 
             if not matching_interfaces:
                 raise ValueError(f"No interfaces found for level {level}")
 
-            interface_tag = min(
-                matching_interfaces, key=lambda interface: self._interface_job_counts[interface.tag]
-            ).tag
+            interface_name = min(
+                matching_interfaces, key=lambda interface: self._interface_job_monitor_counts[interface.name]
+            ).name
 
-            self._interface_job_counts[interface_tag] += 1
-
-            return interface_tag
-
-    def _deallocate_interface(self, interface_tag: str):
-        """Deallocates a hardware interface by decrementing the number of jobs assigned to it."""
-        with self._lock:
-            self._interface_job_counts[interface_tag] -= 1
+            return interface_name
 
     def cancel(self, job_id: JobId) -> Job:
         """Cancels a job with the given ID.
