@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Union, Optional
+from typing import Optional, Union
 
 from exauq.core.modelling import Input
 from exauq.utilities.string_validation import validate_interface_name
@@ -73,7 +73,14 @@ class Job:
     interface_name : Optional[str]
         (Read-only) The interface name of the job.
     """
-    def __init__(self, id_: Union[JobId, str, int], data: Input, level: int = 1, interface_name: Optional[str] = None) -> None:
+
+    def __init__(
+        self,
+        id_: Union[JobId, str, int],
+        data: Input,
+        level: int = 1,
+        interface_name: Optional[str] = None,
+    ) -> None:
         self._id = self._parse_id(id_)
         self._data = self._validate_data(data)
         self._level = self._validate_level(level)
