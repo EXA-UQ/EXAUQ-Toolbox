@@ -86,13 +86,16 @@ class HardwareInterface(ABC):
     such as supercomputers, GPU clusters, servers, personal laptops, or even potatoes!
     Whether the hardware is local or remote is also abstracted away by this interface.
 
-    The goal is to provide a unified way to submit jobs, query job status, fetch job output,
-    and cancel jobs across all types of hardware resources. This enables
-    writing hardware-agnostic code for running simulations or performing other computational tasks.
+    The goal is to provide a unified way to submit jobs, query job status, fetch job
+    output, and cancel jobs across all types of hardware resources. This enables
+    writing hardware-agnostic code for running simulations or performing other
+    computational tasks.
 
-    The class also includes two attributes: `level` and `name`. `level` is an integer that
-    represents the level of the hardware interface, and `name` is a string that can be used
-    to name or label the hardware interface.
+    Instances of this class include two attributes: `level` and `name`. `level` is an
+    integer that represents the level of the hardware interface, and `name` is a string
+    that can be used to name or label the hardware interface. The level can indicate
+    the complexity or hierarchy of the interface, and the name is typically expected to
+    be unique amongst interfaces.
 
     Implementations should provide the following methods:
     - submit_job
