@@ -170,14 +170,14 @@ class SimulationsLog(object):
         self._output_key = "Output"
         self._job_status_key = "Job_Status"
         self._job_level_key = "Job_Level"
-        self._interface_tag_key = "Interface_Tag"
+        self._interface_name_key = "Interface_Name"
         self._input_keys = tuple(f"Input_{i}" for i in range(1, self._input_dim + 1))
         self._log_file_header = self._input_keys + (
             self._output_key,
             self._job_id_key,
             self._job_status_key,
             self._job_level_key,
-            self._interface_tag_key,
+            self._interface_name_key,
         )
         self._log_file = self._initialise_log_file(file)
         self._simulations_db = self._make_db(self._log_file, self._log_file_header)
@@ -246,9 +246,9 @@ class SimulationsLog(object):
         """Get the level of a job from a database record"""
         return int(record[self._job_level_key])
 
-    def _get_interface_tag(self, record: Record) -> str:
+    def _get_interface_name(self, record: Record) -> str:
         """Get the interface tag of a job from a database record"""
-        return record[self._interface_tag_key]
+        return record[self._interface_name_key]
 
     def get_simulations(self) -> tuple[Simulation]:
         """
@@ -341,7 +341,7 @@ class SimulationsLog(object):
                 self._job_id_key: str(job_id),
                 self._job_status_key: job_status.value,
                 self._job_level_key: str(job_level),
-                self._interface_tag_key: interface_tag or "",
+                self._interface_name_key: interface_tag or "",
             }
 
             self._simulations_db.create(record)
@@ -424,7 +424,7 @@ class SimulationsLog(object):
                 lambda x: self._get_job_status(x) in non_terminal_statuses
             )
             return tuple(
-                Job(self._get_job_id(record), self._extract_simulation(record)[0], self._get_job_level(record), self._get_interface_tag(record))
+                Job(self._get_job_id(record), self._extract_simulation(record)[0], self._get_job_level(record), self._get_interface_name(record))
                 for record in pending_records
             )
 
