@@ -655,17 +655,55 @@ def compute_multi_level_loo_prediction(
             f"{mlgp.levels} from 'mlgp'."
         )
 
+    # # Make leave-one-out prediction at supplied level
+    loo_gp = loo_mlgp[level] if loo_mlgp is not None else None
+
+    # Get mean and variance contributions at supplied level
+    level_contribution = compute_loo_prediction_level_term(
+        mlgp, level, leave_out_idx, loo_gp
+    )
+
+    # Get mean and variance contributions at other levels
+    other_levels_contribution = compute_loo_prediction_other_levels_term(
+        mlgp, level, leave_out_idx
+    )
+
+    # Aggregate predictions across levels
+    return GaussianProcessPrediction(
+        level_contribution.estimate + other_levels_contribution.estimate,
+        level_contribution.variance + other_levels_contribution.variance,
+    )
+
+
+def compute_loo_prediction_level_term(
+    mlgp: MultiLevelGaussianProcess,
+    level: int,
+    leave_out_idx: int,
+    loo_gp: Optional[AbstractGaussianProcess] = None,
+) -> GaussianProcessPrediction:
     # Get left-out training data
     loo_input = mlgp[level].training_data[leave_out_idx].input
     loo_output = mlgp[level].training_data[leave_out_idx].output
 
     # Make leave-one-out prediction at supplied level
-    loo_gp = loo_mlgp[level] if loo_mlgp is not None else None
-    loo_prediction = compute_loo_gp(mlgp[level], leave_out_idx, loo_gp).predict(loo_input)
+    loo_prediction = compute_loo_gp(mlgp[level], leave_out_idx, loo_gp=loo_gp).predict(
+        loo_input
+    )
 
     # Get mean and variance contributions at supplied level
     mean_at_level = mlgp.coefficients[level] * (loo_prediction.estimate - loo_output)
     variance_at_level = (mlgp.coefficients[level] ** 2) * loo_prediction.variance
+
+    return GaussianProcessPrediction(mean_at_level, variance_at_level)
+
+
+def compute_loo_prediction_other_levels_term(
+    mlgp: MultiLevelGaussianProcess,
+    level: int,
+    leave_out_idx: int,
+) -> GaussianProcessPrediction:
+    # Get left-out training inputs
+    loo_input = mlgp[level].training_data[leave_out_idx].input
 
     # Get mean and variance contributions at other levels
     other_level_coeffs = [mlgp.coefficients[j] for j in mlgp.levels if not j == level]
@@ -681,10 +719,7 @@ def compute_multi_level_loo_prediction(
         for coeff, prediction in zip(other_level_coeffs, other_level_predictions)
     )
 
-    # Aggregate predictions across levels
-    return GaussianProcessPrediction(
-        mean_at_level + mean_other_levels, variance_at_level + variance_other_levels
-    )
+    return GaussianProcessPrediction(mean_other_levels, variance_other_levels)
 
 
 def _zero_mean_prediction(

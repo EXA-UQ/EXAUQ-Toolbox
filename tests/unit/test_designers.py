@@ -17,6 +17,8 @@ from exauq.core.designers import (
     SimpleDesigner,
     compute_loo_errors_gp,
     compute_loo_gp,
+    compute_loo_prediction_level_term,
+    compute_loo_prediction_other_levels_term,
     compute_multi_level_loo_error_data,
     compute_multi_level_loo_errors_gp,
     compute_multi_level_loo_prediction,
@@ -25,6 +27,7 @@ from exauq.core.designers import (
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
+    GaussianProcessPrediction,
     Input,
     LevelTagged,
     MultiLevel,
@@ -877,6 +880,44 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             mock.assert_called_once_with(
                 self.gp, self.domain, loo_errors_gp=loo_errors_gp
             )
+
+
+class TestComputeMultiLevelLooPrediction(ExauqTestCase):
+    def setUp(self) -> None:
+        self.domain = SimulatorDomain([(0, 1)])
+        self.training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
+                3: (TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.6), 1)),
+            }
+        )
+        self.mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP() for _ in self.training_data]
+        )
+        self.mlgp.fit(self.training_data)
+
+    def test_prediction_combination_loo_prediction_at_level_and_at_other_levels(self):
+        """The overall multi-level leave-one-out (LOO) prediction for a given level is a
+        sum of a term for the level and a term for the other levels."""
+
+        for level in self.mlgp.levels:
+            for leave_out_idx, _ in enumerate(self.mlgp.training_data[level]):
+                level_term = compute_loo_prediction_level_term(
+                    self.mlgp, level, leave_out_idx
+                )
+                other_term = compute_loo_prediction_other_levels_term(
+                    self.mlgp, level, leave_out_idx
+                )
+                expected = GaussianProcessPrediction(
+                    level_term.estimate + other_term.estimate,
+                    level_term.variance + other_term.variance,
+                )
+
+                loo_prediction = compute_multi_level_loo_prediction(
+                    self.mlgp, level, leave_out_idx
+                )
+                self.assertEqual(expected, loo_prediction)
 
 
 class TestComputeMultiLevelLooErrorData(ExauqTestCase):
