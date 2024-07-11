@@ -628,7 +628,7 @@ class JobManager:
         self._interfaces = self._init_multi_level_interfaces(interfaces)
         self._name_index = self._create_name_index()
         self._polling_interval = polling_interval
-        self._jobs = []
+        self._monitored_jobs = []
         self._lock = Lock()
         self._thread = None
         self._shutdown_event = Event()
@@ -637,7 +637,7 @@ class JobManager:
 
         self._job_strategies = self._init_job_strategies()
 
-        self._interface_job_counts = {interface.tag: 0 for interface in self._interfaces}
+        self._interface_job_monitor_counts = {interface.name: 0 for interface in interfaces}
 
         self.monitor(self._simulations_log.get_non_terminated_jobs())
         if wait_for_pending and self._thread is not None:
@@ -759,7 +759,7 @@ class JobManager:
             If the job has already terminated and so cannot be cancelled.
         """
         with self._lock:
-            jobs_to_cancel = [job for job in self._jobs if job.id == job_id]
+            jobs_to_cancel = [job for job in self._monitored_jobs if job.id == job_id]
 
         if not jobs_to_cancel:
             # If here then the job is no longer being monitored, i.e. has terminated, so
@@ -824,7 +824,9 @@ class JobManager:
         """
 
         with self._lock:
-            self._jobs.extend(jobs)
+            self._monitored_jobs.extend(jobs)
+            for job in jobs:
+                self._interface_job_monitor_counts[job.interface_name] += 1
         if self._thread is None or not self._thread.is_alive():
             self._shutdown_event.clear()
             self._thread = Thread(target=self._monitor_jobs)
@@ -833,12 +835,12 @@ class JobManager:
     def _monitor_jobs(self):
         """Continuously monitor the status of jobs and handle their completion."""
 
-        while self._jobs and not self._shutdown_event.is_set():
+        while self._monitored_jobs and not self._shutdown_event.is_set():
             if self._shutdown_event.wait(timeout=self._polling_interval):
                 return
 
             with self._lock:
-                jobs = self._jobs[:]
+                jobs = self._monitored_jobs[:]
 
             for job in jobs:
                 if self._shutdown_event.is_set():
@@ -907,7 +909,10 @@ class JobManager:
         self._deallocate_interface(job.interface_tag)
 
         with self._lock:
-            self._jobs.remove(job)
+            if job in self._monitored_jobs:
+                self._monitored_jobs.remove(job)
+                if job.interface_name in self._interface_job_monitor_counts:
+                    self._interface_job_monitor_counts[job.interface_name] -= 1
 
     def shutdown(self):
         """
