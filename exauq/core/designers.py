@@ -640,14 +640,21 @@ def compute_multi_level_loo_prediction(
     mlgp: MultiLevelGaussianProcess,
     level: int,
     leave_out_idx: int,
-    loo_gp: Optional[AbstractGaussianProcess] = None,
+    loo_mlgp: Optional[AbstractGaussianProcess] = None,
 ) -> GaussianProcessPrediction:
+
+    if loo_mlgp is not None and not isinstance(loo_mlgp, MultiLevelGaussianProcess):
+        raise TypeError(
+            f"Expected 'loo_mlgp' to be of type {MultiLevelGaussianProcess}, but "
+            f"received {type(loo_mlgp)} instead."
+        )
 
     # Get left-out training data
     loo_input = mlgp[level].training_data[leave_out_idx].input
     loo_output = mlgp[level].training_data[leave_out_idx].output
 
     # Make leave-one-out prediction at supplied level
+    loo_gp = loo_mlgp[level] if loo_mlgp is not None else None
     loo_prediction = compute_loo_gp(mlgp[level], leave_out_idx, loo_gp).predict(loo_input)
 
     # Get mean and variance contributions at supplied level
@@ -690,14 +697,14 @@ def _zero_mean_prediction(
 
 
 def compute_multi_level_loo_error_data(
-    mlgp: MultiLevelGaussianProcess, loo_gp: Optional[AbstractGaussianProcess] = None
+    mlgp: MultiLevelGaussianProcess, loo_mlgp: Optional[AbstractGaussianProcess] = None
 ) -> MultiLevel[tuple[TrainingDatum]]:
 
     error_training_data = MultiLevel([[] for _ in mlgp.levels])
     for level in mlgp.levels:
         for leave_out_index, datum in enumerate(mlgp[level].training_data):
             loo_prediction = compute_multi_level_loo_prediction(
-                mlgp, level, leave_out_index, loo_gp=loo_gp
+                mlgp, level, leave_out_index, loo_mlgp=loo_mlgp
             )
             error_training_data[level].append(
                 TrainingDatum(datum.input, loo_prediction.nes_error(datum.output))
@@ -708,13 +715,13 @@ def compute_multi_level_loo_error_data(
 def compute_multi_level_loo_errors_gp(
     mlgp: MultiLevelGaussianProcess,
     domain: SimulatorDomain,
-    loo_gp: Optional[AbstractGaussianProcess] = None,
+    loo_mlgp: Optional[AbstractGaussianProcess] = None,
     output_mlgp: Optional[MultiLevelGaussianProcess] = None,
 ):
     # TODO: validate output_mlgp has same levels as mlgp
 
     # Create LOO errors for each level
-    error_training_data = compute_multi_level_loo_error_data(mlgp, loo_gp=loo_gp)
+    error_training_data = compute_multi_level_loo_error_data(mlgp, loo_mlgp=loo_mlgp)
 
     # Train GP on the LOO errors
     ml_errors_gp = output_mlgp if output_mlgp is not None else copy.deepcopy(mlgp)
@@ -729,7 +736,7 @@ def compute_multi_level_loo_samples(
     domain: SimulatorDomain,
     costs: MultiLevel[Real],
     batch_size: int = 1,
-    loo_gp: Optional[AbstractGaussianProcess] = None,
+    loo_mlgp: Optional[AbstractGaussianProcess] = None,
 ) -> tuple[LevelTagged[Input]]:
     """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
 
@@ -772,7 +779,7 @@ def compute_multi_level_loo_samples(
 
     # Create LOO errors GP for each level
     ml_errors_gp = compute_multi_level_loo_errors_gp(
-        mlgp, domain, loo_gp=loo_gp, output_mlgp=None
+        mlgp, domain, loo_mlgp=loo_mlgp, output_mlgp=None
     )
 
     # Get the PEI calculator for each level
