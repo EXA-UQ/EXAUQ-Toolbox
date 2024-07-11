@@ -693,6 +693,8 @@ def _zero_mean_prediction(
     """Make a prediction at an input with a GP having zero mean and variance equal to other."""
     training_inputs = [datum.input for datum in gp.training_data]
     training_outputs = np.array([[datum.output] for datum in gp.training_data])
+
+    # TODO: catch numpy.linalg.LinAlgError: Singular matrix errors?
     mean = float(
         gp.covariance_matrix([x])
         @ np.linalg.inv(gp.covariance_matrix(training_inputs))
@@ -705,6 +707,16 @@ def _zero_mean_prediction(
 def compute_multi_level_loo_error_data(
     mlgp: MultiLevelGaussianProcess, loo_mlgp: Optional[MultiLevelGaussianProcess] = None
 ) -> MultiLevel[tuple[TrainingDatum]]:
+
+    training_data_counts = mlgp.training_data.map(lambda level, data: len(data))
+    if levels_not_enough_data := {
+        str(level) for level, count in training_data_counts.items() if count < 2
+    }:
+        bad_levels = ", ".join(sorted(levels_not_enough_data))
+        raise ValueError(
+            f"Could not perform leave-one-out calculation: levels {bad_levels} not "
+            "trained on at least two training data."
+        )
 
     error_training_data = MultiLevel([[] for _ in mlgp.levels])
     for level in mlgp.levels:
