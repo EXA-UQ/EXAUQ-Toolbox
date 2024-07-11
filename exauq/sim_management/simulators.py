@@ -1143,9 +1143,6 @@ class PendingSubmitJobStrategy(JobStrategy):
                 retry_attempts += 1
 
                 if retry_attempts == max_retries:
-                    print(
-                        f"Max retry attempts reached for job {job.id}. Marking as FAILED_SUBMIT."
-                    )
                     job_manager.simulations_log.update_job_status(
                         str(job.id), JobStatus.FAILED_SUBMIT
                     )
@@ -1155,9 +1152,6 @@ class PendingSubmitJobStrategy(JobStrategy):
                     initial_delay * (2**retry_attempts), max_delay
                 )  # Exponential backoff
                 jitter = random.uniform(0, 0.1 * delay)
-                print(
-                    f"Failed to submit job {job.id}: {e}. Retrying in {delay + jitter:.2f} seconds..."
-                )
                 sleep(delay + jitter)
 
 
@@ -1224,18 +1218,12 @@ class PendingCancelJobStrategy(JobStrategy):
                 retry_attempts += 1
 
                 if retry_attempts == max_retries:
-                    print(
-                        f"Max retry attempts reached for job {job.id}. Aborting cancellation."
-                    )
                     break
 
                 delay = min(
                     initial_delay * (2**retry_attempts), max_delay
                 )  # Exponential backoff
                 jitter = random.uniform(0, 0.1 * delay)
-                print(
-                    f"Failed to cancel job {job.id}: {e}. Retrying in {delay + jitter:.2f} seconds..."
-                )
                 sleep(delay + jitter)
 
 
