@@ -103,6 +103,7 @@ class HardwareInterface(ABC):
     - get_job_output
     - cancel_job
     """
+
     def __init__(self):
         self._level = 1
         self._name = None
@@ -120,7 +121,9 @@ class HardwareInterface(ABC):
     @level.setter
     def level(self, value: int):
         if not isinstance(value, int):
-            raise TypeError(f"Expected level ({value}) to be of type int. Got {type(value)} instead.")
+            raise TypeError(
+                f"Expected level ({value}) to be of type int. Got {type(value)} instead."
+            )
 
         self._level = value
 
