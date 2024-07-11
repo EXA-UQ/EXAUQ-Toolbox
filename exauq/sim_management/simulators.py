@@ -584,37 +584,54 @@ class JobManager:
     ----------
     simulations_log : SimulationsLog
         A log for recording and retrieving details of simulation jobs.
-    interface : HardwareInterface
-        An abstract interface to the hardware or simulation environment where jobs
+    interfaces : list[HardwareInterface]
+        A list of abstract interfaces to the hardware or simulation environment where jobs
         are executed.
     polling_interval : int, optional
         Time interval, in seconds, for polling job statuses during monitoring. Defaults to 10 seconds.
     wait_for_pending : bool, optional
         Specifies whether the manager should wait for all pending jobs to reach a
-        conclusive status (e.g., COMPLETED or FAILED) upon initialization. Defaults to True.
+        conclusive status (e.g., COMPLETED or FAILED) upon initialization. Defaults to False.
 
     Methods
     -------
-    submit(x: Input)
-        Submits a new job based on the provided simulation input. Handles initial job
-        logging and status setting to PENDING_SUBMIT.
+    submit(x: Input, level: int = 1) -> Job
+        Submits a new simulation job based on the provided simulation input. Handles initial job
+        logging and sets status to PENDING_SUBMIT.
     monitor(jobs: list[Job])
-        Initiates or continues monitoring of job statuses in a separate background thread.
+        Initiates or resumes monitoring of job statuses in a separate background thread.
+    cancel(job_id: JobId) -> Job
+        Cancels a job with the given ID, if it has not yet reached a terminal status.
+    get_interface(interface_name: str) -> HardwareInterface
+        Retrieves the hardware interface with the given name.
+    remove_job(job: Job)
+        Removes a job from the internal list of jobs being monitored.
+    shutdown()
+        Cleanly terminates the monitoring thread and releases all resources.
+    simulations_log : property
+        Provides read-only access to the simulations log object for job recording and
+        retrieval.
 
     Raises
     ------
     SimulationsLogLookupError
         If operations on the simulations log encounter inconsistencies, such as
         missing records or duplicate job IDs.
+    UnknownJobIdError
+        If an attempt is made to cancel a job that does not exist in the simulations log.
+    InvalidJobStatusError
+        If an attempt is made to cancel a job that has already reached a terminal status.
 
     Examples
     --------
     >>> job_manager = JobManager(simulations_log, hardware_interface)
     >>> input_data = Input(0.0, 1.0)
-    >>> job_manager.submit(input_data)
+    >>> job = job_manager.submit(input_data)
+    >>> job_manager.shutdown()
 
-    The job manager will handle the submission, monitor the job's progress, and update
-    its status accordingly in the simulations log.
+    The job manager handles the submission, monitors the job's progress, updates
+    its status accordingly in the simulations log, and ensures proper shutdown of
+    monitoring threads.
     """
 
     def __init__(
