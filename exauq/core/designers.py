@@ -640,13 +640,19 @@ def compute_multi_level_loo_prediction(
     mlgp: MultiLevelGaussianProcess,
     level: int,
     leave_out_idx: int,
-    loo_mlgp: Optional[AbstractGaussianProcess] = None,
+    loo_mlgp: Optional[MultiLevelGaussianProcess] = None,
 ) -> GaussianProcessPrediction:
 
     if loo_mlgp is not None and not isinstance(loo_mlgp, MultiLevelGaussianProcess):
         raise TypeError(
             f"Expected 'loo_mlgp' to be of type {MultiLevelGaussianProcess}, but "
             f"received {type(loo_mlgp)} instead."
+        )
+
+    if loo_mlgp is not None and not mlgp.levels == loo_mlgp.levels:
+        raise ValueError(
+            f"Expected the levels {loo_mlgp.levels} of 'loo_mlgp' to match the levels "
+            f"{mlgp.levels} from 'mlgp'."
         )
 
     # Get left-out training data
@@ -697,7 +703,7 @@ def _zero_mean_prediction(
 
 
 def compute_multi_level_loo_error_data(
-    mlgp: MultiLevelGaussianProcess, loo_mlgp: Optional[AbstractGaussianProcess] = None
+    mlgp: MultiLevelGaussianProcess, loo_mlgp: Optional[MultiLevelGaussianProcess] = None
 ) -> MultiLevel[tuple[TrainingDatum]]:
 
     error_training_data = MultiLevel([[] for _ in mlgp.levels])
@@ -715,10 +721,15 @@ def compute_multi_level_loo_error_data(
 def compute_multi_level_loo_errors_gp(
     mlgp: MultiLevelGaussianProcess,
     domain: SimulatorDomain,
-    loo_mlgp: Optional[AbstractGaussianProcess] = None,
+    loo_mlgp: Optional[MultiLevelGaussianProcess] = None,
     output_mlgp: Optional[MultiLevelGaussianProcess] = None,
 ):
-    # TODO: validate output_mlgp has same levels as mlgp
+
+    if output_mlgp is not None and not mlgp.levels == output_mlgp.levels:
+        raise ValueError(
+            f"Expected the levels {output_mlgp.levels} of 'output_mlgp' to match the levels "
+            f"{mlgp.levels} from 'mlgp'."
+        )
 
     # Create LOO errors for each level
     error_training_data = compute_multi_level_loo_error_data(mlgp, loo_mlgp=loo_mlgp)
@@ -736,7 +747,7 @@ def compute_multi_level_loo_samples(
     domain: SimulatorDomain,
     costs: MultiLevel[Real],
     batch_size: int = 1,
-    loo_mlgp: Optional[AbstractGaussianProcess] = None,
+    loo_mlgp: Optional[MultiLevelGaussianProcess] = None,
 ) -> tuple[LevelTagged[Input]]:
     """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
 

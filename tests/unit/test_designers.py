@@ -893,6 +893,40 @@ class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
         )
         self.mlgp.fit(self.training_data)
 
+    def test_incompatible_levels_error(self):
+        """A ValueError is raised if the levels for the supplied multi-level GPs are
+        not all the same."""
+
+        other_mlgp = MultiLevelGaussianProcess(
+            {
+                1: fakes.WhiteNoiseGP(),
+                3: fakes.WhiteNoiseGP(),
+                4: fakes.WhiteNoiseGP(),
+            }
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected the levels {other_mlgp.levels} of 'loo_mlgp' to match the levels "
+                f"{self.mlgp.levels} from 'mlgp'."
+            ),
+        ):
+            _ = compute_multi_level_loo_errors_gp(
+                self.mlgp, self.domain, loo_mlgp=other_mlgp
+            )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected the levels {other_mlgp.levels} of 'output_mlgp' to match the levels "
+                f"{self.mlgp.levels} from 'mlgp'."
+            ),
+        ):
+            _ = compute_multi_level_loo_errors_gp(
+                self.mlgp, self.domain, output_mlgp=other_mlgp
+            )
+
     def test_returned_multi_level_gp_trained_on_loo_errors(self):
         """The multi-level GP returned is trained on multi-level data consisting
         of the normalised expectation squared leave-one-out errors for each of the
