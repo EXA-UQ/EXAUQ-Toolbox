@@ -289,7 +289,7 @@ class SimulationsLog(object):
         x: Input,
         job_id: Union[str, JobId, int],
         job_status: JobStatus = JobStatus.PENDING_SUBMIT,
-        job_level: int = 0,
+        job_level: int = 1,
         interface_tag: Optional[str] = None,
     ) -> None:
         """
@@ -642,7 +642,7 @@ class JobManager:
         if wait_for_pending and self._thread is not None:
             self._thread.join()
 
-    def submit(self, x: Input, level: int = 0) -> Job:
+    def submit(self, x: Input, level: int = 1) -> Job:
         """
         Submits a new simulation job. This method creates a job with a unique ID,
         logs it with a PENDING_SUBMIT status, and schedules it for submission through the appropriate
