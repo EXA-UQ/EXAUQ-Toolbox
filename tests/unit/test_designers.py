@@ -884,7 +884,6 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
 
 class TestComputeMultiLevelLooPrediction(ExauqTestCase):
     def setUp(self) -> None:
-        self.domain = SimulatorDomain([(0, 1)])
         self.training_data = MultiLevel(
             {
                 1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
@@ -892,10 +891,6 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
                 3: (TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.6), 1)),
             }
         )
-        self.mlgp = MultiLevelGaussianProcess(
-            [fakes.WhiteNoiseGP() for _ in self.training_data]
-        )
-        self.mlgp.fit(self.training_data)
 
     @staticmethod
     def compute_loo_prediction_level_term(
@@ -909,8 +904,8 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
         loo_prediction = compute_loo_gp(mlgp[level], leave_out_idx).predict(loo_input)
 
         # Get mean and variance contributions at supplied level
-        mean_at_level = mlgp.coefficients[level] * (loo_prediction.estimate - loo_output)
-        variance_at_level = (mlgp.coefficients[level] ** 2) * loo_prediction.variance
+        mean_at_level = loo_prediction.estimate - loo_output
+        variance_at_level = loo_prediction.variance
 
         return GaussianProcessPrediction(mean_at_level, variance_at_level)
 
@@ -924,42 +919,87 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
         loo_input = mlgp[level].training_data[leave_out_idx].input
 
         # Get mean and variance contributions at other levels
-        other_level_coeffs = [mlgp.coefficients[j] for j in mlgp.levels if not j == level]
         other_level_predictions = [
             _zero_mean_prediction(mlgp[j], loo_input)
             for j in mlgp.levels
             if not j == level
         ]
-        mean_other_levels = sum(
-            coeff * prediction.estimate
-            for coeff, prediction in zip(other_level_coeffs, other_level_predictions)
-        )
-        variance_other_levels = sum(
-            (coeff**2) * prediction.variance
-            for coeff, prediction in zip(other_level_coeffs, other_level_predictions)
-        )
-
-        return GaussianProcessPrediction(mean_other_levels, variance_other_levels)
+        return [
+            GaussianProcessPrediction(
+                prediction.estimate,
+                prediction.variance,
+            )
+            for prediction in other_level_predictions
+        ]
 
     def test_prediction_combination_loo_prediction_at_level_and_at_other_levels(self):
         """The overall multi-level leave-one-out (LOO) prediction for a given level is a
         sum of a term for the level and a term for the other levels."""
 
-        for level in self.mlgp.levels:
-            for leave_out_idx, _ in enumerate(self.mlgp.training_data[level]):
+        mlgp = MultiLevelGaussianProcess(
+            [
+                fakes.WhiteNoiseGP(prior_mean=level, noise_level=(11 * level))
+                for level in self.training_data
+            ]
+        )
+        mlgp.fit(self.training_data)
+
+        for level in mlgp.levels:
+            for leave_out_idx, _ in enumerate(mlgp.training_data[level]):
                 level_term = self.compute_loo_prediction_level_term(
-                    self.mlgp, level, leave_out_idx
+                    mlgp, level, leave_out_idx
                 )
-                other_term = self.compute_loo_prediction_other_levels_term(
-                    self.mlgp, level, leave_out_idx
+                other_terms = self.compute_loo_prediction_other_levels_term(
+                    mlgp, level, leave_out_idx
                 )
+
                 expected = GaussianProcessPrediction(
-                    level_term.estimate + other_term.estimate,
-                    level_term.variance + other_term.variance,
+                    level_term.estimate + sum(term.estimate for term in other_terms),
+                    level_term.variance + sum(term.variance for term in other_terms),
                 )
 
                 loo_prediction = compute_multi_level_loo_prediction(
-                    self.mlgp, level, leave_out_idx
+                    mlgp, level, leave_out_idx
+                )
+                self.assertEqual(expected, loo_prediction)
+
+    def test_sum_weighted_by_coefficients(self):
+        """The overall multi-level leave-one-out (LOO) prediction for a given level is a
+        weighted sum of a terms, with the weights coming from the coefficients for the
+        multi-level GP."""
+
+        coefficients = [1, 10, 100]
+        mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP() for _ in self.training_data],
+            coefficients=coefficients,
+        )
+        mlgp.fit(self.training_data)
+
+        for level in mlgp.levels:
+            for leave_out_idx, _ in enumerate(mlgp.training_data[level]):
+                level_term = self.compute_loo_prediction_level_term(
+                    mlgp, level, leave_out_idx
+                )
+                other_terms = self.compute_loo_prediction_other_levels_term(
+                    mlgp, level, leave_out_idx
+                )
+                all_terms = (
+                    other_terms[: level - 1] + [level_term] + other_terms[level - 1 :]
+                )
+
+                expected = GaussianProcessPrediction(
+                    estimate=sum(
+                        coeff * term.estimate
+                        for coeff, term in zip(coefficients, all_terms)
+                    ),
+                    variance=sum(
+                        (coeff**2) * term.variance
+                        for coeff, term in zip(coefficients, all_terms)
+                    ),
+                )
+
+                loo_prediction = compute_multi_level_loo_prediction(
+                    mlgp, level, leave_out_idx
                 )
                 self.assertEqual(expected, loo_prediction)
 
