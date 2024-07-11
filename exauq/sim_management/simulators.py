@@ -683,7 +683,7 @@ class JobManager:
         x : Input
             The input data for the simulation job.
         level : int, optional
-            The level of the job. Defaults to 0.
+            The level of the job. Defaults to 1.
 
         Returns
         -------
