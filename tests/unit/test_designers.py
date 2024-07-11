@@ -959,6 +959,18 @@ class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
         self.assertEqual(training_data, self.mlgp.training_data)
         self.assertEqual(hyperparameters, self.mlgp.fit_hyperparameters)
 
+    def test_output_and_input_multi_level_gps_do_not_share_state(self):
+        """In the default case, the original multi-level GP and the created multi-level
+        LOO errors GP do not share any state."""
+
+        self.mlgp.foo = [
+            "foo"
+        ]  # add an extra attribute to check for shared state with output
+
+        errors_gp = compute_multi_level_loo_errors_gp(self.mlgp, self.domain)
+
+        self.assertIsNot(errors_gp.foo, self.mlgp.foo)
+
 
 class TestComputeMultiLevelLooSamples(ExauqTestCase):
     @staticmethod
