@@ -12,6 +12,7 @@ from paramiko.ssh_exception import AuthenticationException, SSHException
 
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
+from exauq.utilities.string_validation import validate_interface_name
 
 
 class JobStatus(Enum):
@@ -89,9 +90,9 @@ class HardwareInterface(ABC):
     and cancel jobs across all types of hardware resources. This enables
     writing hardware-agnostic code for running simulations or performing other computational tasks.
 
-    The class also includes two attributes: `level` and `tag`. `level` is an integer that
-    represents the level of the hardware interface, and `tag` is a string that can be used
-    to tag or label the hardware interface.
+    The class also includes two attributes: `level` and `name`. `level` is an integer that
+    represents the level of the hardware interface, and `name` is a string that can be used
+    to name or label the hardware interface.
 
     Implementations should provide the following methods:
     - submit_job
@@ -100,8 +101,8 @@ class HardwareInterface(ABC):
     - cancel_job
     """
     def __init__(self):
-        self._level = 0
-        self._tag = None
+        self._level = 1
+        self._name = None
 
     @property
     def level(self) -> int:
@@ -109,9 +110,9 @@ class HardwareInterface(ABC):
         return self._level
 
     @property
-    def tag(self) -> Optional[str]:
-        """(Read-only) The tag of the hardware interface."""
-        return self._tag
+    def name(self) -> Optional[str]:
+        """(Read-only) The name of the hardware interface."""
+        return self._name
 
     @level.setter
     def level(self, value: int):
@@ -120,12 +121,9 @@ class HardwareInterface(ABC):
 
         self._level = value
 
-    @tag.setter
-    def tag(self, value: str):
-        if not isinstance(value, str):
-            raise TypeError(f"Expected tag ({value}) to be of type str. Got {type(value)} instead.")
-
-        self._tag = value
+    @name.setter
+    def name(self, value: str):
+        self._name = validate_interface_name(value)
 
     @abstractmethod
     def submit_job(self, job: Job):
