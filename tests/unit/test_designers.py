@@ -1026,7 +1026,27 @@ class TestComputeLooPrediction(ExauqTestCase):
 
 
 class TestComputeZeroMeanPrediction(ExauqTestCase):
+    def test_no_training_data_error(self):
+        """A ValueError is raised if the supplied GP has not been trained on any data."""
+
+        gp = fakes.WhiteNoiseGP()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "Cannot calculate zero-mean prediction: 'gp' hasn't been trained on any data."
+            ),
+        ):
+            _ = compute_zero_mean_prediction(gp, Input(1))
+
     def test_calculation_mean_and_variance(self):
+        """The mean of the returned prediction at a given input ``x`` is given by
+        ``cov(x) * K_inv * y`` where  ``cov(x)`` is the covariance matrix at the point
+        ``x``, ``K_inv`` is the inverse of the covariance matrix for the GP's training
+        data and ``y`` is the vector of simulator outputs in the training data. The
+        variance of the returned prediction is equal to the predictive variance of the GP
+        at ``x``."""
+
         training_data = (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), -1))
         prior_mean = 10
         noise_level = 100  # same as process variance

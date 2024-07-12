@@ -688,12 +688,20 @@ def compute_zero_mean_prediction(
     training_inputs = [datum.input for datum in gp.training_data]
     training_outputs = np.array([[datum.output] for datum in gp.training_data])
 
-    # TODO: catch numpy.linalg.LinAlgError: Singular matrix errors?
-    mean = float(
-        gp.covariance_matrix([x])
-        @ np.linalg.inv(gp.covariance_matrix(training_inputs))
-        @ training_outputs
-    )
+    try:
+        mean = float(
+            gp.covariance_matrix([x])
+            @ np.linalg.inv(gp.covariance_matrix(training_inputs))
+            @ training_outputs
+        )
+    except ValueError:
+        if not training_inputs:
+            raise ValueError(
+                "Cannot calculate zero-mean prediction: 'gp' hasn't been trained on any data."
+            )
+    except np.linalg.LinAlgError as e:
+        raise ValueError(f"Cannot calculate zero-mean prediction: {e}")
+
     variance = gp.predict(x).variance
     return GaussianProcessPrediction(mean, variance)
 
