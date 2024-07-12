@@ -744,7 +744,7 @@ class JobManager:
         for interface in interfaces:
             level_to_interfaces[interface.level].append(interface)
 
-        return MultiLevel(level_to_interfaces.items())
+        return MultiLevel(level_to_interfaces)
 
     def _create_name_index(self) -> dict[str, HardwareInterface]:
         """Creates an index of hardware interface names to interface objects."""
