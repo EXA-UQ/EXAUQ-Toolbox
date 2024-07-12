@@ -161,6 +161,7 @@ def compute_loo_errors_gp(
     gp_e = loo_errors_gp if loo_errors_gp is not None else copy.deepcopy(gp)
 
     # Note: the following is a simplification of sqrt(-0.5 / log(10 ** (-8))) from paper
+    # TODO: use function below
     bound_scale = 0.25 / math.sqrt(math.log(10))
     bounds = [(bound_scale * (bnd[1] - bnd[0]), None) for bnd in domain.bounds] + [
         (None, None)
@@ -599,8 +600,8 @@ def compute_single_level_loo_samples(
         Computation of the leave-one-out errors Gaussian process.
     PEICalculator :
         Pseudo-expected improvement calculation.
-    modelling.AbstractGaussianProcess.nes_error :
-        Normalised expected squared errors for Gaussian processes.
+    modelling.GaussianProcessPrediction.nes_error :
+        Normalised expected squared error for a prediction from a Gaussian process.
     utilities.optimisation.maximise :
         Global maximisation over a simulator domain, used on pseudo-expected improvement
         for the LOO errors GP.
@@ -642,6 +643,36 @@ def compute_multi_level_loo_prediction(
     leave_out_idx: int,
     loo_gp: Optional[AbstractGaussianProcess] = None,
 ) -> GaussianProcessPrediction:
+    """Make a prediction from a multi-level leave-one-out (LOO) Gaussian process (GP) at
+    the left out point.
+
+    The multi-level LOO prediction at the left-out simulator input is a sum of
+    predictions made for each level in the given multi-level GP. The contribution at the
+    level containing the left out training datum (defined by `level`) is the prediction
+    made by the LOO GP at the given level in `mlgp` (see ``compute_loo_prediction``). The
+    contributions at the other levels are based on predictions made by the GPs in `mlgp`
+    at these levels under the assumption of a zero prior mean.
+
+    Parameters
+    ----------
+    mlgp : MultiLevelGaussianProcess
+        A multi-level Gaussian process to form the basis for the multi-level LOO GP.
+    level : int
+        The level containing the datum to leave out.
+    leave_out_idx : int
+        The index for the training datum of `mlgp` to leave out, at the level `level`.
+    loo_gp : AbstractGaussianProcess, optional
+        (Default: None) A Gaussian process that is trained on the LOO data and then
+        used to make the prediction for `level` at the left-out simulator input. If
+        ``None`` then a deep copy of the GP at level `level` in `mlgp` will be used
+        instead.
+
+    Returns
+    -------
+    GaussianProcessPrediction
+        The prediction at the left out training input, based on the multi-level LOO GP
+        described above.
+    """
 
     terms = MultiLevel({level: None for level in mlgp.levels})
 
@@ -669,7 +700,36 @@ def compute_multi_level_loo_prediction(
 
 def compute_loo_prediction(
     gp, leave_out_idx, loo_gp: Optional[AbstractGaussianProcess] = None
-):
+) -> GaussianProcessPrediction:
+    """Make a prediction from a leave-one-out (LOO) Gaussian process (GP) at the left out
+    point.
+
+    The LOO Gaussian process (GP) is obtained by training it on all training data from the
+    supplied GP except for one datum (the 'left out' datum). It is trained using the
+    fitted hyperparameters *from the supplied Gaussian process `gp`*.
+
+    By default, the LOO GP used will be a deep copy of `gp` trained on the leave-one-out
+    data. Alternatively, another ``AbstractGaussianProcess`` can be supplied that will be
+    trained on the leave-one-out data. This can be more efficient when repeated
+    calculation of a LOO GP is required.
+
+    Parameters
+    ----------
+    gp : _type_
+        A Gaussian process to form the basis for the LOO GP.
+    leave_out_idx : _type_
+        The index for the training datum of `gp` to leave out. This should be an index
+        of the sequence returned by the ``gp.training_data`` property.
+    loo_gp : AbstractGaussianProcess, optional
+        (Default: None) Another Gaussian process that is trained on the LOO data and then
+        used to make the prediction at the left-out simulator input. If ``None`` then a
+        deep copy of `gp` will be used instead.
+
+    Returns
+    -------
+    GaussianProcessPrediction
+        The prediction of the LOO Gaussian process at the left out simulator input.
+    """
     # Get left-out training data
     loo_input = gp.training_data[leave_out_idx].input
     loo_output = gp.training_data[leave_out_idx].output
@@ -684,7 +744,26 @@ def compute_loo_prediction(
 def compute_zero_mean_prediction(
     gp: AbstractGaussianProcess, x: Input
 ) -> GaussianProcessPrediction:
-    """Make a prediction at an input with a GP having zero mean and variance equal to other."""
+    """Make a prediction at an input based on a Gaussian process but with zero prior mean.
+
+    Parameters
+    ----------
+    gp : AbstractGaussianProcess
+        A Gaussian process.
+    x : Input
+        A simulator input to make the prediction at.
+
+    Returns
+    -------
+    GaussianProcessPrediction
+        The prediction made at `x` by a Gaussian process having the same covariance as
+        `gp` but zero prior mean.
+
+    Raises
+    ------
+    ValueError
+        If `gp` hasn't been trained on any data.
+    """
     training_inputs = [datum.input for datum in gp.training_data]
     training_outputs = np.array([[datum.output] for datum in gp.training_data])
 
@@ -709,6 +788,39 @@ def compute_zero_mean_prediction(
 def compute_multi_level_loo_error_data(
     mlgp: MultiLevelGaussianProcess,
 ) -> MultiLevel[tuple[TrainingDatum]]:
+    """Calculate multi-level leave-one-out (LOO) errors.
+
+    This involves computing normalised expected squared errors for GPs based on a
+    leave-one-out (LOO) cross-validation across all the levels. For each simulator input
+    in the training data of `mlgp`, the normalised expected squared error of the
+    prediction of an intermediary LOO multi-level GP at the input is calculated. The
+    intermediary LOO multi-level GP involves computing a single-level LOO GP at the level
+    of the left out input (see `compute_loo_errors_gp`). A copy of the GP at the
+    appropriate level in `mlgp` is used for this intermediary LOO GP and the corresponding
+    hyperparameters found in `mlgp` are used when fitting to the data.
+
+    Parameters
+    ----------
+    mlgp : MultiLevelGaussianProcess
+        A multi-level GP to calculate the errors for.
+
+    Returns
+    -------
+    MultiLevel[tuple[TrainingDatum]]
+        Multi-level data consisting of the simulator inputs from the training data for
+        `mlgp` and the errors arising from the corresponding leave-one-out calculations.
+
+    Raises
+    ------
+    ValueError
+        If the GP at some level within `mlgp` has not been trained on more than one datum.
+
+    See Also
+    --------
+    compute_multi_level_loo_prediction :
+        Calculate the prediction of a LOO multi-level GP at a left-out training input.
+
+    """
 
     training_data_counts = mlgp.training_data.map(lambda level, data: len(data))
     if levels_not_enough_data := {
@@ -740,7 +852,60 @@ def compute_multi_level_loo_errors_gp(
     mlgp: MultiLevelGaussianProcess,
     domain: SimulatorDomain,
     output_mlgp: Optional[MultiLevelGaussianProcess] = None,
-):
+) -> MultiLevelGaussianProcess:
+    """Calculate the multi-level Gaussian process (GP) trained on normalised expected
+    squared leave-one-out (LOO) errors.
+
+    The returned multi-level GP is obtained by training it on training data calculated
+    with ``compute_multi_level_loo_error_data``. This involves computing normalised
+    expected squared errors for GPs based on a leave-one-out (LOO) cross-validation across
+    all the levels. The resulting errors, together with the corresponding left out
+    simulator inputs, form the training data for the output GP. The
+    output GP is trained with a lower bound on the correlation length scale parameters for
+    each level (see the Notes section).
+
+    By default, the returned multi-level GP will be a deep copy of `mlgp` trained on the
+    error data. Alternatively, another multi-level GP can be supplied that will be trained
+    on the error data and returned (thus it will be modified in-place as well as
+    returned).
+
+    Parameters
+    ----------
+    mlgp : MultiLevelGaussianProcess
+        A multi-level GP to calculate the normalised expected squared LOO errors for.
+    domain : SimulatorDomain
+        The domain of a simulator that the multi-level Gaussian process `mlgp` emulates.
+        The data on which each level of `mlgp` is trained are expected to have simulator
+        inputs only from this domain.
+    output_mlgp : MultiLevelGaussianProcess, optional
+        (Default: None) Another multi-level GP that is trained on the LOO errors to
+        create the output to this function. If ``None`` then a deep copy of `mlgp` will
+        be used instead.
+
+    Returns
+    -------
+    MultiLevelGaussianProcess
+        A multi-level GP that is trained on the normalised expected square LOO errors
+        arising from `mlgp`. If `output_mlgp` was supplied then (a reference to) this
+        object will be returned (except now it has been fit to the LOO errors data).
+
+    Raises
+    ------
+    ValueError
+        If the set of levels for `output_mlgp` is not equal to those in `mlgp` (when
+        `output_mlgp` is not ``None``).
+
+    See Also
+    --------
+    compute_multi_level_loo_error_data :
+        Calculation of the leave-one-out error data used to train this function's output.
+
+    Notes
+    -----
+    The lower bounds on the correlation length scale parameters are obtained by
+    multiplying the lengths of the domain's dimensions by ``sqrt(-0.5 / log(10 ** (-8)))``.
+    Note that the same lower bounds are used for each level.
+    """
 
     if output_mlgp is not None and not mlgp.levels == output_mlgp.levels:
         raise ValueError(
@@ -765,7 +930,64 @@ def compute_multi_level_loo_samples(
     costs: MultiLevel[Real],
     batch_size: int = 1,
 ) -> tuple[LevelTagged[Input]]:
-    """Compute a new batch of design points adaptively for a multi-level Gaussian process."""
+    """Compute a batch of design points adaptively for a multi-level Gaussian process (GP).
+
+    Implements the cross-validation-based adaptive sampling for multi-level Gaussian
+    process models, as described in Kimpton et. al. (2024)[1]_. This involves computing a
+    multi-level GP that is trained on normalised expected squared errors arising from a
+    multi-level leave-one-out (LOO) cross-validation. The design points returned are those
+    that maximise weighted pseudo-expected improvements (PEIs) of this multi-level LOO
+    errors GP across levels, where the PEIs are weighted according to the costs of
+    computing the design points on simulators at the levels.
+
+    The `costs` should represent the costs of running a each level's simulator on a single
+    input.
+
+    Parameters
+    ----------
+    mlgp : MultiLevelGaussianProcess
+        The multi-level GP to create the design points for.
+    domain : SimulatorDomain
+        The domain of a simulator that the multi-level Gaussian process `mlgp` emulates.
+        The data on which each level of `mlgp` is trained are expected to have simulator
+        inputs only from this domain.
+    costs : MultiLevel[Real]
+        The costs of running a simulation at each of the levels.
+    batch_size : int, optional
+        (Default: 1) The number of new design points to compute. Should be a positive
+        integer.
+
+    Returns
+    -------
+    tuple[LevelTagged[Input]]
+        A pair ``(level, data)`` where ``data`` is the batch of design points and
+        ``level`` is the level of simulation at which the design point should be run.
+
+    Raises
+    ------
+    ValueError
+        If any of the training inputs in `mlgp` do not belong to the simulator domain
+        `domain`.
+    ValueError
+        If any of the levels defined in `mlgp` does not have an associated cost.
+
+    See Also
+    --------
+    compute_multi_level_loo_errors_gp :
+        Computation of the multi-level leave-one-out errors GP.
+    PEICalculator :
+        Pseudo-expected improvement calculation.
+    modelling.GaussianProcessPrediction.nes_error :
+        Normalised expected squared error for a prediction from a Gaussian process.
+    utilities.optimisation.maximise :
+        Global maximisation over a simulator domain, used on pseudo-expected improvement
+        for the multi-level LOO errors GP.
+
+    References
+    ----------
+    .. [1] Kimpton, L. M. et al. (2023) "Cross-Validation Based Adaptive Sampling for
+        Multi-Level Gaussian Process Models". arXiv: https://arxiv.org/abs/2307.09095
+    """
 
     if not isinstance(mlgp, MultiLevelGaussianProcess):
         raise TypeError(
