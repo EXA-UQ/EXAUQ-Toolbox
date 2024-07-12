@@ -1148,17 +1148,6 @@ class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
         with self.assertRaisesRegex(
             ValueError,
             exact(
-                f"Expected the levels {other_mlgp.levels} of 'loo_mlgp' to match the levels "
-                f"{self.mlgp.levels} from 'mlgp'."
-            ),
-        ):
-            _ = compute_multi_level_loo_errors_gp(
-                self.mlgp, self.domain, loo_mlgp=other_mlgp
-            )
-
-        with self.assertRaisesRegex(
-            ValueError,
-            exact(
                 f"Expected the levels {other_mlgp.levels} of 'output_mlgp' to match the levels "
                 f"{self.mlgp.levels} from 'mlgp'."
             ),
@@ -1209,26 +1198,14 @@ class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
         self.assertIs(errors_gp, other_mlgp)
 
     def test_leaves_original_gp_unchanged(self):
-        """The original multi-level's training data and fit hyperparameters are unchanged
-        after computing the leave-one-out multi-level GP."""
+        """The original multi-level's training data and fit hyperparameters are
+        unchanged."""
 
         training_data = copy.deepcopy(self.mlgp.training_data)
         hyperparameters = copy.deepcopy(self.mlgp.fit_hyperparameters)
 
         # Default case
         loo_errors_gp = compute_multi_level_loo_errors_gp(self.mlgp, self.domain)
-        self.assertIsNot(self.mlgp, loo_errors_gp)
-        self.assertEqual(training_data, self.mlgp.training_data)
-        self.assertEqual(hyperparameters, self.mlgp.fit_hyperparameters)
-
-        # Case where another multi-level GP is supplied for training the LOO GPs at each
-        # level
-        loo_mlgp = MultiLevelGaussianProcess(
-            {level: fakes.WhiteNoiseGP(99, 100) for level in self.mlgp.levels}
-        )
-        loo_errors_gp = compute_multi_level_loo_errors_gp(
-            self.mlgp, self.domain, loo_mlgp=loo_mlgp
-        )
         self.assertIsNot(self.mlgp, loo_errors_gp)
         self.assertEqual(training_data, self.mlgp.training_data)
         self.assertEqual(hyperparameters, self.mlgp.fit_hyperparameters)
@@ -1283,15 +1260,12 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         domain: Optional[SimulatorDomain] = None,
         costs: Optional[MultiLevel[Real]] = None,
         batch_size: Optional[int] = 1,
-        loo_mlgp: Optional[MultiLevelGaussianProcess] = None,
     ) -> tuple[LevelTagged[Input]]:
         mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
         costs = self.default_costs if costs is None else costs
 
-        return compute_multi_level_loo_samples(
-            mlgp, domain, costs, batch_size=batch_size, loo_mlgp=loo_mlgp
-        )
+        return compute_multi_level_loo_samples(mlgp, domain, costs, batch_size=batch_size)
 
     def test_arg_type_errors(self):
         """A TypeError is raised if any of the following hold:
@@ -1299,7 +1273,6 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         * The input multi-level GP is not of type MultiLevelGaussianProcess.
         * The domain is not of type SimulatorDomain.
         * The batch size is not an integer.
-        * The leave-one-out multi-level GP is not of type MultiLevelGaussianProcess.
         """
 
         arg = "a"
@@ -1326,15 +1299,6 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             ),
         ):
             _ = self.compute_multi_level_loo_samples(batch_size=arg)
-
-        arg = "a"
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Expected 'loo_mlgp' to be of type {MultiLevelGaussianProcess}, but received {type(arg)} instead."
-            ),
-        ):
-            _ = self.compute_multi_level_loo_samples(loo_mlgp=arg)
 
     def test_domain_wrong_dim_error(self):
         """A ValueError is raised if the supplied domain's dimension does not agree with
