@@ -652,7 +652,7 @@ def compute_multi_level_loo_prediction(
     loo_input = mlgp.training_data[level][leave_out_idx].input
     terms.update(
         {
-            j: _zero_mean_prediction(mlgp[j], loo_input)
+            j: compute_zero_mean_prediction(mlgp[j], loo_input)
             for j in mlgp.levels
             if not j == level
         }
@@ -681,7 +681,7 @@ def compute_loo_prediction(
     )
 
 
-def _zero_mean_prediction(
+def compute_zero_mean_prediction(
     gp: AbstractGaussianProcess, x: Input
 ) -> GaussianProcessPrediction:
     """Make a prediction at an input with a GP having zero mean and variance equal to other."""

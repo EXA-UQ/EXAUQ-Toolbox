@@ -15,7 +15,6 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
     SimpleDesigner,
-    _zero_mean_prediction,
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_loo_prediction,
@@ -24,6 +23,7 @@ from exauq.core.designers import (
     compute_multi_level_loo_prediction,
     compute_multi_level_loo_samples,
     compute_single_level_loo_samples,
+    compute_zero_mean_prediction,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
@@ -920,7 +920,7 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
 
         # Get mean and variance contributions at other levels
         other_level_predictions = [
-            _zero_mean_prediction(mlgp[j], loo_input)
+            compute_zero_mean_prediction(mlgp[j], loo_input)
             for j in mlgp.levels
             if not j == level
         ]
@@ -1025,7 +1025,7 @@ class TestComputeLooPrediction(ExauqTestCase):
             self.assertEqual(expected_term, prediction_level_term)
 
 
-class TestZeroMeanPrediction(ExauqTestCase):
+class TestComputeZeroMeanPrediction(ExauqTestCase):
     def test_calculation_mean_and_variance(self):
         training_data = (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), -1))
         prior_mean = 10
@@ -1036,7 +1036,7 @@ class TestZeroMeanPrediction(ExauqTestCase):
 
         # Case where new input not in training data
         x = Input(0.3)
-        prediction = _zero_mean_prediction(gp, x)
+        prediction = compute_zero_mean_prediction(gp, x)
         self.assertEqual(
             GaussianProcessPrediction(
                 estimate=0,  # because correlation = 0 at new point (for White Noise GP)
@@ -1049,7 +1049,7 @@ class TestZeroMeanPrediction(ExauqTestCase):
         for datum in training_data:
             x = datum.input
             y = datum.output
-            prediction = _zero_mean_prediction(gp, x)
+            prediction = compute_zero_mean_prediction(gp, x)
             self.assertEqual(
                 GaussianProcessPrediction(
                     estimate=y,  # because kernel = 1 at x and zero elsewhere (for White Noise GP)
