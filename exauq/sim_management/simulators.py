@@ -936,8 +936,8 @@ class JobManager:
         --------
         >>> job_manager.remove_job(job)
 
-        This will remove the specified `job` from the JobManager's internal list,
-        deallocating its associated hardware interface and stopping its monitoring.
+        This command removes the given `job` from the JobManager's internal list, stopping
+        its monitoring and updating the job count for its associated hardware interface.
         """
 
         with self._lock:
