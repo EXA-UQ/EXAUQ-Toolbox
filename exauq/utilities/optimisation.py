@@ -71,6 +71,11 @@ def maximise(
             f"Expected 'domain' to be of type SimulatorDomain, but received {type(domain)} instead."
         )
 
+    if seed is not None and not isinstance(seed, int):
+        raise TypeError(
+            f"Random seed must be an integer, but received type {type(seed)}."
+        )
+
     try:
         y = func(np.array(domain.scale([0.5] * domain.dim)))
     except Exception:
