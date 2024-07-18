@@ -942,9 +942,7 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
             }
         )
 
-        mlgp = MultiLevelGaussianProcess(
-            [fakes.WhiteNoiseGP() for _ in training_data],
-        )
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data])
         mlgp.fit(training_data)
 
         level = 2
@@ -959,6 +957,81 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
                     ),
                 ):
                     _ = compute_multi_level_loo_prediction(mlgp, level, leave_out_idx)
+
+    def test_intersecting_training_inputs_error(self):
+        """A ValueError is raised if a training input at some level also appears as a
+        training input in another level, for the supplied multi-level GP."""
+
+        # Test for two different training datasets.
+
+        # Training dataset 1
+        repeated_input1 = Input(0.1)
+        problem_level1, problem_level2 = 1, 3
+        training_data1 = MultiLevel(
+            {
+                problem_level1: (
+                    TrainingDatum(repeated_input1, 1),
+                    TrainingDatum(Input(0.2), 1),
+                ),
+                2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
+                problem_level2: (
+                    TrainingDatum(Input(0.5), 1),
+                    TrainingDatum(repeated_input1, 1),
+                ),
+            }
+        )
+
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data1])
+        mlgp.fit(training_data1)
+
+        # This check is independent of the level or left-out index
+        for level in mlgp.levels:
+            for leave_out_idx in range(len(mlgp.training_data[level])):
+                with self.subTest(
+                    level=level, leave_out_idx=leave_out_idx
+                ), self.assertRaisesRegex(
+                    ValueError,
+                    exact(
+                        "Training inputs across all levels must be distinct, but found "
+                        f"common input {repeated_input1} at levels {problem_level1}, {problem_level2}."
+                    ),
+                ):
+                    _ = compute_multi_level_loo_prediction(mlgp, level, leave_out_idx)
+
+        # Training dataset 2
+        repeated_input2 = Input(0.3)
+        problem_level1, problem_level2 = 2, 3
+        training_data2 = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                problem_level1: (
+                    TrainingDatum(repeated_input2, 1),
+                    TrainingDatum(Input(0.4), 1),
+                ),
+                problem_level2: (
+                    TrainingDatum(Input(0.5), 1),
+                    TrainingDatum(Input(0.6), 1),
+                    TrainingDatum(repeated_input2, 1),
+                ),
+            }
+        )
+
+        mlgp2 = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data2])
+        mlgp2.fit(training_data2)
+
+        # This check is independent of the level or left-out index
+        for level in mlgp2.levels:
+            for leave_out_idx in range(len(mlgp2.training_data[level])):
+                with self.subTest(
+                    level=level, leave_out_idx=leave_out_idx
+                ), self.assertRaisesRegex(
+                    ValueError,
+                    exact(
+                        "Training inputs across all levels must be distinct, but found "
+                        f"common input {repeated_input2} at levels {problem_level1}, {problem_level2}."
+                    ),
+                ):
+                    _ = compute_multi_level_loo_prediction(mlgp2, level, leave_out_idx)
 
     def test_prediction_combination_loo_prediction_at_level_and_at_other_levels(self):
         """The overall multi-level leave-one-out (LOO) prediction for a given level is a
@@ -1415,11 +1488,11 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                 TrainingDatum(Input(2.6), -3),
             ]
         )
-        costs = self.make_level_costs([1, 2, 3])
+        costs = self.make_level_costs([1])
         gps = [gp1, gp2]
         for domain, gp in zip(domains, gps):
             with self.subTest(domain=domain, gp=gp):
-                mlgp = MultiLevelGaussianProcess([gp] * len(costs))
+                mlgp = MultiLevelGaussianProcess([gp])
                 level, design_points = self.compute_multi_level_loo_samples(
                     mlgp=mlgp, domain=domain, costs=costs, batch_size=2
                 )
@@ -1428,14 +1501,6 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                 self.assertIsInstance(design_points, tuple)
                 for x in design_points:
                     self.assertIn(x, domain)
-
-    # def test_returns_design_points_at_same_level(self):
-    #     """Each design point in the returned batch is paired with the same simulator
-    #     level."""
-
-    #     design_points = self.compute_multi_level_loo_samples(batch_size=2)
-    #     levels = {get_level(x) for x in design_points}
-    #     self.assertEqual(1, len(levels))
 
     def test_single_batch_level_that_maximises_pei(self):
         """For a single batch output, the input and level returned are the ones that

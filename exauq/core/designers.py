@@ -1,4 +1,5 @@
 import copy
+import itertools
 import math
 from collections.abc import Sequence
 from numbers import Real
@@ -652,6 +653,10 @@ def compute_multi_level_loo_prediction(
     contributions at the other levels are based on predictions made by the GPs in `mlgp`
     at these levels under the assumption of a zero prior mean.
 
+    The formula for calculating the leave-one-out prediction assumes that none of the
+    levels in the multi-level GP share common training simulator inputs; a ValueError
+    will be raised if this is not the case.
+
     Parameters
     ----------
     mlgp : MultiLevelGaussianProcess
@@ -671,6 +676,11 @@ def compute_multi_level_loo_prediction(
     GaussianProcessPrediction
         The prediction at the left out training input, based on the multi-level LOO GP
         described above.
+
+    Raises
+    ------
+    ValueError
+        If there is a shared training simulator input across multiple levels in `mlgp`.
     """
 
     n_training_data = len(mlgp.training_data[level])
@@ -679,6 +689,13 @@ def compute_multi_level_loo_prediction(
             "'leave_out_idx' should define a zero-based index for the training data "
             f"of length {n_training_data} at level {level}, but received out of range "
             f"index {leave_out_idx}."
+        )
+
+    if repetition := _find_input_repetition_across_levels(mlgp.training_data):
+        repeated_input, level1, level2 = repetition
+        raise ValueError(
+            "Training inputs across all levels must be distinct, but found common "
+            f"input {repeated_input} at levels {level1}, {level2}."
         )
 
     terms = MultiLevel({level: None for level in mlgp.levels})
@@ -703,6 +720,39 @@ def compute_multi_level_loo_prediction(
     )
 
     return GaussianProcessPrediction(mean, variance)
+
+
+def _find_input_repetition_across_levels(
+    training_data: MultiLevel[Sequence[TrainingDatum]],
+) -> Optional[tuple[Input, int, int]]:
+    """Find a training input that features in multiple levels, if such an input exists.
+
+    If a repeated input is found, a triple ``(repeated_input, level1, level2)`` is
+    returned, where ``repeated_input`` is the repeated input and ``level1``, ``level2``
+    are the levels where repetition occurs. If no repeated inputs are found, return
+    ``None``.
+
+    Note that repetition is determined by testing for equality between input objects and
+    is only applied to inputs on different levels.
+    """
+    training_inputs = tuple(
+        itertools.starmap(
+            lambda level, data: ((level, datum.input) for datum in data),
+            training_data.items(),
+        )
+    )
+
+    # If there is only a single level then we don't check for repetitions
+    # of inputs on the same level, so return.
+    if len(training_inputs) < 2:
+        return None
+
+    for levels_and_inputs in itertools.product(*training_inputs):
+        for (level1, x1), (level2, x2) in itertools.combinations(levels_and_inputs, 2):
+            if x1 == x2:
+                return x1, level1, level2
+
+    return None
 
 
 def compute_loo_prediction(
