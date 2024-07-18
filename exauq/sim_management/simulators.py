@@ -913,8 +913,7 @@ class JobManager:
     @property
     def simulations_log(self):
         """
-        Provides read-only access to the simulations log object for job recording and
-        retrieval.
+        (Read-only) The simulations log for job recording and retrieval.
         """
 
         return self._simulations_log
