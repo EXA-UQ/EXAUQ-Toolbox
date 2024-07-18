@@ -29,12 +29,10 @@ from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     GaussianProcessPrediction,
     Input,
-    LevelTagged,
     MultiLevel,
     MultiLevelGaussianProcess,
     SimulatorDomain,
     TrainingDatum,
-    get_level,
 )
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
@@ -1280,7 +1278,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         domain: Optional[SimulatorDomain] = None,
         costs: Optional[MultiLevel[Real]] = None,
         batch_size: Optional[int] = 1,
-    ) -> tuple[LevelTagged[Input]]:
+    ) -> tuple[int, tuple[Input, ...]]:
         mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
         costs = self.default_costs if costs is None else costs
@@ -1356,20 +1354,19 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             self.compute_multi_level_loo_samples(costs=costs)
 
     def test_number_of_design_points_returned_equals_batch_size(self):
-        """Then number of design points (with levels) returned equals the provided batch
-        size.
-        """
+        """Then number of design points returned equals the provided batch size."""
 
         for batch_size in [1, 2, 3]:
             with self.subTest(batch_size=batch_size):
-                design_points = self.compute_multi_level_loo_samples(
+                _, design_points = self.compute_multi_level_loo_samples(
                     batch_size=batch_size
                 )
                 self.assertEqual(batch_size, len(design_points))
 
     def test_returns_design_points_from_domain(self):
-        """The return type is a tuple, with each element being an input tagged with a
-        simulator level and belonging to the supplied simulator domain."""
+        """The return type is a pair ``(level, inputs)``, with ``level`` being one of the
+        levels from the supplied multi-level GP and each element of ``inputs`` being an
+        input belonging to the supplied simulator domain."""
 
         domains = [SimulatorDomain([(0, 1)]), SimulatorDomain([(2, 3)])]
         gp1 = MogpEmulator()
@@ -1393,22 +1390,22 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         for domain, gp in zip(domains, gps):
             with self.subTest(domain=domain, gp=gp):
                 mlgp = MultiLevelGaussianProcess([gp] * len(costs))
-                design_points = self.compute_multi_level_loo_samples(
+                level, design_points = self.compute_multi_level_loo_samples(
                     mlgp=mlgp, domain=domain, costs=costs, batch_size=2
                 )
 
+                self.assertIn(level, mlgp.levels)
                 self.assertIsInstance(design_points, tuple)
                 for x in design_points:
-                    self.assertIn(get_level(x), costs.levels)
                     self.assertIn(x, domain)
 
-    def test_returns_design_points_at_same_level(self):
-        """Each design point in the returned batch is paired with the same simulator
-        level."""
+    # def test_returns_design_points_at_same_level(self):
+    #     """Each design point in the returned batch is paired with the same simulator
+    #     level."""
 
-        design_points = self.compute_multi_level_loo_samples(batch_size=2)
-        levels = {get_level(x) for x in design_points}
-        self.assertEqual(1, len(levels))
+    #     design_points = self.compute_multi_level_loo_samples(batch_size=2)
+    #     levels = {get_level(x) for x in design_points}
+    #     self.assertEqual(1, len(levels))
 
     def test_single_batch_level_that_maximises_pei(self):
         """For a single batch output, the input and level returned are the ones that
@@ -1440,12 +1437,11 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         )
         mlgp.fit(training_data)
 
-        design_points = self.compute_multi_level_loo_samples(
+        level, design_points = self.compute_multi_level_loo_samples(
             mlgp=mlgp, domain=domain, costs=costs
         )
 
         self.assertEqual(1, len(design_points))
-        level = get_level(design_points[0])
 
         ml_errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain)
         ml_pei = ml_errors_gp.map(lambda _, gp: PEICalculator(domain, gp))
@@ -1467,7 +1463,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         """A batch of new design points consists of Input objects that are (likely)
         all distinct."""
 
-        x1, x2 = self.compute_multi_level_loo_samples(batch_size=2)
+        _, (x1, x2) = self.compute_multi_level_loo_samples(batch_size=2)
         self.assertFalse(
             equal_within_tolerance(
                 x1,
@@ -1481,9 +1477,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         """A batch of new design points consists of Input objects that are (likely)
         distinct from the training data inputs."""
 
-        ml_design_points = self.compute_multi_level_loo_samples(batch_size=3)
-        level = get_level(ml_design_points[0])
-        design_pts = self.compute_multi_level_loo_samples(
+        level, design_pts = self.compute_multi_level_loo_samples(
             mlgp=self.default_mlgp, batch_size=3
         )
         training_inputs = [

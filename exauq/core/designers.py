@@ -12,13 +12,11 @@ from exauq.core.modelling import (
     AbstractGaussianProcess,
     GaussianProcessPrediction,
     Input,
-    LevelTagged,
     MultiLevel,
     MultiLevelGaussianProcess,
     OptionalFloatPairs,
     SimulatorDomain,
     TrainingDatum,
-    set_level,
 )
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
@@ -674,6 +672,7 @@ def compute_multi_level_loo_prediction(
         described above.
     """
 
+    # TODO: add check that leave_out_idx valid for given level
     terms = MultiLevel({level: None for level in mlgp.levels})
 
     # Get mean and variance contributions at supplied level
@@ -929,7 +928,7 @@ def compute_multi_level_loo_samples(
     domain: SimulatorDomain,
     costs: MultiLevel[Real],
     batch_size: int = 1,
-) -> tuple[LevelTagged[Input]]:
+) -> tuple[int, tuple[Input, ...]]:
     """Compute a batch of design points adaptively for a multi-level Gaussian process (GP).
 
     Implements the cross-validation-based adaptive sampling for multi-level Gaussian
@@ -959,7 +958,7 @@ def compute_multi_level_loo_samples(
 
     Returns
     -------
-    tuple[LevelTagged[Input]]
+    tuple[int, tuple[Input, ...]]
         A pair ``(level, data)`` where ``data`` is the batch of design points and
         ``level`` is the level of simulation at which the design point should be run.
 
@@ -1032,6 +1031,7 @@ def compute_multi_level_loo_samples(
     # Get the PEI calculator for each level
     ml_pei = ml_errors_gp.map(lambda _, gp: PEICalculator(domain, gp))
 
+    # TODO: change costs to apply as-is rather than deltas.
     # Find PEI argmax, with (weighted) PEI value, for each level
     delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
     maximal_pei_values = ml_pei.map(
@@ -1041,15 +1041,15 @@ def compute_multi_level_loo_samples(
     # Create batch at maximising level by iteratively adding new design points as
     # repulsion points and re-maximising PEI
     level, (x, _) = max(maximal_pei_values.items(), key=lambda item: item[1][1])
-    design_points = [set_level(x, level)]
+    design_points = [x]
     if batch_size > 1:
         pei = ml_pei[level]
         for i in range(batch_size - 1):
             pei.add_repulsion_point(design_points[i])
             new_design_pt, _ = maximise(lambda x: pei.compute(x), domain)
-            design_points.append(set_level(new_design_pt, level))
+            design_points.append(new_design_pt)
 
-    return tuple(design_points)
+    return level, tuple(design_points)
 
 
 def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:
