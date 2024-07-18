@@ -157,18 +157,19 @@ def compute_loo_errors_gp(
         error_training_data.append(TrainingDatum(datum.input, nes_loo_error))
 
     gp_e = loo_errors_gp if loo_errors_gp is not None else copy.deepcopy(gp)
-
-    # Note: the following is a simplification of sqrt(-0.5 / log(10 ** (-8))) from paper
-    # TODO: use function below
-    bound_scale = 0.25 / math.sqrt(math.log(10))
-    bounds = [(bound_scale * (bnd[1] - bnd[0]), None) for bnd in domain.bounds] + [
-        (None, None)
-    ]
+    bounds = _compute_loo_error_bounds(domain)
     gp_e.fit(error_training_data, hyperparameter_bounds=bounds)
     return gp_e
 
 
 def _compute_loo_error_bounds(domain: SimulatorDomain) -> Sequence[OptionalFloatPairs]:
+    """Compute bounds on correlation length scale parameters to use when fitting a
+    Gaussian process to leave-one-out errors.
+
+    This is as specified in Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive
+    Sampling for Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+    """
+
     # Note: the following is a simplification of sqrt(-0.5 / log(10 ** (-8))) from paper
     bound_scale = 0.25 / math.sqrt(math.log(10))
     return [(bound_scale * (bnd[1] - bnd[0]), None) for bnd in domain.bounds] + [
