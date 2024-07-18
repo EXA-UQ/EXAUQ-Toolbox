@@ -323,13 +323,22 @@ class TestComputeLooGp(ExauqTestCase):
 
     def test_compute_loo_gp_no_training_data_error(self):
         """A ValueError is raised if the supplied AbstractGaussianProcess has not been
-        trained on any data."""
+        trained on at least 2 training data."""
 
         gp = MogpEmulator()
         with self.assertRaisesRegex(
             ValueError,
             "Cannot compute leave one out error with 'gp' because it has not been trained "
-            "on data.",
+            "on at least 2 data points.",
+        ):
+            _ = compute_loo_gp(gp, 0)
+
+        training_data = [TrainingDatum(Input(1), 1)]
+        gp.fit(training_data)
+        with self.assertRaisesRegex(
+            ValueError,
+            "Cannot compute leave one out error with 'gp' because it has not been trained "
+            "on at least 2 data points.",
         ):
             _ = compute_loo_gp(gp, 0)
 

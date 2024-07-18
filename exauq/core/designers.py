@@ -236,10 +236,10 @@ def compute_loo_gp(
             f"received {type(loo_gp)} instead."
         )
 
-    if len(gp.training_data) == 0:
+    if len(gp.training_data) < 2:
         raise ValueError(
-            "Cannot compute leave one out error with 'gp' because it has not been "
-            "trained on data."
+            "Cannot compute leave one out error with 'gp' because it has not been trained "
+            "on at least 2 data points."
         )
 
     for dat1, dat2 in itertools.combinations(gp.training_data, 2):
