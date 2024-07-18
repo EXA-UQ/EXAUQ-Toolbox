@@ -81,7 +81,6 @@ class TestSimulator(unittest.TestCase):
     def setUp(self) -> None:
         self.simulator_domain = SimulatorDomain([(-10, 10)])
         self.hardware_interface = DumbHardwareInterface()
-        self.hardware_interface.name = "dumb_server_01"
         self.simulations = ((Input(1), 0),)
         self.empty_simulator = make_fake_simulator(tuple())
         self.simulator_with_sim = make_fake_simulator(self.simulations)
