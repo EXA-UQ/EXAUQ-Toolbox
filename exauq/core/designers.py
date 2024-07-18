@@ -1102,7 +1102,6 @@ def compute_multi_level_loo_samples(
     # Get the PEI calculator for each level
     ml_pei = ml_errors_gp.map(lambda _, gp: PEICalculator(domain, gp))
 
-    # TODO: change costs to apply as-is rather than deltas.
     # Find PEI argmax, with (weighted) PEI value, for each level
     delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
     maximal_pei_values = ml_pei.map(
