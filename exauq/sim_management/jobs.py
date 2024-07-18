@@ -60,7 +60,7 @@ class Job:
     level : int
         The level of the job.
     interface_name : Optional[str]
-        The interface name that the job is associated with.
+        (Default: `None`) The interface name that the job is associated with.
 
     Attributes
     ----------
