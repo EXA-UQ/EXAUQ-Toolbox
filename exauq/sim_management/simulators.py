@@ -943,8 +943,7 @@ class JobManager:
         with self._lock:
             if job in self._monitored_jobs:
                 self._monitored_jobs.remove(job)
-                if job.interface_name in self._interface_job_monitor_counts:
-                    self._interface_job_monitor_counts[job.interface_name] -= 1
+                self._interface_job_monitor_counts[job.interface_name] -= 1
 
     def shutdown(self):
         """
