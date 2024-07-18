@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import re
-from typing import Union
+from typing import Optional, Union
 
 from exauq.core.modelling import Input
+from exauq.utilities.string_validation import validate_interface_name
 
 
 class JobId:
@@ -56,6 +57,10 @@ class Job:
         valid ``JobId`` instance.
     data : Input
         An input for a simulator.
+    level : int
+        The level of the job.
+    interface_name : Optional[str]
+        (Default: `None`) The interface name that the job is associated with.
 
     Attributes
     ----------
@@ -63,11 +68,23 @@ class Job:
         (Read-only) The ID of the job.
     data : Input
         (Read-only) The simulator input for the job.
+    level : int
+        (Read-only) The level of the job.
+    interface_name : Optional[str]
+        (Read-only) The interface name of the job.
     """
 
-    def __init__(self, id_: Union[JobId, str, int], data: Input) -> None:
+    def __init__(
+        self,
+        id_: Union[JobId, str, int],
+        data: Input,
+        level: int = 1,
+        interface_name: Optional[str] = None,
+    ) -> None:
         self._id = self._parse_id(id_)
         self._data = self._validate_data(data)
+        self._level = self._validate_level(level)
+        self._interface_name = validate_interface_name(interface_name)
 
     @staticmethod
     def _parse_id(id_) -> JobId:
@@ -88,6 +105,14 @@ class Job:
         else:
             return data
 
+    @staticmethod
+    def _validate_level(level: int) -> int:
+        if not isinstance(level, int):
+            raise TypeError(
+                f"Expected 'level' to be of type {int} but received {type(level)} instead."
+            )
+        return level
+
     @property
     def id(self) -> JobId:
         """(Read-only) The ID of the job."""
@@ -98,12 +123,24 @@ class Job:
         """(Read-only) The simulator input for the job."""
         return self._data
 
+    @property
+    def level(self) -> int:
+        """(Read-only) The level of the job."""
+        return self._level
+
+    @property
+    def interface_name(self) -> Optional[str]:
+        """(Read-only) The interface name of the job."""
+        return self._interface_name
+
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(id_={repr(self.id)}, data={repr(self.data)})"
+        return f"{self.__class__.__name__}(id_={repr(self.id)}, data={repr(self.data)}, level={self.level}, interface_name={self.interface_name})"
 
     def __eq__(self, other) -> bool:
         return (
             isinstance(other, self.__class__)
             and self.id == other.id
             and self.data == other.data
+            and self.level == other.level
+            and self.interface_name == other.interface_name
         )

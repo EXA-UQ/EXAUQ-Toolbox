@@ -423,6 +423,9 @@ class DumbHardwareInterface(HardwareInterface):
     """A stub for a hardware interface that doesn't do anything beyond the implementations
     in the abstract HardwareInterface class."""
 
+    def __init__(self, name: str = "DumbInterface"):
+        super().__init__(name)
+
     def submit_job(self, job) -> None:
         return super().submit_job(job)
 

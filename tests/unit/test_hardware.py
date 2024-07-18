@@ -39,7 +39,9 @@ class TestSSHInterface(unittest.TestCase):
         """Test that a connection to a server is established using a specified private key file
         upon initialisation."""
 
-        _ = MockedSSHInterface("user", "host", key_filename="/path/to/key")
+        _ = MockedSSHInterface(
+            "user", "host", "interface_01", key_filename="/path/to/key"
+        )
         mock_conn.assert_called_once_with(
             "user@host", connect_kwargs={"key_filename": "/path/to/key"}
         )
@@ -50,7 +52,9 @@ class TestSSHInterface(unittest.TestCase):
         """Test that a connection to a server is established using the specified SSH config path
         upon initialisation."""
 
-        _ = MockedSSHInterface("user", "host", ssh_config_path="/path/to/config")
+        _ = MockedSSHInterface(
+            "user", "host", "interface_01", ssh_config_path="/path/to/config"
+        )
         mock_config.assert_called_once_with(
             overrides={"ssh_config_path": "/path/to/config"}
         )
@@ -61,7 +65,7 @@ class TestSSHInterface(unittest.TestCase):
         """Test that a connection to a server is established using the SSH agent upon
         initialisation."""
 
-        _ = MockedSSHInterface("user", "host", use_ssh_agent=True)
+        _ = MockedSSHInterface("user", "host", "interface_01", use_ssh_agent=True)
         mock_conn.assert_called_once_with("user@host")
 
     def test_init_with_multiple_auth_methods(self):
@@ -77,13 +81,16 @@ class TestSSHInterface(unittest.TestCase):
         for kwargs in pairwise_kwargs:
             with self.subTest(kwargs=kwargs):
                 with self.assertRaises(ValueError):
-                    MockedSSHInterface("user", "host", **kwargs)
+                    MockedSSHInterface("user", "host", "interface_01", **kwargs)
 
         with self.assertRaises(ValueError):
-            MockedSSHInterface("user", "host", **non_defaults)
+            MockedSSHInterface("user", "host", "interface_01", **non_defaults)
 
     @patch("exauq.sim_management.hardware.getpass.getpass", return_value="mock_password")
-    @patch("exauq.sim_management.hardware.Connection", side_effect=Exception("Connection failed"))
+    @patch(
+        "exauq.sim_management.hardware.Connection",
+        side_effect=Exception("Connection failed"),
+    )
     def test_failed_connection(self, mock_conn, mock_getpass):
         """Test that an exception is raised when a connection fails during initialization."""
 
@@ -95,7 +102,9 @@ class TestSSHInterface(unittest.TestCase):
         "exauq.sim_management.hardware.getpass.getpass",
         side_effect=["wrong_pass1", "wrong_pass2", "wrong_pass3"],
     )
-    @patch("exauq.sim_management.hardware.Connection", side_effect=AuthenticationException())
+    @patch(
+        "exauq.sim_management.hardware.Connection", side_effect=AuthenticationException()
+    )
     def test_max_attempts_authentication_exception(
         self, mock_conn, mock_getpass, mock_print
     ):
@@ -104,7 +113,7 @@ class TestSSHInterface(unittest.TestCase):
 
         # Set max_attempts to 3
         with self.assertRaises(AuthenticationException):
-            _ = MockedSSHInterface("user", "host", max_attempts=3)
+            _ = MockedSSHInterface("user", "host", "interface_01", max_attempts=3)
 
         # Ensure getpass was called 3 times (once for each wrong password attempt)
         self.assertEqual(mock_getpass.call_count, 3)
@@ -124,7 +133,7 @@ class TestSSHInterface(unittest.TestCase):
         """Test that a connection is successfully established on the first password attempt."""
 
         # This test is for a successful connection on the first attempt, so no exception should be raised.
-        _ = MockedSSHInterface("user", "host", max_attempts=3)
+        _ = MockedSSHInterface("user", "host", "interface_01", max_attempts=3)
 
         # Ensure getpass was called only once
         self.assertEqual(mock_getpass.call_count, 1)
@@ -139,19 +148,20 @@ class TestSSHInterface(unittest.TestCase):
         """Test checking a connection when it's successful."""
 
         try:
-            _ = MockedSSHInterface("user", "host", key_filename="")
+            _ = MockedSSHInterface("user", "host", "interface_01", key_filename="")
             # If we've reached here, no exception was raised, which is what we want
         except Exception as e:
             self.fail(f"_check_connection raised an exception: {e}")
 
     @patch(
-        "exauq.sim_management.hardware.Connection.run", side_effect=Exception("Command failed")
+        "exauq.sim_management.hardware.Connection.run",
+        side_effect=Exception("Command failed"),
     )
     def test_failed_check_connection(self, mock_conn):
         """Test checking a connection when it fails."""
 
         with self.assertRaises(Exception) as context:
-            _ = MockedSSHInterface("user", "sample_host", key_filename="")
+            _ = MockedSSHInterface("user", "sample_host", "interface_01", key_filename="")
 
         # Check the exception message
         self.assertEqual(
@@ -162,7 +172,9 @@ class TestSSHInterface(unittest.TestCase):
     def test_entry_method(self, mock_conn):
         """Test that the __enter__ method of the context manager returns the instance itself."""
 
-        interface = MockedSSHInterface("user", "sample_host", key_filename="")
+        interface = MockedSSHInterface(
+            "user", "sample_host", "interface_01", key_filename=""
+        )
 
         with interface as result:
             self.assertIs(interface, result)
@@ -171,7 +183,9 @@ class TestSSHInterface(unittest.TestCase):
     def test_exit_method(self, mock_conn):
         """Test that the __exit__ method of the context manager closes the connection."""
 
-        interface = MockedSSHInterface("user", "sample_host", key_filename="")
+        interface = MockedSSHInterface(
+            "user", "sample_host", "interface_01", key_filename=""
+        )
 
         # Test the __exit__ method
         with interface:

@@ -9,7 +9,7 @@ from threading import Event, Lock, Thread
 from time import sleep
 from typing import Any, Optional, Sequence, Union
 
-from exauq.core.modelling import AbstractSimulator, Input, SimulatorDomain
+from exauq.core.modelling import AbstractSimulator, Input, MultiLevel, SimulatorDomain
 from exauq.sim_management.hardware import (
     PENDING_STATUSES,
     TERMINAL_STATUSES,
@@ -71,7 +71,7 @@ class Simulator(AbstractSimulator):
         self._simulations_log = self._make_simulations_log(
             simulations_log_file, domain.dim
         )
-        self._manager = JobManager(self._simulations_log, interface)
+        self._manager = JobManager(self._simulations_log, [interface])
 
     @staticmethod
     def _check_arg_types(domain: Any, interface: Any):
@@ -169,11 +169,15 @@ class SimulationsLog(object):
         self._job_id_key = "Job_ID"
         self._output_key = "Output"
         self._job_status_key = "Job_Status"
+        self._job_level_key = "Job_Level"
+        self._interface_name_key = "Interface_Name"
         self._input_keys = tuple(f"Input_{i}" for i in range(1, self._input_dim + 1))
         self._log_file_header = self._input_keys + (
             self._output_key,
             self._job_id_key,
             self._job_status_key,
+            self._job_level_key,
+            self._interface_name_key,
         )
         self._log_file = self._initialise_log_file(file)
         self._simulations_db = self._make_db(self._log_file, self._log_file_header)
@@ -238,6 +242,14 @@ class SimulationsLog(object):
         status_str = record[self._job_status_key]
         return JobStatus(status_str)
 
+    def _get_job_level(self, record: Record) -> int:
+        """Get the level of a job from a database record"""
+        return int(record[self._job_level_key])
+
+    def _get_interface_name(self, record: Record) -> str:
+        """Get the interface name of a job from a database record"""
+        return record[self._interface_name_key]
+
     def get_simulations(self) -> tuple[Simulation]:
         """
         Get all simulations contained in the log file.
@@ -277,6 +289,8 @@ class SimulationsLog(object):
         x: Input,
         job_id: Union[str, JobId, int],
         job_status: JobStatus = JobStatus.PENDING_SUBMIT,
+        job_level: int = 1,
+        interface_name: Optional[str] = None,
     ) -> None:
         """
         Record a new simulation job in the log file.
@@ -294,6 +308,10 @@ class SimulationsLog(object):
         job_status : JobStatus, optional
             The status of the job to be recorded alongside the input `x`.
             Defaults to JobStatus.PENDING_SUBMIT.
+        job_level : int, optional
+            The level of the job. Defaults to 0.
+        interface_name : Optional[str], optional
+            The name of the interface that the job is assigned to. Defaults to None.
 
         Raises
         ------
@@ -322,6 +340,8 @@ class SimulationsLog(object):
                 **dict(zip(self._input_keys, x)),
                 self._job_id_key: str(job_id),
                 self._job_status_key: job_status.value,
+                self._job_level_key: str(job_level),
+                self._interface_name_key: interface_name or "",
             }
 
             self._simulations_db.create(record)
@@ -404,7 +424,12 @@ class SimulationsLog(object):
                 lambda x: self._get_job_status(x) in non_terminal_statuses
             )
             return tuple(
-                Job(self._get_job_id(record), self._extract_simulation(record)[0])
+                Job(
+                    self._get_job_id(record),
+                    self._extract_simulation(record)[0],
+                    self._get_job_level(record),
+                    self._get_interface_name(record),
+                )
                 for record in pending_records
             )
 
@@ -564,63 +589,86 @@ class JobManager:
     ----------
     simulations_log : SimulationsLog
         A log for recording and retrieving details of simulation jobs.
-    interface : HardwareInterface
-        An abstract interface to the hardware or simulation environment where jobs
+    interfaces : list[HardwareInterface]
+        A list of abstract interfaces to the hardware or simulation environment where jobs
         are executed.
     polling_interval : int, optional
         Time interval, in seconds, for polling job statuses during monitoring. Defaults to 10 seconds.
     wait_for_pending : bool, optional
         Specifies whether the manager should wait for all pending jobs to reach a
-        conclusive status (e.g., COMPLETED or FAILED) upon initialization. Defaults to True.
+        conclusive status (e.g., COMPLETED or FAILED) upon initialization. Defaults to False.
 
     Methods
     -------
-    submit(x: Input)
-        Submits a new job based on the provided simulation input. Handles initial job
-        logging and status setting to PENDING_SUBMIT.
+    submit(x: Input, level: int = 1) -> Job
+        Submits a new simulation job based on the provided simulation input. Handles initial job
+        logging and sets status to PENDING_SUBMIT.
     monitor(jobs: list[Job])
-        Initiates or continues monitoring of job statuses in a separate background thread.
+        Initiates or resumes monitoring of job statuses in a separate background thread.
+    cancel(job_id: JobId) -> Job
+        Cancels a job with the given ID, if it has not yet reached a terminal status.
+    get_interface(interface_name: str) -> HardwareInterface
+        Retrieves the hardware interface with the given name.
+    remove_job(job: Job)
+        Removes a job from the internal list of jobs being monitored.
+    shutdown()
+        Cleanly terminates the monitoring thread and releases all resources.
+    simulations_log : property
+        Provides read-only access to the simulations log object for job recording and
+        retrieval.
 
     Raises
     ------
     SimulationsLogLookupError
         If operations on the simulations log encounter inconsistencies, such as
         missing records or duplicate job IDs.
+    UnknownJobIdError
+        If an attempt is made to cancel a job that does not exist in the simulations log.
+    InvalidJobStatusError
+        If an attempt is made to cancel a job that has already reached a terminal status.
 
     Examples
     --------
     >>> job_manager = JobManager(simulations_log, hardware_interface)
     >>> input_data = Input(0.0, 1.0)
-    >>> job_manager.submit(input_data)
+    >>> job = job_manager.submit(input_data)
+    >>> job_manager.shutdown()
 
-    The job manager will handle the submission, monitor the job's progress, and update
-    its status accordingly in the simulations log.
+    The job manager handles the submission, monitors the job's progress, updates
+    its status accordingly in the simulations log, and ensures proper shutdown of
+    monitoring threads.
     """
 
     def __init__(
         self,
         simulations_log: SimulationsLog,
-        interface: HardwareInterface,
+        interfaces: list[HardwareInterface],
         polling_interval: int = 10,
-        wait_for_pending: bool = True,
+        wait_for_pending: bool = False,
     ):
         self._simulations_log = simulations_log
-        self._interface = interface
+
+        self._validate_interfaces(interfaces)
+        self._interfaces = self._init_multi_level_interfaces(interfaces)
+        self._name_index = self._create_name_index(interfaces)
+
         self._polling_interval = polling_interval
-        self._jobs = []
+        self._monitored_jobs = []
         self._lock = Lock()
         self._thread = None
         self._shutdown_event = Event()
-
         self._id_generator = JobIDGenerator()
-
         self._job_strategies = self._init_job_strategies()
+
+        self._interface_job_monitor_counts = {
+            interface.name: 0 for interface in interfaces
+        }
 
         self.monitor(self._simulations_log.get_non_terminated_jobs())
         if wait_for_pending and self._thread is not None:
             self._thread.join()
 
-    def submit(self, x: Input) -> Job:
+    def submit(self, x: Input, level: int = 1) -> Job:
         """
         Submits a new simulation job. This method creates a job with a unique ID,
         logs it with a PENDING_SUBMIT status, and schedules it for submission through the appropriate
@@ -635,6 +683,8 @@ class JobManager:
         ----------
         x : Input
             The input data for the simulation job.
+        level : int, optional
+            The level of the job. Defaults to 1.
 
         Returns
         -------
@@ -650,13 +700,78 @@ class JobManager:
         obtaining its unique ID. The job is prepared for submission through the job handling strategies.
         """
 
-        job = Job(self._id_generator.generate_id(), x)
+        job_id = self._id_generator.generate_id()
+        interface_name = self._select_interface(level)
+        job = Job(job_id, x, level, interface_name)
+
         self._simulations_log.add_new_record(
-            x, str(job.id), job_status=JobStatus.PENDING_SUBMIT
+            x,
+            str(job_id),
+            job_status=JobStatus.PENDING_SUBMIT,
+            job_level=level,
+            interface_name=interface_name,
         )
         self.monitor([job])
 
         return job
+
+    @staticmethod
+    def _validate_interfaces(interfaces: Sequence[HardwareInterface]):
+        """Check that the supplied argument is a sequence of hardware interfaces and that
+        each interface's name is not None and unique."""
+        if not all(isinstance(interface, HardwareInterface) for interface in interfaces):
+            raise TypeError(
+                "Expected 'interfaces' to be a sequence of HardwareInterface instances, "
+                f"but received {type(interfaces)} instead."
+            )
+
+        interface_names = [interface.name for interface in interfaces]
+        if any(name is None for name in interface_names):
+            raise ValueError("Interface name not set.")
+
+        if len(interface_names) != len(set(interface_names)):
+            raise ValueError("Each interface must have a unique name.")
+
+        return interfaces
+
+    def _init_multi_level_interfaces(
+        self, interfaces: list[HardwareInterface]
+    ) -> MultiLevel[list[HardwareInterface]]:
+        """Initialises a MultiLevel object with the provided hardware interfaces."""
+        levels = sorted({interface.level for interface in interfaces})
+        level_to_interfaces = {level: [] for level in levels}
+
+        for interface in interfaces:
+            level_to_interfaces[interface.level].append(interface)
+
+        return MultiLevel(level_to_interfaces)
+
+    @staticmethod
+    def _create_name_index(
+        interfaces: list[HardwareInterface],
+    ) -> dict[str, HardwareInterface]:
+        """Creates an index of hardware interface names to interface objects."""
+        name_index = {}
+        for interface in interfaces:
+            name_index[interface.name] = interface
+        return name_index
+
+    def _select_interface(self, level: int) -> str:
+        """Selects a hardware interface for a job based on the level and the number of jobs
+        assigned to each interface."""
+
+        with self._lock:
+            matching_interfaces = self._interfaces.get(level, None)
+
+            if not matching_interfaces:
+                raise ValueError(f"No interfaces found for level {level}")
+
+            interface_name = min(
+                matching_interfaces,
+                key=lambda interface: self._interface_job_monitor_counts[interface.name],
+            ).name
+
+            return interface_name
 
     def cancel(self, job_id: JobId) -> Job:
         """Cancels a job with the given ID.
@@ -679,7 +794,7 @@ class JobManager:
             If the job has already terminated and so cannot be cancelled.
         """
         with self._lock:
-            jobs_to_cancel = [job for job in self._jobs if job.id == job_id]
+            jobs_to_cancel = [job for job in self._monitored_jobs if job.id == job_id]
 
         if not jobs_to_cancel:
             # If here then the job is no longer being monitored, i.e. has terminated, so
@@ -744,7 +859,9 @@ class JobManager:
         """
 
         with self._lock:
-            self._jobs.extend(jobs)
+            self._monitored_jobs.extend(jobs)
+            for job in jobs:
+                self._interface_job_monitor_counts[job.interface_name] += 1
         if self._thread is None or not self._thread.is_alive():
             self._shutdown_event.clear()
             self._thread = Thread(target=self._monitor_jobs)
@@ -753,12 +870,12 @@ class JobManager:
     def _monitor_jobs(self):
         """Continuously monitor the status of jobs and handle their completion."""
 
-        while self._jobs and not self._shutdown_event.is_set():
+        while self._monitored_jobs and not self._shutdown_event.is_set():
             if self._shutdown_event.wait(timeout=self._polling_interval):
                 return
 
             with self._lock:
-                jobs = self._jobs[:]
+                jobs = self._monitored_jobs[:]
 
             for job in jobs:
                 if self._shutdown_event.is_set():
@@ -770,29 +887,50 @@ class JobManager:
                 }
 
                 if not is_pending_or_failed_submit:
-                    status = self._interface.get_job_status(job.id)
+                    interface = self.get_interface(job.interface_name)
+                    status = interface.get_job_status(job.id)
 
                 self._handle_job(job, status)
 
-    @property
-    def interface(self):
-        """Provides read-only access to the hardware interface used for job execution."""
+    def get_interface(self, interface_name: str) -> HardwareInterface:
+        """Get the hardware interface with the given name.
 
-        return self._interface
+        Parameters
+        ----------
+        interface_name : str
+            The name of the hardware interface to retrieve.
+
+        Returns
+        -------
+        HardwareInterface
+            The hardware interface with the given name.
+
+        Raises
+        ------
+        ValueError
+            If no interface with the given name is found.
+        """
+        if interface_name in self._name_index:
+            return self._name_index[interface_name]
+
+        raise ValueError(f"No interface found with name '{interface_name}'.")
 
     @property
     def simulations_log(self):
-        """Provides read-only access to the simulations log object for job recording and retrieval."""
+        """
+        (Read-only) The simulations log for job recording and retrieval.
+        """
 
         return self._simulations_log
 
     def remove_job(self, job: Job):
         """
-        Removes a job from the internal list of jobs being monitored.
+        Safely removes a job from the monitored jobs list and updates the interface job
+        count.
 
-        This method ensures thread-safe removal of a job from the monitoring list,
-        allowing for dynamic management of the jobs currently under monitoring by
-        the JobManager.
+        This method ensures thread-safe removal of the specified job from the internal
+        list of monitored jobs. It also decrements the count of jobs assigned to the job's
+        associated hardware interface.
 
         Parameters
         ----------
@@ -803,31 +941,37 @@ class JobManager:
         --------
         >>> job_manager.remove_job(job)
 
-        This will remove the specified `job` from the JobManager's internal list, ceasing its monitoring.
+        This command removes the given `job` from the JobManager's internal list, stopping
+        its monitoring and updating the job count for its associated hardware interface.
         """
+
         with self._lock:
-            self._jobs.remove(job)
+            if job in self._monitored_jobs:
+                self._monitored_jobs.remove(job)
+                self._interface_job_monitor_counts[job.interface_name] -= 1
 
     def shutdown(self):
         """
-        Cleanly terminates the monitoring thread and ensures all resources are properly released.
+        Cleanly terminates the monitoring thread and ensures all resources are properly
+        released.
 
-        This method signals the monitoring thread to stop by setting a shutdown event. It waits
-        for the monitoring thread to terminate, ensuring that the job manager is cleanly shut down.
-        This is particularly useful to call before exiting an application to ensure that no threads
-        remain running in the background.
+        This method signals the monitoring thread to stop by setting a shutdown event.
+        It waits for the monitoring thread to terminate, ensuring that the job manager
+        is cleanly shut down. This is particularly useful to call before exiting an
+        application to ensure that no threads remain running in the background.
 
         Notes
         -----
-        If the monitoring thread is not active, this method will return immediately. It ensures
-        thread-safe shutdown operations and can be called from any thread.
+        If the monitoring thread is not active, this method will return immediately.
+        It ensures thread-safe shutdown operations and can be called from any thread.
 
         Examples
         --------
         >>> job_manager.shutdown()
 
-        This example demonstrates how to properly shut down the JobManager's monitoring capabilities,
-        ensuring that the application can be closed without leaving orphaned threads.
+        This example demonstrates how to properly shut down the JobManager's monitoring
+        capabilities, ensuring that the application can be closed without leaving
+        orphaned threads.
         """
         with self._lock:
             self._shutdown_event.set()
@@ -846,14 +990,15 @@ class JobStrategy(ABC):
     """
     Defines a template for job handling strategies in the simulation job management system.
 
-    This abstract base class outlines the required interface for all job handling strategies.
-    Concrete implementations of this class will define specific actions to be taken based
-    on the job's current status.
+    This abstract base class outlines the required interface for all job handling
+    strategies. Concrete implementations of this class will define specific actions to
+    be taken based on the job's current status.
 
     Methods
     -------
     handle(job: Job, job_manager: JobManager)
-        Executes the strategy's actions for a given job within the context of the provided job manager.
+        Executes the strategy's actions for a given job within the context of the provided
+        job manager.
     """
 
     @staticmethod
@@ -863,15 +1008,16 @@ class JobStrategy(ABC):
         Handle a job according to the strategy's specific actions.
 
         This method should be implemented by subclasses to define how a job should be
-        processed, based on its status or other criteria. It may involve submitting the job,
-        updating its status, or performing cleanup actions.
+        processed, based on its status or other criteria. It may involve submitting the
+        job, updating its status, or performing cleanup actions.
 
         Parameters
         ----------
         job : Job
             The job to be handled, which contains the necessary information for processing.
         job_manager : JobManager
-            The job manager instance, providing context and access to job management functionalities.
+            The job manager instance, providing context and access to job management
+            functionalities.
 
         Raises
         ------
@@ -899,7 +1045,8 @@ class CompletedJobStrategy(JobStrategy):
 
     @staticmethod
     def handle(job: Job, job_manager: JobManager):
-        result = job_manager.interface.get_job_output(job.id)
+        interface = job_manager.get_interface(job.interface_name)
+        result = interface.get_job_output(job.id)
         job_manager.simulations_log.insert_result(str(job.id), result)
         job_manager.simulations_log.update_job_status(str(job.id), JobStatus.COMPLETED)
         job_manager.remove_job(job)
@@ -918,7 +1065,8 @@ class FailedJobStrategy(JobStrategy):
     job : Job
         The job that has failed.
     job_manager : JobManager
-        The manager overseeing the job's lifecycle and responsible for its monitoring and logging.
+        The manager overseeing the job's lifecycle and responsible for its monitoring and
+        logging.
     """
 
     @staticmethod
@@ -978,16 +1126,18 @@ class SubmittedJobStrategy(JobStrategy):
     """
     Strategy for handling jobs that have been submitted.
 
-    Upon handling, this strategy updates the job's status in the simulations log to SUBMITTED
-    and initiates monitoring of the job. This ensures that once a job is submitted, its
-    status is accurately recorded, and the job is actively monitored for completion or failure.
+    Upon handling, this strategy updates the job's status in the simulations log to
+    SUBMITTED and initiates monitoring of the job. This ensures that once a job is
+    submitted, its status is accurately recorded, and the job is actively monitored for
+    completion or failure.
 
     Parameters
     ----------
     job : Job
         The job that has been submitted for execution.
     job_manager : JobManager
-        The manager overseeing the job's lifecycle, responsible for its submission, monitoring, and logging.
+        The manager overseeing the job's lifecycle, responsible for its submission,
+        monitoring, and logging.
     """
 
     @staticmethod
@@ -1024,9 +1174,11 @@ class PendingSubmitJobStrategy(JobStrategy):
         initial_delay = 1
         max_delay = 32
 
+        interface = job_manager.get_interface(job.interface_name)
+
         while retry_attempts < max_retries:
             try:
-                job_manager.interface.submit_job(job)
+                interface.submit_job(job)
                 job_manager.simulations_log.update_job_status(
                     str(job.id), JobStatus.SUBMITTED
                 )
@@ -1035,9 +1187,6 @@ class PendingSubmitJobStrategy(JobStrategy):
                 retry_attempts += 1
 
                 if retry_attempts == max_retries:
-                    print(
-                        f"Max retry attempts reached for job {job.id}. Marking as FAILED_SUBMIT."
-                    )
                     job_manager.simulations_log.update_job_status(
                         str(job.id), JobStatus.FAILED_SUBMIT
                     )
@@ -1047,9 +1196,6 @@ class PendingSubmitJobStrategy(JobStrategy):
                     initial_delay * (2**retry_attempts), max_delay
                 )  # Exponential backoff
                 jitter = random.uniform(0, 0.1 * delay)
-                print(
-                    f"Failed to submit job {job.id}: {e}. Retrying in {delay + jitter:.2f} seconds..."
-                )
                 sleep(delay + jitter)
 
 
@@ -1088,12 +1234,14 @@ class PendingCancelJobStrategy(JobStrategy):
         initial_delay = 1
         max_delay = 32
 
+        interface = job_manager.get_interface(job.interface_name)
+
         while retry_attempts < max_retries:
             try:
                 # First check the latest status from the hardware, in case the job
                 # has reached a terminal status before the job manager has had a chance
                 # to pick this up.
-                job_status = job_manager.interface.get_job_status(job.id)
+                job_status = interface.get_job_status(job.id)
                 if job_status in TERMINAL_STATUSES:
                     job_manager.simulations_log.update_job_status(str(job.id), job_status)
                     job_manager.remove_job(job)
@@ -1102,7 +1250,7 @@ class PendingCancelJobStrategy(JobStrategy):
                         status=job_status,
                     )
                 else:
-                    job_manager.interface.cancel_job(job.id)
+                    interface.cancel_job(job.id)
                     job_manager.simulations_log.update_job_status(
                         str(job.id), JobStatus.CANCELLED
                     )
@@ -1114,18 +1262,12 @@ class PendingCancelJobStrategy(JobStrategy):
                 retry_attempts += 1
 
                 if retry_attempts == max_retries:
-                    print(
-                        f"Max retry attempts reached for job {job.id}. Aborting cancellation."
-                    )
                     break
 
                 delay = min(
                     initial_delay * (2**retry_attempts), max_delay
                 )  # Exponential backoff
                 jitter = random.uniform(0, 0.1 * delay)
-                print(
-                    f"Failed to cancel job {job.id}: {e}. Retrying in {delay + jitter:.2f} seconds..."
-                )
                 sleep(delay + jitter)
 
 

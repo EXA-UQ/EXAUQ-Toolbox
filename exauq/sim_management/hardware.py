@@ -12,6 +12,7 @@ from paramiko.ssh_exception import AuthenticationException, SSHException
 
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
+from exauq.utilities.string_validation import validate_interface_name
 
 
 class JobStatus(Enum):
@@ -85,16 +86,45 @@ class HardwareInterface(ABC):
     such as supercomputers, GPU clusters, servers, personal laptops, or even potatoes!
     Whether the hardware is local or remote is also abstracted away by this interface.
 
-    The goal is to provide a unified way to submit jobs, query job status, fetch job output,
-    cancel jobs, and wait for jobs across all types of hardware resources. This enables
-    writing hardware-agnostic code for running simulations or performing other computational tasks.
+    The goal is to provide a unified way to submit jobs, query job status, fetch job
+    output, and cancel jobs across all types of hardware resources. This enables
+    writing hardware-agnostic code for running simulations or performing other
+    computational tasks.
+
+    Instances of this class must be initialised with two attributes: `level` and `name`.
+    `level` is an integer that represents the level of the hardware interface, and `name`
+    is a string that can be used to name or label the hardware interface. The level can
+    indicate the complexity or hierarchy of the interface, and the name is typically expected
+    to be unique amongst interfaces.
 
     Implementations should provide the following methods:
     - submit_job
     - get_job_status
     - get_job_output
     - cancel_job
+
+    Attributes:
+    ----------
+    name : str
+        The name of the hardware interface.
+    level : int, optional
+        The level of the hardware interface, indicating its complexity or hierarchy.
+        Defaults to ``1``.
     """
+
+    def __init__(self, name: str, level: int = 1):
+        self._name = name
+        self._level = level
+
+    @property
+    def level(self) -> int:
+        """(Read-only) The level of the hardware interface."""
+        return self._level
+
+    @property
+    def name(self) -> Optional[str]:
+        """(Read-only) The name of the hardware interface."""
+        return self._name
 
     @abstractmethod
     def submit_job(self, job: Job):
@@ -117,9 +147,9 @@ class SSHInterface(HardwareInterface, ABC):
     """
     SSH Interface to manage and submit jobs. Inherits from the HardwareInterface.
 
-    The SSHInterface class provides an interface for interacting with hardware over SSH. It can
-    authenticate using either a key file, an SSH config path, or via an SSH agent. If none of
-    these methods are provided, it will prompt for a password.
+    The SSHInterface class provides an interface for interacting with hardware over
+    SSH. It can authenticate using either a key file, an SSH config path, or via an SSH
+    agent. If none of these methods are provided, it will prompt for a password.
 
     Parameters
     ----------
@@ -127,6 +157,10 @@ class SSHInterface(HardwareInterface, ABC):
         The username to authenticate with the SSH server.
     host : str
         The hostname or IP address of the SSH server.
+    name : str
+        The name of the SSH interface.
+    level : int, optional
+        The level of the SSH interface. Defaults to ``1``.
     key_filename : exauq.sim_management.types.FilePath, optional
         The path to the SSH private key file to authenticate with the SSH server.
     ssh_config_path : exauq.sim_management.types.FilePath, optional
@@ -146,11 +180,14 @@ class SSHInterface(HardwareInterface, ABC):
         self,
         user: str,
         host: str,
+        name: str,
+        level: int = 1,
         key_filename: Optional[FilePath] = None,
         ssh_config_path: Optional[FilePath] = None,
         use_ssh_agent: Optional[bool] = False,
         max_attempts: int = 3,
     ):
+        super().__init__(name, level)
         self.max_attempts = max_attempts
 
         # Check if more than one method is provided
@@ -278,6 +315,10 @@ class UnixServerScriptInterface(SSHInterface):
         The program to run on the server.
     script_path : exauq.sim_management.types.FilePath
         The path to the script on the Unix server to run with `program`.
+    name : str
+        The name of the interface.
+    level : int, optional
+        (Default: 1) The level of the interface.
     workspace_dir : exauq.sim_management.types.FilePath, optional
         (Default: None) A path to a directory on the Unix server where job-specific
         subdirectories should be created. Relative paths will be relative to the default
@@ -319,6 +360,8 @@ class UnixServerScriptInterface(SSHInterface):
         host: str,
         program: str,
         script_path: FilePath,
+        name: str,
+        level: int = 1,
         workspace_dir: Optional[FilePath] = None,
         key_filename: Optional[FilePath] = None,
         ssh_config_path: Optional[FilePath] = None,
@@ -326,7 +369,14 @@ class UnixServerScriptInterface(SSHInterface):
         max_attempts: int = 3,
     ):
         super().__init__(
-            user, host, key_filename, ssh_config_path, use_ssh_agent, max_attempts
+            user,
+            host,
+            name,
+            level,
+            key_filename,
+            ssh_config_path,
+            use_ssh_agent,
+            max_attempts,
         )
         self._user = user
         self._host = host
