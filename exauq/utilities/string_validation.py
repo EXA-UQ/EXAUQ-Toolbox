@@ -33,8 +33,6 @@ def validate_interface_name(interface_name: Optional[str]) -> Optional[str]:
 
     Raises
     ------
-    TypeError
-        If interface_tag is not a string or None.
     ValueError
         If interface_tag exceeds the maximum length or contains forbidden patterns or
         invalid characters.
