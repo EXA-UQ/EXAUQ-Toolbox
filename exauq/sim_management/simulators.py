@@ -920,10 +920,12 @@ class JobManager:
 
     def remove_job(self, job: Job):
         """
-        Removes a job from the internal list of jobs being monitored.
+        Safely removes a job from the monitored jobs list and updates the interface job
+        count.
 
-        This method ensures thread-safe deallocation of the job's associated hardware
-        interface and removal of the job from monitoring.
+        This method ensures thread-safe removal of the specified job from the internal
+        list of monitored jobs. It also decrements the count of jobs assigned to the job's
+        associated hardware interface.
 
         Parameters
         ----------
