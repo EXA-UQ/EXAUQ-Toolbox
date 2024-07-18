@@ -657,9 +657,7 @@ class JobManager:
         self._lock = Lock()
         self._thread = None
         self._shutdown_event = Event()
-
         self._id_generator = JobIDGenerator()
-
         self._job_strategies = self._init_job_strategies()
 
         self._interface_job_monitor_counts = {
@@ -749,7 +747,9 @@ class JobManager:
         return MultiLevel(level_to_interfaces)
 
     @staticmethod
-    def _create_name_index(interfaces: list[HardwareInterface]) -> dict[str, HardwareInterface]:
+    def _create_name_index(
+        interfaces: list[HardwareInterface],
+    ) -> dict[str, HardwareInterface]:
         """Creates an index of hardware interface names to interface objects."""
         name_index = {}
         for interface in interfaces:
