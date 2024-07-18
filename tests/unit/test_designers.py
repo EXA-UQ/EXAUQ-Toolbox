@@ -1033,6 +1033,51 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
                 ):
                     _ = compute_multi_level_loo_prediction(mlgp2, level, leave_out_idx)
 
+        # In the single-level case, should pass through without error even if there are
+        # repeated training inputs on that same level.
+        training_data3 = MultiLevel(
+            {
+                1: (
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 1),
+                )
+            }
+        )
+        mlgp3 = MultiLevelGaussianProcess([fakes.WhiteNoiseGP()])
+        mlgp3.fit(training_data3)
+        for leave_out_idx in range(len(training_data3[1])):
+            _ = compute_multi_level_loo_prediction(
+                mlgp3, level=1, leave_out_idx=leave_out_idx
+            )
+
+    def test_prediction_for_single_level(self):
+        """If a multi-level GP with only one level is supplied, then the returned
+        prediction corresponds to the single-level leave-one-out prediction."""
+
+        training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+            }
+        )
+
+        coefficient = 10
+        mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP()], coefficients=[coefficient]
+        )
+        mlgp.fit(training_data)
+
+        level, leave_out_idx = 1, 0
+        term = self.compute_loo_prediction_level_term(mlgp, level, leave_out_idx)
+        expected = GaussianProcessPrediction(
+            estimate=(coefficient * term.estimate),
+            variance=((coefficient**2) * term.variance),
+        )
+        self.assertEqual(
+            expected,
+            compute_multi_level_loo_prediction(mlgp, level, leave_out_idx),
+        )
+
     def test_prediction_combination_loo_prediction_at_level_and_at_other_levels(self):
         """The overall multi-level leave-one-out (LOO) prediction for a given level is a
         sum of a term for the level and a term for the other levels."""
