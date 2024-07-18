@@ -369,7 +369,14 @@ class UnixServerScriptInterface(SSHInterface):
         max_attempts: int = 3,
     ):
         super().__init__(
-            user, host, name, level, key_filename, ssh_config_path, use_ssh_agent, max_attempts
+            user,
+            host,
+            name,
+            level,
+            key_filename,
+            ssh_config_path,
+            use_ssh_agent,
+            max_attempts,
         )
         self._user = user
         self._host = host
