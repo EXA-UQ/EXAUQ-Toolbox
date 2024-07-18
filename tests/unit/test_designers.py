@@ -930,6 +930,36 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
             for prediction in other_level_predictions
         ]
 
+    def test_invalid_leave_out_idx_error(self):
+        """A ValueError is raised if the leave-out index is out of the range of indices
+        for training data at the specified level."""
+
+        training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                2: (TrainingDatum(Input(0.3), 1),),
+                3: (TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.6), 1)),
+            }
+        )
+
+        mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP() for _ in training_data],
+        )
+        mlgp.fit(training_data)
+
+        level = 2
+        for leave_out_idx in [-1, 1]:
+            with self.subTest(leave_out_idx=leave_out_idx):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    exact(
+                        "'leave_out_idx' should define a zero-based index for the training data "
+                        f"of length {len(training_data[level])} at level {level}, but received "
+                        f"out of range index {leave_out_idx}."
+                    ),
+                ):
+                    _ = compute_multi_level_loo_prediction(mlgp, level, leave_out_idx)
+
     def test_prediction_combination_loo_prediction_at_level_and_at_other_levels(self):
         """The overall multi-level leave-one-out (LOO) prediction for a given level is a
         sum of a term for the level and a term for the other levels."""

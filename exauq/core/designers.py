@@ -673,7 +673,14 @@ def compute_multi_level_loo_prediction(
         described above.
     """
 
-    # TODO: add check that leave_out_idx valid for given level
+    n_training_data = len(mlgp.training_data[level])
+    if not 0 <= leave_out_idx < n_training_data:
+        raise ValueError(
+            "'leave_out_idx' should define a zero-based index for the training data "
+            f"of length {n_training_data} at level {level}, but received out of range "
+            f"index {leave_out_idx}."
+        )
+
     terms = MultiLevel({level: None for level in mlgp.levels})
 
     # Get mean and variance contributions at supplied level
