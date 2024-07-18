@@ -808,7 +808,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
 
         self.assertDictContainsSubset({"seed": None}, mock_maximise.call_args.kwargs)
 
-    def test_repeated_results_when_seed_set(self):
+    def test_use_of_seed(self):
         """If a seed is provided, then maximisation of pseudo-expected improvement is
         performed with this seed."""
 
@@ -1438,12 +1438,15 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         domain: Optional[SimulatorDomain] = None,
         costs: Optional[MultiLevel[Real]] = None,
         batch_size: Optional[int] = 1,
+        seeds: Optional[MultiLevel[int]] = None,
     ) -> tuple[int, tuple[Input, ...]]:
         mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
         costs = self.default_costs if costs is None else costs
 
-        return compute_multi_level_loo_samples(mlgp, domain, costs, batch_size=batch_size)
+        return compute_multi_level_loo_samples(
+            mlgp, domain, costs, batch_size=batch_size, seeds=seeds
+        )
 
     def test_arg_type_errors(self):
         """A TypeError is raised if any of the following hold:
@@ -1451,6 +1454,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         * The input multi-level GP is not of type MultiLevelGaussianProcess.
         * The domain is not of type SimulatorDomain.
         * The batch size is not an integer.
+        * The seeds are not a MultiLevel collection (or None).
         """
 
         arg = "a"
@@ -1478,6 +1482,15 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         ):
             _ = self.compute_multi_level_loo_samples(batch_size=arg)
 
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'seeds' to be of type {MultiLevel} with integer values, but "
+                f"received {type(arg)} instead."
+            ),
+        ):
+            _ = self.compute_multi_level_loo_samples(seeds=arg)
+
     def test_domain_wrong_dim_error(self):
         """A ValueError is raised if the supplied domain's dimension does not agree with
         the dimension of the inputs in the GP's training data."""
@@ -1503,7 +1516,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
     def test_differing_input_arg_levels_error(self):
         """A ValueError is raised if the levels found in the multi-level Gaussian
-        process do not also appear in the simulator costs."""
+        process do not also appear in the simulator costs and seeds (if provided)."""
 
         costs = self.make_level_costs([1])
         missing_level = (set(self.default_mlgp.levels) - set(costs.levels)).pop()
@@ -1512,6 +1525,14 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             f"Level {missing_level} from 'mlgp' does not have associated level from 'costs'.",
         ):
             self.compute_multi_level_loo_samples(costs=costs)
+
+        seeds = MultiLevel([1])
+        missing_level = (set(self.default_mlgp.levels) - set(seeds.levels)).pop()
+        with self.assertRaisesRegex(
+            ValueError,
+            f"Level {missing_level} from 'mlgp' does not have associated level from 'seeds'.",
+        ):
+            self.compute_multi_level_loo_samples(seeds=seeds)
 
     def test_intersecting_training_inputs_error(self):
         """A ValueError is raised if a training input at some level also appears as a
@@ -1681,6 +1702,26 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                         abs_tol=self.tolerance,
                     )
                 )
+
+    def test_use_of_seed(self):
+        """If seeds are provided, then maximisation of pseudo-expected improvement is
+        performed with these seeds level-wise."""
+
+        mock_maximise_return = (self.default_domain.scale([0.5]), 1)
+        seeds = MultiLevel([99, None])
+        with unittest.mock.patch(
+            "exauq.core.designers.maximise",
+            autospec=True,
+            return_value=mock_maximise_return,
+        ) as mock_maximise:
+            _ = self.compute_multi_level_loo_samples(seeds=seeds)
+
+        self.assertDictContainsSubset(
+            {"seed": seeds[1]}, mock_maximise.call_args_list[0].kwargs
+        )
+        self.assertDictContainsSubset(
+            {"seed": seeds[2]}, mock_maximise.call_args_list[1].kwargs
+        )
 
 
 # TODO: test that repulsion points are updated with previously calculated inputs in

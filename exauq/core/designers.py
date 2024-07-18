@@ -569,9 +569,10 @@ def compute_single_level_loo_samples(
     use of different Gaussian process settings (e.g. a different kernel function).
 
     If `seed` is provided, then this will be used when maximising the pseudo-expected
-    improvement of the LOO errors GP. Providing a seed does not necessarily mean
-    calculation of the output design points is deterministic, as this also depends on
-    computation of the LOO errors GP being deterministic.
+    improvement of the LOO errors GP (the same seed will be used to find each new
+    simulator input in the batch). Providing a seed does not necessarily mean calculation
+    of the output design points is deterministic, as this also depends on computation of
+    the LOO errors GP being deterministic.
 
     Parameters
     ----------
@@ -993,6 +994,7 @@ def compute_multi_level_loo_samples(
     domain: SimulatorDomain,
     costs: MultiLevel[Real],
     batch_size: int = 1,
+    seeds: Optional[MultiLevel[int]] = None,
 ) -> tuple[int, tuple[Input, ...]]:
     """Compute a batch of design points adaptively for a multi-level Gaussian process (GP).
 
@@ -1006,6 +1008,14 @@ def compute_multi_level_loo_samples(
 
     The `costs` should represent the costs of running a each level's simulator on a single
     input.
+
+    If `seeds` is provided, then the seeds provided for the levels will be used when
+    maximising the pseudo-expected improvement of the LOO errors GP for each level (the
+    same seeds will be used level-wise to find each new simulator input in the batch).
+    Note that ``None`` can be provided for a level, which means the maximisation at that
+    level won't be seeded. Providing seeds does not necessarily mean calculation of the
+    output design points is deterministic, as this also depends on computation of the LOO
+    errors GP being deterministic.
 
     The adaptive sampling method assumes that none of the levels in the multi-level GP
     share common training simulator inputs; a ValueError will be raised if this is not the
@@ -1024,6 +1034,10 @@ def compute_multi_level_loo_samples(
     batch_size : int, optional
         (Default: 1) The number of new design points to compute. Should be a positive
         integer.
+    seeds : MultiLevel[Optional[int]], optional
+        (Default: None) A multi-level collection of random number seeds to use when
+        maximising pseudo-expected improvements for each level. If ``None`` then none of
+        the maximisations will be seeded.
 
     Returns
     -------
@@ -1086,6 +1100,20 @@ def compute_multi_level_loo_samples(
             "from 'costs'."
         )
 
+    if seeds is None:
+        seeds = MultiLevel({level: None for level in mlgp.levels})
+    elif not isinstance(seeds, MultiLevel):
+        raise TypeError(
+            f"Expected 'seeds' to be of type {MultiLevel} with integer values, but "
+            f"received {type(seeds)} instead."
+        )
+
+    if missing_levels := sorted(set(mlgp.levels) - set(seeds.levels)):
+        raise ValueError(
+            f"Level {missing_levels[0]} from 'mlgp' does not have associated level "
+            "from 'seeds'."
+        )
+
     if not isinstance(batch_size, int):
         raise TypeError(
             f"Expected 'batch_size' to be an integer, but received {type(batch_size)} instead."
@@ -1105,7 +1133,9 @@ def compute_multi_level_loo_samples(
     # Find PEI argmax, with (weighted) PEI value, for each level
     delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
     maximal_pei_values = ml_pei.map(
-        lambda level, pei: maximise(lambda x: pei.compute(x) / delta_costs[level], domain)
+        lambda level, pei: maximise(
+            lambda x: pei.compute(x) / delta_costs[level], domain, seed=seeds[level]
+        )
     )
 
     # Create batch at maximising level by iteratively adding new design points as
