@@ -1000,6 +1000,10 @@ def compute_multi_level_loo_samples(
     The `costs` should represent the costs of running a each level's simulator on a single
     input.
 
+    The adaptive sampling method assumes that none of the levels in the multi-level GP
+    share common training simulator inputs; a ValueError will be raised if this is not the
+    case.
+
     Parameters
     ----------
     mlgp : MultiLevelGaussianProcess
@@ -1027,6 +1031,8 @@ def compute_multi_level_loo_samples(
         `domain`.
     ValueError
         If any of the levels defined in `mlgp` does not have an associated cost.
+    ValueError
+        If there is a shared training simulator input across multiple levels in `mlgp`.
 
     See Also
     --------

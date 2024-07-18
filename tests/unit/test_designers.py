@@ -1456,6 +1456,41 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         ):
             self.compute_multi_level_loo_samples(costs=costs)
 
+    def test_intersecting_training_inputs_error(self):
+        """A ValueError is raised if a training input at some level also appears as a
+        training input in another level, for the supplied multi-level GP."""
+
+        domain = SimulatorDomain([(0, 1)])
+        repeated_input1 = Input(0.1)
+        problem_level1, problem_level2 = 1, 3
+        training_data1 = MultiLevel(
+            {
+                problem_level1: (
+                    TrainingDatum(repeated_input1, 1),
+                    TrainingDatum(Input(0.2), 1),
+                ),
+                2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
+                problem_level2: (
+                    TrainingDatum(Input(0.5), 1),
+                    TrainingDatum(repeated_input1, 1),
+                ),
+            }
+        )
+
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data1])
+        mlgp.fit(training_data1)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "Training inputs across all levels must be distinct, but found "
+                f"common input {repeated_input1} at levels {problem_level1}, {problem_level2}."
+            ),
+        ):
+            self.compute_multi_level_loo_samples(
+                mlgp, domain, costs=MultiLevel([1, 1, 1])
+            )
+
     def test_number_of_design_points_returned_equals_batch_size(self):
         """Then number of design points returned equals the provided batch size."""
 
