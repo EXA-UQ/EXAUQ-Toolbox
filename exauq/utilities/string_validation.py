@@ -19,7 +19,10 @@ MAX_LENGTH = 50
 
 def validate_interface_name(interface_name: Optional[str]) -> Optional[str]:
     """
-    Validates the interface name based on certain criteria.
+    Validates the interface name based on the following criteria. The name must be a
+    string or None, must not exceed a maximum length of 50 characters, must not contain
+    certain forbidden words or patterns (such as SQL-related terms), and must match an
+    allowed pattern of alphanumeric characters, hyphens, and underscores.
 
     Parameters
     ----------
