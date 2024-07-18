@@ -333,6 +333,27 @@ class TestComputeLooGp(ExauqTestCase):
         ):
             _ = compute_loo_gp(gp, 0)
 
+    def test_compute_loo_gp_repeated_training_input_error(self):
+        """A ValueError is raised if the training data in the supplied GP contains a
+        repeated simulator input."""
+
+        repeated_input = Input(0.1)
+        training_data = [
+            TrainingDatum(repeated_input, 1),
+            TrainingDatum(repeated_input, 1),
+        ]
+        gp = fakes.WhiteNoiseGP()
+        gp.fit(training_data)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Cannot compute leave one out error with 'gp' because simulator input {repeated_input} "
+                "is repeated in the training data."
+            ),
+        ):
+            _ = compute_loo_gp(gp, 0)
+
     def test_compute_loo_gp_returns_same_type_of_gp(self):
         """The return type is the same as the input GP in the default case."""
 
@@ -1032,24 +1053,6 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
                     ),
                 ):
                     _ = compute_multi_level_loo_prediction(mlgp2, level, leave_out_idx)
-
-        # In the single-level case, should pass through without error even if there are
-        # repeated training inputs on that same level.
-        training_data3 = MultiLevel(
-            {
-                1: (
-                    TrainingDatum(Input(0.1), 1),
-                    TrainingDatum(Input(0.1), 1),
-                    TrainingDatum(Input(0.2), 1),
-                )
-            }
-        )
-        mlgp3 = MultiLevelGaussianProcess([fakes.WhiteNoiseGP()])
-        mlgp3.fit(training_data3)
-        for leave_out_idx in range(len(training_data3[1])):
-            _ = compute_multi_level_loo_prediction(
-                mlgp3, level=1, leave_out_idx=leave_out_idx
-            )
 
     def test_prediction_for_single_level(self):
         """If a multi-level GP with only one level is supplied, then the returned

@@ -242,6 +242,13 @@ def compute_loo_gp(
             "trained on data."
         )
 
+    for dat1, dat2 in itertools.combinations(gp.training_data, 2):
+        if dat1.input == dat2.input:
+            raise ValueError(
+                "Cannot compute leave one out error with 'gp' because simulator input "
+                f"{dat1.input} is repeated in the training data."
+            )
+
     if not 0 <= leave_out_idx < len(gp.training_data):
         raise ValueError(
             f"Leave out index {leave_out_idx} is not within the bounds of the training "
