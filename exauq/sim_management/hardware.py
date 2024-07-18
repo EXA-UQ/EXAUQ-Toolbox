@@ -104,9 +104,9 @@ class HardwareInterface(ABC):
     - cancel_job
     """
 
-    def __init__(self):
-        self._level = 1
-        self._name = None
+    def __init__(self, name: str, level: int = 1):
+        self._name = name
+        self._level = level
 
     @property
     def level(self) -> int:
@@ -117,19 +117,6 @@ class HardwareInterface(ABC):
     def name(self) -> Optional[str]:
         """(Read-only) The name of the hardware interface."""
         return self._name
-
-    @level.setter
-    def level(self, value: int):
-        if not isinstance(value, int):
-            raise TypeError(
-                f"Expected level ({value}) to be of type int. Got {type(value)} instead."
-            )
-
-        self._level = value
-
-    @name.setter
-    def name(self, value: str):
-        self._name = validate_interface_name(value)
 
     @abstractmethod
     def submit_job(self, job: Job):
@@ -181,11 +168,14 @@ class SSHInterface(HardwareInterface, ABC):
         self,
         user: str,
         host: str,
+        name: str,
+        level: int = 1,
         key_filename: Optional[FilePath] = None,
         ssh_config_path: Optional[FilePath] = None,
         use_ssh_agent: Optional[bool] = False,
         max_attempts: int = 3,
     ):
+        super().__init__(name, level)
         self.max_attempts = max_attempts
 
         # Check if more than one method is provided
@@ -354,6 +344,8 @@ class UnixServerScriptInterface(SSHInterface):
         host: str,
         program: str,
         script_path: FilePath,
+        name: str,
+        level: int = 1,
         workspace_dir: Optional[FilePath] = None,
         key_filename: Optional[FilePath] = None,
         ssh_config_path: Optional[FilePath] = None,
@@ -361,7 +353,7 @@ class UnixServerScriptInterface(SSHInterface):
         max_attempts: int = 3,
     ):
         super().__init__(
-            user, host, key_filename, ssh_config_path, use_ssh_agent, max_attempts
+            user, host, name, level, key_filename, ssh_config_path, use_ssh_agent, max_attempts
         )
         self._user = user
         self._host = host
