@@ -648,7 +648,7 @@ class JobManager:
     ):
         self._simulations_log = simulations_log
         self._interfaces = self._init_multi_level_interfaces(interfaces)
-        self._name_index = self._create_name_index()
+        self._name_index = self._create_name_index(interfaces)
         self._polling_interval = polling_interval
         self._monitored_jobs = []
         self._lock = Lock()
@@ -745,14 +745,11 @@ class JobManager:
             level_to_interfaces[interface.level].append(interface)
 
         return MultiLevel(level_to_interfaces)
-
-    def _create_name_index(self) -> dict[str, HardwareInterface]:
+    @staticmethod
+    def _create_name_index(interfaces: list[HardwareInterface]) -> dict[str, HardwareInterface]:
         """Creates an index of hardware interface names to interface objects."""
-        name_index = {}
-        for interfaces in self._interfaces.values():
-            for interface in interfaces:
-                name_index[interface.name] = interface
-        return name_index
+
+        return {interface.name for interface in interfaces}
 
     def _select_interface(self, level: int) -> str:
         """Selects a hardware interface for a job based on the level and the number of jobs
