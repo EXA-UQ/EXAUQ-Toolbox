@@ -1162,11 +1162,36 @@ def initialise_for_multi_level_loo_sampling(
     return mlgp, costs
 
 
-def create_data_for_multi_level_loo_sampling(data, costs):
-    delta_costs = tuple(
-        cost_i + cost_im1 for cost_i, cost_im1 in zip(costs, [0] + costs[:-1])
+def create_data_for_multi_level_loo_sampling(
+    data, costs: MultiLevel[Real], correlations=1
+):
+    top_level = max(costs.levels)
+    if isinstance(correlations, Real):
+        correlations = MultiLevel(
+            {level: correlations for level in costs.levels if level < top_level}
+        )
+
+    # Compute output costs
+    delta_costs = MultiLevel(
+        {level: _compute_delta_cost(costs, level) for level in costs.levels}
     )
-    return None, delta_costs, None
+
+    # Compute output coefficients
+    delta_coefficients = costs.map(
+        lambda level, _: math.prod(
+            correlations[lev] for lev in correlations.levels if lev >= level
+        )
+    )
+    delta_coefficients = MultiLevel(
+        {top_level: 1}
+        | correlations.map(
+            lambda k, _: math.prod(
+                correlations[level] for level in correlations.levels if level >= k
+            )
+        )
+    )
+
+    return None, delta_costs, delta_coefficients
 
 
 def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:
