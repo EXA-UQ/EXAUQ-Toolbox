@@ -1163,13 +1163,29 @@ def initialise_for_multi_level_loo_sampling(
 
 
 def create_data_for_multi_level_loo_sampling(
-    data, costs: MultiLevel[Real], correlations=1
+    data: MultiLevel[Sequence[TrainingDatum]],
+    costs: MultiLevel[Real],
+    correlations: Union[MultiLevel[Real], Real] = 1,
 ):
     top_level = max(costs.levels)
     if isinstance(correlations, Real):
         correlations = MultiLevel(
             {level: correlations for level in costs.levels if level < top_level}
         )
+
+    # Compute output data
+    delta_data = MultiLevel({level: None for level in data.levels})
+    for level in reversed(data.levels):
+        if level == top_level:
+            datum = data[top_level][0]
+            datum_prev_level = data[top_level - 1][0]
+            delta_output = (
+                datum.output - correlations[top_level - 1] * datum_prev_level.output
+            )
+            delta_data[top_level] = [TrainingDatum(datum.input, delta_output)]
+
+        else:
+            delta_data[level] = []
 
     # Compute output costs
     delta_costs = MultiLevel(
@@ -1191,7 +1207,7 @@ def create_data_for_multi_level_loo_sampling(
         )
     )
 
-    return None, delta_costs, delta_coefficients
+    return delta_data, delta_costs, delta_coefficients
 
 
 def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:

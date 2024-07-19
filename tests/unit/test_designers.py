@@ -1851,6 +1851,38 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         expected = MultiLevel({level: 1 for level in self.costs.levels})
         self.assertEqual(expected, delta_coefficients)
 
+    def test_delta_data_contains_inter_level_differences_of_outputs(self):
+        """The data returned consists of differences of outputs between successive levels,
+        accounting for the correlation between levels. The data returned for the bottom
+        level is just the same data supplied at this level."""
+
+        outputs = {1: 10, 2: -1, 3: 1, 4: 2}
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.1), outputs[1])],
+                2: [TrainingDatum(Input(0.1), outputs[2])],
+                3: [TrainingDatum(Input(0.1), outputs[3])],
+                4: [TrainingDatum(Input(0.1), outputs[4])],
+            }
+        )
+        correlations = MultiLevel([0.1, 0.2, 0.3])
+        costs = MultiLevel([1, 10, 100, 1000])
+
+        delta_data, _, _ = create_data_for_multi_level_loo_sampling(
+            data, costs, correlations
+        )
+
+        expected = MultiLevel(
+            {
+                1: [],
+                2: [],
+                3: [],
+                4: [TrainingDatum(Input(0.1), outputs[4] - correlations[3] * outputs[3])],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
 
 if __name__ == "__main__":
     unittest.main()
