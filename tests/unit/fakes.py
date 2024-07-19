@@ -7,13 +7,16 @@ import dataclasses
 from collections.abc import Collection, Sequence
 from typing import Optional
 
+import numpy as np
+from numpy.typing import NDArray
+
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     AbstractSimulator,
     GaussianProcessHyperparameters,
+    GaussianProcessPrediction,
     Input,
     OptionalFloatPairs,
-    Prediction,
     TrainingDatum,
 )
 from exauq.sim_management.hardware import HardwareInterface
@@ -39,6 +42,9 @@ class WhiteNoiseGP(AbstractGaussianProcess):
     ----------
     predictive_mean : float
         The prior mean value for the GP at simulator inputs.
+    noise_level : float
+        The noise level used to define the kernel function (equivalently, the process
+        variance).
     training_data : tuple[TrainingDatum]
         Defines the pairs of inputs and simulator outputs on which the emulator
         has been trained.
@@ -65,6 +71,13 @@ class WhiteNoiseGP(AbstractGaussianProcess):
         """The prior mean value for the GP at simulator inputs."""
 
         return self._prior_mean
+
+    @property
+    def noise_level(self) -> float:
+        """The noise level used to define the kernel function (equivalently, the process
+        variance)."""
+
+        return self._noise_level
 
     @property
     def training_data(self) -> tuple[TrainingDatum]:
@@ -117,7 +130,7 @@ class WhiteNoiseGP(AbstractGaussianProcess):
             (Default: ``None``) If not ``None`` then this should define the
             process variance that will be used as the new noise level in the kernel
             function (the other hyperparameters are not used in this context). If ``None``
-            ]then the noise level supplied at the creation of this GP will continue to be
+            then the noise level supplied at the creation of this GP will continue to be
             used, subject to any bounds supplied in `hyperparameter_bounds`.
         hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
             (Default: ``None``) If not ``None``, then the bounds on the process variance
@@ -167,9 +180,7 @@ class WhiteNoiseGP(AbstractGaussianProcess):
 
         return self._noise_level * self._indicator_fn(x1, x2)
 
-    def correlation(
-        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
-    ) -> tuple[tuple[float, ...], ...]:
+    def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
         """Compute the (prior) correlation matrix for two sequences of simulator inputs.
 
         The matrix entry at position `(i, j)` is equal to 1 if
@@ -182,16 +193,16 @@ class WhiteNoiseGP(AbstractGaussianProcess):
 
         Returns
         -------
-        tuple[tuple[float, ...], ...]
-            The correlation matrix for the two sequences of inputs. The outer tuple
-            consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
+        numpy.ndarray
+            The correlation matrix for the two sequences of inputs, as a 2-dim Numpy array
+            of shape ``(len(inputs1), len(inputs2))``.
         """
 
-        return tuple(
-            tuple(self._indicator_fn(xi, xj) for xj in inputs2) for xi in inputs1
+        return np.array(
+            tuple(tuple(self._indicator_fn(xi, xj) for xj in inputs2) for xi in inputs1)
         )
 
-    def predict(self, x: Input) -> Prediction:
+    def predict(self, x: Input) -> GaussianProcessPrediction:
         """Estimate the simulator output for a given input.
 
         The emulator will predict the correct simulator output, with zero variance, for
@@ -206,7 +217,7 @@ class WhiteNoiseGP(AbstractGaussianProcess):
 
         Returns
         -------
-        Prediction
+        GaussianProcessPrediction
             This GP's prediction of the simulator output from the given the input.
         """
         if not isinstance(x, Input):
@@ -214,9 +225,9 @@ class WhiteNoiseGP(AbstractGaussianProcess):
 
         for datum in self._training_data:
             if datum.input == x:
-                return Prediction(estimate=datum.output, variance=0)
+                return GaussianProcessPrediction(estimate=datum.output, variance=0)
 
-        return Prediction(
+        return GaussianProcessPrediction(
             estimate=self._prior_mean, variance=self.fit_hyperparameters.process_var
         )
 
@@ -343,7 +354,7 @@ class FakeGP(AbstractGaussianProcess):
 
         return tuple(tuple(0.5 for xj in inputs2) for xi in inputs1)
 
-    def predict(self, x: Input) -> Prediction:
+    def predict(self, x: Input) -> GaussianProcessPrediction:
         """Estimate the simulator output for a given input.
 
         The emulator will predict the correct simulator output for `x` which
@@ -357,17 +368,17 @@ class FakeGP(AbstractGaussianProcess):
 
         Returns
         -------
-        Prediction
-            The emulator's prediction of the simulator output from the given the input.
+        GaussianProcessPrediction
+            This GP's prediction of the simulator output from the given the input.
         """
         if not isinstance(x, Input):
             raise TypeError
 
         for datum in self._training_data:
             if datum.input == x:
-                return Prediction(estimate=datum.output, variance=0)
+                return GaussianProcessPrediction(estimate=datum.output, variance=0)
 
-        return Prediction(
+        return GaussianProcessPrediction(
             estimate=self._predictive_mean, variance=self._predictive_variance
         )
 

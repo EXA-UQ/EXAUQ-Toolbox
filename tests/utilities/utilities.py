@@ -44,6 +44,18 @@ class ExauqTestCase(unittest.TestCase):
         )
         return None
 
+    def assertArraysEqual(self, arr1, arr2) -> None:
+        self.assertIsInstance(arr1, np.ndarray, "'arr1' is not a Numpy array")
+        self.assertIsInstance(arr2, np.ndarray, "'arr2' is not a Numpy array")
+        self.assertTrue(
+            np.array_equal(arr1, arr2, equal_nan=True), "arrays are not equal"
+        )
+
+    def assertArraysNotEqual(self, arr1, arr2) -> None:
+        self.assertIsInstance(arr1, np.ndarray, "'arr1' is not a Numpy array")
+        self.assertIsInstance(arr2, np.ndarray, "'arr2' is not a Numpy array")
+        self.assertFalse(np.array_equal(arr1, arr2, equal_nan=True), "arrays are equal")
+
 
 def exact(string: str):
     """Turn a string into a regular expressions that defines an exact match on the

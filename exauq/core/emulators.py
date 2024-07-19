@@ -6,7 +6,7 @@ import dataclasses
 import itertools
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Literal, Optional
 
 import mogp_emulator as mogp
 import numpy as np
@@ -17,9 +17,9 @@ from numpy.typing import NDArray
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     GaussianProcessHyperparameters,
+    GaussianProcessPrediction,
     Input,
     OptionalFloatPairs,
-    Prediction,
     TrainingDatum,
 )
 from exauq.utilities.mogp_fitting import fit_GP_MAP
@@ -85,9 +85,9 @@ class MogpEmulator(AbstractGaussianProcess):
         self._gp_kwargs = self._remove_entries(kwargs, "inputs", "targets")
         self._validate_kernel(self._gp_kwargs)
         self._kernel = (
-            self._make_kernel_function(self._gp_kwargs["kernel"])
+            self._kernel_funcs[self._gp_kwargs["kernel"]]
             if "kernel" in self._gp_kwargs
-            else self._make_kernel_function()
+            else self._kernel_funcs["SquaredExponential"]
         )
         self._gp = self._make_gp(**self._gp_kwargs)
 
@@ -139,19 +139,6 @@ class MogpEmulator(AbstractGaussianProcess):
                 "initialisation of MogpEmulator"
             )
             raise RuntimeError(msg)
-
-    @classmethod
-    def _make_kernel_function(
-        cls,
-        kernel: str = "SquaredExponential",
-    ) -> Callable[[Input, Input, NDArray], float]:
-
-        def kernel_f(x1: Input, x2: Input, corr_raw: NDArray) -> float:
-            return float(
-                cls._kernel_funcs[kernel](np.array(x1), np.array(x2), corr_raw)[0, 0]
-            )
-
-        return kernel_f
 
     @property
     def gp(self) -> GaussianProcess:
@@ -420,17 +407,14 @@ class MogpEmulator(AbstractGaussianProcess):
     def _transform_cov(cov: Optional[Real]) -> Optional[Real]:
         return MogpHyperparameters.transform_cov(cov) if cov is not None else None
 
-    def correlation(
-        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
-    ) -> tuple[tuple[float, ...], ...]:
+    def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
         """Compute the correlation matrix for two sequences of simulator inputs.
 
-        If ``corr_matrix`` is the output of this method, then the ordering of the nested
-        tuples in ``corr_matrix`` is such that (in pseudocode)
-        ``corr_matrix[i][j] = kernel(inputs1[i], inputs2[j])``, where ``kernel`` is the
-        kernel function for the underlying Gaussian process. The only exception to this is
-        when either of the sequence of inputs is empty, in which case a (single level)
-        empty tuple is returned.
+        If ``corr_matrix`` is the Numpy array output by this method, then its shape is
+        such that (in pseudocode) ``corr_matrix[i, j] = kernel(inputs1[i], inputs2[j])``,
+        where ``kernel`` is the kernel function for the underlying Gaussian process. The
+        only exception to this is when either of the sequence of inputs is empty, in which
+        case an empty array is returned.
 
         In order to calculate the correlation between nonempty sequences of inputs, this
         emulator's ``fit_hyperparameters`` needs to not be ``None``, i.e. the emulator
@@ -443,9 +427,9 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Returns
         -------
-        tuple[tuple[float, ...], ...]
-            The correlation matrix for the two sequences of inputs. The outer tuple
-            consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
+        numpy.ndarray
+            The correlation matrix for the two sequences of inputs, as an array of shape
+            ``(len(inputs1), len(inputs2))``.
 
         Raises
         ------
@@ -455,37 +439,34 @@ class MogpEmulator(AbstractGaussianProcess):
             If the dimension of any of the supplied simulator inputs doesn't match the
             dimension of training data inputs for this emulator.
         """
-
         try:
-            correlations = tuple(
-                tuple(self._kernel(xi, xj, self._corr_transformed) for xj in inputs2)
-                for xi in inputs1
-            )
-            if any(len(row) > 0 for row in correlations):
-                return correlations
-            else:
-                return tuple()
-
+            if len(inputs1) == 0 or len(inputs2) == 0:
+                return np.array([])
         except TypeError:
             # Raised if inputs1 or inputs2 not iterable
             raise TypeError(
                 "Expected 'inputs1' and 'inputs2' to be sequences of Input objects, "
                 f"but received {type(inputs1)} and {type(inputs2)} instead."
             )
+
+        if not (
+            all(isinstance(x, Input) for x in inputs1)
+            and all(isinstance(x, Input) for x in inputs2)
+        ):
+            raise TypeError(
+                "Expected 'inputs1' and 'inputs2' to only contain Input objects."
+            )
+
+        try:
+            return self._kernel(inputs1, inputs2, self._corr_transformed)
         except AssertionError:
+            # mogp-emulator arg validation errors typically seem to be raised as
+            # AssertionErrors - these get bubbled up through self._kernel
             assert self._corr_transformed is not None, (
                 f"Cannot calculate correlations for this instance of {self.__class__} "
                 "because it hasn't yet been trained on data."
             )
-            # mogp-emulator arg validation errors typically seem to be raised as
-            # AssertionErrors - these get bubbled up through self._kernel
-            if not (
-                all(isinstance(x, Input) for x in inputs1)
-                and all(isinstance(x, Input) for x in inputs2)
-            ):
-                raise TypeError(
-                    "Expected 'inputs1' and 'inputs2' to only contain Input objects."
-                )
+
         except ValueError:
             expected_dim = len(self.training_data[0].input)
             wrong_dims = list(
@@ -499,17 +480,16 @@ class MogpEmulator(AbstractGaussianProcess):
                     f"received input of dimension {wrong_dims[0]}."
                 ) from None
 
-    def covariance_matrix(self, inputs: Sequence[Input]) -> tuple[tuple[float, ...], ...]:
+    def covariance_matrix(self, inputs: Sequence[Input]) -> NDArray:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
-        In pseudocode, the covariance matrix for a given collection
-        `inputs` of simulator inputs is defined in terms of the correlation matrix as
-        ``sigma^2 * correlation(training_inputs, inputs)``, where ``sigma^2`` is the
-        process variance for this Gaussian process (which was determined or supplied
-        during training) and ``training_inputs`` are the simulator inputs used in
-        training. The only exceptions to this are when the supplied inputs is empty or if
-        this emulator hasn't been trained on data: in these cases a (single level) empty
-        tuple is returned.
+        In pseudocode, the covariance matrix for a given collection `inputs` of simulator
+        inputs is defined in terms of the correlation matrix as ``sigma^2 *
+        correlation(inputs, training_inputs)``, where ``sigma^2`` is the process variance
+        for this Gaussian process (which was determined or supplied during training) and
+        ``training_inputs`` are the simulator inputs used in training. The only exceptions
+        to this are when the supplied `inputs` is empty or if this emulator hasn't been
+        trained on data: in these cases an empty array is returned.
 
         Parameters
         ----------
@@ -518,10 +498,10 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Returns
         -------
-        tuple[tuple[float, ...], ...]
-            The covariance matrix for the sequence of inputs. The outer tuple
-            consists of ``n`` tuples of length ``len(inputs)``, where ``n`` is the
-            number of training data points for this Gaussian process.
+        numpy.ndarray
+            The covariance matrix for the sequence of inputs, as an array of shape
+            ``(len(inputs), n)`` where ``n`` is the number of training data points for
+            this Gaussian process.
 
         Raises
         ------
@@ -542,7 +522,7 @@ class MogpEmulator(AbstractGaussianProcess):
                     "Expected 'inputs' to only contain Input objects."
                 ) from None
 
-    def predict(self, x: Input) -> Prediction:
+    def predict(self, x: Input) -> GaussianProcessPrediction:
         """Make a prediction of a simulator output for a given input.
 
         Parameters
@@ -552,8 +532,9 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Returns
         -------
-        Prediction
-            The emulator's prediction of the simulator output from the given the input.
+        GaussianProcessPrediction
+            The Gaussian process's prediction of the simulator output from the given
+            input.
 
         Raises
         ------
@@ -587,12 +568,12 @@ class MogpEmulator(AbstractGaussianProcess):
             return None
 
     @staticmethod
-    def _to_prediction(mogp_predict_result) -> Prediction:
-        """Convert an MOGP ``PredictResult`` to a ``Prediction`` object.
+    def _to_prediction(mogp_predict_result) -> GaussianProcessPrediction:
+        """Convert an MOGP ``PredictResult`` to a ``GaussianProcessPrediction`` object.
 
         See https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#the-predictresult-class
         """
-        return Prediction(
+        return GaussianProcessPrediction(
             estimate=mogp_predict_result.mean[0], variance=mogp_predict_result.unc[0]
         )
 

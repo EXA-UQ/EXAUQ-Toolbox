@@ -14,6 +14,7 @@ from types import GenericAlias
 from typing import Any, Callable, Optional, TypeVar, Union
 
 import numpy as np
+from numpy.typing import NDArray
 
 import exauq.utilities.validation as validation
 from exauq.core.numerics import equal_within_tolerance
@@ -686,12 +687,15 @@ class TrainingDatum(object):
 
 @dataclasses.dataclass(frozen=True)
 class Prediction:
-    """Represents a predicted value together with the variance and standard_deviation of the prediction.
-    The standard deviation is computed as the square root of the variance.
+    """Represents the prediction of an emulator at a simulator input.
 
-    Two predictions are considered equal if their estimated values and variances agree,
-    to within the standard tolerance `exauq.core.numerics.FLOAT_TOLERANCE` as defined
-    by the default parameters for `exauq.core.numerics.equal_within_tolerance`.
+    The prediction consists of a predicted value together with the variance of the
+    prediction, which gives a measure of the uncertainty in the prediction. The standard
+    deviation is also provided, as the square root of the variance.
+
+    Two predictions are considered equal if their estimated values and variances agree, to
+    within the standard tolerance `exauq.core.numerics.FLOAT_TOLERANCE` as defined by the
+    default parameters for `exauq.core.numerics.equal_within_tolerance`.
 
 
     Parameters
@@ -708,7 +712,8 @@ class Prediction:
     variance : numbers.Real
         (Read-only) The variance of the prediction.
     standard_deviation : numbers.Real
-        (Read-only) The standard deviation of the prediction, calculated as the square root of the variance.
+        (Read-only) The standard deviation of the prediction, calculated as the square
+        root of the variance.
 
     See Also
     --------
@@ -764,6 +769,98 @@ class Prediction:
         return equal_within_tolerance(
             self.estimate, other.estimate
         ) and equal_within_tolerance(self.variance, other.variance)
+
+
+class GaussianProcessPrediction(Prediction):
+    """Represents a prediction arising from a Gaussian process.
+
+    In addition to the functionality provided by ``Prediction``, instances of this class
+    include the method `nes_error` for computing the normalised expected square (NES)
+    error at a simulator output, utilising the Gaussian assumption.
+
+    Parameters
+    ----------
+    estimate : numbers.Real
+        The estimated value of the prediction.
+    variance : numbers.Real
+        The variance of the prediction.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def nes_error(self, observed_output: Real) -> float:
+        """Calculate the normalised expected squared (NES) error.
+
+        This is defined as the expectation of the squared error divided by the standard
+        deviation of the squared error, for a given observed simulation output.
+        Mathematically, the denominator of this fraction is zero precisely when this
+        prediction's variance is zero; in this case, the NES error is defined to be zero
+        if the observed output is equal to this prediction's estimate and ``inf``
+        otherwise. However, the implementation of this method checks for whether the
+        numerator (i.e. squared error) and/or the denominator (i.e. the standard deviation
+        of the squared error) are zero; furthermore, these are done with exact equality
+        checks on the floating point numbers involved, rather than a check up to some
+        numerical tolerance.
+
+        Parameters
+        ----------
+        observed_output : Real
+            The output of a simulator to compare this prediction with. Must be a finite
+            number.
+
+        Returns
+        -------
+        float
+            The normalised expected squared error for this prediction at the given
+            simulator output.
+
+        Notes
+        -----
+
+        For Gaussian process emulators, the NES error can be computed from the predictive
+        variance and squared error of the emulator's prediction at the simulator input:
+
+        ```
+        sq_error = (m - observed_output) ** 2
+        expected_sq_error = var + sq_error
+        std_sq_error = sqrt((2 * (var**2) + 4 * var * sq_error)
+        nes_error = expected_sq_error / std_sq_error
+        ```
+
+        where `m` is the point estimate of the Gaussian process prediction at `x` and
+        `var` is the predictive variance of this estimate.[1]_
+
+        References
+        ----------
+        .. [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
+           Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+        """
+
+        validation.check_real(
+            observed_output,
+            TypeError(
+                f"Expected 'observed_output' to be of type {Real} but received type "
+                f"{type(observed_output)}."
+            ),
+        )
+
+        validation.check_finite(
+            observed_output,
+            ValueError(
+                f"'observed_output' must be a finite real number, but received {observed_output}."
+            ),
+        )
+
+        square_err = (self.estimate - observed_output) ** 2
+        expected_sq_err = self.variance + square_err
+        standard_deviation_sq_err = math.sqrt(
+            2 * (self.variance**2) + 4 * self.variance * square_err
+        )
+        try:
+            return float(expected_sq_err / standard_deviation_sq_err)
+        except ZeroDivisionError:
+            return 0 if expected_sq_err == 0 else float("inf")
 
 
 class AbstractEmulator(abc.ABC):
@@ -833,7 +930,7 @@ class AbstractEmulator(abc.ABC):
         Returns
         -------
         Prediction
-            The emulator's prediction of the simulator output from the given the input.
+            The emulator's prediction of the simulator output from the given input.
         """
 
         raise NotImplementedError
@@ -895,106 +992,38 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def nes_error(self, x: Input, observed_output: Real) -> float:
-        """Calculate the normalised expected squared (NES) error.
-
-        This is defined as the expectation of the squared error divided by the standard
-        deviation of the squared error, at the input and output. If the denominator of
-        this fraction is zero, then the NES error is defined to be zero if the numerator is also
-        zero and ``inf`` otherwise. Note that the check for whether the denominator and
-        numerator are zero is done with exact equality checks on the floating point
-        numbers involved, rather than a check up to some numerical tolerance.
+    @abc.abstractmethod
+    def predict(self, x: Input) -> GaussianProcessPrediction:
+        """Make a prediction of a simulator output for a given input.
 
         Parameters
         ----------
         x : Input
             A simulator input.
-        observed_output : Real
-            The output of a simulator at `x`.
 
         Returns
         -------
-        float
-            The normalised expected squared error for the given simulator input and
-            output.
-
-        Raises
-        ------
-        AssertionError
-            If this Gaussian process emulator has not been fit to training data.
-
-        Notes
-        -----
-
-        For Gaussian process emulators, the NES error can be computed from the predictive
-        variance and squared error of the emulator's prediction at the simulator input:
-
-        ```
-        sq_error = (m - observed_output) ** 2
-        expected_sq_error = var + sq_error
-        std_sq_error = sqrt((2 * (var**2) + 4 * var * sq_error)
-        nes_error = expected_sq_error / std_sq_error
-        ```
-
-        where `m` is the point estimate of the Gaussian process prediction at `x` and
-        `var` is the predictive variance of this estimate.[1]_
-
-        References
-        ----------
-        .. [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
-           Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+        GaussianProcessPrediction
+            This Gaussian process's prediction of the simulator output from the given
+            input.
         """
-        validation.check_real(
-            observed_output,
-            TypeError(
-                f"Expected 'observed_output' to be of type {Real} but received type "
-                f"{type(observed_output)}."
-            ),
-        )
 
-        validation.check_finite(
-            observed_output,
-            ValueError(
-                f"'observed_output' must be a finite real number, but received {observed_output}."
-            ),
-        )
+        raise NotImplementedError
 
-        assert (
-            self.training_data
-        ), "Could not compute normalised expected squared error: emulator hasn't been fit to data."
-
-        try:
-            prediction = self.predict(x)
-        except TypeError:
-            raise TypeError(
-                f"Expected 'x' to be of type {Input.__name__} but received type {type(x)}."
-            ) from None
-
-        square_err = (prediction.estimate - observed_output) ** 2
-        expected_sq_err = prediction.variance + square_err
-        standard_deviation_sq_err = math.sqrt(
-            2 * (prediction.variance**2) + 4 * prediction.variance * square_err
-        )
-        try:
-            return float(expected_sq_err / standard_deviation_sq_err)
-        except ZeroDivisionError:
-            return 0 if expected_sq_err == 0 else float("inf")
-
-    # TODO: return as a matrix
-    def covariance_matrix(self, inputs: Sequence[Input]) -> tuple[tuple[float, ...], ...]:
+    def covariance_matrix(self, inputs: Sequence[Input]) -> NDArray:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
-        In pseudocode, the covariance matrix for a given collection
-        `inputs` of simulator inputs is defined in terms of the correlation matrix as
-        ``sigma^2 * correlation(training_inputs, inputs)``, where ``sigma^2`` is the
-        process variance for this Gaussian process (which was determined or supplied
-        during training) and ``training_inputs`` are the simulator inputs used in
-        training.
+        In pseudocode, the covariance matrix for a given collection `inputs` of simulator
+        inputs is defined in terms of the correlation matrix as ``sigma^2 *
+        correlation(inputs, training_inputs)``, where ``sigma^2`` is the process variance
+        for this Gaussian process (which was determined or supplied during training) and
+        ``training_inputs`` are the simulator inputs used in training. The only exceptions
+        to this are when the supplied `inputs` is empty or if this emulator hasn't been
+        trained on data: in these cases an empty array should be returned.
 
-        The default implementation of this method does no more than call the `correlation`
-        method with the training data simulator inputs stored in this instance and the
-        supplied inputs; in particular, there is no error handling. Users requiring error
-        handling should override this method.
+        The default implementation of this method calls the `correlation` method with the
+        simulator inputs used for training and the given `inputs`. There is no additional
+        error handling, so users requiring error handling should override this method.
 
         Parameters
         ----------
@@ -1003,30 +1032,30 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Returns
         -------
-        tuple[tuple[float, ...], ...]
-            The covariance matrix for the sequence of inputs. The outer tuple
-            consists of ``n`` tuples of length ``len(inputs)``, where ``n`` is the
-            number of training data points for this Gaussian process.
+        numpy.ndarray
+            The covariance matrix for the sequence of inputs, as an array of shape
+            ``(len(inputs), n)`` where ``n`` is the number of training data points for
+            this Gaussian process.
         """
 
+        if not self.training_data:
+            return np.array([])
+
         training_inputs = tuple(datum.input for datum in self.training_data)
-        correlations = self.correlation(training_inputs, inputs)
-        return tuple(
-            tuple(self.fit_hyperparameters.process_var * z for z in row)
-            for row in correlations
+        return self.fit_hyperparameters.process_var * self.correlation(
+            inputs, training_inputs
         )
 
-    # TODO: return as a matrix e.g. np.mat
     @abc.abstractmethod
-    def correlation(
-        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
-    ) -> tuple[tuple[float, ...], ...]:
+    def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
         """Compute the correlation matrix for two sequences of simulator inputs.
 
-        If ``corr_matrix`` is the output of this method, then the ordering of the
-        nested tuples in ``corr_matrix`` should be such that ``corr_matrix[i][j]``
-        is equal to the correlation between ``inputs1[i]`` and ``inputs2[j]`` (or, in
-        pseudocode, ``corr_matrix[i][j] = correlation(inputs1[i], inputs2[j])``).
+        If ``corr_matrix`` is the Numpy array output by this method, the its should be a
+        2-dimensional array of shape ``(len(inputs1), len(inputs2))`` such that
+        ``corr_matrix[i, j]`` is equal to the correlation between ``inputs1[i]`` and
+        ``inputs2[j]`` (or, in pseudocode, ``corr_matrix[i, j] = correlation(inputs1[i],
+        inputs2[j])``). The only exception to this is when either of the sequence of
+        inputs is empty, in which case an empty array should be returned.
 
         Parameters
         ----------
@@ -1035,9 +1064,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Returns
         -------
-        tuple[tuple[float, ...], ...]
-            The correlation matrix for the two sequences of inputs. The outer tuple
-            consists of ``len(inputs1)`` tuples of length ``len(inputs2)``.
+        numpy.ndarray
+            The correlation matrix for the two sequences of inputs, as an array of shape
+            ``(len(inputs1), len(inputs2))``.
         """
 
         raise NotImplementedError
@@ -1400,7 +1429,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         else:
             return MultiLevel({level: base for level in levels})
 
-    def predict(self, x: Input) -> Prediction:
+    def predict(self, x: Input) -> GaussianProcessPrediction:
         """Predict a simulator output for a given input.
 
         Parameters
@@ -1410,7 +1439,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         Returns
         -------
-        Prediction
+        GaussianProcessPrediction
             The emulator's prediction of the simulator output from the given the input.
 
         Notes
@@ -1439,7 +1468,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
             p.variance * (self._coefficients[level] ** 2)
             for level, p in level_predictions.items()
         )
-        return Prediction(estimate, variance)
+        return GaussianProcessPrediction(estimate, variance)
 
 
 class AbstractHyperparameters(abc.ABC):

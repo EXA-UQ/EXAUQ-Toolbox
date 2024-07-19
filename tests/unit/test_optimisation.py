@@ -70,6 +70,16 @@ class TestMaximise(ExauqTestCase):
             "Expected more than one unique result",
         )
 
+    def test_non_integer_seed_error(self):
+        """A TypeError is raised if the provided seed is not an integer (or None)."""
+
+        seed = 1.1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(f"Random seed must be an integer, but received type {type(seed)}."),
+        ):
+            _ = maximise(self.f, self.domain, seed=seed)
+
     def test_repeated_results_when_seed_set(self):
         """The output of the maximisation is the same when the seed is the same."""
 
