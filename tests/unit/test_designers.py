@@ -24,6 +24,7 @@ from exauq.core.designers import (
     compute_multi_level_loo_samples,
     compute_single_level_loo_samples,
     compute_zero_mean_prediction,
+    create_data_for_multi_level_loo_sampling,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
@@ -1726,6 +1727,41 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
 # TODO: test that repulsion points are updated with previously calculated inputs in
 # batch mode.
+
+
+class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
+    def setUp(self) -> None:
+        self.data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), -2),
+                    TrainingDatum(Input(0.3), 3),
+                ],
+                2: [
+                    TrainingDatum(Input(0.4), -1),
+                    TrainingDatum(Input(0.5), 2),
+                    TrainingDatum(Input(0.6), -3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.7), 2),
+                    TrainingDatum(Input(0.8), 3),
+                    TrainingDatum(Input(0.9), 5),
+                ],
+            }
+        )
+
+    def test_returns_delta_costs(self):
+        """The costs for computing successive, inter-level differences of simulator
+        outputs are returned."""
+
+        costs = [1.1, 10.1, 100.1]
+
+        _, delta_costs, _ = create_data_for_multi_level_loo_sampling(self.data, costs)
+
+        expected = (costs[0], costs[0] + costs[1], costs[1] + costs[2])
+        self.assertEqual(expected, delta_costs)
+
 
 if __name__ == "__main__":
     unittest.main()

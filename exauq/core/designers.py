@@ -1162,6 +1162,13 @@ def initialise_for_multi_level_loo_sampling(
     return mlgp, costs
 
 
+def create_data_for_multi_level_loo_sampling(data, costs):
+    delta_costs = tuple(
+        cost_i + cost_im1 for cost_i, cost_im1 in zip(costs, [0] + costs[:-1])
+    )
+    return None, delta_costs, None
+
+
 def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:
     """Compute the cost of computing a successive difference of simulations at a level."""
 
