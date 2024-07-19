@@ -9,6 +9,9 @@ plugins:
 
 nav:
   - Home: "index.md"
+  - "Experimental Designers":
+    - "designers/index.md"
+    - "A Typical Multi-Level Adaptive Design Workflow": "designers/typical-multi-level-adaptive-design.md"
   - "Command Line App":
     - "cli/index.md"
     - "A First Walkthrough": "cli/first-walkthrough.md"
