@@ -1152,6 +1152,16 @@ def compute_multi_level_loo_samples(
     return level, tuple(design_points)
 
 
+def initialise_for_multi_level_loo_sampling(
+    mlgp: MultiLevelGaussianProcess,
+    data: MultiLevel[Sequence[TrainingDatum]],
+    costs: MultiLevel[Real],
+    correlations: MultiLevel[Real],
+) -> tuple[MultiLevelGaussianProcess, MultiLevel[Real]]:
+    mlgp.fit(data)
+    return mlgp, costs
+
+
 def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:
     """Compute the cost of computing a successive difference of simulations at a level."""
 
