@@ -566,9 +566,10 @@ def compute_single_level_loo_samples(
 
     If `additional_repulsion_pts` is provided, then these simulator inputs will be used as
     repulsion points when calculating pseudo-expected improvement of the LOO errors GP (in
-    addition to pseudopoints, which are always used as repulsion points). See
-    ``PEICalculator`` for further details on repulsion points and
-    ``exauq.core.modelling.SimulatorDomain`` for further details on pseudopoints.
+    addition to pseudopoints, which are always used as repulsion points). The additional
+    repulsion points must belong to the simulator domain `domain`. See ``PEICalculator``
+    for further details on repulsion points and ``exauq.core.modelling.SimulatorDomain``
+    for further details on pseudopoints.
 
     By default, a deep copy of the main GP supplied (`gp`) is trained on the leave-one-out
     errors. Alternatively, another ``AbstractGaussianProcess`` can be supplied that will
@@ -610,7 +611,8 @@ def compute_single_level_loo_samples(
     Raises
     ------
     ValueError
-        If any of the training inputs in `gp` do not belong to the simulator domain `domain`.
+        If any of the training inputs in `gp` do not belong to the simulator domain
+        `domain`.
 
     See Also
     --------
@@ -654,6 +656,15 @@ def compute_single_level_loo_samples(
         raise TypeError(
             f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
             f"but this is not the case."
+        )
+    elif additional_repulsion_pts is not None and (
+        outside_domain_repulsion_pts := [
+            x for x in additional_repulsion_pts if x not in domain
+        ]
+    ):
+        raise ValueError(
+            "Additional repulsion points must belong to simulator domain 'domain', "
+            f"but found input {outside_domain_repulsion_pts[0]}."
         )
 
     try:

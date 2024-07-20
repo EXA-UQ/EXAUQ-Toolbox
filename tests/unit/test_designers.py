@@ -819,6 +819,25 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
                     self.gp, self.domain, batch_size=batch_size
                 )
 
+    def test_additional_repulsion_pts_not_in_domain_error(self):
+        """A ValueError is raised if any of the additional repulsion points do not belong
+        to the given simulator domain."""
+
+        domain = SimulatorDomain([(0, 1)])
+        for bad_repulsion_pts in [[Input(1.1)], [Input(0.5), Input(0.5, 0.5)]]:
+            with self.subTest(
+                bad_repulsion_pts=bad_repulsion_pts
+            ), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "Additional repulsion points must belong to simulator domain 'domain', "
+                    f"but found input {bad_repulsion_pts[-1]}."
+                ),
+            ):
+                _ = compute_single_level_loo_samples(
+                    self.gp, domain, additional_repulsion_pts=bad_repulsion_pts
+                )
+
     def test_unseeded_pei_maximisation_default(self):
         """The calculation of new design points involves unseeded maximisation of
         pseudo-expected improvement by default."""
