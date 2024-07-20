@@ -1,7 +1,7 @@
 import copy
 import itertools
 import math
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Optional, Type, Union
 
@@ -552,6 +552,7 @@ def compute_single_level_loo_samples(
     gp: AbstractGaussianProcess,
     domain: SimulatorDomain,
     batch_size: int = 1,
+    additional_repulsion_pts: Optional[Collection[Input]] = None,
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
     seed: Optional[int] = None,
 ) -> tuple[Input]:
@@ -562,6 +563,12 @@ def compute_single_level_loo_samples(
     on normalised expected squared errors arising from a leave-one-out (LOO)
     cross-validation, then finding design points that maximise the pseudo-expected
     improvement of this LOO errors GP.
+
+    If `additional_repulsion_pts` is provided, then these simulator inputs will be used as
+    repulsion points when calculating pseudo-expected improvement of the LOO errors GP (in
+    addition to pseudopoints, which are always used as repulsion points). See
+    ``PEICalculator`` for further details on repulsion points and
+    ``exauq.core.modelling.SimulatorDomain`` for further details on pseudopoints.
 
     By default, a deep copy of the main GP supplied (`gp`) is trained on the leave-one-out
     errors. Alternatively, another ``AbstractGaussianProcess`` can be supplied that will
@@ -584,6 +591,9 @@ def compute_single_level_loo_samples(
     batch_size : int, optional
         (Default: 1) The number of new design points to compute. Should be a positive
         integer.
+    additional_repulsion_pts : Collection[Input], optional
+        (Default: None) A collection of simulator inputs from `domain` that should be used
+        as repulsion points when computing pseudo-expected improvement.
     loo_errors_gp : AbstractGaussianProcess, optional
         (Default: None) Another Gaussian process that is trained on the LOO errors as part
         of the adaptive sampling method. If ``None`` then a deep copy of `gp` will be used
@@ -608,6 +618,8 @@ def compute_single_level_loo_samples(
         Computation of the leave-one-out errors Gaussian process.
     PEICalculator :
         Pseudo-expected improvement calculation.
+    modelling.SimulatorDomain.calculate_pseudopoints :
+        Calculation of pseudopoints for a collection of simulator inputs.
     modelling.GaussianProcessPrediction.nes_error :
         Normalised expected squared error for a prediction from a Gaussian process.
     utilities.optimisation.maximise :
@@ -627,6 +639,21 @@ def compute_single_level_loo_samples(
     if batch_size < 1:
         raise ValueError(
             f"Expected batch size to be a positive integer, but received {batch_size} instead."
+        )
+
+    if additional_repulsion_pts is not None and not isinstance(
+        additional_repulsion_pts, Sequence
+    ):
+        raise TypeError(
+            f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+            f"but received {type(additional_repulsion_pts)} instead."
+        )
+    elif additional_repulsion_pts is not None and any(
+        not isinstance(x, Input) for x in additional_repulsion_pts
+    ):
+        raise TypeError(
+            f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+            f"but this is not the case."
         )
 
     try:

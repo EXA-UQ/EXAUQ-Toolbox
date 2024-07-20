@@ -734,6 +734,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         * The domain is not of type SimulatorDomain.
         * The batch size is not an integer.
         * The supplied LOO errors GP is not None or of type AbstractGaussianProcess.
+        * The additional repulsion points is not a sequence of Input objects.
         """
 
         arg = "a"
@@ -768,6 +769,30 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             ),
         ):
             _ = compute_single_level_loo_samples(self.gp, self.domain, batch_size=arg)
+
+        arg2 = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                f"but received {type(arg2)} instead."
+            ),
+        ):
+            _ = compute_single_level_loo_samples(
+                self.gp, self.domain, additional_repulsion_pts=arg2
+            )
+
+        arg3 = [Input(10), 1]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                "but this is not the case."
+            ),
+        ):
+            _ = compute_single_level_loo_samples(
+                self.gp, self.domain, additional_repulsion_pts=arg3
+            )
 
     def test_domain_wrong_dim_error(self):
         """A ValueError is raised if the supplied domain's dimension does not agree with
