@@ -1739,14 +1739,14 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                     TrainingDatum(Input(0.3), 3),
                 ],
                 2: [
-                    TrainingDatum(Input(0.4), -1),
-                    TrainingDatum(Input(0.5), 2),
-                    TrainingDatum(Input(0.6), -3),
+                    TrainingDatum(Input(0.1), 1.1),
+                    TrainingDatum(Input(0.2), -2.2),
+                    TrainingDatum(Input(0.3), 3.3),
                 ],
                 3: [
-                    TrainingDatum(Input(0.7), 2),
-                    TrainingDatum(Input(0.8), 3),
-                    TrainingDatum(Input(0.9), 5),
+                    TrainingDatum(Input(0.1), 1.11),
+                    TrainingDatum(Input(0.2), -2.22),
+                    TrainingDatum(Input(0.3), 3.33),
                 ],
             }
         )
@@ -1774,13 +1774,13 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                     TrainingDatum(Input(0.1), 1),
                 ],
                 2: [
-                    TrainingDatum(Input(0.2), 1),
+                    TrainingDatum(Input(0.1), 1),
                 ],
                 3: [
-                    TrainingDatum(Input(0.3), 1),
+                    TrainingDatum(Input(0.1), 1),
                 ],
                 4: [
-                    TrainingDatum(Input(0.4), 1),
+                    TrainingDatum(Input(0.1), 1),
                 ],
             }
         )
@@ -1878,6 +1878,55 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 2: [],
                 3: [],
                 4: [TrainingDatum(Input(0.1), outputs[4] - correlations[3] * outputs[3])],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_delta_data_more_than_one_datum_at_levels(self):
+        """In the case where there are multiple training data at some level, the data
+        returned consists of differences of outputs between successive levels, accounting
+        for the correlation between levels. The data returned for the bottom level is just
+        the same data supplied at this level."""
+
+        data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.1), 1.1),
+                    TrainingDatum(Input(0.2), 2.2),
+                    TrainingDatum(Input(0.3), 3.3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1.11),
+                    TrainingDatum(Input(0.2), 2.22),
+                ],
+            }
+        )
+        correlations = MultiLevel([0.1, 0.2])
+        costs = MultiLevel([1, 10, 100])
+
+        delta_data, _, _ = create_data_for_multi_level_loo_sampling(
+            data, costs, correlations
+        )
+
+        expected = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.3), 3.3 - correlations[1] * 3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1.11 - correlations[2] * 1.1),
+                    TrainingDatum(Input(0.2), 2.22 - correlations[2] * 2.2),
+                ],
             }
         )
 

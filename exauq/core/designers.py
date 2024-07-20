@@ -1168,21 +1168,35 @@ def create_data_for_multi_level_loo_sampling(
     correlations: Union[MultiLevel[Real], Real] = 1,
 ):
     top_level = max(costs.levels)
+    bottom_level = min(costs.levels)
     if isinstance(correlations, Real):
         correlations = MultiLevel(
             {level: correlations for level in costs.levels if level < top_level}
         )
 
     # Compute output data
-    delta_data = MultiLevel({level: None for level in data.levels})
+    # prev_level_data = MultiLevel(
+    #     {bottom_level: TrainingDatum(datum.input, 0) for datum in data[bottom_level]}
+    #     | {level: data[level - 1] for level in data.levels if level > bottom_level}
+    # )
+    delta_data = MultiLevel({level: [] for level in data.levels})
     for level in reversed(data.levels):
         if level == top_level:
-            datum = data[top_level][0]
-            datum_prev_level = data[top_level - 1][0]
-            delta_output = (
-                datum.output - correlations[top_level - 1] * datum_prev_level.output
-            )
-            delta_data[top_level] = [TrainingDatum(datum.input, delta_output)]
+            prev_level_data = data[level - 1]
+            for datum in data[top_level]:
+                # Find datum in previous level with the same input as the current datum
+                prev_level_datum = [
+                    dat for dat in prev_level_data if dat.input == datum.input
+                ][0]
+
+                # Compute output for this input as the difference between this level's
+                # output and the previous level's output multiplied by correlation.
+                delta_output = (
+                    datum.output - correlations[top_level - 1] * prev_level_datum.output
+                )
+
+                # Add input and the computed output to the training data to return
+                delta_data[top_level].append(TrainingDatum(datum.input, delta_output))
 
         else:
             delta_data[level] = []
