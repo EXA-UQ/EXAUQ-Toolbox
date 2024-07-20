@@ -17,19 +17,22 @@ from exauq.core.designers import (
     SimpleDesigner,
     compute_loo_errors_gp,
     compute_loo_gp,
+    compute_loo_prediction,
+    compute_multi_level_loo_error_data,
+    compute_multi_level_loo_errors_gp,
+    compute_multi_level_loo_prediction,
     compute_multi_level_loo_samples,
-    compute_multi_level_pei,
     compute_single_level_loo_samples,
+    compute_zero_mean_prediction,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
+    GaussianProcessPrediction,
     Input,
-    LevelTagged,
     MultiLevel,
     MultiLevelGaussianProcess,
     SimulatorDomain,
     TrainingDatum,
-    get_level,
 )
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
@@ -128,7 +131,7 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         ):
             _ = compute_loo_errors_gp(self.gp, self.domain, loo_errors_gp=arg)
 
-    def test_compute_loo_errors_domain_wrong_dim_error(self):
+    def test_compute_loo_errors_gp_domain_wrong_dim_error(self):
         """A ValueError is raised if the supplied domain's dimension does not agree with
         the dimension of the inputs in the GP's training data."""
 
@@ -139,7 +142,7 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         ):
             _ = compute_loo_errors_gp(self.gp, domain_2dim)
 
-    def test_compute_loo_errors_gp_returned_gp_trainied_on_loo_errors(self):
+    def test_compute_loo_errors_gp_returned_gp_trained_on_loo_errors(self):
         """The GP returned is trained on data consisting of the normalised expected square
         leave-one-out errors for each of the simulator inputs used to train the supplied
         GP."""
@@ -150,8 +153,9 @@ class TestComputeLooErrorsGp(ExauqTestCase):
         loo_errors_training_data = []
         for leave_out_idx, datum in enumerate(self.gp.training_data):
             loo_gp = compute_loo_gp(self.gp, leave_out_idx)
+            loo_prediction = loo_gp.predict(datum.input)
             loo_errors_training_data.append(
-                TrainingDatum(datum.input, loo_gp.nes_error(datum.input, datum.output))
+                TrainingDatum(datum.input, loo_prediction.nes_error(datum.output))
             )
 
         # Check actual LOO error GP training data is as expected
@@ -319,13 +323,43 @@ class TestComputeLooGp(ExauqTestCase):
 
     def test_compute_loo_gp_no_training_data_error(self):
         """A ValueError is raised if the supplied AbstractGaussianProcess has not been
-        trained on any data."""
+        trained on at least 2 training data."""
 
         gp = MogpEmulator()
         with self.assertRaisesRegex(
             ValueError,
             "Cannot compute leave one out error with 'gp' because it has not been trained "
-            "on data.",
+            "on at least 2 data points.",
+        ):
+            _ = compute_loo_gp(gp, 0)
+
+        training_data = [TrainingDatum(Input(1), 1)]
+        gp.fit(training_data)
+        with self.assertRaisesRegex(
+            ValueError,
+            "Cannot compute leave one out error with 'gp' because it has not been trained "
+            "on at least 2 data points.",
+        ):
+            _ = compute_loo_gp(gp, 0)
+
+    def test_compute_loo_gp_repeated_training_input_error(self):
+        """A ValueError is raised if the training data in the supplied GP contains a
+        repeated simulator input."""
+
+        repeated_input = Input(0.1)
+        training_data = [
+            TrainingDatum(repeated_input, 1),
+            TrainingDatum(repeated_input, 1),
+        ]
+        gp = fakes.WhiteNoiseGP()
+        gp.fit(training_data)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Cannot compute leave one out error with 'gp' because simulator input {repeated_input} "
+                "is repeated in the training data."
+            ),
         ):
             _ = compute_loo_gp(gp, 0)
 
@@ -656,7 +690,7 @@ class TestPEICalculator(ExauqTestCase):
 
         x = Input(0.5)
         repulsion_pts = domain.calculate_pseudopoints([]) + tuple(training_inputs)
-        expected = product([1 - gp.correlation([x], [y])[0][0] for y in repulsion_pts])
+        expected = product([1 - float(gp.correlation([x], [y])) for y in repulsion_pts])
         calculator = PEICalculator(domain, gp)
         self.assertEqual(expected, calculator.repulsion(x))
 
@@ -774,7 +808,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
 
         self.assertDictContainsSubset({"seed": None}, mock_maximise.call_args.kwargs)
 
-    def test_repeated_results_when_seed_set(self):
+    def test_use_of_seed(self):
         """If a seed is provided, then maximisation of pseudo-expected improvement is
         performed with this seed."""
 
@@ -876,6 +910,497 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             )
 
 
+class TestComputeMultiLevelLooPrediction(ExauqTestCase):
+    def setUp(self) -> None:
+        self.training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
+                3: (TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.6), 1)),
+            }
+        )
+
+    @staticmethod
+    def compute_loo_prediction_level_term(
+        mlgp: MultiLevelGaussianProcess, level: int, leave_out_idx: int
+    ):
+        # Get left-out training data
+        loo_input = mlgp[level].training_data[leave_out_idx].input
+        loo_output = mlgp[level].training_data[leave_out_idx].output
+
+        # Make leave-one-out prediction at supplied level
+        loo_prediction = compute_loo_gp(mlgp[level], leave_out_idx).predict(loo_input)
+
+        # Get mean and variance contributions at supplied level
+        mean_at_level = loo_prediction.estimate - loo_output
+        variance_at_level = loo_prediction.variance
+
+        return GaussianProcessPrediction(mean_at_level, variance_at_level)
+
+    @staticmethod
+    def compute_loo_prediction_other_levels_term(
+        mlgp: MultiLevelGaussianProcess,
+        level: int,
+        leave_out_idx: int,
+    ) -> GaussianProcessPrediction:
+        # Get left-out training inputs
+        loo_input = mlgp[level].training_data[leave_out_idx].input
+
+        # Get mean and variance contributions at other levels
+        other_level_predictions = [
+            compute_zero_mean_prediction(mlgp[j], loo_input)
+            for j in mlgp.levels
+            if not j == level
+        ]
+        return [
+            GaussianProcessPrediction(
+                prediction.estimate,
+                prediction.variance,
+            )
+            for prediction in other_level_predictions
+        ]
+
+    def test_invalid_leave_out_idx_error(self):
+        """A ValueError is raised if the leave-out index is out of the range of indices
+        for training data at the specified level."""
+
+        training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                2: (TrainingDatum(Input(0.3), 1),),
+                3: (TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.6), 1)),
+            }
+        )
+
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data])
+        mlgp.fit(training_data)
+
+        level = 2
+        for leave_out_idx in [-1, 1]:
+            with self.subTest(leave_out_idx=leave_out_idx):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    exact(
+                        "'leave_out_idx' should define a zero-based index for the training data "
+                        f"of length {len(training_data[level])} at level {level}, but received "
+                        f"out of range index {leave_out_idx}."
+                    ),
+                ):
+                    _ = compute_multi_level_loo_prediction(mlgp, level, leave_out_idx)
+
+    def test_intersecting_training_inputs_error(self):
+        """A ValueError is raised if a training input at some level also appears as a
+        training input in another level, for the supplied multi-level GP."""
+
+        # Test for two different training datasets.
+
+        # Training dataset 1
+        repeated_input1 = Input(0.1)
+        problem_level1, problem_level2 = 1, 3
+        training_data1 = MultiLevel(
+            {
+                problem_level1: (
+                    TrainingDatum(repeated_input1, 1),
+                    TrainingDatum(Input(0.2), 1),
+                ),
+                2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
+                problem_level2: (
+                    TrainingDatum(Input(0.5), 1),
+                    TrainingDatum(repeated_input1, 1),
+                ),
+            }
+        )
+
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data1])
+        mlgp.fit(training_data1)
+
+        # This check is independent of the level or left-out index
+        for level in mlgp.levels:
+            for leave_out_idx in range(len(mlgp.training_data[level])):
+                with self.subTest(
+                    level=level, leave_out_idx=leave_out_idx
+                ), self.assertRaisesRegex(
+                    ValueError,
+                    exact(
+                        "Training inputs across all levels must be distinct, but found "
+                        f"common input {repeated_input1} at levels {problem_level1}, {problem_level2}."
+                    ),
+                ):
+                    _ = compute_multi_level_loo_prediction(mlgp, level, leave_out_idx)
+
+        # Training dataset 2
+        repeated_input2 = Input(0.3)
+        problem_level1, problem_level2 = 2, 3
+        training_data2 = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                problem_level1: (
+                    TrainingDatum(repeated_input2, 1),
+                    TrainingDatum(Input(0.4), 1),
+                ),
+                problem_level2: (
+                    TrainingDatum(Input(0.5), 1),
+                    TrainingDatum(Input(0.6), 1),
+                    TrainingDatum(repeated_input2, 1),
+                ),
+            }
+        )
+
+        mlgp2 = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data2])
+        mlgp2.fit(training_data2)
+
+        # This check is independent of the level or left-out index
+        for level in mlgp2.levels:
+            for leave_out_idx in range(len(mlgp2.training_data[level])):
+                with self.subTest(
+                    level=level, leave_out_idx=leave_out_idx
+                ), self.assertRaisesRegex(
+                    ValueError,
+                    exact(
+                        "Training inputs across all levels must be distinct, but found "
+                        f"common input {repeated_input2} at levels {problem_level1}, {problem_level2}."
+                    ),
+                ):
+                    _ = compute_multi_level_loo_prediction(mlgp2, level, leave_out_idx)
+
+    def test_prediction_for_single_level(self):
+        """If a multi-level GP with only one level is supplied, then the returned
+        prediction corresponds to the single-level leave-one-out prediction."""
+
+        training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+            }
+        )
+
+        coefficient = 10
+        mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP()], coefficients=[coefficient]
+        )
+        mlgp.fit(training_data)
+
+        level, leave_out_idx = 1, 0
+        term = self.compute_loo_prediction_level_term(mlgp, level, leave_out_idx)
+        expected = GaussianProcessPrediction(
+            estimate=(coefficient * term.estimate),
+            variance=((coefficient**2) * term.variance),
+        )
+        self.assertEqual(
+            expected,
+            compute_multi_level_loo_prediction(mlgp, level, leave_out_idx),
+        )
+
+    def test_prediction_combination_loo_prediction_at_level_and_at_other_levels(self):
+        """The overall multi-level leave-one-out (LOO) prediction for a given level is a
+        sum of a term for the level and a term for the other levels."""
+
+        mlgp = MultiLevelGaussianProcess(
+            [
+                fakes.WhiteNoiseGP(prior_mean=level, noise_level=(11 * level))
+                for level in self.training_data
+            ]
+        )
+        mlgp.fit(self.training_data)
+
+        for level in mlgp.levels:
+            for leave_out_idx, _ in enumerate(mlgp.training_data[level]):
+                level_term = self.compute_loo_prediction_level_term(
+                    mlgp, level, leave_out_idx
+                )
+                other_terms = self.compute_loo_prediction_other_levels_term(
+                    mlgp, level, leave_out_idx
+                )
+
+                expected = GaussianProcessPrediction(
+                    level_term.estimate + sum(term.estimate for term in other_terms),
+                    level_term.variance + sum(term.variance for term in other_terms),
+                )
+
+                loo_prediction = compute_multi_level_loo_prediction(
+                    mlgp, level, leave_out_idx
+                )
+                self.assertEqual(expected, loo_prediction)
+
+    def test_sum_weighted_by_coefficients(self):
+        """The overall multi-level leave-one-out (LOO) prediction for a given level is a
+        weighted sum of a terms, with the weights coming from the coefficients for the
+        multi-level GP."""
+
+        coefficients = [1, 10, 100]
+        mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP() for _ in self.training_data],
+            coefficients=coefficients,
+        )
+        mlgp.fit(self.training_data)
+
+        for level in mlgp.levels:
+            for leave_out_idx, _ in enumerate(mlgp.training_data[level]):
+                level_term = self.compute_loo_prediction_level_term(
+                    mlgp, level, leave_out_idx
+                )
+                other_terms = self.compute_loo_prediction_other_levels_term(
+                    mlgp, level, leave_out_idx
+                )
+                all_terms = (
+                    other_terms[: level - 1] + [level_term] + other_terms[level - 1 :]
+                )
+
+                expected = GaussianProcessPrediction(
+                    estimate=sum(
+                        coeff * term.estimate
+                        for coeff, term in zip(coefficients, all_terms)
+                    ),
+                    variance=sum(
+                        (coeff**2) * term.variance
+                        for coeff, term in zip(coefficients, all_terms)
+                    ),
+                )
+
+                loo_prediction = compute_multi_level_loo_prediction(
+                    mlgp, level, leave_out_idx
+                )
+                self.assertEqual(expected, loo_prediction)
+
+
+class TestComputeLooPrediction(ExauqTestCase):
+    def test_calculation_mean_and_variance(self):
+        training_data = (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), -1))
+        prior_mean = 10
+        noise_level = 100  # same as process variance
+        gp = fakes.WhiteNoiseGP(prior_mean, noise_level)
+
+        gp.fit(training_data)
+
+        for leave_out_idx, datum in enumerate(training_data):
+            prediction_level_term = compute_loo_prediction(gp, leave_out_idx)
+
+            # For White Noise GP, LOO mean is the prior mean and LOO variance is the noise
+            # level.
+            expected_term = GaussianProcessPrediction(
+                estimate=(prior_mean - datum.output),
+                variance=noise_level,
+            )
+            self.assertEqual(expected_term, prediction_level_term)
+
+
+class TestComputeZeroMeanPrediction(ExauqTestCase):
+    def test_no_training_data_error(self):
+        """A ValueError is raised if the supplied GP has not been trained on any data."""
+
+        gp = fakes.WhiteNoiseGP()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "Cannot calculate zero-mean prediction: 'gp' hasn't been trained on any data."
+            ),
+        ):
+            _ = compute_zero_mean_prediction(gp, Input(1))
+
+    def test_calculation_mean_and_variance(self):
+        """The mean of the returned prediction at a given input ``x`` is given by
+        ``cov(x) * K_inv * y`` where  ``cov(x)`` is the covariance matrix at the point
+        ``x``, ``K_inv`` is the inverse of the covariance matrix for the GP's training
+        data and ``y`` is the vector of simulator outputs in the training data. The
+        variance of the returned prediction is equal to the predictive variance of the GP
+        at ``x``."""
+
+        training_data = (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), -1))
+        prior_mean = 10
+        noise_level = 100  # same as process variance
+        gp = fakes.WhiteNoiseGP(prior_mean, noise_level)
+
+        gp.fit(training_data)
+
+        # Case where new input not in training data
+        x = Input(0.3)
+        prediction = compute_zero_mean_prediction(gp, x)
+        self.assertEqual(
+            GaussianProcessPrediction(
+                estimate=0,  # because correlation = 0 at new point (for White Noise GP)
+                variance=noise_level,
+            ),
+            prediction,
+        )
+
+        # Cases where new input is in training data
+        for datum in training_data:
+            x = datum.input
+            y = datum.output
+            prediction = compute_zero_mean_prediction(gp, x)
+            self.assertEqual(
+                GaussianProcessPrediction(
+                    estimate=y,  # because kernel = 1 at x and zero elsewhere (for White Noise GP)
+                    variance=0,  # because estimating at training input
+                ),
+                prediction,
+            )
+
+
+class TestComputeMultiLevelLooErrorData(ExauqTestCase):
+    def setUp(self) -> None:
+        self.domain = SimulatorDomain([(0, 1)])
+        self.training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
+                3: (TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.6), 1)),
+            }
+        )
+        self.mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP() for _ in self.training_data]
+        )
+        self.mlgp.fit(self.training_data)
+
+    def test_calculation_of_loo_prediction_errors(self):
+        """Each level of the returned data consists of normalised estimated square errors
+        of multi-level leave-one-out predictions."""
+
+        ml_loo_error_data = compute_multi_level_loo_error_data(self.mlgp)
+
+        for level, loo_error_data in ml_loo_error_data.items():
+            training_inputs = [datum.input for datum in self.mlgp.training_data[level]]
+            for leave_out_idx, loo_error_datum in enumerate(loo_error_data):
+                loo_prediction = compute_multi_level_loo_prediction(
+                    self.mlgp, level, leave_out_idx
+                )
+                expected = TrainingDatum(
+                    training_inputs[leave_out_idx], loo_prediction.nes_error(0)
+                )
+                self.assertEqual(expected, loo_error_datum)
+
+    def test_single_training_datum_error(self):
+        """A ValueError is raised if there are any levels in the supplied multi-level GP
+        that have fewer than 2 training data."""
+
+        training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                2: (TrainingDatum(Input(0.3), 1),),
+                3: tuple(),
+            }
+        )
+        bad_levels = ", ".join(
+            sorted({str(level) for level, data in training_data.items() if len(data) < 2})
+        )
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data])
+        mlgp.fit(training_data)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Could not perform leave-one-out calculation: levels {bad_levels} not trained on at "
+                "least two training data."
+            ),
+        ):
+            _ = compute_multi_level_loo_error_data(mlgp)
+
+
+class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
+    def setUp(self) -> None:
+        self.domain = SimulatorDomain([(0, 1)])
+        self.training_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
+                2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
+                3: (TrainingDatum(Input(0.5), 1), TrainingDatum(Input(0.6), 1)),
+            }
+        )
+        self.mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP() for _ in self.training_data]
+        )
+        self.mlgp.fit(self.training_data)
+
+    def test_incompatible_levels_error(self):
+        """A ValueError is raised if the levels for the supplied multi-level GPs are
+        not all the same."""
+
+        other_mlgp = MultiLevelGaussianProcess(
+            {
+                1: fakes.WhiteNoiseGP(),
+                3: fakes.WhiteNoiseGP(),
+                4: fakes.WhiteNoiseGP(),
+            }
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected the levels {other_mlgp.levels} of 'output_mlgp' to match the levels "
+                f"{self.mlgp.levels} from 'mlgp'."
+            ),
+        ):
+            _ = compute_multi_level_loo_errors_gp(
+                self.mlgp, self.domain, output_mlgp=other_mlgp
+            )
+
+    def test_returned_multi_level_gp_trained_on_loo_errors(self):
+        """The multi-level GP returned is trained on multi-level data consisting
+        of the normalised expectation squared leave-one-out errors for each of the
+        training inputs, at each level."""
+
+        errors_gp = compute_multi_level_loo_errors_gp(self.mlgp, self.domain)
+        self.assertEqual(
+            compute_multi_level_loo_error_data(self.mlgp), errors_gp.training_data
+        )
+
+    def test_default_case_same_settings_as_input_gp(self):
+        """By default, the returned multi-level GP will be constructed with the same
+        settings used to initialise the input multi-level GP."""
+
+        means = [10, 20, 30]
+        noise_levels = [1, 2, 3]
+        mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP(mean, noise) for mean, noise in zip(means, noise_levels)]
+        )
+        mlgp.fit(self.training_data)
+
+        errors_gp = compute_multi_level_loo_errors_gp(mlgp, self.domain)
+
+        for level in mlgp.levels:
+            mlgp_params = (mlgp[level].prior_mean, mlgp[level].noise_level)
+            errors_gp_params = (errors_gp[level].prior_mean, errors_gp[level].noise_level)
+            self.assertEqual(mlgp_params, errors_gp_params)
+
+    def test_use_given_mlgp_for_returned_mlgp(self):
+        """The returned multi-level GP will use a particular multi-level GP if supplied."""
+
+        other_mlgp = MultiLevelGaussianProcess(
+            [fakes.WhiteNoiseGP(99, 100) for _ in self.training_data]
+        )
+
+        errors_gp = compute_multi_level_loo_errors_gp(
+            self.mlgp, self.domain, output_mlgp=other_mlgp
+        )
+
+        self.assertIs(errors_gp, other_mlgp)
+
+    def test_leaves_original_gp_unchanged(self):
+        """The original multi-level's training data and fit hyperparameters are
+        unchanged."""
+
+        training_data = copy.deepcopy(self.mlgp.training_data)
+        hyperparameters = copy.deepcopy(self.mlgp.fit_hyperparameters)
+
+        # Default case
+        loo_errors_gp = compute_multi_level_loo_errors_gp(self.mlgp, self.domain)
+        self.assertIsNot(self.mlgp, loo_errors_gp)
+        self.assertEqual(training_data, self.mlgp.training_data)
+        self.assertEqual(hyperparameters, self.mlgp.fit_hyperparameters)
+
+    def test_output_and_input_multi_level_gps_do_not_share_state(self):
+        """In the default case, the original multi-level GP and the created multi-level
+        LOO errors GP do not share any state."""
+
+        self.mlgp.foo = [
+            "foo"
+        ]  # add an extra attribute to check for shared state with output
+
+        errors_gp = compute_multi_level_loo_errors_gp(self.mlgp, self.domain)
+
+        self.assertIsNot(errors_gp.foo, self.mlgp.foo)
+
+
 class TestComputeMultiLevelLooSamples(ExauqTestCase):
     @staticmethod
     def make_level_costs(costs: Sequence[Real]) -> MultiLevel[Real]:
@@ -913,20 +1438,15 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         domain: Optional[SimulatorDomain] = None,
         costs: Optional[MultiLevel[Real]] = None,
         batch_size: Optional[int] = 1,
-    ) -> tuple[LevelTagged[Input]]:
+        seeds: Optional[MultiLevel[int]] = None,
+    ) -> tuple[int, tuple[Input, ...]]:
         mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
         costs = self.default_costs if costs is None else costs
-        return compute_multi_level_loo_samples(mlgp, domain, costs, batch_size=batch_size)
 
-    def compute_multi_level_pei(
-        self,
-        mlgp: Optional[MultiLevelGaussianProcess] = None,
-        domain: Optional[SimulatorDomain] = None,
-    ) -> MultiLevel[PEICalculator]:
-        mlgp = self.default_mlgp if mlgp is None else mlgp
-        domain = self.default_domain if domain is None else domain
-        return compute_multi_level_pei(mlgp, domain)
+        return compute_multi_level_loo_samples(
+            mlgp, domain, costs, batch_size=batch_size, seeds=seeds
+        )
 
     def test_arg_type_errors(self):
         """A TypeError is raised if any of the following hold:
@@ -934,6 +1454,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         * The input multi-level GP is not of type MultiLevelGaussianProcess.
         * The domain is not of type SimulatorDomain.
         * The batch size is not an integer.
+        * The seeds are not a MultiLevel collection (or None).
         """
 
         arg = "a"
@@ -961,6 +1482,15 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         ):
             _ = self.compute_multi_level_loo_samples(batch_size=arg)
 
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'seeds' to be of type {MultiLevel} with integer values, but "
+                f"received {type(arg)} instead."
+            ),
+        ):
+            _ = self.compute_multi_level_loo_samples(seeds=arg)
+
     def test_domain_wrong_dim_error(self):
         """A ValueError is raised if the supplied domain's dimension does not agree with
         the dimension of the inputs in the GP's training data."""
@@ -986,7 +1516,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
     def test_differing_input_arg_levels_error(self):
         """A ValueError is raised if the levels found in the multi-level Gaussian
-        process do not also appear in the simulator costs."""
+        process do not also appear in the simulator costs and seeds (if provided)."""
 
         costs = self.make_level_costs([1])
         missing_level = (set(self.default_mlgp.levels) - set(costs.levels)).pop()
@@ -996,21 +1526,63 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         ):
             self.compute_multi_level_loo_samples(costs=costs)
 
+        seeds = MultiLevel([1])
+        missing_level = (set(self.default_mlgp.levels) - set(seeds.levels)).pop()
+        with self.assertRaisesRegex(
+            ValueError,
+            f"Level {missing_level} from 'mlgp' does not have associated level from 'seeds'.",
+        ):
+            self.compute_multi_level_loo_samples(seeds=seeds)
+
+    def test_intersecting_training_inputs_error(self):
+        """A ValueError is raised if a training input at some level also appears as a
+        training input in another level, for the supplied multi-level GP."""
+
+        domain = SimulatorDomain([(0, 1)])
+        repeated_input1 = Input(0.1)
+        problem_level1, problem_level2 = 1, 3
+        training_data1 = MultiLevel(
+            {
+                problem_level1: (
+                    TrainingDatum(repeated_input1, 1),
+                    TrainingDatum(Input(0.2), 1),
+                ),
+                2: (TrainingDatum(Input(0.3), 1), TrainingDatum(Input(0.4), 1)),
+                problem_level2: (
+                    TrainingDatum(Input(0.5), 1),
+                    TrainingDatum(repeated_input1, 1),
+                ),
+            }
+        )
+
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data1])
+        mlgp.fit(training_data1)
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "Training inputs across all levels must be distinct, but found "
+                f"common input {repeated_input1} at levels {problem_level1}, {problem_level2}."
+            ),
+        ):
+            self.compute_multi_level_loo_samples(
+                mlgp, domain, costs=MultiLevel([1, 1, 1])
+            )
+
     def test_number_of_design_points_returned_equals_batch_size(self):
-        """Then number of design points (with levels) returned equals the provided batch
-        size.
-        """
+        """Then number of design points returned equals the provided batch size."""
 
         for batch_size in [1, 2, 3]:
             with self.subTest(batch_size=batch_size):
-                design_points = self.compute_multi_level_loo_samples(
+                _, design_points = self.compute_multi_level_loo_samples(
                     batch_size=batch_size
                 )
                 self.assertEqual(batch_size, len(design_points))
 
     def test_returns_design_points_from_domain(self):
-        """The return type is a tuple, with each element being an input tagged with a
-        simulator level and belonging to the supplied simulator domain."""
+        """The return type is a pair ``(level, inputs)``, with ``level`` being one of the
+        levels from the supplied multi-level GP and each element of ``inputs`` being an
+        input belonging to the supplied simulator domain."""
 
         domains = [SimulatorDomain([(0, 1)]), SimulatorDomain([(2, 3)])]
         gp1 = MogpEmulator()
@@ -1029,70 +1601,58 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                 TrainingDatum(Input(2.6), -3),
             ]
         )
-        costs = self.make_level_costs([1, 2, 3])
+        costs = self.make_level_costs([1])
         gps = [gp1, gp2]
         for domain, gp in zip(domains, gps):
             with self.subTest(domain=domain, gp=gp):
-                mlgp = MultiLevelGaussianProcess({level: gp for level in costs.levels})
-                design_points = self.compute_multi_level_loo_samples(
+                mlgp = MultiLevelGaussianProcess([gp])
+                level, design_points = self.compute_multi_level_loo_samples(
                     mlgp=mlgp, domain=domain, costs=costs, batch_size=2
                 )
 
+                self.assertIn(level, mlgp.levels)
                 self.assertIsInstance(design_points, tuple)
                 for x in design_points:
-                    self.assertIn(get_level(x), costs.levels)
                     self.assertIn(x, domain)
-
-    def test_returns_design_points_at_same_level(self):
-        """Each design point in the returned batch is paired with the same simulator
-        level."""
-
-        design_points = self.compute_multi_level_loo_samples(batch_size=2)
-        levels = {get_level(x) for x in design_points}
-        self.assertEqual(1, len(levels))
 
     def test_single_batch_level_that_maximises_pei(self):
         """For a single batch output, the input and level returned are the ones that
-        maximise weighted pseudo-expected improvements across all simulator levels. The
-        weightings are reciprocals of the associated costs for calculating differences
-        of simulator outputs."""
+        maximise weighted pseudo-expected improvements for the leave-one-out error GPs
+        across all simulator levels. The weightings are reciprocals of the associated
+        costs for calculating differences of simulator outputs."""
 
         costs = self.make_level_costs([1, 10, 100])
         domain = SimulatorDomain([(0, 1)])
+        mlgp = MultiLevelGaussianProcess([MogpEmulator(), MogpEmulator(), MogpEmulator()])
+        training_data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                ],
+                2: [
+                    TrainingDatum(Input(0.4), 2),
+                    TrainingDatum(Input(0.5), 99),
+                    TrainingDatum(Input(0.6), -4),
+                ],
+                3: [
+                    TrainingDatum(Input(0.7), 3),
+                    TrainingDatum(Input(0.8), -3),
+                    TrainingDatum(Input(0.9), 3),
+                ],
+            }
+        )
+        mlgp.fit(training_data)
 
-        gp1 = MogpEmulator()
-        gp1.fit(
-            [
-                TrainingDatum(Input(0.1), 1),
-                TrainingDatum(Input(0.2), 2),
-                TrainingDatum(Input(0.3), 3),
-            ]
-        )
-        gp2 = MogpEmulator()
-        gp2.fit(
-            [
-                TrainingDatum(Input(0.4), 2),
-                TrainingDatum(Input(0.5), 99),
-                TrainingDatum(Input(0.6), -4),
-            ]
-        )
-        gp3 = MogpEmulator()
-        gp3.fit(
-            [
-                TrainingDatum(Input(0.7), 3),
-                TrainingDatum(Input(0.8), -3),
-                TrainingDatum(Input(0.9), 3),
-            ]
-        )
-
-        mlgp = MultiLevelGaussianProcess([gp1, gp2, gp3])
-        design_points = self.compute_multi_level_loo_samples(
+        level, design_points = self.compute_multi_level_loo_samples(
             mlgp=mlgp, domain=domain, costs=costs
         )
-        self.assertEqual(1, len(design_points))
-        level = get_level(design_points[0])
 
-        ml_pei = self.compute_multi_level_pei(mlgp, domain)
+        self.assertEqual(1, len(design_points))
+
+        ml_errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain)
+        ml_pei = ml_errors_gp.map(lambda _, gp: PEICalculator(domain, gp))
         _, max_pei1 = maximise(lambda x: ml_pei[1].compute(x), domain)
         _, max_pei2 = maximise(lambda x: ml_pei[2].compute(x), domain)
         _, max_pei3 = maximise(lambda x: ml_pei[3].compute(x), domain)
@@ -1111,7 +1671,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         """A batch of new design points consists of Input objects that are (likely)
         all distinct."""
 
-        x1, x2 = self.compute_multi_level_loo_samples(batch_size=2)
+        _, (x1, x2) = self.compute_multi_level_loo_samples(batch_size=2)
         self.assertFalse(
             equal_within_tolerance(
                 x1,
@@ -1125,9 +1685,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         """A batch of new design points consists of Input objects that are (likely)
         distinct from the training data inputs."""
 
-        ml_design_points = self.compute_multi_level_loo_samples(batch_size=3)
-        level = get_level(ml_design_points[0])
-        design_pts = self.compute_multi_level_loo_samples(
+        level, design_pts = self.compute_multi_level_loo_samples(
             mlgp=self.default_mlgp, batch_size=3
         )
         training_inputs = [
@@ -1144,6 +1702,26 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                         abs_tol=self.tolerance,
                     )
                 )
+
+    def test_use_of_seed(self):
+        """If seeds are provided, then maximisation of pseudo-expected improvement is
+        performed with these seeds level-wise."""
+
+        mock_maximise_return = (self.default_domain.scale([0.5]), 1)
+        seeds = MultiLevel([99, None])
+        with unittest.mock.patch(
+            "exauq.core.designers.maximise",
+            autospec=True,
+            return_value=mock_maximise_return,
+        ) as mock_maximise:
+            _ = self.compute_multi_level_loo_samples(seeds=seeds)
+
+        self.assertDictContainsSubset(
+            {"seed": seeds[1]}, mock_maximise.call_args_list[0].kwargs
+        )
+        self.assertDictContainsSubset(
+            {"seed": seeds[2]}, mock_maximise.call_args_list[1].kwargs
+        )
 
 
 # TODO: test that repulsion points are updated with previously calculated inputs in
