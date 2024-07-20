@@ -527,7 +527,7 @@ class TestPEICalculator(ExauqTestCase):
 
         domain_mock = MagicMock(spec=SimulatorDomain)
 
-        expected_pseudopoints = [(Input(1.0),), (Input(2.0),)]
+        expected_pseudopoints = ((Input(1.0),), (Input(2.0),))
         domain_mock.calculate_pseudopoints.return_value = expected_pseudopoints
 
         calculator = PEICalculator(domain=domain_mock, gp=self.gp)
@@ -910,6 +910,21 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
                         abs_tol=self.tolerance,
                     )
                 )
+
+    def test_additional_repulsion_pts_used_for_pseudo_expected_improvement(self):
+        """If additional repulsion points are provided, then these are used in the
+        calculation of pseudo-expected improvement for the LOO errors GP."""
+
+        # Compute a new design point
+        design_pts = compute_single_level_loo_samples(self.gp, self.domain, seed=1)
+
+        # Re-run computation but now using the new design point as a repulsion point.
+        # Should find a different design point created.
+        design_pts2 = compute_single_level_loo_samples(
+            self.gp, self.domain, additional_repulsion_pts=design_pts, seed=1
+        )
+
+        self.assertNotEqualWithinTolerance(design_pts2[0], design_pts[0])
 
     def test_new_design_points_lie_in_given_domain(self):
         """Each Input from a batch of design points lies in the supplied simulator

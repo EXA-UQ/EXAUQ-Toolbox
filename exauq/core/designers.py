@@ -271,6 +271,11 @@ class PEICalculator:
     class applies to Gaussian Process models that have been trained on data with inputs
     lying in the supplied simulator domain.
 
+    If `additional_repulsion_pts` is provided, then these simulator inputs will be used as
+    repulsion points when calculating pseudo-expected improvement of the LOO errors GP (in
+    addition to pseudopoints, which are always used as repulsion points). The additional
+    repulsion points must belong to the simulator domain `domain`.
+
     Parameters
     ----------
     domain : SimulatorDomain
@@ -278,6 +283,9 @@ class PEICalculator:
     gp : AbstractGaussianProcess
         A Gaussian process model, which is trained on data where the simulator inputs are
         in `domain`.
+    additional_repulsion_pts : Collection[Input], optional
+        (Default: None) A collection of simulator inputs from `domain` that should be used
+        as repulsion points when computing pseudo-expected improvement.
 
     Attributes
     ----------
@@ -309,7 +317,12 @@ class PEICalculator:
         Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
     """
 
-    def __init__(self, domain: SimulatorDomain, gp: AbstractGaussianProcess):
+    def __init__(
+        self,
+        domain: SimulatorDomain,
+        gp: AbstractGaussianProcess,
+        additional_repulsion_pts: Optional[Collection[Input]] = None,
+    ):
         if not isinstance(domain, SimulatorDomain):
             raise TypeError(
                 f"Expected 'domain' to be of type SimulatorDomain, but received {type(domain)} "
@@ -323,11 +336,16 @@ class PEICalculator:
 
         self._domain = domain
         self._gp = gp
-
         self._validate_training_data()
-
         self._max_targets = self._calculate_max_targets()
-        self._other_repulsion_points = self._calculate_pseudopoints()
+        additional_repulsion_pts = (
+            tuple(additional_repulsion_pts)
+            if additional_repulsion_pts is not None
+            else tuple()
+        )
+        self._other_repulsion_points = (
+            additional_repulsion_pts + self._calculate_pseudopoints()
+        )
 
         self._standard_norm = norm(loc=0, scale=1)
 
@@ -644,7 +662,7 @@ def compute_single_level_loo_samples(
         )
 
     if additional_repulsion_pts is not None and not isinstance(
-        additional_repulsion_pts, Sequence
+        additional_repulsion_pts, Collection
     ):
         raise TypeError(
             f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
@@ -672,7 +690,7 @@ def compute_single_level_loo_samples(
     except (TypeError, ValueError) as e:
         raise e from None
 
-    pei = PEICalculator(domain, gp_e)
+    pei = PEICalculator(domain, gp_e, additional_repulsion_pts=additional_repulsion_pts)
 
     design_points = []
     for _ in range(batch_size):
