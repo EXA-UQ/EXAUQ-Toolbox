@@ -549,6 +549,42 @@ class TestPEICalculator(ExauqTestCase):
                     self.domain, self.gp, additional_repulsion_pts=bad_repulsion_pts
                 )
 
+    def test_additional_repulsion_points_included(self):
+        """Inputs supplied for additional repulsion points get added to the collection of
+        repulsion points for calculating pseudo-expected improvement."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        gp = fakes.WhiteNoiseGP()
+        gp.fit([TrainingDatum(Input(0.1, 0.1), 1)])
+        additional_repulsion_pts = [Input(0.2, 0.2), Input(0.4, 0.4)]
+
+        pei = PEICalculator(domain, gp, additional_repulsion_pts)
+
+        self.assertTrue(all(x in pei.repulsion_points for x in additional_repulsion_pts))
+
+    def test_additional_repulsion_points_removes_repeats(self):
+        """If an input already features in the repulsion points that would be feature in
+        the PEI calculations, then it isn't added to the collection of repulsion points.
+        """
+
+        domain = SimulatorDomain([(0, 1)])
+        gp = fakes.WhiteNoiseGP()
+        x1 = Input(0.1)
+        x2 = Input(0.2)
+        gp.fit([TrainingDatum(x1, 1), TrainingDatum(x2, 1)])
+        std_repulsion_points = PEICalculator(domain, gp).repulsion_points
+
+        pei = PEICalculator(domain, gp, additional_repulsion_pts=std_repulsion_points)
+
+        self.assertEqual(len(std_repulsion_points), len(pei.repulsion_points))
+
+        # If the provided repulsion points have repeats, then these are only added once
+        x = Input(0.5)
+
+        pei2 = PEICalculator(domain, gp, additional_repulsion_pts=[x, x])
+
+        self.assertEqual(len(std_repulsion_points) + 1, len(pei2.repulsion_points))
+
     def test_max_targets_with_valid_training_data(self):
         """Test that max target is calculated correctly with valid training data."""
         self.setUpPEICalculator()

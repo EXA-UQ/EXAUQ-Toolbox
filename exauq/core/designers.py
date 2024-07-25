@@ -371,11 +371,10 @@ class PEICalculator:
         self._gp = gp
         self._validate_training_data()
         self._max_targets = self._calculate_max_targets()
-        self._other_repulsion_points = (
+        self._other_repulsion_points = self._calculate_pseudopoints()
+        self.add_repulsion_points(
             self._parse_additional_repulsion_pts(additional_repulsion_pts, domain)
-            + self._calculate_pseudopoints()
         )
-
         self._standard_norm = norm(loc=0, scale=1)
 
     @staticmethod
