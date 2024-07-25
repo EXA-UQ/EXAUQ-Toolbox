@@ -1184,7 +1184,7 @@ class TestComputeMultiLevelLooPrediction(ExauqTestCase):
         mlgp: MultiLevelGaussianProcess,
         level: int,
         leave_out_idx: int,
-    ) -> GaussianProcessPrediction:
+    ) -> list[GaussianProcessPrediction]:
         # Get left-out training inputs
         loo_input = mlgp[level].training_data[leave_out_idx].input
 
