@@ -999,14 +999,14 @@ def compute_multi_level_loo_samples(
     """Compute a batch of design points adaptively for a multi-level Gaussian process (GP).
 
     Implements the cross-validation-based adaptive sampling for multi-level Gaussian
-    process models, as described in Kimpton et. al. (2024)[1]_. This involves computing a
+    process models, as described in Kimpton et. al. (2023)[1]_. This involves computing a
     multi-level GP that is trained on normalised expected squared errors arising from a
     multi-level leave-one-out (LOO) cross-validation. The design points returned are those
     that maximise weighted pseudo-expected improvements (PEIs) of this multi-level LOO
     errors GP across levels, where the PEIs are weighted according to the costs of
     computing the design points on simulators at the levels.
 
-    The `costs` should represent the costs of running a each level's simulator on a single
+    The `costs` should represent the costs of running each level's simulator on a single
     input.
 
     If `seeds` is provided, then the seeds provided for the levels will be used when
