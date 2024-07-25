@@ -9,8 +9,8 @@ import numpy as np
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     GaussianProcessHyperparameters,
+    GaussianProcessPrediction,
     Input,
-    Prediction,
     TrainingDatum,
 )
 from tests.utilities.utilities import ExauqTestCase, exact
@@ -196,15 +196,15 @@ class TestMogpEmulator(ExauqTestCase):
             _ = emulator.correlation([x1], [x2])
 
     def test_correlation_empty_input_sequences(self):
-        """An empty tuple is returned if either of the supplied input sequences is empty."""
+        """An empty array is returned if either of the supplied input sequences is empty."""
 
         params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
         emulator = MogpEmulator()
         emulator.fit(self.training_data, hyperparameters=params)
 
         inputs = [Input(1, 1), Input(2, 4)]
-        self.assertEqual(tuple(), emulator.correlation([], inputs))
-        self.assertEqual(tuple(), emulator.correlation(inputs, []))
+        self.assertArraysEqual(np.array([]), emulator.correlation([], inputs))
+        self.assertArraysEqual(np.array([]), emulator.correlation(inputs, []))
 
     def test_correlation_incompatible_dimensions_error(self):
         """A ValueError is raised if the dimensions one of the inputs does not agree with
@@ -263,7 +263,7 @@ class TestMogpEmulator(ExauqTestCase):
                 ):
                     self.assertEqualWithinTolerance(
                         kernel_f(np.array(x1), np.array(x2), corr_raw)[0, 0],
-                        correlations[i1][i2],
+                        correlations[i1, i2],
                     )
 
     def test_correlation_default_kernel(self):
@@ -282,7 +282,7 @@ class TestMogpEmulator(ExauqTestCase):
                 mogp.Kernel.SquaredExponential().kernel_f(
                     np.array(x1), np.array(x2), corr_raw
                 )[0, 0],
-                correlations[i1][i2],
+                correlations[i1, i2],
             )
 
     def test_correlation_depends_on_fit_correlations(self):
@@ -302,15 +302,15 @@ class TestMogpEmulator(ExauqTestCase):
                 corr_length_scales=[1, 2], process_var=process_var, nugget=nugget
             ),
         )
-        correlation1 = gp.correlation([x1], [x2])[0][0]
+        correlation1 = gp.correlation([x1], [x2])
         gp.fit(
             self.training_data,
             hyperparameters=MogpHyperparameters(
                 corr_length_scales=[10, 20], process_var=process_var, nugget=nugget
             ),
         )
-        correlation2 = gp.correlation([x1], [x2])[0][0]
-        self.assertNotEqual(correlation1, correlation2)
+        correlation2 = gp.correlation([x1], [x2])
+        self.assertArraysNotEqual(correlation1, correlation2)
 
         # Check correlation unchanged when only process variance changed
         gp.fit(
@@ -319,15 +319,15 @@ class TestMogpEmulator(ExauqTestCase):
                 corr_length_scales=corr, process_var=1, nugget=nugget
             ),
         )
-        correlation1 = gp.correlation([x1], [x2])[0][0]
+        correlation1 = gp.correlation([x1], [x2])
         gp.fit(
             self.training_data,
             hyperparameters=MogpHyperparameters(
                 corr_length_scales=corr, process_var=2, nugget=nugget
             ),
         )
-        correlation2 = gp.correlation([x1], [x2])[0][0]
-        self.assertEqual(correlation1, correlation2)
+        correlation2 = gp.correlation([x1], [x2])
+        self.assertArraysEqual(correlation1, correlation2)
 
         # Check correlation unchanged when only nugget changed
         gp.fit(
@@ -336,30 +336,30 @@ class TestMogpEmulator(ExauqTestCase):
                 corr_length_scales=corr, process_var=process_var, nugget=1
             ),
         )
-        correlation1 = gp.correlation([x1], [x2])[0][0]
+        correlation1 = gp.correlation([x1], [x2])
         gp.fit(
             self.training_data,
             hyperparameters=MogpHyperparameters(
                 corr_length_scales=corr, process_var=process_var, nugget=2
             ),
         )
-        correlation2 = gp.correlation([x1], [x2])[0][0]
-        self.assertEqual(correlation1, correlation2)
+        correlation2 = gp.correlation([x1], [x2])
+        self.assertArraysEqual(correlation1, correlation2)
 
     def test_covariance_matrix_empty_sequence_arg(self):
-        """An empty tuple is returned if the supplied input sequences is empty."""
+        """An empty array is returned if the supplied input sequences is empty."""
 
         params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
         emulator = MogpEmulator()
         emulator.fit(self.training_data, hyperparameters=params)
 
-        self.assertEqual(tuple(), emulator.covariance_matrix([]))
+        self.assertArraysEqual(np.array([]), emulator.covariance_matrix([]))
 
     def test_covariance_matrix_not_trained(self):
-        """An empty tuple is returned if the GP has not been trained on data."""
+        """An empty array is returned if the GP has not been trained on data."""
 
         emulator = MogpEmulator()
-        self.assertEqual(tuple(), emulator.covariance_matrix([Input(1)]))
+        self.assertArraysEqual(np.array([]), emulator.covariance_matrix([Input(1)]))
 
     def test_covariance_matrix_correlations_with_training_data(self):
         """The covariance matrix is equal to the correlation between the supplied inputs
@@ -369,8 +369,8 @@ class TestMogpEmulator(ExauqTestCase):
         emulator = MogpEmulator()
         emulator.fit(self.training_data, hyperparameters=params)
         inputs = [Input(0.1, 0.9), Input(0.2, 0.2)]
-        self.assertEqual(
-            emulator.correlation([d.input for d in self.training_data], inputs),
+        self.assertArraysEqual(
+            emulator.correlation(inputs, [d.input for d in self.training_data]),
             emulator.covariance_matrix(inputs),
         )
 
@@ -717,12 +717,13 @@ class TestMogpEmulator(ExauqTestCase):
             emulator.fit(self.training_data, hyperparameters=hyperparameters)
 
     def test_predict_returns_prediction_object(self):
-        """Given a trained emulator, check that predict() returns a Prediction object."""
+        """Given a trained emulator, check that predict() returns a
+        GaussianProcessPrediction object."""
 
         emulator = MogpEmulator()
         emulator.fit(self.training_data)
 
-        self.assertIsInstance(emulator.predict(self.x), Prediction)
+        self.assertIsInstance(emulator.predict(self.x), GaussianProcessPrediction)
 
     def test_predict_non_input_error(self):
         """Given an emulator, test that a TypeError is raised when trying to predict on
@@ -777,7 +778,7 @@ class TestMogpEmulator(ExauqTestCase):
         emulator.fit(self.training_data)
         for datum in self.training_data:
             self.assertEqual(
-                Prediction(estimate=datum.output, variance=0),
+                GaussianProcessPrediction(estimate=datum.output, variance=0),
                 emulator.predict(datum.input),
             )
 

@@ -13,6 +13,7 @@ from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
     AbstractGaussianProcess,
     GaussianProcessHyperparameters,
+    GaussianProcessPrediction,
     Input,
     LevelTagged,
     MultiLevel,
@@ -28,12 +29,7 @@ from exauq.core.modelling import (
 )
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
-from tests.unit.fakes import (
-    FakeGP,
-    FakeGPHyperparameters,
-    WhiteNoiseGP,
-    WhiteNoiseGPHyperparameters,
-)
+from tests.unit.fakes import FakeGP, WhiteNoiseGP, WhiteNoiseGPHyperparameters
 from tests.utilities.utilities import (
     ExauqTestCase,
     compare_input_tuples,
@@ -637,55 +633,28 @@ class TestPrediction(ExauqTestCase):
         self.assertEqual(prediction.standard_deviation, 0)
 
 
-class TestAbstractGaussianProcess(ExauqTestCase):
-    def setUp(self) -> None:
-        self.emulator = FakeGP()
-        self.training_data = [TrainingDatum(Input(0.5), 1)]
-        self.emulator.fit(self.training_data)
-
-        self.inputs = [Input(0), Input(0.25), Input(1)]
-        self.outputs = [-1, np.int32(1), 2.1, np.float16(3)]
-
-    def test_nes_error_arg_type_errors(self):
-        """A TypeError is raised when computing the normalised expected square error if:
-
-        * making a prediction from the input 'x' raises a TypeError; or
-        * the observed output is not a Real number.
+class TestGaussianProcessPrediction(ExauqTestCase):
+    def test_nes_error_arg_type_error(self):
+        """A TypeError is raised when computing the normalised expected square error if
+        the observed output is not a Real number.
         """
 
-        x = 1
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Expected 'x' to be of type {Input.__name__} but received type {type(x)}."
-            ),
-        ):
-            self.emulator.nes_error(x, 0)
-
         observed_output = "1"
+
+        prediction = GaussianProcessPrediction(estimate=1, variance=1)
+
         with self.assertRaisesRegex(
             TypeError,
             exact(
                 f"Expected 'observed_output' to be of type {Real} but received type {type(observed_output)}."
             ),
         ):
-            self.emulator.nes_error(Input(1), observed_output)
-
-    def test_nes_error_assertion_error_raised_if_emulator_not_trained_on_data(self):
-        """An AssertionError is raised if an attempt is made to compute the normalised
-        expected square error with an emulator that hasn't been trained on data."""
-
-        emulator = FakeGP()
-        with self.assertRaisesRegex(
-            AssertionError,
-            exact(
-                "Could not compute normalised expected squared error: emulator hasn't been fit to data."
-            ),
-        ):
-            emulator.nes_error(Input(0), 1)
+            prediction.nes_error(observed_output)
 
     def test_nes_error_value_error_raised_if_observed_output_is_infinite(self):
         """A ValueError is raised if the observed output is an infinite value or NaN."""
+
+        prediction = GaussianProcessPrediction(estimate=1, variance=1)
 
         for observed_output in [np.nan, np.inf, -np.inf]:
             with self.subTest(observed_output=observed_output), self.assertRaisesRegex(
@@ -694,7 +663,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
                     f"'observed_output' must be a finite real number, but received {observed_output}."
                 ),
             ):
-                self.emulator.nes_error(Input(1), observed_output)
+                prediction.nes_error(observed_output)
 
     def test_nes_error_formula(self):
         """The normalised expected square error is given by the expected square error
@@ -703,16 +672,13 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         """
 
         variances = [0.1, 0.2, 0.3]
-        for var, x, observed_output in itertools.product(
-            variances, self.inputs, self.outputs
+        means = [-1, 0, 1]
+        observed_outputs = [0.9, -0.1, 0, 10]
+        for mean, var, observed_output in itertools.product(
+            means, variances, observed_outputs
         ):
-            with self.subTest(var=var, x=x, observed_output=observed_output):
-                hyperparameters = FakeGPHyperparameters(
-                    corr_length_scales=[1], process_var=var, nugget=None
-                )
-                self.emulator.fit(self.training_data, hyperparameters=hyperparameters)
-
-                prediction = self.emulator.predict(x)
+            with self.subTest(mean=mean, var=var, observed_output=observed_output):
+                prediction = GaussianProcessPrediction(estimate=1, variance=var)
                 square_err = (prediction.estimate - observed_output) ** 2
                 expected_sq_err = prediction.variance + square_err
                 standard_deviation_sq_err = math.sqrt(
@@ -721,31 +687,38 @@ class TestAbstractGaussianProcess(ExauqTestCase):
 
                 self.assertEqualWithinTolerance(
                     expected_sq_err / standard_deviation_sq_err,
-                    self.emulator.nes_error(x, observed_output),
+                    prediction.nes_error(observed_output),
                 )
 
     def test_nes_error_zero_variance_cases(self):
         """The normalised expected square error is equal to
 
-        * zero if both the standard deviation (denominator) and expectation (numerator) of
-          the square error are zero
-        * inf if the standard deviation is zero and the expectation is nonzero.
+        * zero if the variance of the prediction is zero and the observed output is equal
+          to the prediction's estimate.
+        * inf if the variance of the prediction is zero and the observed output is not
+          equal to the prediction's estimate.
         """
 
-        # Consider case where we calculate at a training input - expectation and variance of
-        # square error both zero.
-        datum = self.emulator.training_data[0]
-        self.assertEqual(0, self.emulator.nes_error(datum.input, datum.output))
+        mean = 1
 
-        # Force predictive variance to be zero even for unseen inputs
-        emulator = FakeGP()
-        emulator.fit(
-            [TrainingDatum(Input(0.5), 1)],
-            hyperparameters=FakeGPHyperparameters(
-                corr_length_scales=[1], process_var=0, nugget=None
-            ),
+        self.assertEqual(
+            0, GaussianProcessPrediction(estimate=mean, variance=0).nes_error(mean)
         )
-        self.assertEqual(float("inf"), emulator.nes_error(Input(0.4), 1e-5))
+
+        self.assertEqual(
+            float("inf"),
+            GaussianProcessPrediction(estimate=mean, variance=0).nes_error(mean + 1e-5),
+        )
+
+
+class TestAbstractGaussianProcess(ExauqTestCase):
+    def setUp(self) -> None:
+        self.emulator = FakeGP()
+        self.training_data = [TrainingDatum(Input(0.5), 1)]
+        self.emulator.fit(self.training_data)
+
+        self.inputs = [Input(0), Input(0.25), Input(1)]
+        self.outputs = [-1, np.int32(1), 2.1, np.float16(3)]
 
     def test_covariance_matrix_correlations_with_training_data(self):
         """The covariance matrix consists of the correlations of the supplied inputs
@@ -762,8 +735,8 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         )
         inputs = [Input(0.2, 1), Input(0.8, -0.5)]
 
-        self.assertEqual(
-            emulator.correlation(training_inputs, inputs),
+        self.assertArraysEqual(
+            emulator.correlation(inputs, training_inputs),
             emulator.covariance_matrix(inputs),
         )
 
