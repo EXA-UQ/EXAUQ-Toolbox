@@ -24,6 +24,39 @@ from exauq.utilities.optimisation import maximise
 from exauq.utilities.validation import check_int
 
 
+def _check_collection_of_inputs(coll: Any, name: str):
+    """Check whether the given `coll` is a collection of ``Input`` objects, raising a
+    TypeError if not. `name` is used to refer to the collection in error messages."""
+
+    if not isinstance(coll, Collection):
+        raise TypeError(
+            f"Expected '{name}' to be a collection of {Input} objects, "
+            f"but received {type(coll)} instead."
+        )
+    elif any(not isinstance(x, Input) for x in coll):
+        raise TypeError(
+            f"Expected '{name}' to be a collection of {Input} objects, "
+            f"but this is not the case."
+        )
+    else:
+        pass
+
+
+def _find_input_outside_domain(
+    inputs: Collection[Input], domain: SimulatorDomain
+) -> Optional[Input]:
+    """Find an input not contained in `domain` from the given collection `inputs`, or
+    return None if no such input exists."""
+
+    for x in inputs:
+        if x not in domain:
+            return x
+        else:
+            continue
+
+    return None
+
+
 class SimpleDesigner(object):
     """A designer producing simulator inputs based on random generation.
 
@@ -349,35 +382,23 @@ class PEICalculator:
     def _parse_additional_repulsion_pts(
         additional_repulsion_pts: Any, domain: SimulatorDomain
     ) -> tuple[Input, ...]:
-        if additional_repulsion_pts is not None and not isinstance(
-            additional_repulsion_pts, Collection
-        ):
-            raise TypeError(
-                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
-                f"but received {type(additional_repulsion_pts)} instead."
-            )
-        elif additional_repulsion_pts is not None and any(
-            not isinstance(x, Input) for x in additional_repulsion_pts
-        ):
-            raise TypeError(
-                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
-                f"but this is not the case."
-            )
-        elif additional_repulsion_pts is not None and (
-            outside_domain_repulsion_pts := [
-                x for x in additional_repulsion_pts if x not in domain
-            ]
-        ):
-            raise ValueError(
-                "Additional repulsion points must belong to simulator domain 'domain', "
-                f"but found input {outside_domain_repulsion_pts[0]}."
-            )
+
+        if additional_repulsion_pts is None:
+            return tuple()
         else:
-            return (
-                tuple(additional_repulsion_pts)
-                if additional_repulsion_pts is not None
-                else tuple()
+            _check_collection_of_inputs(
+                additional_repulsion_pts,
+                name=f"{additional_repulsion_pts=}".split("=")[0],
             )
+            if input_outside_domain := _find_input_outside_domain(
+                additional_repulsion_pts, domain
+            ):
+                raise ValueError(
+                    "Additional repulsion points must belong to simulator domain 'domain', "
+                    f"but found input {input_outside_domain}."
+                )
+            else:
+                return tuple(additional_repulsion_pts)
 
     @property
     def gp(self) -> AbstractGaussianProcess:
@@ -488,26 +509,16 @@ class PEICalculator:
         >>> pei_calculator.add_repulsion_points(repulsion_points)
         """
 
-        if repulsion_points is not None and not isinstance(repulsion_points, Collection):
-            raise TypeError(
-                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
-                f"but received {type(repulsion_points)} instead."
-            )
-        elif repulsion_points is not None and any(
-            not isinstance(x, Input) for x in repulsion_points
-        ):
-            raise TypeError(
-                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
-                f"but this is not the case."
-            )
-        elif repulsion_points is not None and (
-            outside_domain_repulsion_pts := [
-                x for x in repulsion_points if x not in self.domain
-            ]
+        _check_collection_of_inputs(
+            repulsion_points, name=f"{repulsion_points=}".split("=")[0]
+        )
+
+        if input_not_in_domain := _find_input_outside_domain(
+            repulsion_points, self.domain
         ):
             raise ValueError(
                 f"Repulsion points must belong to the simulator domain for this {__class__.__name__}, "
-                f"but found input {outside_domain_repulsion_pts[0]}."
+                f"but found input {input_not_in_domain}."
             )
 
         self._other_repulsion_points = self._other_repulsion_points + tuple(
@@ -710,29 +721,17 @@ def compute_single_level_loo_samples(
             f"Expected batch size to be a positive integer, but received {batch_size} instead."
         )
 
-    if additional_repulsion_pts is not None and not isinstance(
-        additional_repulsion_pts, Collection
-    ):
-        raise TypeError(
-            f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
-            f"but received {type(additional_repulsion_pts)} instead."
+    if additional_repulsion_pts is not None:
+        _check_collection_of_inputs(
+            additional_repulsion_pts, name=f"{additional_repulsion_pts=}".split("=")[0]
         )
-    elif additional_repulsion_pts is not None and any(
-        not isinstance(x, Input) for x in additional_repulsion_pts
-    ):
-        raise TypeError(
-            f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
-            f"but this is not the case."
-        )
-    elif additional_repulsion_pts is not None and (
-        outside_domain_repulsion_pts := [
-            x for x in additional_repulsion_pts if x not in domain
-        ]
-    ):
-        raise ValueError(
-            "Additional repulsion points must belong to simulator domain 'domain', "
-            f"but found input {outside_domain_repulsion_pts[0]}."
-        )
+        if input_outside_domain := _find_input_outside_domain(
+            additional_repulsion_pts, domain
+        ):
+            raise ValueError(
+                "Additional repulsion points must belong to simulator domain 'domain', "
+                f"but found input {input_outside_domain}."
+            )
 
     try:
         gp_e = compute_loo_errors_gp(gp, domain, loo_errors_gp=loo_errors_gp)
