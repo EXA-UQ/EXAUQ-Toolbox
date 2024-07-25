@@ -378,11 +378,15 @@ class PEICalculator:
         self._gp = gp
         self._validate_training_data()
         self._max_targets = self._calculate_max_targets()
-        self._other_repulsion_points = self._calculate_pseudopoints()
+        self._standard_norm = norm(loc=0, scale=1)
+
+        # Initialise repulsion points
+        training_inputs = [datum.input for datum in gp.training_data]
+        self._other_repulsion_points = []
+        self._add_repulsion_points(domain.calculate_pseudopoints(training_inputs))
         self._add_repulsion_points(
             self._parse_additional_repulsion_pts(additional_repulsion_pts, domain)
         )
-        self._standard_norm = norm(loc=0, scale=1)
 
     @staticmethod
     def _parse_additional_repulsion_pts(
@@ -427,10 +431,6 @@ class PEICalculator:
 
     def _calculate_max_targets(self) -> Real:
         return max(self._gp.training_data, key=lambda datum: datum.output).output
-
-    def _calculate_pseudopoints(self) -> list[Input]:
-        training_data = [datum.input for datum in self._gp.training_data]
-        return list(self._domain.calculate_pseudopoints(training_data))
 
     def _validate_training_data(self) -> None:
         if not self._gp.training_data:

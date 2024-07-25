@@ -585,6 +585,23 @@ class TestPEICalculator(ExauqTestCase):
 
         self.assertEqual(len(std_repulsion_points) + 1, len(pei2.repulsion_points))
 
+    def test_training_inputs_and_pseudopoints_not_repeated(self):
+        """Given a GP with training inputs, if the domain's pseudopoints include one of
+        the training inputs then this is not repeated in the repulsion points."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        training_input = Input(0, 0.5)
+
+        # point on a domain boundary, so is a pseudopoint
+        assert training_input in domain.calculate_pseudopoints([training_input])
+
+        gp = fakes.WhiteNoiseGP()
+        gp.fit([TrainingDatum(training_input, 1)])
+
+        pei = PEICalculator(domain, gp)
+
+        self.assertEqual(1, len([x for x in pei.repulsion_points if x == training_input]))
+
     def test_max_targets_with_valid_training_data(self):
         """Test that max target is calculated correctly with valid training data."""
         self.setUpPEICalculator()
