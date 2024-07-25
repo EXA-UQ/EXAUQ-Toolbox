@@ -9,6 +9,7 @@ from numbers import Real
 from typing import Optional
 from unittest.mock import MagicMock
 
+import numpy as np
 from scipy.stats import norm
 
 import tests.unit.fakes as fakes
@@ -744,6 +745,23 @@ class TestPEICalculator(ExauqTestCase):
         self.setUpPEICalculator()
         with self.assertRaises(TypeError):
             self.pei_calculator.repulsion("invalid input")
+
+    def test_add_repulsion_points_multiple_inputs(self):
+        """Inputs supplied for repulsion points get added to the collection of
+        repulsion points for calculating pseudo-expected improvement."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        gp = fakes.WhiteNoiseGP()
+        gp.fit([TrainingDatum(Input(0.1, 0.1), 1)])
+        pei = PEICalculator(domain, gp)
+        input_collections = [
+            [Input(0.2, 0.2), Input(0.4, 0.4)],
+            [np.array([0.6, 0.6]), np.array([0.8, 0.8])],
+        ]
+        for inputs in input_collections:
+            with self.subTest(inputs=inputs):
+                pei.add_repulsion_points(inputs)
+                self.assertTrue(all(Input(*x) in pei.repulsion_points for x in inputs))
 
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):

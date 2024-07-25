@@ -465,9 +465,11 @@ class PEICalculator:
 
         return self.expected_improvement(x) * self.repulsion(x)
 
-    def add_repulsion_point(self, x: Union[Input, NDArray]) -> None:
+    def add_repulsion_points(
+        self, repulsion_pts: Collection[Union[Input, NDArray]]
+    ) -> None:
         """
-        Add a new point to the set of repulsion points.
+        Add simulator inputs to the set of repulsion points.
 
         This method updates the internal set of repulsion points used in the repulsion factor
         calculation. Simulator inputs very positively correlated with repulsion points result in low
@@ -476,24 +478,23 @@ class PEICalculator:
 
         Parameters
         ----------
-        x : Union[Input, NDArray]
-            The point to be added to the repulsion points set. This can be an instance of `Input`
-            or a one-dimensional `numpy.ndarray`. If `x` is a `numpy.ndarray`, it is converted
-            to an `Input` object.
+        x : collection of Input or numpy.ndarray
+            The inputs to be added to the repulsion points set. Each new input can be an
+            instance of `Input` or a one-dimensional `numpy.ndarray`. Inputs that are of
+            type `numpy.ndarray` are converted to `Input` objects.
 
         Examples
         --------
         >>> new_repulsion_point = Input(4.0, 5.0)
-        >>> pei_calculator.add_repulsion_point(new_repulsion_point)
+        >>> pei_calculator.add_repulsion_point([new_repulsion_point])
 
-        >>> array_repulsion_point = np.array([4.0, 5.0])
-        >>> pei_calculator.add_repulsion_point(array_repulsion_point)
+        >>> array_repulsion_points = [np.array([4.0, 5.0]), np.array([4.1, 5.1])]
+        >>> pei_calculator.add_repulsion_point(array_repulsion_points)
         """
 
-        validated_x = self._validate_input_type(
-            x, (Input, np.ndarray), "add_repulsion_point"
+        self._other_repulsion_points = self._other_repulsion_points + tuple(
+            Input(*x) for x in repulsion_pts
         )
-        self._other_repulsion_points = self._other_repulsion_points + (validated_x,)
 
     def expected_improvement(self, x: Union[Input, NDArray]) -> Real:
         """
@@ -726,7 +727,7 @@ def compute_single_level_loo_samples(
     for _ in range(batch_size):
         new_design_point, _ = maximise(lambda x: pei.compute(x), domain, seed=seed)
         design_points.append(new_design_point)
-        pei.add_repulsion_point(new_design_point)
+        pei.add_repulsion_points([new_design_point])
 
     return tuple(design_points)
 
@@ -1231,7 +1232,7 @@ def compute_multi_level_loo_samples(
     if batch_size > 1:
         pei = ml_pei[level]
         for i in range(batch_size - 1):
-            pei.add_repulsion_point(design_points[i])
+            pei.add_repulsion_points([design_points[i]])
             new_design_pt, _ = maximise(lambda x: pei.compute(x), domain)
             design_points.append(new_design_pt)
 
