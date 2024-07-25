@@ -573,7 +573,7 @@ class TestPEICalculator(ExauqTestCase):
 
         domain_mock = MagicMock(spec=SimulatorDomain)
 
-        expected_pseudopoints = ((Input(1.0),), (Input(2.0),))
+        expected_pseudopoints = [(Input(1.0),), (Input(2.0),)]
         domain_mock.calculate_pseudopoints.return_value = expected_pseudopoints
 
         calculator = PEICalculator(domain=domain_mock, gp=self.gp)
@@ -757,7 +757,7 @@ class TestPEICalculator(ExauqTestCase):
 
         pei.add_repulsion_points(inputs)
 
-        self.assertTrue(all(Input(*x) in pei.repulsion_points for x in inputs))
+        self.assertTrue(all(x in pei.repulsion_points for x in inputs))
 
     def test_add_repulsion_points_not_collection_of_inputs_error(self):
         """A TypeError is raised if the supplied repulsion points is not a collection
@@ -805,6 +805,29 @@ class TestPEICalculator(ExauqTestCase):
                 ),
             ):
                 pei.add_repulsion_points(bad_repulsion_pts)
+
+    def test_add_repulsion_points_removes_repeats(self):
+        """If an input already features in the stored repulsion points, then it isn't
+        added to the collection of repulsion points."""
+
+        domain = SimulatorDomain([(0, 1)])
+        gp = fakes.WhiteNoiseGP()
+        x1 = Input(0.1)
+        x2 = Input(0.2)
+        gp.fit([TrainingDatum(x1, 1), TrainingDatum(x2, 1)])
+        pei = PEICalculator(domain, gp)
+
+        n_repulsion_pts_before = len(pei.repulsion_points)
+        pei.add_repulsion_points(pei.repulsion_points)
+
+        self.assertEqual(n_repulsion_pts_before, len(pei.repulsion_points))
+
+        # If the provided repulsion points have repeats, then these are only added once
+        x = Input(0.5)
+
+        pei.add_repulsion_points([x, x])
+
+        self.assertEqual(n_repulsion_pts_before + 1, len(pei.repulsion_points))
 
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):

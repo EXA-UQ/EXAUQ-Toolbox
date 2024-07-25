@@ -381,10 +381,10 @@ class PEICalculator:
     @staticmethod
     def _parse_additional_repulsion_pts(
         additional_repulsion_pts: Any, domain: SimulatorDomain
-    ) -> tuple[Input, ...]:
+    ) -> list[Input]:
 
         if additional_repulsion_pts is None:
-            return tuple()
+            return list()
         else:
             _check_collection_of_inputs(
                 additional_repulsion_pts,
@@ -398,7 +398,7 @@ class PEICalculator:
                     f"but found input {input_outside_domain}."
                 )
             else:
-                return tuple(additional_repulsion_pts)
+                return list(additional_repulsion_pts)
 
     @property
     def gp(self) -> AbstractGaussianProcess:
@@ -409,8 +409,9 @@ class PEICalculator:
     @property
     def repulsion_points(self) -> tuple[Input]:
         """(Read-only) The current set of repulsion points used in calculations."""
-        training_points = tuple(datum.input for datum in self._gp.training_data)
-        return self._other_repulsion_points + training_points
+
+        training_points = [datum.input for datum in self._gp.training_data]
+        return tuple(self._other_repulsion_points + training_points)
 
     @property
     def domain(self) -> SimulatorDomain:
@@ -421,9 +422,9 @@ class PEICalculator:
     def _calculate_max_targets(self) -> Real:
         return max(self._gp.training_data, key=lambda datum: datum.output).output
 
-    def _calculate_pseudopoints(self) -> tuple[Input]:
+    def _calculate_pseudopoints(self) -> list[Input]:
         training_data = [datum.input for datum in self._gp.training_data]
-        return self._domain.calculate_pseudopoints(training_data)
+        return list(self._domain.calculate_pseudopoints(training_data))
 
     def _validate_training_data(self) -> None:
         if not self._gp.training_data:
@@ -521,9 +522,11 @@ class PEICalculator:
                 f"but found input {input_not_in_domain}."
             )
 
-        self._other_repulsion_points = self._other_repulsion_points + tuple(
-            Input(*x) for x in repulsion_points
-        )
+        for x in repulsion_points:
+            if x not in self.repulsion_points:
+                self._other_repulsion_points.append(x)
+
+        return None
 
     def expected_improvement(self, x: Union[Input, NDArray]) -> Real:
         """
