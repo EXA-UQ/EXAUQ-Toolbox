@@ -338,16 +338,46 @@ class PEICalculator:
         self._gp = gp
         self._validate_training_data()
         self._max_targets = self._calculate_max_targets()
-        additional_repulsion_pts = (
-            tuple(additional_repulsion_pts)
-            if additional_repulsion_pts is not None
-            else tuple()
-        )
         self._other_repulsion_points = (
-            additional_repulsion_pts + self._calculate_pseudopoints()
+            self._parse_additional_repulsion_pts(additional_repulsion_pts, domain)
+            + self._calculate_pseudopoints()
         )
 
         self._standard_norm = norm(loc=0, scale=1)
+
+    @staticmethod
+    def _parse_additional_repulsion_pts(
+        additional_repulsion_pts: Any, domain: SimulatorDomain
+    ) -> tuple[Input, ...]:
+        if additional_repulsion_pts is not None and not isinstance(
+            additional_repulsion_pts, Collection
+        ):
+            raise TypeError(
+                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                f"but received {type(additional_repulsion_pts)} instead."
+            )
+        elif additional_repulsion_pts is not None and any(
+            not isinstance(x, Input) for x in additional_repulsion_pts
+        ):
+            raise TypeError(
+                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                f"but this is not the case."
+            )
+        elif additional_repulsion_pts is not None and (
+            outside_domain_repulsion_pts := [
+                x for x in additional_repulsion_pts if x not in domain
+            ]
+        ):
+            raise ValueError(
+                "Additional repulsion points must belong to simulator domain 'domain', "
+                f"but found input {outside_domain_repulsion_pts[0]}."
+            )
+        else:
+            return (
+                tuple(additional_repulsion_pts)
+                if additional_repulsion_pts is not None
+                else tuple()
+            )
 
     @property
     def gp(self) -> AbstractGaussianProcess:

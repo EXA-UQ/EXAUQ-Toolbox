@@ -503,6 +503,52 @@ class TestPEICalculator(ExauqTestCase):
             "Expected 'gp' to have nonempty training data.", str(context.exception)
         )
 
+    def test_additional_repulsion_pts_not_collection_of_inputs_error(self):
+        """A TypeError is raised if the additional repulsion points is not a collection
+        of Input objects"""
+
+        self.setUpFitDataOnly()
+
+        arg = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                f"but received {type(arg)} instead."
+            ),
+        ):
+            _ = PEICalculator(self.domain, self.gp, additional_repulsion_pts=arg)
+
+        arg2 = [Input(10), 1]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                "but this is not the case."
+            ),
+        ):
+            _ = PEICalculator(self.domain, self.gp, additional_repulsion_pts=arg2)
+
+    def test_additional_repulsion_pts_not_in_domain_error(self):
+        """A ValueError is raised if any of the additional repulsion points do not belong
+        to the given simulator domain."""
+
+        self.setUpFitDataOnly()
+
+        for bad_repulsion_pts in [[Input(1.1)], [Input(0.5), Input(0.5, 0.5)]]:
+            with self.subTest(
+                bad_repulsion_pts=bad_repulsion_pts
+            ), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "Additional repulsion points must belong to simulator domain 'domain', "
+                    f"but found input {bad_repulsion_pts[-1]}."
+                ),
+            ):
+                _ = PEICalculator(
+                    self.domain, self.gp, additional_repulsion_pts=bad_repulsion_pts
+                )
+
     def test_max_targets_with_valid_training_data(self):
         """Test that max target is calculated correctly with valid training data."""
         self.setUpPEICalculator()
@@ -734,7 +780,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         * The domain is not of type SimulatorDomain.
         * The batch size is not an integer.
         * The supplied LOO errors GP is not None or of type AbstractGaussianProcess.
-        * The additional repulsion points is not a sequence of Input objects.
+        * The additional repulsion points is not a collection of Input objects.
         """
 
         arg = "a"
