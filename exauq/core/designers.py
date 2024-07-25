@@ -372,7 +372,7 @@ class PEICalculator:
         self._validate_training_data()
         self._max_targets = self._calculate_max_targets()
         self._other_repulsion_points = self._calculate_pseudopoints()
-        self.add_repulsion_points(
+        self._add_repulsion_points(
             self._parse_additional_repulsion_pts(additional_repulsion_pts, domain)
         )
         self._standard_norm = norm(loc=0, scale=1)
@@ -520,6 +520,13 @@ class PEICalculator:
                 f"Repulsion points must belong to the simulator domain for this {__class__.__name__}, "
                 f"but found input {input_not_in_domain}."
             )
+
+        self._add_repulsion_points(repulsion_points)
+
+        return None
+
+    def _add_repulsion_points(self, repulsion_points: Collection[Input]) -> None:
+        """Add new repulsion points (without arg validation); cf. add_repulsion_points."""
 
         for x in repulsion_points:
             if x not in self.repulsion_points:
