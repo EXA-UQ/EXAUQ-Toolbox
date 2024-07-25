@@ -465,9 +465,7 @@ class PEICalculator:
 
         return self.expected_improvement(x) * self.repulsion(x)
 
-    def add_repulsion_points(
-        self, repulsion_pts: Collection[Union[Input, NDArray]]
-    ) -> None:
+    def add_repulsion_points(self, repulsion_points: Collection[Input]) -> None:
         """
         Add simulator inputs to the set of repulsion points.
 
@@ -478,22 +476,42 @@ class PEICalculator:
 
         Parameters
         ----------
-        x : collection of Input or numpy.ndarray
-            The inputs to be added to the repulsion points set. Each new input can be an
-            instance of `Input` or a one-dimensional `numpy.ndarray`. Inputs that are of
-            type `numpy.ndarray` are converted to `Input` objects.
+        x : collection of Input
+            The inputs to be added to the repulsion points set.
 
         Examples
         --------
-        >>> new_repulsion_point = Input(4.0, 5.0)
-        >>> pei_calculator.add_repulsion_point([new_repulsion_point])
+        >>> repulsion_point = Input(4.0, 5.0)
+        >>> pei_calculator.add_repulsion_points([repulsion_point])
 
-        >>> array_repulsion_points = [np.array([4.0, 5.0]), np.array([4.1, 5.1])]
-        >>> pei_calculator.add_repulsion_point(array_repulsion_points)
+        >>> repulsion_points = [Input(4.0, 5.0), Input(4.1, 5.1)]
+        >>> pei_calculator.add_repulsion_points(repulsion_points)
         """
 
+        if repulsion_points is not None and not isinstance(repulsion_points, Collection):
+            raise TypeError(
+                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
+                f"but received {type(repulsion_points)} instead."
+            )
+        elif repulsion_points is not None and any(
+            not isinstance(x, Input) for x in repulsion_points
+        ):
+            raise TypeError(
+                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
+                f"but this is not the case."
+            )
+        elif repulsion_points is not None and (
+            outside_domain_repulsion_pts := [
+                x for x in repulsion_points if x not in self.domain
+            ]
+        ):
+            raise ValueError(
+                f"Repulsion points must belong to the simulator domain for this {__class__.__name__}, "
+                f"but found input {outside_domain_repulsion_pts[0]}."
+            )
+
         self._other_repulsion_points = self._other_repulsion_points + tuple(
-            Input(*x) for x in repulsion_pts
+            Input(*x) for x in repulsion_points
         )
 
     def expected_improvement(self, x: Union[Input, NDArray]) -> Real:

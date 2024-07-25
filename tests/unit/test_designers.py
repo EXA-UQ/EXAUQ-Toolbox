@@ -9,7 +9,6 @@ from numbers import Real
 from typing import Optional
 from unittest.mock import MagicMock
 
-import numpy as np
 from scipy.stats import norm
 
 import tests.unit.fakes as fakes
@@ -754,14 +753,58 @@ class TestPEICalculator(ExauqTestCase):
         gp = fakes.WhiteNoiseGP()
         gp.fit([TrainingDatum(Input(0.1, 0.1), 1)])
         pei = PEICalculator(domain, gp)
-        input_collections = [
-            [Input(0.2, 0.2), Input(0.4, 0.4)],
-            [np.array([0.6, 0.6]), np.array([0.8, 0.8])],
-        ]
-        for inputs in input_collections:
-            with self.subTest(inputs=inputs):
-                pei.add_repulsion_points(inputs)
-                self.assertTrue(all(Input(*x) in pei.repulsion_points for x in inputs))
+        inputs = [Input(0.2, 0.2), Input(0.4, 0.4)]
+
+        pei.add_repulsion_points(inputs)
+
+        self.assertTrue(all(Input(*x) in pei.repulsion_points for x in inputs))
+
+    def test_add_repulsion_points_not_collection_of_inputs_error(self):
+        """A TypeError is raised if the supplied repulsion points is not a collection
+        of Input objects."""
+
+        self.setUpPEICalculator()
+
+        arg = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
+                f"but received {type(arg)} instead."
+            ),
+        ):
+            self.pei_calculator.add_repulsion_points(arg)
+
+        arg2 = [Input(10), 1]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
+                "but this is not the case."
+            ),
+        ):
+            self.pei_calculator.add_repulsion_points(arg2)
+
+    def test_add_repulsion_points_not_in_domain_error(self):
+        """A ValueError is raised if any of the supplied repulsion points do not belong
+        to the PEI calculator's simulator domain."""
+
+        domain = SimulatorDomain([(0, 1)])
+        gp = fakes.WhiteNoiseGP()
+        gp.fit([TrainingDatum(Input(0.1), 1)])
+        pei = PEICalculator(domain, gp)
+
+        for bad_repulsion_pts in [[Input(1.1)], [Input(0.5), Input(0.5, 0.5)]]:
+            with self.subTest(
+                bad_repulsion_pts=bad_repulsion_pts
+            ), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Repulsion points must belong to the simulator domain for this {pei.__class__.__name__}, "
+                    f"but found input {bad_repulsion_pts[-1]}."
+                ),
+            ):
+                pei.add_repulsion_points(bad_repulsion_pts)
 
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
