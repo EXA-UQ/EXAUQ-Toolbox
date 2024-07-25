@@ -306,7 +306,8 @@ class PEICalculator:
 
     If `additional_repulsion_pts` is provided, then these simulator inputs will be used as
     repulsion points when calculating pseudo-expected improvement of the LOO errors GP (in
-    addition to pseudopoints, which are always used as repulsion points). The additional
+    addition to the training inputs for the provided Gaussian process and the
+    pseudopoints, which are always used as repulsion points). The additional
     repulsion points must belong to the simulator domain `domain`.
 
     Parameters
@@ -316,7 +317,7 @@ class PEICalculator:
     gp : AbstractGaussianProcess
         A Gaussian process model, which is trained on data where the simulator inputs are
         in `domain`.
-    additional_repulsion_pts : Collection[Input], optional
+    additional_repulsion_pts : collection of Input, optional
         (Default: None) A collection of simulator inputs from `domain` that should be used
         as repulsion points when computing pseudo-expected improvement.
 
@@ -325,9 +326,15 @@ class PEICalculator:
     gp : AbstractGaussianProcess
         (Read-only) The Gaussian process used in calculations.
     repulsion_points : tuple[Input]
-        (Read-only) The current set of repulsion points used in calculations.
+        (Read-only) The current set of repulsion points used in calculations; as a tuple
+        with no repeated elements.
     domain : SimulatorDomain
         (Read-only) The simulator domain used in calculations.
+
+    Raises
+    ------
+    ValueError
+        If any of the new repulsion points don't belong to the supplied simulator domain.
 
     Examples
     --------
@@ -490,15 +497,22 @@ class PEICalculator:
         """
         Add simulator inputs to the set of repulsion points.
 
-        This method updates the internal set of repulsion points used in the repulsion factor
-        calculation. Simulator inputs very positively correlated with repulsion points result in low
-        repulsion values, whereas inputs very negatively correlated with repulsion points result
-        in high repulsion values.
+        Updates the internal set of repulsion points used in the repulsion factor
+        calculation. The additional repulsion points must belong to the simulator domain
+        for this object (i.e. ``self.domain``). Simulator inputs very positively
+        correlated with repulsion points result in low repulsion values, whereas inputs
+        very negatively correlated with repulsion points result in high repulsion values.
 
         Parameters
         ----------
         x : collection of Input
             The inputs to be added to the repulsion points set.
+
+        Raises
+        ------
+        ValueError
+            If any of the new repulsion points don't belong to this object's simulator
+            domain.
 
         Examples
         --------
