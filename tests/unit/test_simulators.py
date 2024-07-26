@@ -690,7 +690,8 @@ class TestJobManager(unittest.TestCase):
         self.assertIn(job, self.job_manager._monitored_jobs)
 
     def test_monitor_with_existing_jobs(self):
-        """Test that existing non-terminated jobs are added to monitored jobs on initialization."""
+        """Test that existing non-terminated jobs are added to monitored jobs on
+        initialization."""
         existing_job = Job(JobId("789"), Input(5.0, 6.0), 1, "mock_interface1")
         self.mock_simulations_log.get_non_terminated_jobs.return_value = [existing_job]
 
@@ -720,7 +721,8 @@ class TestJobManager(unittest.TestCase):
         self.assertEqual(job.interface_name, "mock_interface2")
 
     def test_remove_job(self):
-        """Test that a job is correctly removed from monitored jobs and the count is updated."""
+        """Test that a job is correctly removed from monitored jobs and the count is
+        updated."""
         job = Job(JobId("123"), Input(1.0, 2.0), 1, "mock_interface1")
         self.job_manager._monitored_jobs = [job]
         self.job_manager._interface_job_monitor_counts["mock_interface1"] = 1
@@ -753,7 +755,8 @@ class TestJobStrategies(unittest.TestCase):
         self.mock_job_manager.get_interface.return_value = self.mock_interface
 
     def test_completed_job_strategy(self):
-        """Test that CompletedJobStrategy correctly updates job status and removes the job."""
+        """Test that CompletedJobStrategy correctly updates job status and removes the
+        job."""
         strategy = CompletedJobStrategy()
         self.mock_interface.get_job_output.return_value = 42.0
 
@@ -783,7 +786,8 @@ class TestJobStrategies(unittest.TestCase):
         self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
 
     def test_failed_job_strategy(self):
-        """Test that FailedJobStrategy updates job status to FAILED and removes the job."""
+        """Test that FailedJobStrategy updates job status to FAILED and removes the
+        job."""
         strategy = FailedJobStrategy()
 
         strategy.handle(self.mock_job, self.mock_job_manager)
@@ -823,13 +827,15 @@ class TestJobStrategies(unittest.TestCase):
 
         strategy.handle(self.mock_job, self.mock_job_manager)
 
-        # SubmittedJobStrategy doesn't do anything, so we're just checking it doesn't raise an exception
+        # SubmittedJobStrategy doesn't do anything, so we're just checking it doesn't
+        # raise an exception
         self.mock_job_manager.simulations_log.update_job_status.assert_not_called()
         self.mock_job_manager.remove_job.assert_not_called()
 
     @patch("exauq.sim_management.simulators.sleep")
     def test_pending_submit_job_strategy_success(self, mock_sleep):
-        """Test that PendingSubmitJobStrategy successfully submits a job and updates its status."""
+        """Test that PendingSubmitJobStrategy successfully submits a job and updates
+        its status."""
         strategy = PendingSubmitJobStrategy()
 
         strategy.handle(self.mock_job, self.mock_job_manager)
@@ -843,7 +849,8 @@ class TestJobStrategies(unittest.TestCase):
     @patch("exauq.sim_management.simulators.sleep")
     @patch("random.uniform", return_value=0.05)  # To make the test deterministic
     def test_pending_submit_job_strategy_retry(self, mock_uniform, mock_sleep):
-        """Test that PendingSubmitJobStrategy retries submission on failure with exponential backoff."""
+        """Test that PendingSubmitJobStrategy retries submission on failure with
+        exponential backoff."""
         strategy = PendingSubmitJobStrategy()
         self.mock_interface.submit_job.side_effect = [
             Exception("Network error"),
@@ -864,7 +871,8 @@ class TestJobStrategies(unittest.TestCase):
     @patch("exauq.sim_management.simulators.sleep")
     @patch("random.uniform", return_value=0.05)  # To make the test deterministic
     def test_pending_submit_job_strategy_max_retries(self, mock_uniform, mock_sleep):
-        """Test that PendingSubmitJobStrategy fails after maximum retries and updates status."""
+        """Test that PendingSubmitJobStrategy fails after maximum retries and updates
+        status."""
         strategy = PendingSubmitJobStrategy()
         self.mock_interface.submit_job.side_effect = Exception("Network error")
 
@@ -893,7 +901,8 @@ class TestJobStrategies(unittest.TestCase):
         self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
 
     def test_pending_cancel_job_strategy_already_completed(self):
-        """Test that PendingCancelJobStrategy raises an error for already completed jobs."""
+        """Test that PendingCancelJobStrategy raises an error for already completed
+        jobs."""
         strategy = PendingCancelJobStrategy()
         self.mock_interface.get_job_status.return_value = JobStatus.COMPLETED
 
@@ -907,7 +916,8 @@ class TestJobStrategies(unittest.TestCase):
         self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
 
     def test_failed_submit_job_strategy(self):
-        """Test that FailedSubmitJobStrategy updates job status to FAILED_SUBMIT and removes the job."""
+        """Test that FailedSubmitJobStrategy updates job status to FAILED_SUBMIT and
+        removes the job."""
         strategy = FailedSubmitJobStrategy()
 
         strategy.handle(self.mock_job, self.mock_job_manager)
@@ -942,7 +952,8 @@ class TestJobIDGenerator(unittest.TestCase):
         self.assertLess(int(str(job_id1)), int(str(job_id2)))
 
     def test_generate_id_millisecond_resolution(self):
-        """Test that generated JobID has millisecond resolution and falls within expected time range."""
+        """Test that generated JobID has millisecond resolution and falls within
+        expected time range."""
         start_time = datetime.now()
         job_id = self.generator.generate_id()
         end_time = datetime.now()
@@ -976,7 +987,8 @@ class TestJobIDGenerator(unittest.TestCase):
         self.assertLess(time_diff_ms, 10)  # Difference should be less than 10ms
 
     def test_thread_safety(self):
-        """Test that JobIDGenerator is thread-safe and generates unique IDs across multiple threads."""
+        """Test that JobIDGenerator is thread-safe and generates unique IDs across
+        multiple threads."""
         num_threads = 10
         ids_per_thread = 100
         all_ids = []
@@ -995,7 +1007,8 @@ class TestJobIDGenerator(unittest.TestCase):
         self.assertEqual(len(set(all_ids)), len(all_ids))  # All IDs are unique
 
     def test_generate_id_across_second_boundary(self):
-        """Test that JobIDGenerator correctly handles ID generation across second boundaries."""
+        """Test that JobIDGenerator correctly handles ID generation across second
+        boundaries."""
         generator = JobIDGenerator()
 
         # Get the first ID
