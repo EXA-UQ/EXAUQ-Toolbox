@@ -602,6 +602,24 @@ class TestPEICalculator(ExauqTestCase):
 
         self.assertEqual(1, len([x for x in pei.repulsion_points if x == training_input]))
 
+    def test_additional_repulsion_points_affect_repulsion_calculation(self):
+        """When additional repulsion points are supplied at initialisation, these affect
+        the calculation of repulsion."""
+
+        self.setUpPEICalculator()
+
+        # Not repulsion points
+        x1, x2 = Input(0.2), Input(0.4)
+        self.assertGreater(self.pei_calculator.repulsion(x1), 0)
+        self.assertGreater(self.pei_calculator.repulsion(x2), 0)
+
+        pei_calculator2 = PEICalculator(
+            self.domain, self.gp, additional_repulsion_pts=[x1, x2]
+        )
+
+        self.assertEqualWithinTolerance(0, pei_calculator2.repulsion(x1))
+        self.assertEqualWithinTolerance(0, pei_calculator2.repulsion(x2))
+
     def test_max_targets_with_valid_training_data(self):
         """Test that max target is calculated correctly with valid training data."""
         self.setUpPEICalculator()
@@ -792,6 +810,22 @@ class TestPEICalculator(ExauqTestCase):
         expected = product([1 - float(gp.correlation([x], [y])) for y in repulsion_pts])
         calculator = PEICalculator(domain, gp)
         self.assertEqual(expected, calculator.repulsion(x))
+
+    def test_add_repulsion_points_affects_repulsion_calculation(self):
+        """When additional repulsion points are added, these affect the calculation of
+        repulsion."""
+
+        self.setUpPEICalculator()
+
+        # Not repulsion points
+        x1, x2 = Input(0.2), Input(0.4)
+        self.assertGreater(self.pei_calculator.repulsion(x1), 0)
+        self.assertGreater(self.pei_calculator.repulsion(x2), 0)
+
+        self.pei_calculator.add_repulsion_points([x1, x2])
+
+        self.assertEqualWithinTolerance(0, self.pei_calculator.repulsion(x1))
+        self.assertEqualWithinTolerance(0, self.pei_calculator.repulsion(x2))
 
     def test_invalid_input(self):
         self.setUpPEICalculator()
