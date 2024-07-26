@@ -2,17 +2,32 @@ import os
 import pathlib
 import sys
 import tempfile
-import unittest.mock
+import unittest
+from datetime import datetime, timedelta
 from numbers import Real
+from threading import Thread
+from time import sleep
 from typing import Type
+from unittest.mock import Mock, patch
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.sim_management.hardware import JobStatus
-from exauq.sim_management.jobs import JobId
+from exauq.sim_management.hardware import HardwareInterface, JobStatus
+from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.simulators import (
+    CompletedJobStrategy,
+    FailedJobStrategy,
+    FailedSubmitJobStrategy,
+    InvalidJobStatusError,
+    JobIDGenerator,
+    JobManager,
+    PendingCancelJobStrategy,
+    PendingSubmitJobStrategy,
+    RunningJobStrategy,
     SimulationsLog,
     SimulationsLogLookupError,
     Simulator,
+    SubmittedJobStrategy,
+    UnknownJobIdError,
 )
 from exauq.sim_management.types import FilePath
 from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
@@ -28,12 +43,10 @@ def make_fake_simulator(
     `simulations_log` is ``None`` then the simulator returned has no previous simulations.
     """
 
-    with unittest.mock.patch(
+    with patch(
         "exauq.sim_management.simulators.SimulationsLog",
         new=make_fake_simulations_log_class(simulations),
-    ), unittest.mock.patch(
-        "exauq.sim_management.simulators.JobManager", new=DumbJobManager
-    ):
+    ), patch("exauq.sim_management.simulators.JobManager", new=DumbJobManager):
         return Simulator(
             SimulatorDomain([(-10, 10)]), DumbHardwareInterface(), simulations_log
         )
@@ -128,7 +141,7 @@ class TestSimulator(unittest.TestCase):
         """Test that a simulator can be initialised with a path to a file containing
         records of previous simulations."""
 
-        with unittest.mock.patch(
+        with patch(
             "exauq.sim_management.simulators.SimulationsLog",
             new=make_fake_simulations_log_class(tuple()),
         ):
@@ -147,9 +160,7 @@ class TestSimulator(unittest.TestCase):
         """Test that a new log file with name 'simulations.csv' is created in the
         working directory as the default."""
 
-        with unittest.mock.patch(
-            "exauq.sim_management.simulators.SimulationsLog"
-        ) as mock:
+        with patch("exauq.sim_management.simulators.SimulationsLog") as mock:
             _ = Simulator(self.simulator_domain, self.hardware_interface)
             mock.assert_called_once_with("simulations.csv", self.simulator_domain.dim)
 
