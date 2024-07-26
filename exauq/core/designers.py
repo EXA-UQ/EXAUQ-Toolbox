@@ -301,14 +301,24 @@ class PEICalculator:
     A calculator of pseudo-expected improvement (PEI) for Gaussian processes.
 
     Implements the PEI detailed in Mohammadi et. al. (2022)[1]_. The functionality in this
-    class applies to Gaussian Process models that have been trained on data with inputs
-    lying in the supplied simulator domain.
+    class applies to Gaussian processes that have been trained on data with inputs lying
+    in the supplied simulator domain.
 
     If `additional_repulsion_pts` is provided, then these simulator inputs will be used as
     repulsion points when calculating pseudo-expected improvement of the LOO errors GP (in
     addition to the training inputs for the provided Gaussian process and the
     pseudopoints, which are always used as repulsion points). The additional
     repulsion points must belong to the simulator domain `domain`.
+
+    Deep copies of the supplied `gp` and `domain` are stored internally upon initialisation of a new
+    instance and subsequently used for calculations. This means that if the supplied `gp`
+    or `domain` are modified after creation of a ``PEICalculator`` instance, then this
+    won't affect the instance's behaviour. As a typical example, if a ``PEICalculator``
+    instance ``pei`` is created with `gp` and `gp` is then trained on new data, then this
+    won't be reflected in the calculation of pseudo-expected improvement, repulsion or
+    expected improvement using ``pei``. To calculate these values for the updated ``gp``,
+    a new ``PEICalculator`` instance would need to be created with the new version of
+    ``gp``.
 
     Parameters
     ----------
@@ -323,13 +333,9 @@ class PEICalculator:
 
     Attributes
     ----------
-    gp : AbstractGaussianProcess
-        (Read-only) The Gaussian process used in calculations.
     repulsion_points : tuple[Input]
         (Read-only) The current set of repulsion points used in calculations; as a tuple
         with no repeated elements.
-    domain : SimulatorDomain
-        (Read-only) The simulator domain used in calculations.
 
     Raises
     ------
@@ -374,8 +380,8 @@ class PEICalculator:
                 "instead."
             )
 
-        self._domain = domain
-        self._gp = gp
+        self._domain = copy.deepcopy(domain)
+        self._gp = copy.deepcopy(gp)
         self._validate_training_data()
         self._max_targets = self._calculate_max_targets()
         self._standard_norm = norm(loc=0, scale=1)
@@ -411,23 +417,11 @@ class PEICalculator:
                 return list(additional_repulsion_pts)
 
     @property
-    def gp(self) -> AbstractGaussianProcess:
-        """(Read-only) The Gaussian process used in calculations."""
-
-        return self._gp
-
-    @property
     def repulsion_points(self) -> tuple[Input]:
         """(Read-only) The current set of repulsion points used in calculations."""
 
         training_points = [datum.input for datum in self._gp.training_data]
         return tuple(self._other_repulsion_points + training_points)
-
-    @property
-    def domain(self) -> SimulatorDomain:
-        """(Read-only) The simulator domain used in calculations."""
-
-        return self._domain
 
     def _calculate_max_targets(self) -> Real:
         return max(self._gp.training_data, key=lambda datum: datum.output).output
@@ -528,7 +522,7 @@ class PEICalculator:
         )
 
         if input_not_in_domain := _find_input_outside_domain(
-            repulsion_points, self.domain
+            repulsion_points, self._domain
         ):
             raise ValueError(
                 f"Repulsion points must belong to the simulator domain for this {__class__.__name__}, "

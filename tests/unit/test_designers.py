@@ -671,15 +671,17 @@ class TestPEICalculator(ExauqTestCase):
         )
 
     def test_expected_improvement_positive(self):
-        self.setUpPEICalculator()
+
+        self.gp.fit(self.training_data)
 
         # Mock the GP model's predict method to return a positive expected improvement scenario
         self.gp.predict = MagicMock(
             return_value=MagicMock(estimate=6.0, standard_deviation=1.0)
         )
 
+        pei = PEICalculator(self.domain, self.gp)
         input_point = Input(0.6)
-        ei = self.pei_calculator.expected_improvement(input_point)
+        ei = pei.expected_improvement(input_point)
 
         # Expected improvement should be positive since the estimate is greater than the max target
         self.assertGreater(
@@ -703,47 +705,47 @@ class TestPEICalculator(ExauqTestCase):
         self.assertGreaterEqual(ei, 0.0, "Expected improvement should be non-negative.")
 
     def test_expected_improvement_accuracy(self):
-        self.setUpPEICalculator()
 
-        estimate = 6.0
-        standard_deviation = 2.0
+        self.gp.fit(self.training_data)
 
         # Mock predict method
+        estimate = 6.0
+        standard_deviation = 2.0
         self.gp.predict = MagicMock(
             return_value=MagicMock(
                 estimate=estimate, standard_deviation=standard_deviation
             )
         )
+        pei = PEICalculator(self.domain, self.gp)
 
         input_point = Input(0.6)
-        ei = self.pei_calculator.expected_improvement(input_point)
+        ei = pei.expected_improvement(input_point)
 
         # Manual calculation
-        u = (estimate - self.pei_calculator._max_targets) / standard_deviation
+        u = (estimate - pei._max_targets) / standard_deviation
         cdf_u = norm.cdf(u)
         pdf_u = norm.pdf(u)
-        expected_ei = (
-            estimate - self.pei_calculator._max_targets
-        ) * cdf_u + standard_deviation * pdf_u
+        expected_ei = (estimate - pei._max_targets) * cdf_u + standard_deviation * pdf_u
 
         # Assert the accuracy of the EI calculation
         self.assertEqualWithinTolerance(ei, expected_ei)
 
     def test_expected_improvement_at_max_target(self):
-        self.setUpPEICalculator()
 
-        estimate = 5.0  # Exact match to max target
-        standard_deviation = 1.0  # Non-zero uncertainty
+        self.gp.fit(self.training_data)
 
         # Configure mock
+        estimate = max(datum.output for datum in self.training_data)
+        standard_deviation = 1.0  # Non-zero uncertainty
         self.gp.predict = MagicMock(
             return_value=MagicMock(
                 estimate=estimate, standard_deviation=standard_deviation
             )
         )
 
+        pei = PEICalculator(self.domain, self.gp)
         input_point = Input(0.6)
-        ei = self.pei_calculator.expected_improvement(input_point)
+        ei = pei.expected_improvement(input_point)
 
         # EI should be positive due to uncertainty
         self.assertGreater(
@@ -751,17 +753,19 @@ class TestPEICalculator(ExauqTestCase):
         )
 
     def test_expected_improvement_scaling_with_std_deviation(self):
-        self.setUpPEICalculator()
+
+        self.gp.fit(self.training_data)
 
         estimate = 6.0  # Above max target
         for std_dev in [0.1, 1.0, 10.0]:  # Increasing standard deviation
-            with self.subTest():
+            with self.subTest(std_dev=std_dev):
                 self.gp.predict = MagicMock(
                     return_value=MagicMock(estimate=estimate, standard_deviation=std_dev)
                 )
 
+                pei = PEICalculator(self.domain, self.gp)
                 input_point = Input(0.4)
-                ei = self.pei_calculator.expected_improvement(input_point)
+                ei = pei.expected_improvement(input_point)
                 self.assertGreater(
                     ei,
                     0.0,
@@ -915,6 +919,49 @@ class TestPEICalculator(ExauqTestCase):
         pei.add_repulsion_points([x, x])
 
         self.assertEqual(n_repulsion_pts_before + 1, len(pei.repulsion_points))
+
+    def test_pei_calculator_invariant_to_gp_updates(self):
+        """A PEI calculator initialised from a GP is not affected by updates to the GP
+        (such as training the GP on new data)."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        gp = MogpEmulator()
+        gp.fit(
+            [
+                TrainingDatum(Input(0.1, 0.1), 1),
+                TrainingDatum(Input(0.3, 0.3), 2),
+                TrainingDatum(Input(0.5, 0.5), 3),
+                TrainingDatum(Input(0.7, 0.7), 4),
+                TrainingDatum(Input(0.9, 0.9), 5),
+            ]
+        )
+
+        pei = PEICalculator(domain, gp)
+
+        # Choose an input far away from data to get interesting variation in repulsion,
+        # expected improvement and PEI.
+        x = Input(0.1, 0.9)
+        repulsion_points_before = pei.repulsion_points
+        repulsion_before = pei.repulsion(x)
+        ei_before = pei.expected_improvement(x)
+        pei_before = pei.compute(x)
+
+        # Now modify the GP by training it on new data
+        gp.fit(
+            [
+                TrainingDatum(Input(0.2, 0.2), 0.8),
+                TrainingDatum(Input(0.4, 0.4), 1.3),
+                TrainingDatum(Input(0.6, 0.6), -9.9),
+                TrainingDatum(Input(0.8, 0.8), -0.54),
+                TrainingDatum(Input(1, 1), 50),
+            ]
+        )
+
+        # Check outputs of public methods / properties haven't changed
+        self.assertEqual(repulsion_points_before, pei.repulsion_points)
+        self.assertEqual(repulsion_before, pei.repulsion(x))
+        self.assertEqual(ei_before, pei.expected_improvement(x))
+        self.assertEqual(pei_before, pei.compute(x))
 
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
