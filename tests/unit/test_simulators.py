@@ -918,6 +918,111 @@ class TestJobStrategies(unittest.TestCase):
         self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
 
 
+class TestJobIDGenerator(unittest.TestCase):
+    def setUp(self):
+        self.generator = JobIDGenerator()
+
+    def test_generate_id_format(self):
+        """Test that generated JobID has correct format and length."""
+        job_id = self.generator.generate_id()
+        self.assertIsInstance(job_id, JobId)
+        self.assertEqual(len(str(job_id)), 17)  # YYYYMMDDHHMMSSfff format
+        self.assertTrue(str(job_id).isdigit())
+
+    def test_generate_id_uniqueness(self):
+        """Test that consecutive generated JobIDs are unique."""
+        job_id1 = self.generator.generate_id()
+        job_id2 = self.generator.generate_id()
+        self.assertNotEqual(job_id1, job_id2)
+
+    def test_generate_id_monotonic_increase(self):
+        """Test that generated JobIDs increase monotonically."""
+        job_id1 = self.generator.generate_id()
+        job_id2 = self.generator.generate_id()
+        self.assertLess(int(str(job_id1)), int(str(job_id2)))
+
+    def test_generate_id_millisecond_resolution(self):
+        """Test that generated JobID has millisecond resolution and falls within expected time range."""
+        start_time = datetime.now()
+        job_id = self.generator.generate_id()
+        end_time = datetime.now()
+
+        job_id_time = datetime.strptime(str(job_id), "%Y%m%d%H%M%S%f")
+
+        # Truncate start_time and end_time to millisecond precision
+        start_time = start_time.replace(microsecond=start_time.microsecond // 1000 * 1000)
+        end_time = end_time.replace(microsecond=end_time.microsecond // 1000 * 1000)
+
+        self.assertLessEqual(start_time, job_id_time)
+        self.assertLessEqual(job_id_time, end_time)
+
+    def test_generate_id_wait_for_next_millisecond(self):
+        """Test that JobIDGenerator waits for next millisecond if necessary."""
+        generator = JobIDGenerator()
+        job_id1 = generator.generate_id()
+        sleep(0.0005)  # Sleep for half a millisecond
+        job_id2 = generator.generate_id()
+
+        # Convert JobId to datetime objects
+        time1 = datetime.strptime(str(job_id1), "%Y%m%d%H%M%S%f")
+        time2 = datetime.strptime(str(job_id2), "%Y%m%d%H%M%S%f")
+
+        # Calculate the time difference in milliseconds
+        time_diff_ms = (time2 - time1).total_seconds() * 1000
+
+        # Assertions
+        self.assertNotEqual(job_id1, job_id2)  # IDs should be different
+        self.assertGreater(time_diff_ms, 0)  # Second ID should be later
+        self.assertLess(time_diff_ms, 10)  # Difference should be less than 10ms
+
+    def test_thread_safety(self):
+        """Test that JobIDGenerator is thread-safe and generates unique IDs across multiple threads."""
+        num_threads = 10
+        ids_per_thread = 100
+        all_ids = []
+
+        def generate_ids():
+            for _ in range(ids_per_thread):
+                all_ids.append(self.generator.generate_id())
+
+        threads = [Thread(target=generate_ids) for _ in range(num_threads)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        self.assertEqual(len(all_ids), num_threads * ids_per_thread)
+        self.assertEqual(len(set(all_ids)), len(all_ids))  # All IDs are unique
+
+    def test_generate_id_across_second_boundary(self):
+        """Test that JobIDGenerator correctly handles ID generation across second boundaries."""
+        generator = JobIDGenerator()
+
+        # Get the first ID
+        job_id1 = generator.generate_id()
+        job_id1_str = str(job_id1)
+
+        # Wait until we're in the next second
+        job_id1_second = int(job_id1_str[12:14])
+        while True:
+            now = datetime.now()
+            if now.second != job_id1_second:
+                break
+            sleep(0.01)
+
+        # Get the second ID
+        job_id2 = generator.generate_id()
+        job_id2_str = str(job_id2)
+
+        # Assert that the seconds are different
+        self.assertNotEqual(job_id1_str[:14], job_id2_str[:14])  # Different seconds
+        self.assertLess(int(job_id1_str), int(job_id2_str))
+
+        # Additional check: Ensure the difference is exactly 1 second
+        time_diff = datetime.strptime(
+            job_id2_str[:14], "%Y%m%d%H%M%S"
+        ) - datetime.strptime(job_id1_str[:14], "%Y%m%d%H%M%S")
+        self.assertEqual(time_diff.total_seconds(), 1)
 
 
 if __name__ == "__main__":
