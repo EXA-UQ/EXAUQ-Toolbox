@@ -743,6 +743,182 @@ class TestJobManager(unittest.TestCase):
         self.job_manager._thread.join.assert_called_once()
 
 
+class TestJobStrategies(unittest.TestCase):
+    def setUp(self):
+        self.mock_job_manager = Mock(spec=JobManager)
+        self.mock_job = Mock(spec=Job)
+        self.mock_job.id = JobId("123")
+        self.mock_job.interface_name = "mock_interface"
+        self.mock_interface = Mock(spec=HardwareInterface)
+        self.mock_job_manager.get_interface.return_value = self.mock_interface
+
+    def test_completed_job_strategy(self):
+        """Test that CompletedJobStrategy correctly updates job status and removes the job."""
+        strategy = CompletedJobStrategy()
+        self.mock_interface.get_job_output.return_value = 42.0
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.insert_result.assert_called_once_with(
+            "123", 42.0
+        )
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.COMPLETED
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+    def test_completed_job_strategy_no_output(self):
+        """Test that CompletedJobStrategy handles jobs with no output correctly."""
+        strategy = CompletedJobStrategy()
+        self.mock_interface.get_job_output.return_value = None
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.insert_result.assert_called_once_with(
+            "123", None
+        )
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.COMPLETED
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+    def test_failed_job_strategy(self):
+        """Test that FailedJobStrategy updates job status to FAILED and removes the job."""
+        strategy = FailedJobStrategy()
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.FAILED
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+    def test_running_job_strategy_from_submitted(self):
+        """Test that RunningJobStrategy updates job status from SUBMITTED to RUNNING."""
+        strategy = RunningJobStrategy()
+        self.mock_job_manager.simulations_log.get_job_status.return_value = (
+            JobStatus.SUBMITTED
+        )
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.RUNNING
+        )
+
+    def test_running_job_strategy_already_running(self):
+        """Test that RunningJobStrategy doesn't update status for already running jobs."""
+        strategy = RunningJobStrategy()
+        self.mock_job_manager.simulations_log.get_job_status.return_value = (
+            JobStatus.RUNNING
+        )
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.update_job_status.assert_not_called()
+
+    def test_submitted_job_strategy(self):
+        """Test that SubmittedJobStrategy doesn't perform any actions."""
+        strategy = SubmittedJobStrategy()
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        # SubmittedJobStrategy doesn't do anything, so we're just checking it doesn't raise an exception
+        self.mock_job_manager.simulations_log.update_job_status.assert_not_called()
+        self.mock_job_manager.remove_job.assert_not_called()
+
+    @patch("exauq.sim_management.simulators.sleep")
+    def test_pending_submit_job_strategy_success(self, mock_sleep):
+        """Test that PendingSubmitJobStrategy successfully submits a job and updates its status."""
+        strategy = PendingSubmitJobStrategy()
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_interface.submit_job.assert_called_once_with(self.mock_job)
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.SUBMITTED
+        )
+        mock_sleep.assert_not_called()
+
+    @patch("exauq.sim_management.simulators.sleep")
+    @patch("random.uniform", return_value=0.05)  # To make the test deterministic
+    def test_pending_submit_job_strategy_retry(self, mock_uniform, mock_sleep):
+        """Test that PendingSubmitJobStrategy retries submission on failure with exponential backoff."""
+        strategy = PendingSubmitJobStrategy()
+        self.mock_interface.submit_job.side_effect = [
+            Exception("Network error"),
+            Exception("Another error"),
+            None,
+        ]
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.assertEqual(self.mock_interface.submit_job.call_count, 3)
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.SUBMITTED
+        )
+        self.assertEqual(mock_sleep.call_count, 2)
+        mock_sleep.assert_any_call(2.05)
+        mock_sleep.assert_any_call(4.05)
+
+    @patch("exauq.sim_management.simulators.sleep")
+    @patch("random.uniform", return_value=0.05)  # To make the test deterministic
+    def test_pending_submit_job_strategy_max_retries(self, mock_uniform, mock_sleep):
+        """Test that PendingSubmitJobStrategy fails after maximum retries and updates status."""
+        strategy = PendingSubmitJobStrategy()
+        self.mock_interface.submit_job.side_effect = Exception("Network error")
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.assertEqual(self.mock_interface.submit_job.call_count, 5)  # Max retries
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.FAILED_SUBMIT
+        )
+        self.assertEqual(mock_sleep.call_count, 4)  # Called 4 times for 5 attempts
+        expected_sleep_times = [2.05, 4.05, 8.05, 16.05]
+        for call, expected_time in zip(mock_sleep.call_args_list, expected_sleep_times):
+            self.assertAlmostEqual(call[0][0], expected_time, places=2)
+
+    def test_pending_cancel_job_strategy_success(self):
+        """Test that PendingCancelJobStrategy successfully cancels a running job."""
+        strategy = PendingCancelJobStrategy()
+        self.mock_interface.get_job_status.return_value = JobStatus.RUNNING
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_interface.cancel_job.assert_called_once_with(self.mock_job.id)
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.CANCELLED
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+    def test_pending_cancel_job_strategy_already_completed(self):
+        """Test that PendingCancelJobStrategy raises an error for already completed jobs."""
+        strategy = PendingCancelJobStrategy()
+        self.mock_interface.get_job_status.return_value = JobStatus.COMPLETED
+
+        with self.assertRaises(InvalidJobStatusError):
+            strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_interface.cancel_job.assert_not_called()
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.COMPLETED
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+    def test_failed_submit_job_strategy(self):
+        """Test that FailedSubmitJobStrategy updates job status to FAILED_SUBMIT and removes the job."""
+        strategy = FailedSubmitJobStrategy()
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.FAILED_SUBMIT
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
