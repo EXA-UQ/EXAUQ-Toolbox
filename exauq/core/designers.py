@@ -3,10 +3,9 @@ import itertools
 import math
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Any, Optional, Type, Union
+from typing import Any, Optional
 
 import numpy as np
-from numpy.typing import NDArray
 from scipy.stats import norm
 
 from exauq.core.modelling import (
@@ -435,39 +434,28 @@ class PEICalculator:
                 "All elements in 'gp' training data must be instances of TrainingDatum"
             )
 
-    def _validate_input_type(
-        self, x: Any, expected_types: tuple[Type, ...], method_name: str
-    ) -> Input:
-        if not isinstance(x, expected_types):
+    def _validate_input_type(self, x: Any, method_name: str) -> Input:
+        if not isinstance(x, Input):
             raise TypeError(
-                f"In method '{method_name}', expected 'x' to be one of the types {expected_types}, "
+                f"In method '{method_name}', expected 'x' to be one of type {Input}, "
                 f"but received {type(x)} instead."
             )
 
-        if isinstance(x, np.ndarray):
-            if x.ndim != 1:
-                raise ValueError(
-                    f"In method '{method_name}', the numpy ndarray 'x' must be one-dimensional."
-                )
-            return Input(*x)
-
         return x
 
-    def compute(self, x: Union[Input, NDArray]) -> Real:
+    def compute(self, x: Input) -> Real:
         """
-        Compute the PseudoExpected Improvement (PEI) for a given input.
+        Compute the pseudo-expected improvement (PEI) for a given input.
 
         Parameters
         ----------
-        x : Union[Input, NDArray]
-            The input point for which to compute the PEI. This can be an instance of `Input` or
-            a one-dimensional `numpy.ndarray`.
+        x : Input
+            The simulator input to calculate PEI for.
 
         Returns
         -------
         Real
-            The computed PEI value for the given input. It is the product of the expected improvement
-            and the repulsion factor.
+            The computed PEI value for the given input.
 
         Examples
         --------
@@ -479,10 +467,11 @@ class PEICalculator:
 
         Notes
         -----
-        This method calculates the PEI at a given point `x` by combining the expected improvement
-        (EI) and the repulsion factor. The PEI is a metric used in Bayesian optimisation to balance
-        exploration and exploitation, taking into account both the potential improvement over the
-        current best target and the desire to explore less sampled regions of the domain.
+        This method calculates the PEI at a given point `x`, which is the product of the
+        expected improvement (EI) and the repulsion factor. The PEI is a metric used in
+        Bayesian optimisation to balance exploration and exploitation, taking into account
+        both the potential improvement over the current best target and the desire to
+        explore less sampled regions of the domain.
         """
 
         return self.expected_improvement(x) * self.repulsion(x)
@@ -542,7 +531,7 @@ class PEICalculator:
 
         return None
 
-    def expected_improvement(self, x: Union[Input, NDArray]) -> Real:
+    def expected_improvement(self, x: Input) -> Real:
         """
         Calculate the expected improvement (EI) for a given input.
 
@@ -551,9 +540,8 @@ class PEICalculator:
 
         Parameters
         ----------
-        x : Union[Input, NDArray]
-            The input point for which to calculate the expected improvement. This can be an instance
-            of `Input` or a one-dimensional `numpy.ndarray`.
+        x : Input
+            The simulator input to calculate expected improvement for.
 
         Returns
         -------
@@ -570,16 +558,15 @@ class PEICalculator:
 
         Notes
         -----
-        This method computes the EI of the given input point `x` using the Gaussian Process model.
-        EI is a measure used in Bayesian optimisation and is particularly useful for guiding the
-        selection of points in the domain where the objective function should be evaluated next.
-        It is calculated based on the model's prediction at `x`, the current maximum target value,
-        and the standard deviation of the prediction.
+        This method computes the EI of the given input point `x` using the Gaussian
+        process stored within this instance. EI is a measure used in Bayesian optimisation
+        and is particularly useful for guiding the selection of points in the domain where
+        the objective function should be evaluated next. It is calculated based on the
+        model's prediction at `x`, the current maximum target value, and the standard
+        deviation of the prediction.
         """
 
-        validated_x = self._validate_input_type(
-            x, (Input, np.ndarray), "expected_improvement"
-        )
+        validated_x = self._validate_input_type(x, "expected_improvement")
         prediction = self._gp.predict(validated_x)
 
         if equal_within_tolerance(prediction.standard_deviation, 0):
@@ -594,28 +581,28 @@ class PEICalculator:
             prediction.estimate - self._max_targets
         ) * cdf_u + prediction.standard_deviation * pdf_u
 
-    def repulsion(self, x: Union[Input, NDArray]) -> Real:
+    def repulsion(self, x: Input) -> Real:
         """
         Calculate the repulsion factor for a given simulator input.
 
-        This method assesses the repulsion effect of a given point `x` in relation to other,
-        stored repulsion points. It is calculated as the product of terms
-        ``1 - correlation(x, rp)``, where ``rp`` is a repulsion point and the correlation is
+        This method calculates a repulsion effect of a given point `x` in relation to
+        other, stored repulsion points. It is calculated as the product of terms ``1 -
+        correlation(x, rp)``, where ``rp`` is a repulsion point and the correlation is
         computed with the Gaussian process supplied at this object's initialisation. The
-        repulsion factor can be used to discourage the selection of points near already
-        sampled locations, facilitating exploration of the input space.
+        repulsion factor approaches zero for inputs that tend towards repulsion points (
+        and is equal to zero at repulsion points). This can be used to discourage the
+        selection of points near already sampled locations, facilitating exploration of
+        the input space.
 
         Parameters
         ----------
-        x : Union[Input, NDArray]
-            The input point for which to calculate the repulsion factor. This can be an instance
-            of `Input` or a one-dimensional `numpy.ndarray`.
+        x : Input
+            The simulator input to calculate the repulsion factor for.
 
         Returns
         -------
         Real
-            The repulsion factor for the given input. A higher value indicates a stronger repulsion
-            effect, suggesting the point is near other sampled locations.
+            The repulsion factor for the given input.
 
         Examples
         --------
@@ -626,7 +613,7 @@ class PEICalculator:
         >>> repulsion_factor = pei_calculator.repulsion(array_input)
         """
 
-        validated_x = self._validate_input_type(x, (Input, np.ndarray), "repulsion")
+        validated_x = self._validate_input_type(x, "repulsion")
 
         covariance_matrix = self._gp.covariance_matrix([validated_x])
         correlations = (
