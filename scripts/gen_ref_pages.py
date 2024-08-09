@@ -27,7 +27,7 @@ from pathlib import Path
 import mkdocs_gen_files
 
 
-def get_module_parts(py_module: Path, package_root: Path):
+def get_module_parts(py_module: Path, package_root: Path) -> tuple[str, str, str]:
     """Get the component parts of a module relative to a package.
 
     Examples
@@ -42,11 +42,25 @@ def get_module_parts(py_module: Path, package_root: Path):
     return tuple(module_path.parts)
 
 
+def get_module_paths_for_docs(package_root: Path) -> list[Path]:
+    """Get paths to modules that should appear in the docs."""
+
+    utilities_path = Path(package_root, "utilities")
+    app_path = Path(package_root, "app")
+
+    # Return modules not in the sub-packages exauq.app and exauq.utilities
+    return sorted(
+        module_path
+        for module_path in package_root.rglob("*.py")
+        if module_path.parent not in {utilities_path, app_path}
+    )
+
+
 nav = mkdocs_gen_files.Nav()
 root = Path(__file__).parent.parent
 src = root / "exauq"
 
-for path in sorted(src.rglob("*.py")):
+for path in get_module_paths_for_docs(src):
     doc_path = path.relative_to(src).with_suffix(".md")
     full_doc_path = Path("api", doc_path)
 
