@@ -22,11 +22,10 @@
 
 """Generate the code reference pages."""
 
+import ast
 from pathlib import Path
 
 import mkdocs_gen_files
-import importlib.util
-import inspect
 
 # Placeholder text for modules without documentation
 PLACEHOLDER_DOCSTRING = "Documentation coming soon for this module."
@@ -63,18 +62,17 @@ def get_module_paths_for_docs(package_root: Path) -> list[Path]:
 
 def get_module_docstring(module_path: Path) -> str:
     """
-    Retrieve the docstring of the module from the file path.
+    Retrieve the docstring of the module without executing it.
     If there is no docstring, return a placeholder.
     """
-    spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
-    if spec is None:
+    try:
+        with module_path.open("r", encoding="utf-8") as file:
+            node = ast.parse(file.read(), filename=str(module_path))
+            docstring = ast.get_docstring(node)
+            return docstring if docstring else PLACEHOLDER_DOCSTRING
+    except Exception as e:
+        print(f"Error loading module {module_path}: {e}")
         return PLACEHOLDER_DOCSTRING
-
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    docstring = inspect.getdoc(module)
-    return docstring if docstring else PLACEHOLDER_DOCSTRING
 
 
 nav = mkdocs_gen_files.Nav()
