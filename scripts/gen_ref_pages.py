@@ -22,7 +22,6 @@
 
 """Generate the code reference pages."""
 
-import ast
 from pathlib import Path
 
 import mkdocs_gen_files
@@ -60,19 +59,21 @@ def get_module_paths_for_docs(package_root: Path) -> list[Path]:
     )
 
 
-def get_module_docstring(module_path: Path) -> str:
+def check_if_module_is_empty(module_path: Path) -> bool:
     """
-    Retrieve the docstring of the module without executing it.
-    If there is no docstring, return a placeholder.
+    Check if the module is empty (contains only whitespace or no content).
+    Returns True if the file is empty, False otherwise.
     """
     try:
         with module_path.open("r", encoding="utf-8") as file:
-            node = ast.parse(file.read(), filename=str(module_path))
-            docstring = ast.get_docstring(node)
-            return docstring if docstring else PLACEHOLDER_DOCSTRING
+            content = file.read()
+
+            # If the file is empty or contains only whitespace, it's considered empty
+            return not content.strip()
+
     except Exception as e:
         print(f"Error loading module {module_path}: {e}")
-        return PLACEHOLDER_DOCSTRING
+        return True  # Treat as empty if there's an error reading the file
 
 
 nav = mkdocs_gen_files.Nav()
@@ -100,11 +101,11 @@ for path in get_module_paths_for_docs(src):
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
         identifier = ".".join(parts)
 
-        module_docstring = get_module_docstring(path)
-
-        if module_docstring == PLACEHOLDER_DOCSTRING:
-            print(module_docstring, file=fd)
+        # Check if the module is empty
+        if check_if_module_is_empty(path):
+            print(PLACEHOLDER_DOCSTRING, file=fd)
         else:
+            # Generate API documentation for modules with code
             print(f"::: {identifier}", file=fd)
 
     mkdocs_gen_files.set_edit_path(full_doc_path, path.relative_to(root))
