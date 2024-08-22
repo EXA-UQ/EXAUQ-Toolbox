@@ -1,16 +1,14 @@
 from numbers import Real
 from typing import Callable, Optional
 
-import numpy as np
 import scipy.optimize
-from numpy.typing import NDArray
 
 from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.numerics import FLOAT_TOLERANCE
 
 
 def maximise(
-    func: Callable[[NDArray], Real], domain: SimulatorDomain, seed: Optional[int] = None
+    func: Callable[[Input], Real], domain: SimulatorDomain, seed: Optional[int] = None
 ) -> tuple[Input, float]:
     """Maximise an objective function over a simulator domain.
 
@@ -19,16 +17,11 @@ def maximise(
     differential evolution, using the implementation in the Scipy package with the bounds
     that define the supplied simulator domain (see notes for further details.)
 
-    The objective function `func` is expected to take a 1-dimensional Numpy array as an
-    argument and to be defined for arrays corresponding to inputs from the given `domain`.
-    (In other words, if ``x`` is for type ``Input`` and ``x in domain`` is ``true``, then
-    ``func(numpy.array(x)))`` returns a finite real number.
-
     Parameters
     ----------
-    func : Callable[[NDArray], numbers.Real]
-        The objective function to maximise. Should take in a 1-dimensional Numpy array and
-        return a real number.
+    func : Callable[[Input], numbers.Real]
+        The objective function to maximise. Should take an Input object from the given
+        `domain` as an argument and return a real number.
     domain : SimulatorDomain
         The domain of a simulator, defining the bounded input space over which `func`
         will be maximised.
@@ -77,10 +70,11 @@ def maximise(
         )
 
     try:
-        y = func(np.array(domain.scale([0.5] * domain.dim)))
+        y = func(domain.scale([0.5] * domain.dim))
     except Exception:
         raise ValueError(
-            "Expected 'func' to be a callable that takes a 1-dim Numpy array as argument."
+            "Expected 'func' to be a callable that takes an argument of type "
+            f"{Input.__name__}."
         )
 
     if not isinstance(y, Real):
@@ -91,7 +85,7 @@ def maximise(
 
     try:
         result = scipy.optimize.differential_evolution(
-            lambda x: -func(x),
+            lambda x: -func(Input.from_array(x)),
             bounds=domain.bounds,
             tol=FLOAT_TOLERANCE,
             atol=FLOAT_TOLERANCE,
