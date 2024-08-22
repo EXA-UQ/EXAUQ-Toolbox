@@ -25,6 +25,11 @@
 from pathlib import Path
 
 import mkdocs_gen_files
+import importlib.util
+import inspect
+
+# Placeholder text for modules without documentation
+PLACEHOLDER_DOCSTRING = "Documentation coming soon for this module."
 
 
 def get_module_parts(py_module: Path, package_root: Path) -> tuple[str, str, str]:
@@ -56,6 +61,22 @@ def get_module_paths_for_docs(package_root: Path) -> list[Path]:
     )
 
 
+def get_module_docstring(module_path: Path) -> str:
+    """
+    Retrieve the docstring of the module from the file path.
+    If there is no docstring, return a placeholder.
+    """
+    spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
+    if spec is None:
+        return PLACEHOLDER_DOCSTRING
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    docstring = inspect.getdoc(module)
+    return docstring if docstring else PLACEHOLDER_DOCSTRING
+
+
 nav = mkdocs_gen_files.Nav()
 root = Path(__file__).parent.parent
 src = root / "exauq"
@@ -80,7 +101,13 @@ for path in get_module_paths_for_docs(src):
 
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
         identifier = ".".join(parts)
-        print("::: " + identifier, file=fd)
+
+        module_docstring = get_module_docstring(path)
+
+        if module_docstring == PLACEHOLDER_DOCSTRING:
+            print(module_docstring, file=fd)
+        else:
+            print(f"::: {identifier}", file=fd)
 
     mkdocs_gen_files.set_edit_path(full_doc_path, path.relative_to(root))
 
