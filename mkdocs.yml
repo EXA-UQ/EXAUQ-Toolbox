@@ -25,6 +25,7 @@ plugins:
 nav:
   - Home: "index.md"
   - "Experimental Design":
+    - "designers/index.md"
     - "Single Level Adaptive Sampling": "designers/slas_tutorial.ipynb"
   - "Command Line App":
     - "cli/index.md"
