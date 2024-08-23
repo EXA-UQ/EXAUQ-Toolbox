@@ -28,7 +28,7 @@ nav:
     - "designers/index.md"
     - "Tutorials":
       - "designers/tutorials/index.md"
-      - "Training A Gaussian Process Emulator": "designers/tutorials/training_gp_tutorial.ipynb"
+      - "Training a Gaussian Process Emulator": "designers/tutorials/training_gp_tutorial.ipynb"
       - "Single Level Adaptive Sampling": "designers/tutorials/slas_tutorial.ipynb"
   - "Command Line App":
     - "cli/index.md"
