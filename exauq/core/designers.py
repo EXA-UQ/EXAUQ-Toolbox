@@ -1,12 +1,11 @@
 import copy
 import itertools
 import math
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Any, Optional, Type, Union
+from typing import Any, Optional
 
 import numpy as np
-from numpy.typing import NDArray
 from scipy.stats import norm
 
 from exauq.core.modelling import (
@@ -22,6 +21,39 @@ from exauq.core.modelling import (
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
 from exauq.utilities.validation import check_int
+
+
+def _check_collection_of_inputs(coll: Any, name: str):
+    """Check whether the given `coll` is a collection of ``Input`` objects, raising a
+    TypeError if not. `name` is used to refer to the collection in error messages."""
+
+    if not isinstance(coll, Collection):
+        raise TypeError(
+            f"Expected '{name}' to be a collection of {Input} objects, "
+            f"but received {type(coll)} instead."
+        )
+    elif any(not isinstance(x, Input) for x in coll):
+        raise TypeError(
+            f"Expected '{name}' to be a collection of {Input} objects, "
+            f"but this is not the case."
+        )
+    else:
+        pass
+
+
+def _find_input_outside_domain(
+    inputs: Collection[Input], domain: SimulatorDomain
+) -> Optional[Input]:
+    """Find an input not contained in `domain` from the given collection `inputs`, or
+    return None if no such input exists."""
+
+    for x in inputs:
+        if x not in domain:
+            return x
+        else:
+            continue
+
+    return None
 
 
 class SimpleDesigner(object):
@@ -268,8 +300,24 @@ class PEICalculator:
     A calculator of pseudo-expected improvement (PEI) for Gaussian processes.
 
     Implements the PEI detailed in Mohammadi et. al. (2022)[1]_. The functionality in this
-    class applies to Gaussian Process models that have been trained on data with inputs
-    lying in the supplied simulator domain.
+    class applies to Gaussian processes that have been trained on data with inputs lying
+    in the supplied simulator domain.
+
+    If `additional_repulsion_pts` is provided, then these simulator inputs will be used as
+    repulsion points when calculating pseudo-expected improvement of the LOO errors GP (in
+    addition to the training inputs for the provided Gaussian process and the
+    pseudopoints, which are always used as repulsion points). The additional
+    repulsion points must belong to the simulator domain `domain`.
+
+    Deep copies of the supplied `gp` and `domain` are stored internally upon initialisation of a new
+    instance and subsequently used for calculations. This means that if the supplied `gp`
+    or `domain` are modified after creation of a ``PEICalculator`` instance, then this
+    won't affect the instance's behaviour. As a typical example, if a ``PEICalculator``
+    instance ``pei`` is created with `gp` and `gp` is then trained on new data, then this
+    won't be reflected in the calculation of pseudo-expected improvement, repulsion or
+    expected improvement using ``pei``. To calculate these values for the updated ``gp``,
+    a new ``PEICalculator`` instance would need to be created with the new version of
+    ``gp``.
 
     Parameters
     ----------
@@ -278,15 +326,20 @@ class PEICalculator:
     gp : AbstractGaussianProcess
         A Gaussian process model, which is trained on data where the simulator inputs are
         in `domain`.
+    additional_repulsion_pts : collection of Input, optional
+        (Default: None) A collection of simulator inputs from `domain` that should be used
+        as repulsion points when computing pseudo-expected improvement.
 
     Attributes
     ----------
-    gp : AbstractGaussianProcess
-        (Read-only) The Gaussian process used in calculations.
     repulsion_points : tuple[Input]
-        (Read-only) The current set of repulsion points used in calculations.
-    domain : SimulatorDomain
-        (Read-only) The simulator domain used in calculations.
+        (Read-only) The current set of repulsion points used in calculations; as a tuple
+        with no repeated elements.
+
+    Raises
+    ------
+    ValueError
+        If any of the new repulsion points don't belong to the supplied simulator domain.
 
     Examples
     --------
@@ -309,7 +362,12 @@ class PEICalculator:
         Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
     """
 
-    def __init__(self, domain: SimulatorDomain, gp: AbstractGaussianProcess):
+    def __init__(
+        self,
+        domain: SimulatorDomain,
+        gp: AbstractGaussianProcess,
+        additional_repulsion_pts: Optional[Collection[Input]] = None,
+    ):
         if not isinstance(domain, SimulatorDomain):
             raise TypeError(
                 f"Expected 'domain' to be of type SimulatorDomain, but received {type(domain)} "
@@ -321,40 +379,51 @@ class PEICalculator:
                 "instead."
             )
 
-        self._domain = domain
-        self._gp = gp
-
+        self._domain = copy.deepcopy(domain)
+        self._gp = copy.deepcopy(gp)
         self._validate_training_data()
-
         self._max_targets = self._calculate_max_targets()
-        self._other_repulsion_points = self._calculate_pseudopoints()
-
         self._standard_norm = norm(loc=0, scale=1)
 
-    @property
-    def gp(self) -> AbstractGaussianProcess:
-        """(Read-only) The Gaussian process used in calculations."""
+        # Initialise repulsion points
+        training_inputs = [datum.input for datum in gp.training_data]
+        self._other_repulsion_points = []
+        self._add_repulsion_points(domain.calculate_pseudopoints(training_inputs))
+        self._add_repulsion_points(
+            self._parse_additional_repulsion_pts(additional_repulsion_pts, domain)
+        )
 
-        return self._gp
+    @staticmethod
+    def _parse_additional_repulsion_pts(
+        additional_repulsion_pts: Any, domain: SimulatorDomain
+    ) -> list[Input]:
+
+        if additional_repulsion_pts is None:
+            return list()
+        else:
+            _check_collection_of_inputs(
+                additional_repulsion_pts,
+                name=f"{additional_repulsion_pts=}".split("=")[0],
+            )
+            if input_outside_domain := _find_input_outside_domain(
+                additional_repulsion_pts, domain
+            ):
+                raise ValueError(
+                    "Additional repulsion points must belong to simulator domain 'domain', "
+                    f"but found input {input_outside_domain}."
+                )
+            else:
+                return list(additional_repulsion_pts)
 
     @property
     def repulsion_points(self) -> tuple[Input]:
         """(Read-only) The current set of repulsion points used in calculations."""
-        training_points = tuple(datum.input for datum in self._gp.training_data)
-        return self._other_repulsion_points + training_points
 
-    @property
-    def domain(self) -> SimulatorDomain:
-        """(Read-only) The simulator domain used in calculations."""
-
-        return self._domain
+        training_points = [datum.input for datum in self._gp.training_data]
+        return tuple(self._other_repulsion_points + training_points)
 
     def _calculate_max_targets(self) -> Real:
         return max(self._gp.training_data, key=lambda datum: datum.output).output
-
-    def _calculate_pseudopoints(self) -> tuple[Input]:
-        training_data = [datum.input for datum in self._gp.training_data]
-        return self._domain.calculate_pseudopoints(training_data)
 
     def _validate_training_data(self) -> None:
         if not self._gp.training_data:
@@ -365,39 +434,28 @@ class PEICalculator:
                 "All elements in 'gp' training data must be instances of TrainingDatum"
             )
 
-    def _validate_input_type(
-        self, x: Any, expected_types: tuple[Type, ...], method_name: str
-    ) -> Input:
-        if not isinstance(x, expected_types):
+    def _validate_input_type(self, x: Any, method_name: str) -> Input:
+        if not isinstance(x, Input):
             raise TypeError(
-                f"In method '{method_name}', expected 'x' to be one of the types {expected_types}, "
+                f"In method '{method_name}', expected 'x' to be one of type {Input}, "
                 f"but received {type(x)} instead."
             )
 
-        if isinstance(x, np.ndarray):
-            if x.ndim != 1:
-                raise ValueError(
-                    f"In method '{method_name}', the numpy ndarray 'x' must be one-dimensional."
-                )
-            return Input(*x)
-
         return x
 
-    def compute(self, x: Union[Input, NDArray]) -> Real:
+    def compute(self, x: Input) -> Real:
         """
-        Compute the PseudoExpected Improvement (PEI) for a given input.
+        Compute the pseudo-expected improvement (PEI) for a given input.
 
         Parameters
         ----------
-        x : Union[Input, NDArray]
-            The input point for which to compute the PEI. This can be an instance of `Input` or
-            a one-dimensional `numpy.ndarray`.
+        x : Input
+            The simulator input to calculate PEI for.
 
         Returns
         -------
         Real
-            The computed PEI value for the given input. It is the product of the expected improvement
-            and the repulsion factor.
+            The computed PEI value for the given input.
 
         Examples
         --------
@@ -409,45 +467,71 @@ class PEICalculator:
 
         Notes
         -----
-        This method calculates the PEI at a given point `x` by combining the expected improvement
-        (EI) and the repulsion factor. The PEI is a metric used in Bayesian optimisation to balance
-        exploration and exploitation, taking into account both the potential improvement over the
-        current best target and the desire to explore less sampled regions of the domain.
+        This method calculates the PEI at a given point `x`, which is the product of the
+        expected improvement (EI) and the repulsion factor. The PEI is a metric used in
+        Bayesian optimisation to balance exploration and exploitation, taking into account
+        both the potential improvement over the current best target and the desire to
+        explore less sampled regions of the domain.
         """
 
         return self.expected_improvement(x) * self.repulsion(x)
 
-    def add_repulsion_point(self, x: Union[Input, NDArray]) -> None:
+    def add_repulsion_points(self, repulsion_points: Collection[Input]) -> None:
         """
-        Add a new point to the set of repulsion points.
+        Add simulator inputs to the set of repulsion points.
 
-        This method updates the internal set of repulsion points used in the repulsion factor
-        calculation. Simulator inputs very positively correlated with repulsion points result in low
-        repulsion values, whereas inputs very negatively correlated with repulsion points result
-        in high repulsion values.
+        Updates the internal set of repulsion points used in the repulsion factor
+        calculation. The additional repulsion points must belong to the simulator domain
+        for this object (i.e. ``self.domain``). Simulator inputs very positively
+        correlated with repulsion points result in low repulsion values, whereas inputs
+        very negatively correlated with repulsion points result in high repulsion values.
 
         Parameters
         ----------
-        x : Union[Input, NDArray]
-            The point to be added to the repulsion points set. This can be an instance of `Input`
-            or a one-dimensional `numpy.ndarray`. If `x` is a `numpy.ndarray`, it is converted
-            to an `Input` object.
+        x : collection of Input
+            The inputs to be added to the repulsion points set.
+
+        Raises
+        ------
+        ValueError
+            If any of the new repulsion points don't belong to this object's simulator
+            domain.
 
         Examples
         --------
-        >>> new_repulsion_point = Input(4.0, 5.0)
-        >>> pei_calculator.add_repulsion_point(new_repulsion_point)
+        >>> repulsion_point = Input(4.0, 5.0)
+        >>> pei_calculator.add_repulsion_points([repulsion_point])
 
-        >>> array_repulsion_point = np.array([4.0, 5.0])
-        >>> pei_calculator.add_repulsion_point(array_repulsion_point)
+        >>> repulsion_points = [Input(4.0, 5.0), Input(4.1, 5.1)]
+        >>> pei_calculator.add_repulsion_points(repulsion_points)
         """
 
-        validated_x = self._validate_input_type(
-            x, (Input, np.ndarray), "add_repulsion_point"
+        _check_collection_of_inputs(
+            repulsion_points, name=f"{repulsion_points=}".split("=")[0]
         )
-        self._other_repulsion_points = self._other_repulsion_points + (validated_x,)
 
-    def expected_improvement(self, x: Union[Input, NDArray]) -> Real:
+        if input_not_in_domain := _find_input_outside_domain(
+            repulsion_points, self._domain
+        ):
+            raise ValueError(
+                f"Repulsion points must belong to the simulator domain for this {__class__.__name__}, "
+                f"but found input {input_not_in_domain}."
+            )
+
+        self._add_repulsion_points(repulsion_points)
+
+        return None
+
+    def _add_repulsion_points(self, repulsion_points: Collection[Input]) -> None:
+        """Add new repulsion points (without arg validation); cf. add_repulsion_points."""
+
+        for x in repulsion_points:
+            if x not in self.repulsion_points:
+                self._other_repulsion_points.append(x)
+
+        return None
+
+    def expected_improvement(self, x: Input) -> Real:
         """
         Calculate the expected improvement (EI) for a given input.
 
@@ -456,9 +540,8 @@ class PEICalculator:
 
         Parameters
         ----------
-        x : Union[Input, NDArray]
-            The input point for which to calculate the expected improvement. This can be an instance
-            of `Input` or a one-dimensional `numpy.ndarray`.
+        x : Input
+            The simulator input to calculate expected improvement for.
 
         Returns
         -------
@@ -475,16 +558,15 @@ class PEICalculator:
 
         Notes
         -----
-        This method computes the EI of the given input point `x` using the Gaussian Process model.
-        EI is a measure used in Bayesian optimisation and is particularly useful for guiding the
-        selection of points in the domain where the objective function should be evaluated next.
-        It is calculated based on the model's prediction at `x`, the current maximum target value,
-        and the standard deviation of the prediction.
+        This method computes the EI of the given input point `x` using the Gaussian
+        process stored within this instance. EI is a measure used in Bayesian optimisation
+        and is particularly useful for guiding the selection of points in the domain where
+        the objective function should be evaluated next. It is calculated based on the
+        model's prediction at `x`, the current maximum target value, and the standard
+        deviation of the prediction.
         """
 
-        validated_x = self._validate_input_type(
-            x, (Input, np.ndarray), "expected_improvement"
-        )
+        validated_x = self._validate_input_type(x, "expected_improvement")
         prediction = self._gp.predict(validated_x)
 
         if equal_within_tolerance(prediction.standard_deviation, 0):
@@ -499,28 +581,28 @@ class PEICalculator:
             prediction.estimate - self._max_targets
         ) * cdf_u + prediction.standard_deviation * pdf_u
 
-    def repulsion(self, x: Union[Input, NDArray]) -> Real:
+    def repulsion(self, x: Input) -> Real:
         """
         Calculate the repulsion factor for a given simulator input.
 
-        This method assesses the repulsion effect of a given point `x` in relation to other,
-        stored repulsion points. It is calculated as the product of terms
-        ``1 - correlation(x, rp)``, where ``rp`` is a repulsion point and the correlation is
+        This method calculates a repulsion effect of a given point `x` in relation to
+        other, stored repulsion points. It is calculated as the product of terms ``1 -
+        correlation(x, rp)``, where ``rp`` is a repulsion point and the correlation is
         computed with the Gaussian process supplied at this object's initialisation. The
-        repulsion factor can be used to discourage the selection of points near already
-        sampled locations, facilitating exploration of the input space.
+        repulsion factor approaches zero for inputs that tend towards repulsion points (
+        and is equal to zero at repulsion points). This can be used to discourage the
+        selection of points near already sampled locations, facilitating exploration of
+        the input space.
 
         Parameters
         ----------
-        x : Union[Input, NDArray]
-            The input point for which to calculate the repulsion factor. This can be an instance
-            of `Input` or a one-dimensional `numpy.ndarray`.
+        x : Input
+            The simulator input to calculate the repulsion factor for.
 
         Returns
         -------
         Real
-            The repulsion factor for the given input. A higher value indicates a stronger repulsion
-            effect, suggesting the point is near other sampled locations.
+            The repulsion factor for the given input.
 
         Examples
         --------
@@ -531,7 +613,7 @@ class PEICalculator:
         >>> repulsion_factor = pei_calculator.repulsion(array_input)
         """
 
-        validated_x = self._validate_input_type(x, (Input, np.ndarray), "repulsion")
+        validated_x = self._validate_input_type(x, "repulsion")
 
         covariance_matrix = self._gp.covariance_matrix([validated_x])
         correlations = (
@@ -552,6 +634,7 @@ def compute_single_level_loo_samples(
     gp: AbstractGaussianProcess,
     domain: SimulatorDomain,
     batch_size: int = 1,
+    additional_repulsion_pts: Optional[Collection[Input]] = None,
     loo_errors_gp: Optional[AbstractGaussianProcess] = None,
     seed: Optional[int] = None,
 ) -> tuple[Input]:
@@ -562,6 +645,13 @@ def compute_single_level_loo_samples(
     on normalised expected squared errors arising from a leave-one-out (LOO)
     cross-validation, then finding design points that maximise the pseudo-expected
     improvement of this LOO errors GP.
+
+    If `additional_repulsion_pts` is provided, then these simulator inputs will be used as
+    repulsion points when calculating pseudo-expected improvement of the LOO errors GP (in
+    addition to pseudopoints, which are always used as repulsion points). The additional
+    repulsion points must belong to the simulator domain `domain`. See ``PEICalculator``
+    for further details on repulsion points and ``exauq.core.modelling.SimulatorDomain``
+    for further details on pseudopoints.
 
     By default, a deep copy of the main GP supplied (`gp`) is trained on the leave-one-out
     errors. Alternatively, another ``AbstractGaussianProcess`` can be supplied that will
@@ -584,6 +674,9 @@ def compute_single_level_loo_samples(
     batch_size : int, optional
         (Default: 1) The number of new design points to compute. Should be a positive
         integer.
+    additional_repulsion_pts : Collection[Input], optional
+        (Default: None) A collection of simulator inputs from `domain` that should be used
+        as repulsion points when computing pseudo-expected improvement.
     loo_errors_gp : AbstractGaussianProcess, optional
         (Default: None) Another Gaussian process that is trained on the LOO errors as part
         of the adaptive sampling method. If ``None`` then a deep copy of `gp` will be used
@@ -600,7 +693,8 @@ def compute_single_level_loo_samples(
     Raises
     ------
     ValueError
-        If any of the training inputs in `gp` do not belong to the simulator domain `domain`.
+        If any of the training inputs in `gp` do not belong to the simulator domain
+        `domain`.
 
     See Also
     --------
@@ -608,6 +702,8 @@ def compute_single_level_loo_samples(
         Computation of the leave-one-out errors Gaussian process.
     PEICalculator :
         Pseudo-expected improvement calculation.
+    modelling.SimulatorDomain.calculate_pseudopoints :
+        Calculation of pseudopoints for a collection of simulator inputs.
     modelling.GaussianProcessPrediction.nes_error :
         Normalised expected squared error for a prediction from a Gaussian process.
     utilities.optimisation.maximise :
@@ -629,18 +725,30 @@ def compute_single_level_loo_samples(
             f"Expected batch size to be a positive integer, but received {batch_size} instead."
         )
 
+    if additional_repulsion_pts is not None:
+        _check_collection_of_inputs(
+            additional_repulsion_pts, name=f"{additional_repulsion_pts=}".split("=")[0]
+        )
+        if input_outside_domain := _find_input_outside_domain(
+            additional_repulsion_pts, domain
+        ):
+            raise ValueError(
+                "Additional repulsion points must belong to simulator domain 'domain', "
+                f"but found input {input_outside_domain}."
+            )
+
     try:
         gp_e = compute_loo_errors_gp(gp, domain, loo_errors_gp=loo_errors_gp)
     except (TypeError, ValueError) as e:
         raise e from None
 
-    pei = PEICalculator(domain, gp_e)
+    pei = PEICalculator(domain, gp_e, additional_repulsion_pts=additional_repulsion_pts)
 
     design_points = []
     for _ in range(batch_size):
         new_design_point, _ = maximise(lambda x: pei.compute(x), domain, seed=seed)
         design_points.append(new_design_point)
-        pei.add_repulsion_point(new_design_point)
+        pei.add_repulsion_points([new_design_point])
 
     return tuple(design_points)
 
@@ -1145,7 +1253,7 @@ def compute_multi_level_loo_samples(
     if batch_size > 1:
         pei = ml_pei[level]
         for i in range(batch_size - 1):
-            pei.add_repulsion_point(design_points[i])
+            pei.add_repulsion_points([design_points[i]])
             new_design_pt, _ = maximise(lambda x: pei.compute(x), domain)
             design_points.append(new_design_pt)
 
