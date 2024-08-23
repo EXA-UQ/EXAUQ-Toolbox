@@ -19,14 +19,15 @@ plugins:
             docstring_style: numpy
             docstring_section_style: list
   - mkdocs-jupyter:
-      execute: true
+      execute: false  # TODO: change to true for production
       allow_errors: false
 
 nav:
   - Home: "index.md"
   - "Experimental Design":
     - "designers/index.md"
-    - "Single Level Adaptive Sampling": "designers/slas_tutorial.ipynb"
+    - "Tutorials":
+      - "Single Level Adaptive Sampling": "designers/tutorials/slas_tutorial.ipynb"
   - "Command Line App":
     - "cli/index.md"
     - "A First Walkthrough": "cli/first-walkthrough.md"
