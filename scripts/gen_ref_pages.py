@@ -26,6 +26,9 @@ from pathlib import Path
 
 import mkdocs_gen_files
 
+# Placeholder text for modules without documentation
+PLACEHOLDER_DOCSTRING = "Documentation coming soon for this module."
+
 
 def get_module_parts(py_module: Path, package_root: Path) -> tuple[str, str, str]:
     """Get the component parts of a module relative to a package.
@@ -56,6 +59,23 @@ def get_module_paths_for_docs(package_root: Path) -> list[Path]:
     )
 
 
+def check_if_module_is_empty(module_path: Path) -> bool:
+    """
+    Check if the module is empty (contains only whitespace or no content).
+    Returns True if the file is empty, False otherwise.
+    """
+    try:
+        with module_path.open("r", encoding="utf-8") as file:
+            content = file.read()
+
+            # If the file is empty or contains only whitespace, it's considered empty
+            return not content.strip()
+
+    except Exception as e:
+        print(f"Error loading module {module_path}: {e}")
+        return True  # Treat as empty if there's an error reading the file
+
+
 nav = mkdocs_gen_files.Nav()
 root = Path(__file__).parent.parent
 src = root / "exauq"
@@ -80,7 +100,17 @@ for path in get_module_paths_for_docs(src):
 
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
         identifier = ".".join(parts)
-        print("::: " + identifier, file=fd)
+
+        # Check if the module is empty
+        if check_if_module_is_empty(path):
+            print(
+                f"WARNING: no docstring for module {path} "
+                "-- writing placeholder docstring in API docs."
+            )
+            print(PLACEHOLDER_DOCSTRING, file=fd)
+        else:
+            # Generate API documentation for modules with code
+            print(f"::: {identifier}", file=fd)
 
     mkdocs_gen_files.set_edit_path(full_doc_path, path.relative_to(root))
 
