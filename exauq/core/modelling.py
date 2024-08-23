@@ -778,7 +778,7 @@ class GaussianProcessPrediction(Prediction):
     include the method `nes_error` for computing the normalised expected square (NES)
     error at a simulator output, utilising the Gaussian assumption.
 
-    Parameters
+    Attributes
     ----------
     estimate : numbers.Real
         The estimated value of the prediction.

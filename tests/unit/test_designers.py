@@ -503,6 +503,123 @@ class TestPEICalculator(ExauqTestCase):
             "Expected 'gp' to have nonempty training data.", str(context.exception)
         )
 
+    def test_additional_repulsion_pts_not_collection_of_inputs_error(self):
+        """A TypeError is raised if the additional repulsion points is not a collection
+        of Input objects"""
+
+        self.setUpFitDataOnly()
+
+        arg = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                f"but received {type(arg)} instead."
+            ),
+        ):
+            _ = PEICalculator(self.domain, self.gp, additional_repulsion_pts=arg)
+
+        arg2 = [Input(10), 1]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                "but this is not the case."
+            ),
+        ):
+            _ = PEICalculator(self.domain, self.gp, additional_repulsion_pts=arg2)
+
+    def test_additional_repulsion_pts_not_in_domain_error(self):
+        """A ValueError is raised if any of the additional repulsion points do not belong
+        to the given simulator domain."""
+
+        self.setUpFitDataOnly()
+
+        for bad_repulsion_pts in [[Input(1.1)], [Input(0.5), Input(0.5, 0.5)]]:
+            with self.subTest(
+                bad_repulsion_pts=bad_repulsion_pts
+            ), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "Additional repulsion points must belong to simulator domain 'domain', "
+                    f"but found input {bad_repulsion_pts[-1]}."
+                ),
+            ):
+                _ = PEICalculator(
+                    self.domain, self.gp, additional_repulsion_pts=bad_repulsion_pts
+                )
+
+    def test_additional_repulsion_points_included(self):
+        """Inputs supplied for additional repulsion points get added to the collection of
+        repulsion points for calculating pseudo-expected improvement."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        gp = fakes.WhiteNoiseGP()
+        gp.fit([TrainingDatum(Input(0.1, 0.1), 1)])
+        additional_repulsion_pts = [Input(0.2, 0.2), Input(0.4, 0.4)]
+
+        pei = PEICalculator(domain, gp, additional_repulsion_pts)
+
+        self.assertTrue(all(x in pei.repulsion_points for x in additional_repulsion_pts))
+
+    def test_additional_repulsion_points_removes_repeats(self):
+        """If an input already features in the repulsion points that would be feature in
+        the PEI calculations, then it isn't added to the collection of repulsion points.
+        """
+
+        domain = SimulatorDomain([(0, 1)])
+        gp = fakes.WhiteNoiseGP()
+        x1 = Input(0.1)
+        x2 = Input(0.2)
+        gp.fit([TrainingDatum(x1, 1), TrainingDatum(x2, 1)])
+        std_repulsion_points = PEICalculator(domain, gp).repulsion_points
+
+        pei = PEICalculator(domain, gp, additional_repulsion_pts=std_repulsion_points)
+
+        self.assertEqual(len(std_repulsion_points), len(pei.repulsion_points))
+
+        # If the provided repulsion points have repeats, then these are only added once
+        x = Input(0.5)
+
+        pei2 = PEICalculator(domain, gp, additional_repulsion_pts=[x, x])
+
+        self.assertEqual(len(std_repulsion_points) + 1, len(pei2.repulsion_points))
+
+    def test_training_inputs_and_pseudopoints_not_repeated(self):
+        """Given a GP with training inputs, if the domain's pseudopoints include one of
+        the training inputs then this is not repeated in the repulsion points."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        training_input = Input(0, 0.5)
+
+        # point on a domain boundary, so is a pseudopoint
+        assert training_input in domain.calculate_pseudopoints([training_input])
+
+        gp = fakes.WhiteNoiseGP()
+        gp.fit([TrainingDatum(training_input, 1)])
+
+        pei = PEICalculator(domain, gp)
+
+        self.assertEqual(1, len([x for x in pei.repulsion_points if x == training_input]))
+
+    def test_additional_repulsion_points_affect_repulsion_calculation(self):
+        """When additional repulsion points are supplied at initialisation, these affect
+        the calculation of repulsion."""
+
+        self.setUpPEICalculator()
+
+        # Not repulsion points
+        x1, x2 = Input(0.2), Input(0.4)
+        self.assertGreater(self.pei_calculator.repulsion(x1), 0)
+        self.assertGreater(self.pei_calculator.repulsion(x2), 0)
+
+        pei_calculator2 = PEICalculator(
+            self.domain, self.gp, additional_repulsion_pts=[x1, x2]
+        )
+
+        self.assertEqualWithinTolerance(0, pei_calculator2.repulsion(x1))
+        self.assertEqualWithinTolerance(0, pei_calculator2.repulsion(x2))
+
     def test_max_targets_with_valid_training_data(self):
         """Test that max target is calculated correctly with valid training data."""
         self.setUpPEICalculator()
@@ -554,15 +671,17 @@ class TestPEICalculator(ExauqTestCase):
         )
 
     def test_expected_improvement_positive(self):
-        self.setUpPEICalculator()
+
+        self.gp.fit(self.training_data)
 
         # Mock the GP model's predict method to return a positive expected improvement scenario
         self.gp.predict = MagicMock(
             return_value=MagicMock(estimate=6.0, standard_deviation=1.0)
         )
 
+        pei = PEICalculator(self.domain, self.gp)
         input_point = Input(0.6)
-        ei = self.pei_calculator.expected_improvement(input_point)
+        ei = pei.expected_improvement(input_point)
 
         # Expected improvement should be positive since the estimate is greater than the max target
         self.assertGreater(
@@ -586,47 +705,47 @@ class TestPEICalculator(ExauqTestCase):
         self.assertGreaterEqual(ei, 0.0, "Expected improvement should be non-negative.")
 
     def test_expected_improvement_accuracy(self):
-        self.setUpPEICalculator()
 
-        estimate = 6.0
-        standard_deviation = 2.0
+        self.gp.fit(self.training_data)
 
         # Mock predict method
+        estimate = 6.0
+        standard_deviation = 2.0
         self.gp.predict = MagicMock(
             return_value=MagicMock(
                 estimate=estimate, standard_deviation=standard_deviation
             )
         )
+        pei = PEICalculator(self.domain, self.gp)
 
         input_point = Input(0.6)
-        ei = self.pei_calculator.expected_improvement(input_point)
+        ei = pei.expected_improvement(input_point)
 
         # Manual calculation
-        u = (estimate - self.pei_calculator._max_targets) / standard_deviation
+        u = (estimate - pei._max_targets) / standard_deviation
         cdf_u = norm.cdf(u)
         pdf_u = norm.pdf(u)
-        expected_ei = (
-            estimate - self.pei_calculator._max_targets
-        ) * cdf_u + standard_deviation * pdf_u
+        expected_ei = (estimate - pei._max_targets) * cdf_u + standard_deviation * pdf_u
 
         # Assert the accuracy of the EI calculation
         self.assertEqualWithinTolerance(ei, expected_ei)
 
     def test_expected_improvement_at_max_target(self):
-        self.setUpPEICalculator()
 
-        estimate = 5.0  # Exact match to max target
-        standard_deviation = 1.0  # Non-zero uncertainty
+        self.gp.fit(self.training_data)
 
         # Configure mock
+        estimate = max(datum.output for datum in self.training_data)
+        standard_deviation = 1.0  # Non-zero uncertainty
         self.gp.predict = MagicMock(
             return_value=MagicMock(
                 estimate=estimate, standard_deviation=standard_deviation
             )
         )
 
+        pei = PEICalculator(self.domain, self.gp)
         input_point = Input(0.6)
-        ei = self.pei_calculator.expected_improvement(input_point)
+        ei = pei.expected_improvement(input_point)
 
         # EI should be positive due to uncertainty
         self.assertGreater(
@@ -634,17 +753,19 @@ class TestPEICalculator(ExauqTestCase):
         )
 
     def test_expected_improvement_scaling_with_std_deviation(self):
-        self.setUpPEICalculator()
+
+        self.gp.fit(self.training_data)
 
         estimate = 6.0  # Above max target
         for std_dev in [0.1, 1.0, 10.0]:  # Increasing standard deviation
-            with self.subTest():
+            with self.subTest(std_dev=std_dev):
                 self.gp.predict = MagicMock(
                     return_value=MagicMock(estimate=estimate, standard_deviation=std_dev)
                 )
 
+                pei = PEICalculator(self.domain, self.gp)
                 input_point = Input(0.4)
-                ei = self.pei_calculator.expected_improvement(input_point)
+                ei = pei.expected_improvement(input_point)
                 self.assertGreater(
                     ei,
                     0.0,
@@ -694,10 +815,153 @@ class TestPEICalculator(ExauqTestCase):
         calculator = PEICalculator(domain, gp)
         self.assertEqual(expected, calculator.repulsion(x))
 
+    def test_add_repulsion_points_affects_repulsion_calculation(self):
+        """When additional repulsion points are added, these affect the calculation of
+        repulsion."""
+
+        self.setUpPEICalculator()
+
+        # Not repulsion points
+        x1, x2 = Input(0.2), Input(0.4)
+        self.assertGreater(self.pei_calculator.repulsion(x1), 0)
+        self.assertGreater(self.pei_calculator.repulsion(x2), 0)
+
+        self.pei_calculator.add_repulsion_points([x1, x2])
+
+        self.assertEqualWithinTolerance(0, self.pei_calculator.repulsion(x1))
+        self.assertEqualWithinTolerance(0, self.pei_calculator.repulsion(x2))
+
     def test_invalid_input(self):
         self.setUpPEICalculator()
         with self.assertRaises(TypeError):
             self.pei_calculator.repulsion("invalid input")
+
+    def test_add_repulsion_points_multiple_inputs(self):
+        """Inputs supplied for repulsion points get added to the collection of
+        repulsion points for calculating pseudo-expected improvement."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        gp = fakes.WhiteNoiseGP()
+        gp.fit([TrainingDatum(Input(0.1, 0.1), 1)])
+        pei = PEICalculator(domain, gp)
+        inputs = [Input(0.2, 0.2), Input(0.4, 0.4)]
+
+        pei.add_repulsion_points(inputs)
+
+        self.assertTrue(all(x in pei.repulsion_points for x in inputs))
+
+    def test_add_repulsion_points_not_collection_of_inputs_error(self):
+        """A TypeError is raised if the supplied repulsion points is not a collection
+        of Input objects."""
+
+        self.setUpPEICalculator()
+
+        arg = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
+                f"but received {type(arg)} instead."
+            ),
+        ):
+            self.pei_calculator.add_repulsion_points(arg)
+
+        arg2 = [Input(10), 1]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
+                "but this is not the case."
+            ),
+        ):
+            self.pei_calculator.add_repulsion_points(arg2)
+
+    def test_add_repulsion_points_not_in_domain_error(self):
+        """A ValueError is raised if any of the supplied repulsion points do not belong
+        to the PEI calculator's simulator domain."""
+
+        domain = SimulatorDomain([(0, 1)])
+        gp = fakes.WhiteNoiseGP()
+        gp.fit([TrainingDatum(Input(0.1), 1)])
+        pei = PEICalculator(domain, gp)
+
+        for bad_repulsion_pts in [[Input(1.1)], [Input(0.5), Input(0.5, 0.5)]]:
+            with self.subTest(
+                bad_repulsion_pts=bad_repulsion_pts
+            ), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    f"Repulsion points must belong to the simulator domain for this {pei.__class__.__name__}, "
+                    f"but found input {bad_repulsion_pts[-1]}."
+                ),
+            ):
+                pei.add_repulsion_points(bad_repulsion_pts)
+
+    def test_add_repulsion_points_removes_repeats(self):
+        """If an input already features in the stored repulsion points, then it isn't
+        added to the collection of repulsion points."""
+
+        domain = SimulatorDomain([(0, 1)])
+        gp = fakes.WhiteNoiseGP()
+        x1 = Input(0.1)
+        x2 = Input(0.2)
+        gp.fit([TrainingDatum(x1, 1), TrainingDatum(x2, 1)])
+        pei = PEICalculator(domain, gp)
+
+        n_repulsion_pts_before = len(pei.repulsion_points)
+        pei.add_repulsion_points(pei.repulsion_points)
+
+        self.assertEqual(n_repulsion_pts_before, len(pei.repulsion_points))
+
+        # If the provided repulsion points have repeats, then these are only added once
+        x = Input(0.5)
+
+        pei.add_repulsion_points([x, x])
+
+        self.assertEqual(n_repulsion_pts_before + 1, len(pei.repulsion_points))
+
+    def test_pei_calculator_invariant_to_gp_updates(self):
+        """A PEI calculator initialised from a GP is not affected by updates to the GP
+        (such as training the GP on new data)."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        gp = MogpEmulator()
+        gp.fit(
+            [
+                TrainingDatum(Input(0.1, 0.1), 1),
+                TrainingDatum(Input(0.3, 0.3), 2),
+                TrainingDatum(Input(0.5, 0.5), 3),
+                TrainingDatum(Input(0.7, 0.7), 4),
+                TrainingDatum(Input(0.9, 0.9), 5),
+            ]
+        )
+
+        pei = PEICalculator(domain, gp)
+
+        # Choose an input far away from data to get interesting variation in repulsion,
+        # expected improvement and PEI.
+        x = Input(0.1, 0.9)
+        repulsion_points_before = pei.repulsion_points
+        repulsion_before = pei.repulsion(x)
+        ei_before = pei.expected_improvement(x)
+        pei_before = pei.compute(x)
+
+        # Now modify the GP by training it on new data
+        gp.fit(
+            [
+                TrainingDatum(Input(0.2, 0.2), 0.8),
+                TrainingDatum(Input(0.4, 0.4), 1.3),
+                TrainingDatum(Input(0.6, 0.6), -9.9),
+                TrainingDatum(Input(0.8, 0.8), -0.54),
+                TrainingDatum(Input(1, 1), 50),
+            ]
+        )
+
+        # Check outputs of public methods / properties haven't changed
+        self.assertEqual(repulsion_points_before, pei.repulsion_points)
+        self.assertEqual(repulsion_before, pei.repulsion(x))
+        self.assertEqual(ei_before, pei.expected_improvement(x))
+        self.assertEqual(pei_before, pei.compute(x))
 
 
 class TestComputeSingleLevelLooSamples(ExauqTestCase):
@@ -734,6 +998,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         * The domain is not of type SimulatorDomain.
         * The batch size is not an integer.
         * The supplied LOO errors GP is not None or of type AbstractGaussianProcess.
+        * The additional repulsion points is not a collection of Input objects.
         """
 
         arg = "a"
@@ -769,6 +1034,30 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         ):
             _ = compute_single_level_loo_samples(self.gp, self.domain, batch_size=arg)
 
+        arg2 = 1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                f"but received {type(arg2)} instead."
+            ),
+        ):
+            _ = compute_single_level_loo_samples(
+                self.gp, self.domain, additional_repulsion_pts=arg2
+            )
+
+        arg3 = [Input(10), 1]
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                "but this is not the case."
+            ),
+        ):
+            _ = compute_single_level_loo_samples(
+                self.gp, self.domain, additional_repulsion_pts=arg3
+            )
+
     def test_domain_wrong_dim_error(self):
         """A ValueError is raised if the supplied domain's dimension does not agree with
         the dimension of the inputs in the GP's training data."""
@@ -792,6 +1081,25 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             ):
                 _ = compute_single_level_loo_samples(
                     self.gp, self.domain, batch_size=batch_size
+                )
+
+    def test_additional_repulsion_pts_not_in_domain_error(self):
+        """A ValueError is raised if any of the additional repulsion points do not belong
+        to the given simulator domain."""
+
+        domain = SimulatorDomain([(0, 1)])
+        for bad_repulsion_pts in [[Input(1.1)], [Input(0.5), Input(0.5, 0.5)]]:
+            with self.subTest(
+                bad_repulsion_pts=bad_repulsion_pts
+            ), self.assertRaisesRegex(
+                ValueError,
+                exact(
+                    "Additional repulsion points must belong to simulator domain 'domain', "
+                    f"but found input {bad_repulsion_pts[-1]}."
+                ),
+            ):
+                _ = compute_single_level_loo_samples(
+                    self.gp, domain, additional_repulsion_pts=bad_repulsion_pts
                 )
 
     def test_unseeded_pei_maximisation_default(self):
@@ -866,6 +1174,21 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
                         abs_tol=self.tolerance,
                     )
                 )
+
+    def test_additional_repulsion_pts_used_for_pseudo_expected_improvement(self):
+        """If additional repulsion points are provided, then these are used in the
+        calculation of pseudo-expected improvement for the LOO errors GP."""
+
+        # Compute a new design point
+        design_pts = compute_single_level_loo_samples(self.gp, self.domain, seed=1)
+
+        # Re-run computation but now using the new design point as a repulsion point.
+        # Should find a different design point created.
+        design_pts2 = compute_single_level_loo_samples(
+            self.gp, self.domain, additional_repulsion_pts=design_pts, seed=1
+        )
+
+        self.assertNotEqualWithinTolerance(design_pts2[0], design_pts[0])
 
     def test_new_design_points_lie_in_given_domain(self):
         """Each Input from a batch of design points lies in the supplied simulator

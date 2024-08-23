@@ -12,14 +12,14 @@ class TestMaximise(ExauqTestCase):
         self.domain = SimulatorDomain([(0, 1)])
         self.seed = 1
 
-    def f(self, x: np.ndarray) -> float:
+    def f(self, x: Input) -> float:
         return np.sin(1 / x[0]) if x[0] > 0 else 0
 
     def test_constraints_obeyed(self):
         """The input returned lies in the supplied domain."""
 
-        def negative_sum_squares(x: np.ndarray) -> float:
-            return -np.sum(x**2)
+        def negative_sum_squares(x: Input) -> float:
+            return -sum([z**2 for z in x])
 
         domains = [
             SimulatorDomain([(-1, 1)]),
@@ -35,7 +35,7 @@ class TestMaximise(ExauqTestCase):
         """The maximum value of the supplied function is given along with the input
         where this maximum is achieved."""
 
-        def f(x: np.ndarray) -> float:
+        def f(x: Input) -> float:
             return sum(x)
 
         domain = SimulatorDomain([(0, 1), (0, 1), (0, 1)])
@@ -48,7 +48,7 @@ class TestMaximise(ExauqTestCase):
         not just locally."""
 
         # Following function has lots of local maxima
-        def f(x: np.ndarray) -> float:
+        def f(x: Input) -> float:
             return -float(x[0] + np.sqrt(2) * np.sin(x[0]))
 
         domain = SimulatorDomain([(2, 100)])
@@ -90,25 +90,24 @@ class TestMaximise(ExauqTestCase):
         self.assertEqual(x1.value, x2.value)
 
     def test_function_arg_errors(self):
-        """A ValueError is raised if the provided function does not accept Numpy arrays as
-        args or does not return a real number. A TypeError is raised the supplied domain
-        is not of type SimulatorDomain."""
+        """A ValueError is raised if the provided function does not accept Inputs as
+        args or does not return a real number."""
 
         # Does not accept Numpy arrays as args
-        def f(x: dict) -> float:
-            return x["a"]
+        def f(x: np.ndarray) -> float:
+            return np.sum(x**2)
 
         with self.assertRaisesRegex(
             ValueError,
             exact(
-                "Expected 'func' to be a callable that takes a 1-dim Numpy array as argument."
+                f"Expected 'func' to be a callable that takes an argument of type {Input.__name__}."
             ),
         ):
             _ = maximise(f, self.domain)
 
         # Returns non-real objects
-        def f(x: np.ndarray):
-            return np.array([np.sum(x)])
+        def f(x: Input):
+            return np.array([sum(x)])
 
         return_type = type(f(np.array([1])))
 
