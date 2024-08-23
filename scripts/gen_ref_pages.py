@@ -103,6 +103,10 @@ for path in get_module_paths_for_docs(src):
 
         # Check if the module is empty
         if check_if_module_is_empty(path):
+            print(
+                f"WARNING: no docstring for module {path} "
+                "-- writing placeholder docstring in API docs."
+            )
             print(PLACEHOLDER_DOCSTRING, file=fd)
         else:
             # Generate API documentation for modules with code
