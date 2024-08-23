@@ -27,6 +27,7 @@ nav:
   - "Experimental Design":
     - "designers/index.md"
     - "Tutorials":
+      - "A First Example: One-Shot Design": "designers/tutorials/one_shot_tutorial.ipynb"
       - "Single Level Adaptive Sampling": "designers/tutorials/slas_tutorial.ipynb"
   - "Command Line App":
     - "cli/index.md"
@@ -52,6 +53,7 @@ theme:
 # - https://squidfunk.github.io/mkdocs-material/reference/code-blocks/
 # - https://squidfunk.github.io/mkdocs-material/reference/grids/
 # - https://squidfunk.github.io/mkdocs-material/reference/icons-emojis/
+# - https://squidfunk.github.io/mkdocs-material/reference/math/#katex
 markdown_extensions:
   - admonition
   - pymdownx.highlight:
@@ -67,3 +69,15 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.arithmatex:
+      generic: true
+
+# For KaTeX to render maths, see
+# https://squidfunk.github.io/mkdocs-material/reference/math/#katex
+extra_javascript:
+- javascripts/katex.js
+- https://unpkg.com/katex@0/dist/katex.min.js
+- https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
+
+extra_css:
+  - https://unpkg.com/katex@0/dist/katex.min.css
