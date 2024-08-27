@@ -9,3 +9,4 @@ the toolbox for experimental design, start with
 the core objects for creating training data and training a Gaussian process emulator.
 
 - [Training a Gaussian Process Emulator](./training_gp_tutorial.ipynb)
+- [Single Level Adaptive Sampling](./slas_tutorial.ipynb)
