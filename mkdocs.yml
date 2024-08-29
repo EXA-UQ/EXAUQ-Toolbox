@@ -4,8 +4,9 @@ site_name: EXAUQ-Toolbox
 site_url: ""
 site_dir: exauq/docs
 use_directory_urls: false
+exclude_docs: "**/notebooks"
 plugins:
-  - offline
+  - offline  # remove this when we go online
   - gen-files:
       scripts:
       - "scripts/gen_ref_pages.py"
@@ -28,9 +29,10 @@ nav:
     - "designers/index.md"
     - "Tutorials":
       - "designers/tutorials/index.md"
-      - "Training a Gaussian Process Emulator": "designers/tutorials/training_gp_tutorial.ipynb"
-      - "Training a Multi-Level Gaussian Process Emulator": "designers/tutorials/training_multi_level_gp_tutorial.ipynb"
-      - "Single Level Adaptive Sampling": "designers/tutorials/slas_tutorial.ipynb"
+      - "Training a Gaussian Process Emulator": "designers/tutorials/training_gp_tutorial.md"
+      - "Training a Multi-Level Gaussian Process Emulator": "designers/tutorials/training_multi_level_gp_tutorial.md"
+      - "Single Level Adaptive Sampling": "designers/tutorials/slas_tutorial.md"
+      - "scratch": "designers/tutorials/scratch.md"
   - "Command Line App":
     - "cli/index.md"
     - "A First Walkthrough": "cli/first-walkthrough.md"
