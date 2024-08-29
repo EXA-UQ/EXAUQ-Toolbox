@@ -19,9 +19,6 @@ plugins:
           options:
             docstring_style: numpy
             docstring_section_style: list
-  - mkdocs-jupyter:
-      execute: false  # TODO: change to true for production
-      allow_errors: false
 
 nav:
   - Home: "index.md"
