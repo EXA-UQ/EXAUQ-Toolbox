@@ -245,11 +245,20 @@ class Cli(cmd2.Cmd):
         """
 
         general_settings_file = self._workspace_dir / "settings.json"
-        hardware_params_file = self._workspace_dir / "hardware_params"
+        hardware_params_prefix = "hw_params_"
         workspace_log_file = self._workspace_dir / "simulations.csv"
 
+        hardware_interfaces = []
+        interface_details = {}
+
         # TODO: add option to dispatch on plugin
-        factory = UnixServerScriptInterfaceFactory()
+
+        # List of available factories with display names
+        factories = {
+            "1": ("Unix Server Script Interface", UnixServerScriptInterfaceFactory),
+            # "2": ("Windows Server Script Interface", WindowsServerScriptInterfaceFactory),
+            # Add more factories here as needed
+        }
 
         if not general_settings_file.exists():
             # Gather settings from UI
@@ -258,41 +267,81 @@ class Cli(cmd2.Cmd):
                 "Please provide the following details to initialise the workspace..."
             )
             input_dim = int(input("  Dimension of simulator input space: "))
-            for param, prompt in factory.interactive_prompts.items():
-                value_str = input(f"  {prompt}: ")
-                try:
-                    factory.set_param_from_str(param, value_str)
-                except ValueError as e:
-                    self._render_error(f"Invalid value -- {e}")
 
-            self.poutput("Setting up hardware...")
-            hardware = factory.create_hardware()
+            while True:
+                # Display factory options
+                self.poutput("Select the hardware interface type you wish to use:")
+                for option, (display_name, _) in factories.items():
+                    self.poutput(f"  {option}: {display_name}")
+
+                factory_choice = input("Enter the number corresponding to your choice: ")
+                selected_factory = factories.get(factory_choice)
+
+                if not selected_factory:
+                    self.poutput("Invalid choice, please try again.")
+                    continue
+
+                display_name, factory_cls = selected_factory
+                factory = factory_cls()
+
+                self.poutput(f"Selected: {display_name}")
+
+                self.poutput("Please provide the following details for your hardware "
+                             "interface...")
+                for param, prompt in factory.interactive_prompts.items():
+                    value_str = input(f"  {prompt}: ")
+                    try:
+                        factory.set_param_from_str(param, value_str)
+                    except ValueError as e:
+                        self._render_error(f"Invalid value -- {e}")
+
+                self.poutput("Setting up hardware...")
+                hardware_interfaces.append(factory.create_hardware())
+
+                self._workspace_dir.mkdir(exist_ok=True)
+                interface_name = hardware_interfaces[-1].name
+                hardware_params_filename = hardware_params_prefix + interface_name + ".json"
+                hardware_params_file = self._workspace_dir / hardware_params_filename
+                factory.serialise_hardware_parameters(hardware_params_file)
+
+                interface_details[interface_name] = {"factory": factory_cls.__name__,
+                                                     "params": hardware_params_filename}
+
+                if input("  Add another hardware interface? (y/n): ").lower() != "y":
+                    break
 
             # Write settings to file
-            self._workspace_dir.mkdir(exist_ok=True)
             write_settings_json(
                 {
-                    "hardware_type": factory.hardware_cls.__name__,
+                    "interfaces": interface_details,
                     "input_dim": input_dim,
                 },
                 general_settings_file,
             )
-            factory.serialise_hardware_parameters(hardware_params_file)
+
             self.poutput(f"Thanks -- workspace '{self._workspace_dir}' is now set up.")
 
             # Create app
             self._app = App(
-                interface=hardware,
+                interfaces=hardware_interfaces,
                 input_dim=input_dim,
                 simulations_log_file=workspace_log_file,
             )
         else:
             self.poutput(f"Using workspace '{self._workspace_dir}'.")
             general_settings = read_settings_json(general_settings_file)
-            factory.load_hardware_parameters(hardware_params_file)
-            hardware = factory.create_hardware()
+
+            for interface_name, interface_details in general_settings["interfaces"].items():
+                factory_cls = interface_details["factory"]
+                hardware_params_filename = interface_details["params"]
+                hardware_params_file = self._workspace_dir / hardware_params_filename
+                factory = globals()[factory_cls]()
+
+                factory.load_hardware_parameters(hardware_params_file)
+                hardware_interfaces.append(factory.create_hardware())
+
             self._app = App(
-                interface=hardware,
+                interfaces=hardware_interfaces,
                 input_dim=general_settings["input_dim"],
                 simulations_log_file=workspace_log_file,
             )
