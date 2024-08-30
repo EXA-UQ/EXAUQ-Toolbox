@@ -56,31 +56,64 @@ def process_markdown(markdown: str) -> str:
 
     * Adds declaration to include a code copy button when entering Python code blocks
     """
-    new_lines = []
-    in_output_block = False
-    in_python_block = False
     OUTPUT_PREFIX = " " * 4
     PYTHON_CODE_BLOCK_START = "```python\n"
-    CODE_BLOCK_END = "```\n"
+    PYTHON_CODE_BLOCK_END = "```\n"
+    new_lines = []
+    in_code_example = False
+    in_python_block = False
+    in_output_block = False
+
+    def entering_python_block(line: str) -> bool:
+        return not in_python_block and line == PYTHON_CODE_BLOCK_START
+
+    def left_python_block(previous_lines: list[str]) -> bool:
+        return in_python_block and previous_lines[-1] == PYTHON_CODE_BLOCK_END
+
+    def is_indented(line: str) -> bool:
+        return line.startswith(OUTPUT_PREFIX)
+
+    def in_example_output_block(line: str) -> bool:
+        return all([in_code_example, not in_python_block, is_indented(line)])
+
+    def entering_example_output_block(line: str) -> bool:
+        return not in_output_block and in_example_output_block(line)
+
+    def left_example_output_block(line: str) -> bool:
+        return in_output_block and not is_indented(line)
+
+    def left_code_example(line: str) -> bool:
+        return all(
+            [
+                in_code_example,
+                not in_python_block,
+                not is_indented(line),
+                not line == "\n",
+            ]
+        )
+
     for line in markdown.splitlines(keepends=True):
-        # Determine whether entering/exiting a Python code block; add copy button if
-        # entering.
-        if line == PYTHON_CODE_BLOCK_START:
+        # Determine whether leaving an example
+        if left_code_example(line):
+            in_code_example = False
+
+        # Determine whether entering/exiting a code example (necessarily by entering a
+        # Python block); add copy button to Python code block if entering.
+        if entering_python_block(line):
+            in_code_example = True
             in_python_block = True
 
             # Replace with code block declaration that includes a copy button
             line = "``` { .python .copy }\n"
-        elif in_python_block and new_lines[-1] == CODE_BLOCK_END:
+        elif left_python_block(new_lines):
             in_python_block = False
 
         # Determine whether entering/exiting an output block for code and wrap with div
         # tag accordingly.
-        if in_python_block:
-            in_output_block = False
-        elif line.startswith(OUTPUT_PREFIX) and not in_output_block:
-            new_lines.append('<div class="result" markdown>\n')
+        if entering_example_output_block(line):
             in_output_block = True
-        elif not line.startswith(OUTPUT_PREFIX) and in_output_block:
+            new_lines.append('<div class="result" markdown>\n')
+        elif left_example_output_block(line):
             in_output_block = False
             new_lines.append("</div>\n")
 
