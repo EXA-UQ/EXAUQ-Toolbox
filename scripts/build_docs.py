@@ -3,12 +3,47 @@
 # https://nbconvert.readthedocs.io/en/latest/nbconvert_library.html#Quick-overview
 # both accessed 2024-08-29
 
+import argparse
 import sys
 from pathlib import Path
 
 import nbformat
 from nbconvert import MarkdownExporter
 from nbconvert.preprocessors import CellExecutionError, ExecutePreprocessor
+
+NOTEBOOK_DIR = Path("./docs/designers/tutorials/notebooks")
+
+
+def build_notebooks(notebook_dir: Path, run_notebooks: bool = False) -> None:
+    """Convert Jupyter notebooks to markdown files, optionally running them before
+    conversion.
+    """
+    for nb_path in notebook_dir.iterdir():
+        # Load notebook
+        with open(nb_path) as file:
+            nb = nbformat.read(file, as_version=4)
+
+        if run_notebooks:
+            ep = ExecutePreprocessor(timeout=600)
+            try:
+                # Execute notebook (mutates the nb in-place)
+                ep.preprocess(nb)
+            except CellExecutionError as e:
+                msg = f"Error executing the notebook {nb_path.name}.\n"
+                print(msg, file=sys.stderr)
+                raise e
+
+        # Export notebook to markdown
+        exporter = MarkdownExporter()
+        source, resources = exporter.from_notebook_node(nb)
+
+        # Post-process markdown text
+        source = process_markdown(source)
+
+        # Write markdown source
+        md_path = nb_path.parent.parent / (nb_path.stem + ".md")
+        with open(md_path, "w", encoding="utf-8") as file:
+            file.write(source)
 
 
 def process_markdown(markdown: str) -> str:
@@ -55,29 +90,18 @@ def process_markdown(markdown: str) -> str:
 
 
 if __name__ == "__main__":
-    NOTEBOOK_DIR = Path("./docs/designers/tutorials/notebooks")
-    for nb_path in NOTEBOOK_DIR.iterdir():
-        # Load notebook
-        with open(nb_path) as file:
-            nb = nbformat.read(file, as_version=4)
+    parser = argparse.ArgumentParser(
+        description="Build markdown docs from Jupyter notebooks."
+    )
+    parser.add_argument(
+        "-x",
+        "--run-notebooks",
+        action="store_true",
+        help=(
+            "run each notebook before building a markdown version, and crash out if "
+            "there were errors (default is to not run the notebooks)"
+        ),
+    )
 
-        ep = ExecutePreprocessor(timeout=600)
-        try:
-            # Execute notebook (mutates the nb in-place)
-            ep.preprocess(nb)
-        except CellExecutionError as e:
-            msg = f"Error executing the notebook {nb_path.name}.\n"
-            print(msg, file=sys.stderr)
-            raise e
-
-        # Export notebook to markdown
-        exporter = MarkdownExporter()
-        source, resources = exporter.from_notebook_node(nb)
-
-        # Post-process markdown text
-        source = process_markdown(source)
-
-        # Write markdown source
-        md_path = nb_path.parent.parent / (nb_path.stem + ".md")
-        with open(md_path, "w", encoding="utf-8") as file:
-            file.write(source)
+    args = parser.parse_args()
+    build_notebooks(NOTEBOOK_DIR, args.run_notebooks)
