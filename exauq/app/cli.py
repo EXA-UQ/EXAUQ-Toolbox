@@ -239,8 +239,8 @@ class Cli(cmd2.Cmd):
         stored in the workspace directory, and then a new application instance is
         initialised with these settings.
 
-        Currently the only possible hardware interface that can be used is the
-        ``UnixServerScriptInterface``. This methods creates and uses an instance of
+        Currently, the only possible hardware interface that can be used is the
+        ``UnixServerScriptInterface``. This method creates and uses an instance of
         ``UnixServerScriptInterfaceFactory`` to set up this interface.
         """
 
