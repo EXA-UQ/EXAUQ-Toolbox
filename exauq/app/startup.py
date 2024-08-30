@@ -311,6 +311,7 @@ class UnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
         )
         return OrderedDict(
             (
+                ("name", "Hardware interface name"),
                 ("host", "Host server address"),
                 ("user", "Host username"),
                 ("script_path", "Path to simulator script on host"),
