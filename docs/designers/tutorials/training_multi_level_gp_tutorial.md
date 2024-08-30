@@ -8,22 +8,17 @@ tutorial first if you haven't done so already.
 
 This tutorial will show you how to:
 
-* Work with multi-level objects (such as training data) using the `MultiLevel`
-  class.
+* Work with multi-level objects (such as training data) using the
+  [`MultiLevel`][exauq.core.modelling.MultiLevel] class.
 * Create training data for a multi-level emulation scenario.
 * Define and train a multi-level Gaussian process.
 * Make new predictions of simulator outputs using the trained multi-level GP.
 
-<div class="admonition note">
-<div class="result" markdown>
-    <p class="admonition-title">Note</p>
-    <p>
-        Due to the pseudo-stochastic nature of the algorithms for fitting
-        Gaussian processes, you may get slight differences in some of the code outputs in
-        this tutorial.
-    </p>
-</div>
-</div>
+!!! note
+    
+    Due to the pseudo-stochastic nature of the algorithms for fitting
+    Gaussian processes, you may get slight differences in some of the code outputs in
+    this tutorial.
 
 ## A toy multi-level simulator
 
@@ -83,9 +78,9 @@ def sim_delta(x: Input) -> float:
 ## Multi-level objects
 
 In order to help structure objects in the multi-level paradigm, the EXAUQ-Toolbox provides
-the `MultiLevel` class. This is like a dictionary, except that the keys are integers
-representing the levels. For example, we can create a multi-level collection of floating
-point numbers, for 3 levels, like so:
+the [`MultiLevel`][exauq.core.modelling.MultiLevel] class. This is like a dictionary,
+except that the keys are integers representing the levels. For example, we can create a
+multi-level collection of floating point numbers, for 3 levels, like so:
 
 
 ``` { .python .copy }
@@ -107,10 +102,12 @@ print("Level 3 value:", ml_numbers[3])
 </div>
 
 
-In general, providing a sequence of length `n` to `MultiLevel` will assign the list
-elements to the levels `1, 2, ..., n` in order.
+In general, providing a sequence of length `n` to
+[`MultiLevel`][exauq.core.modelling.MultiLevel] will assign the list elements to the
+levels `1, 2, ..., n` in order.
 
-We can get the levels in a multi-level collection by using the `levels` property:
+We can get the levels in a multi-level collection by using the
+[`levels`][exauq.core.modelling.MultiLevel.levels] property:
 
 
 ``` { .python .copy }
@@ -126,8 +123,9 @@ ml_numbers.levels
 
 
 
-As an application, let's use the `MultiLevel` class to encapsulate the different levels of
-our simulator, which will make our code a little neater later:
+As an application, let's use the [`MultiLevel`][exauq.core.modelling.MultiLevel] class to
+encapsulate the different levels of our simulator, which will make our code a little
+neater later:
 
 
 ``` { .python .copy }
@@ -221,8 +219,11 @@ print(repr(training_data[2][1]))
 
 ## Defining and fitting a multi-level GP
 
-Next, we need to define a multi-level GP with two levels, which we can do using the `MultiLevelGaussianProcess` class. To construct it, we need to create GPs for each level,
-which we'll do using the `MogpEmulator` class, with a Matern 5/2 kernel for each level.
+Next, we need to define a multi-level GP with two levels, which we can do using the
+[`MultiLevelGaussianProcess`][exauq.core.modelling.MultiLevelGaussianProcess] class.
+To construct it, we need to create GPs for each level, which we'll do using the
+[`MogpEmulator`][exauq.core.emulators.MogpEmulator] class, with a Matern 5/2 kernel for
+each level.
 
 
 ``` { .python .copy }
@@ -247,8 +248,9 @@ mlgp = MultiLevelGaussianProcess([gp1, gp2])
 arise when initialising a new GP due to the fact that it hasn't been trained on any data.)
 
 As with ordinary GPs, we can verify that our multi-level GP hasn't yet been trained on
-data. Note that each level of the GP has its own training data, so the `training_data`
-property of the multi-level GP is a `MultiLevel` object: 
+data. Note that each level of the GP has its own training data, so the
+[`training_data`][exauq.core.modelling.MultiLevelGaussianProcess.training_data]
+property of the multi-level GP is a [`MultiLevel`][exauq.core.modelling.MultiLevel] object: 
 
 
 ``` { .python .copy }
@@ -265,7 +267,7 @@ mlgp.training_data
 
 
 Finally, we train the multi-level GP with the multi-level data we created earlier, using
-the `fit` method:
+the [`fit`][exauq.core.modelling.MultiLevelGaussianProcess.fit] method:
 
 
 ``` { .python .copy }
@@ -280,9 +282,10 @@ assert len(mlgp.training_data[2]) == 5
 
 To finish off, let's use our newly-trained multi-level GP to estimate the output of our
 top-level simulator at a new input. We make a prediction with the multi-level GP using the
-`predict` method. As described in the tutorial, [Training a Gaussian Process
-Emulator](./training_gp_tutorial.md), the prediction consists of both the point
-estimate and a measure of the uncertainty of the prediction:
+[`predict`][exauq.core.modelling.MultiLevelGaussianProcess.predict] method. As described
+in the tutorial, [Training a Gaussian Process Emulator](./training_gp_tutorial.md), the
+prediction consists of both the point estimate and a measure of the uncertainty of the
+prediction:
 
 
 ``` { .python .copy }

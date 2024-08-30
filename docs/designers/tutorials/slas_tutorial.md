@@ -7,25 +7,22 @@ impact' on improving the fit of the GP.
 
 This tutorial will show you how to:
 
-* Use the function `compute_single_level_loo_samples` from the `exauq.core.designers`
-  module to extend an initial experimental design with a new design point (or batch of
+* Use the function
+  [`compute_single_level_loo_samples`][exauq.core.designers.compute_single_level_loo_samples]
+  to extend an initial experimental design with a new design point (or batch of
   new design points).
 * How to repeatedly add new design points using this method.
 
 If you are unfamiliar with how to train a GP using the EXAUQ-Toolbox, you may want to
 first work through the tutorial, [Training A Gaussian Process Emulator](./training_gp_tutorial.md).
 
-<div class="admonition note">
-<div class="result" markdown>
-    <p class="admonition-title">Note</p>
-    <p>
-        The function <code>compute_single_level_loo_samples</code> implements the
-        cross-validation-based adaptive sampling for GPs, as described in
-        Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for Gaussian process models". DOI:
-        <a href="https://doi.org/10.1137/21M1404260">https://doi.org/10.1137/21M1404260</a>.
-    </p>
-</div>
-</div>
+!!! note
+
+    The function
+    [`compute_single_level_loo_samples`][exauq.core.designers.compute_single_level_loo_samples]
+    implements the cross-validation-based adaptive sampling for GPs, as described in
+    Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for Gaussian process models". DOI:
+    <https://doi.org/10.1137/21M1404260>.
 
 
 ## Setup
@@ -102,10 +99,12 @@ Let's now find a new design point using the leave-one-out adaptive design method
 idea is to take our current GP and find a new design point (or batch or points) that will
 have 'the greatest impact' on improving the fit of the GP, when combined with the
 corresponding simulator output (or outputs in the batch case). We use the function
-`compute_single_level_loo_samples` to do this. This function requires two arguments:
+[`compute_single_level_loo_samples`][exauq.core.designers.compute_single_level_loo_samples]
+to do this. This function requires two arguments:
 
 - The GP to find the new design point for.
-- The `SimulatorDomain` describing the domain on which the simulator is defined.
+- The [`SimulatorDomain`][exauq.core.modelling.SimulatorDomain] describing the domain on
+  which the simulator is defined.
 
 By default, a batch consisting of a single, new design point will be calculated:
 

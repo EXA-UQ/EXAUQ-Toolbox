@@ -13,14 +13,12 @@ to:
 * Make new predictions of simulator outputs using the trained GP.
 
 <div class="admonition note">
-<div class="result" markdown>
     <p class="admonition-title">Note</p>
     <p>
         Due to the pseudo-stochastic nature of the algorithms for fitting
         Gaussian processes, you may get slight differences in some of the code outputs in
         this tutorial.
     </p>
-</div>
 </div>
 
 ## Simulator domain and inputs
@@ -38,7 +36,8 @@ exascale levels of computational power — and the domain will have more quite a
 dimensions than just two.)
 
 We begin by creating the domain of the simulator to represent the above rectangle. We
-do this by using the `SimulatorDomain` class, like so:
+do this by using the [`SimulatorDomain`][exauq.core.modelling.SimulatorDomain] class,
+like so:
 
 
 ``` { .python .copy }
@@ -49,7 +48,8 @@ bounds = [(-1, 1), (1, 100)]
 domain = SimulatorDomain(bounds)
 ```
 
-The dimension of the domain, i.e. the number of coordinates defining it, can be obtained using the `dim` property:
+The dimension of the domain, i.e. the number of coordinates defining it, can be obtained
+using the [`dim`][exauq.core.modelling.SimulatorDomain.dim] property:
 
 
 ``` { .python .copy }
@@ -61,8 +61,9 @@ print("Dimension of domain:", domain.dim)
 </div>
 
 
-To represent the inputs to the simulator, the EXAUQ-Toolbox uses objects called `Input`s,
-which behave much like ordinary tuples of numbers. We can create `Input` objects like so:
+To represent the inputs to the simulator, the EXAUQ-Toolbox uses objects called
+[`Input`][exauq.core.modelling.Input]s, which behave much like ordinary tuples of numbers.
+We can create [`Input`][exauq.core.modelling.Input] objects like so:
 
 
 ``` { .python .copy }
@@ -72,8 +73,9 @@ x1 = Input(0, 99)  # i.e. (0, 99)
 x2 = Input(1, 0)  # i.e. (1, 0)
 ```
 
-`Input`s behave like `tuple`s, in that we can get their length (i.e. the dimension of
-the input point) and access the individual coordinates using Python's (0-based) indexing.
+[`Input`][exauq.core.modelling.Input]s behave like `tuple`s, in that we can get their
+length (i.e. the dimension of the input point) and access the individual coordinates using
+Python's (0-based) indexing.
 
 
 ``` { .python .copy }
@@ -89,8 +91,8 @@ print("Second coordinate of x1:", x1[1])
 </div>
 
 
-We can also verify whether an `Input` belongs to a simulator domain using the `in`
-operator:
+We can also verify whether an [`Input`][exauq.core.modelling.Input] belongs to a simulator
+domain using the [`in`][exauq.core.modelling.SimulatorDomain.__contains__] operator:
 
 
 ``` { .python .copy }
@@ -162,14 +164,18 @@ print(lhs_array)
 
 Note that the previous code block created a Numpy array of values, of shape `(20, 2)`,
 and each value lies between 0 and 1. In order to work with the design with the
-EXAUQ-Toolbox, we need to convert the array into a sequence of `Input` objects.
-Furthermore, because we want a design that fills the whole of our simulator
-domain $\mathcal{D}$, we need to also rescale the inputs from the unit square to our
+EXAUQ-Toolbox, we need to convert the array into a sequence of
+[`Input`][exauq.core.modelling.Input] objects. Furthermore, because we want a design that
+fills the whole of our simulator domain $\mathcal{D}$, we need to also rescale the inputs
+from the unit square to our
 domain. 
 
-Fortunately, we can use the `scale` method from `SimulatorDomain` to accomplish this in
-one go. We loop through the Numpy array and use the `scale` method to convert each row of
-the array into an `Input` object that is rescaled to live in the domain:
+Fortunately, we can use the [`scale`][exauq.core.modelling.SimulatorDomain.scale] method
+from [`SimulatorDomain`][exauq.core.modelling.SimulatorDomain] to accomplish this in
+one go. We loop through the Numpy array and use the
+[`scale`][exauq.core.modelling.SimulatorDomain.scale] method to convert each row of
+the array into an [`Input`][exauq.core.modelling.Input] object that is rescaled to live
+in the domain:
 
 
 ``` { .python .copy }
@@ -190,10 +196,11 @@ This defines our one-shot experimental design. Next let's go on to train a Gauss
 
 ## Training a GP
 
-The EXAUQ-Toolbox provides an implementation of Gaussian processes via the `MogpEmulator`
-class. This is based on the
+The EXAUQ-Toolbox provides an implementation of Gaussian processes via the
+[`MogpEmulator`][exauq.core.emulators.MogpEmulator] class. This is based on the
 [mogp_emulator](https://mogp-emulator.readthedocs.io/en/latest/index.html) package, but
-provides a simpler interface. Furthermore, the `MogpEmulator` class implicitly assumes a
+provides a simpler interface. Furthermore, the
+[`MogpEmulator`][exauq.core.emulators.MogpEmulator] class implicitly assumes a
 zero mean function. We'll create a GP that uses a Matern 5/2 kernel function. (The
 messages printed are from the `mogp_emulator` package and can be ignored: they arise
 because the GP hasn't yet been trained on any data.)
@@ -211,9 +218,10 @@ gp = MogpEmulator(kernel="Matern52")
 </div>
 
 
-The `training_data` property of `MogpEmulator` objects returns a tuple of the data that
-the GP has been trained on, if at all. We can verify that our GP hasn't yet been trained
-on any data, as evidenced by the empty tuple:
+The [`training_data`][exauq.core.emulators.MogpEmulator.training_data] property of
+[`MogpEmulator`][exauq.core.emulators.MogpEmulator]
+objects returns a tuple of the data that the GP has been trained on, if at all. We can
+verify that our GP hasn't yet been trained on any data, as evidenced by the empty tuple:
 
 
 ``` { .python .copy }
@@ -231,9 +239,10 @@ gp.training_data
 
 In order to train a GP, we need not just the experimental design that we created earlier
 but also the simulator outputs for the inputs in the design. The inputs and corresponding
-outputs need to be combined to create a sequence of `TrainingDatum` objects, which will be
-fed into the GP to train it. The following code first calculates the simulator outputs for
-the design inputs, then creates a list of training data:
+outputs need to be combined to create a sequence of
+[`TrainingDatum`][exauq.core.modelling.TrainingDatum] objects, which will be fed into the
+GP to train it. The following code first calculates the simulator outputs for the design
+inputs, then creates a list of training data:
 
 
 ``` { .python .copy }
@@ -258,7 +267,8 @@ data[0]
 
 
 
-To train our GP, we use the `fit` method with the training data:
+To train our GP, we use the [`fit`][exauq.core.emulators.MogpEmulator.fit] method with the
+training data:
 
 
 ``` { .python .copy }
@@ -274,12 +284,17 @@ our GP, making it ready to emulate our simulator. We put this to work in the nex
 ## Making predictions with the GP
 
 To finish off, let's use our newly-trained GP to estimate the output of our simulator at a
-new input. We make a prediction with the GP using the `predict` method. Predictions from
+new input. We make a prediction with the GP using the
+[`predict`][exauq.core.emulators.MogpEmulator.predict] method. Predictions from
 GPs come with both the actual estimate and a measure of the uncertainty of that estimate.
-This is packaged up in a `GaussianProcessPrediction` object, which provides the `estimate`
-property for the point estimate and the `variance` and `standard_deviation` properties
-for a measure of the uncertainty (as the predictive variance and standard deviation,
-respectfully).
+This is packaged up in a
+[`GaussianProcessPrediction`][exauq.core.modelling.GaussianProcessPrediction] object,
+which provides the [`estimate`][exauq.core.modelling.GaussianProcessPrediction.estimate]
+property for the point estimate and the
+[`variance`][exauq.core.modelling.GaussianProcessPrediction.variance] and
+[`standard_deviation`][exauq.core.modelling.GaussianProcessPrediction.standard_deviation]
+properties for a measure of the uncertainty (as the predictive variance and standard
+deviation, respectfully).
 
 
 ``` { .python .copy }
@@ -319,7 +334,9 @@ print("Percentage error:", pct_error)
 </div>
 
 
-Finally, because the prediction comes from a GP, we can also calculate the normalised expected square error, which gives a measure of the (absolute, squared) error that accounts for the uncertainty in the prediction:
+Finally, because the prediction comes from a GP, we can also calculate the normalised
+expected square error, which gives a measure of the (absolute, squared) error that
+accounts for the uncertainty in the prediction:
 
 
 ``` { .python .copy }
