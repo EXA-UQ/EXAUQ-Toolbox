@@ -286,8 +286,10 @@ class Cli(cmd2.Cmd):
 
                 self.poutput(f"Selected: {display_name}")
 
-                self.poutput("Please provide the following details for your hardware "
-                             "interface...")
+                self.poutput(
+                    "Please provide the following details for your hardware "
+                    "interface..."
+                )
                 for param, prompt in factory.interactive_prompts.items():
                     value_str = input(f"  {prompt}: ")
                     try:
@@ -300,12 +302,16 @@ class Cli(cmd2.Cmd):
 
                 self._workspace_dir.mkdir(exist_ok=True)
                 interface_name = hardware_interfaces[-1].name
-                hardware_params_filename = hardware_params_prefix + interface_name + ".json"
+                hardware_params_filename = (
+                    hardware_params_prefix + interface_name + ".json"
+                )
                 hardware_params_file = self._workspace_dir / hardware_params_filename
                 factory.serialise_hardware_parameters(hardware_params_file)
 
-                interface_details[interface_name] = {"factory": factory_cls.__name__,
-                                                     "params": hardware_params_filename}
+                interface_details[interface_name] = {
+                    "factory": factory_cls.__name__,
+                    "params": hardware_params_filename,
+                }
 
                 if input("  Add another hardware interface? (y/n): ").lower() != "y":
                     break
@@ -331,7 +337,9 @@ class Cli(cmd2.Cmd):
             self.poutput(f"Using workspace '{self._workspace_dir}'.")
             general_settings = read_settings_json(general_settings_file)
 
-            for interface_name, interface_details in general_settings["interfaces"].items():
+            for interface_name, interface_details in general_settings[
+                "interfaces"
+            ].items():
                 factory_cls = interface_details["factory"]
                 hardware_params_filename = interface_details["params"]
                 hardware_params_file = self._workspace_dir / hardware_params_filename
@@ -407,7 +415,9 @@ class Cli(cmd2.Cmd):
         if args.twr:
             statuses = {JobStatus.CANCELLED, JobStatus.FAILED, JobStatus.FAILED_SUBMIT}
         else:
-            statuses_included = parse_statuses_string_to_set(args.status, empty_to_all=True)
+            statuses_included = parse_statuses_string_to_set(
+                args.status, empty_to_all=True
+            )
             statuses_excluded = parse_statuses_string_to_set(args.status_not)
             statuses = statuses_included - statuses_excluded
 
@@ -424,11 +434,9 @@ class Cli(cmd2.Cmd):
         old_ids = tuple(old_id for old_id, _, _ in jobs)
         new_ids = tuple(new_id for _, new_id, _ in jobs)
         inputs = tuple(data for _, _, data in jobs)
-        data = OrderedDict([
-            ("OLD_JOBID", old_ids),
-            ("NEW_JOBID", new_ids),
-            (self._INPUT_HEADER, inputs)
-        ])
+        data = OrderedDict(
+            [("OLD_JOBID", old_ids), ("NEW_JOBID", new_ids), (self._INPUT_HEADER, inputs)]
+        )
         return self._make_table(data)
 
     @cmd2.with_argparser(resubmit_parser)
