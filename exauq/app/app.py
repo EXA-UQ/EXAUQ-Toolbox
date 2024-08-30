@@ -44,7 +44,7 @@ class App:
 
     def __init__(
         self,
-        interface: HardwareInterface,
+        interfaces: list[HardwareInterface],
         input_dim: int,
         simulations_log_file: FilePath = "simulations.csv",
     ):
@@ -54,11 +54,11 @@ class App:
         """
         self._sim_log_path = simulations_log_file
         self._input_dim = input_dim
-        self._interface = interface
+        self._interfaces = interfaces
         self._sim_log = SimulationsLog(self._sim_log_path, self._input_dim)
         self._job_manager = JobManager(
             simulations_log=self._sim_log,
-            interfaces=[self._interface],
+            interfaces=self._interfaces,
             polling_interval=10,
             wait_for_pending=False,
         )
