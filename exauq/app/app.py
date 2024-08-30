@@ -58,7 +58,7 @@ class App:
         self._sim_log = SimulationsLog(self._sim_log_path, self._input_dim)
         self._job_manager = JobManager(
             simulations_log=self._sim_log,
-            interface=self._interface,
+            interfaces=[self._interface],
             polling_interval=10,
             wait_for_pending=False,
         )
