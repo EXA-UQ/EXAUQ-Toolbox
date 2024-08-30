@@ -94,12 +94,13 @@ if __name__ == "__main__":
         description="Build markdown docs from Jupyter notebooks."
     )
     parser.add_argument(
-        "-x",
-        "--run-notebooks",
-        action="store_true",
+        "-n",
+        "--no-run-notebooks",
+        action="store_false",
+        dest="run_notebooks",
         help=(
-            "run each notebook before building a markdown version, and crash out if "
-            "there were errors (default is to not run the notebooks)"
+            "do not run each notebook before building a markdown version (default is to "
+            "run the notebooks)"
         ),
     )
 
