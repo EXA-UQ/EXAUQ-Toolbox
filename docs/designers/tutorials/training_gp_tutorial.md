@@ -13,12 +13,14 @@ to:
 * Make new predictions of simulator outputs using the trained GP.
 
 <div class="admonition note">
+<div class="result" markdown>
     <p class="admonition-title">Note</p>
     <p>
         Due to the pseudo-stochastic nature of the algorithms for fitting
         Gaussian processes, you may get slight differences in some of the code outputs in
         this tutorial.
     </p>
+</div>
 </div>
 
 ## Simulator domain and inputs
@@ -39,7 +41,7 @@ We begin by creating the domain of the simulator to represent the above rectangl
 do this by using the `SimulatorDomain` class, like so:
 
 
-```python
+``` { .python .copy }
 from exauq.core.modelling import SimulatorDomain
 
 # The bounds define the lower and upper bounds on each coordinate
@@ -50,18 +52,20 @@ domain = SimulatorDomain(bounds)
 The dimension of the domain, i.e. the number of coordinates defining it, can be obtained using the `dim` property:
 
 
-```python
+``` { .python .copy }
 print("Dimension of domain:", domain.dim)
 ```
 
+<div class="result" markdown>
     Dimension of domain: 2
+</div>
 
 
 To represent the inputs to the simulator, the EXAUQ-Toolbox uses objects called `Input`s,
 which behave much like ordinary tuples of numbers. We can create `Input` objects like so:
 
 
-```python
+``` { .python .copy }
 from exauq.core.modelling import Input
 
 x1 = Input(0, 99)  # i.e. (0, 99)
@@ -72,28 +76,32 @@ x2 = Input(1, 0)  # i.e. (1, 0)
 the input point) and access the individual coordinates using Python's (0-based) indexing.
 
 
-```python
+``` { .python .copy }
 print("Dimension of x1:", len(x1))
 print("First coordinate of x1:", x1[0])
 print("Second coordinate of x1:", x1[1])
 ```
 
+<div class="result" markdown>
     Dimension of x1: 2
     First coordinate of x1: 0
     Second coordinate of x1: 99
+</div>
 
 
 We can also verify whether an `Input` belongs to a simulator domain using the `in`
 operator:
 
 
-```python
+``` { .python .copy }
 print(x1 in domain)  # x1 is contained in the domain
 print(x2 in domain)  # x2 is not contained in the domain
 ```
 
+<div class="result" markdown>
     True
     False
+</div>
 
 
 We now define our toy simulator function to be the mathematical function
@@ -103,7 +111,7 @@ $$
 In code, this is given as follows:
 
 
-```python
+``` { .python .copy }
 import numpy as np
 
 def sim_func(x: Input) -> float:
@@ -118,7 +126,7 @@ def sim_func(x: Input) -> float:
 We'll now go on to create a one-shot experimental design for this simulator, using the Latin hypercube method. The following code uses functionality provided by [scipy](https://scipy.org/) to create a Latin hypercube sample of 20 new input points.
 
 
-```python
+``` { .python .copy }
 from scipy.stats.qmc import LatinHypercube
 
 # Use the dimension of the domain in defining the Latin hypercube sampler.
@@ -128,6 +136,7 @@ lhs_array = sampler.random(n=20)
 print(lhs_array)
 ```
 
+<div class="result" markdown>
     [[0.27440892 0.75247682]
      [0.59279202 0.05256753]
      [0.83440843 0.72883368]
@@ -148,6 +157,7 @@ print(lhs_array)
      [0.51934983 0.20413511]
      [0.64802036 0.67357054]
      [0.07703321 0.04688252]]
+</div>
 
 
 Note that the previous code block created a Numpy array of values, of shape `(20, 2)`,
@@ -162,7 +172,7 @@ one go. We loop through the Numpy array and use the `scale` method to convert ea
 the array into an `Input` object that is rescaled to live in the domain:
 
 
-```python
+``` { .python .copy }
 lhs_inputs = [domain.scale(row) for row in lhs_array]
 
 # Print the first couple of inputs to verify conversion:
@@ -170,8 +180,10 @@ print(repr(lhs_inputs[0]))
 print(repr(lhs_inputs[1]))
 ```
 
+<div class="result" markdown>
     Input(np.float64(-0.45118216247002574), np.float64(75.49520470318662))
     Input(np.float64(0.18558403872803675), np.float64(6.204185236670643))
+</div>
 
 
 This defines our one-shot experimental design. Next let's go on to train a Gaussian process emulator with this design.
@@ -187,14 +199,16 @@ messages printed are from the `mogp_emulator` package and can be ignored: they a
 because the GP hasn't yet been trained on any data.)
 
 
-```python
+``` { .python .copy }
 from exauq.core.emulators import MogpEmulator
 
 gp = MogpEmulator(kernel="Matern52")
 ```
 
+<div class="result" markdown>
     Too few unique inputs; defaulting to flat priors
     Too few unique inputs; defaulting to flat priors
+</div>
 
 
 The `training_data` property of `MogpEmulator` objects returns a tuple of the data that
@@ -202,14 +216,16 @@ the GP has been trained on, if at all. We can verify that our GP hasn't yet been
 on any data, as evidenced by the empty tuple:
 
 
-```python
+``` { .python .copy }
 gp.training_data
 ```
 
 
 
 
+<div class="result" markdown>
     ()
+</div>
 
 
 
@@ -220,7 +236,7 @@ fed into the GP to train it. The following code first calculates the simulator o
 the design inputs, then creates a list of training data:
 
 
-```python
+``` { .python .copy }
 from exauq.core.modelling import TrainingDatum
 
 # Calculate simulator outputs using our toy simulator function
@@ -236,14 +252,16 @@ data[0]
 
 
 
+<div class="result" markdown>
     TrainingDatum(input=Input(np.float64(-0.45118216247002574), np.float64(75.49520470318662)), output=np.float64(5772.805093637131))
+</div>
 
 
 
 To train our GP, we use the `fit` method with the training data:
 
 
-```python
+``` { .python .copy }
 gp.fit(data)
 
 # Verify training by examining the training data
@@ -264,7 +282,7 @@ for a measure of the uncertainty (as the predictive variance and standard deviat
 respectfully).
 
 
-```python
+``` { .python .copy }
 x = Input(0.5, 50)
 prediction = gp.predict(x)
 
@@ -274,16 +292,18 @@ print("Variance of estimate:", prediction.variance)
 print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
-    GaussianProcessPrediction(estimate=np.float64(2549.6067867617385), variance=np.float64(2.5214224755764008), standard_deviation=1.5878987611231394)
-    Point estimate: 2549.6067867617385
-    Variance of estimate: 2.5214224755764008
-    Standard deviation of estimate: 1.5878987611231394
+<div class="result" markdown>
+    GaussianProcessPrediction(estimate=np.float64(2549.606794849351), variance=np.float64(2.5214422941207886), standard_deviation=1.5879050016045635)
+    Point estimate: 2549.606794849351
+    Variance of estimate: 2.5214422941207886
+    Standard deviation of estimate: 1.5879050016045635
+</div>
 
 
 Let's see how well the prediction did against the true simulator value:
 
 
-```python
+``` { .python .copy }
 y = sim_func(x)  # the true value
 pct_error = 100 * abs((prediction.estimate - y) / y)
 
@@ -292,21 +312,25 @@ print("Actual simulator value:", y)
 print("Percentage error:", pct_error)
 ```
 
-    Predicted value: 2549.6067867617385
+<div class="result" markdown>
+    Predicted value: 2549.606794849351
     Actual simulator value: 2548.835786437627
-    Percentage error: 0.030249117193577302
+    Percentage error: 0.03024943449971985
+</div>
 
 
 Finally, because the prediction comes from a GP, we can also calculate the normalised expected square error, which gives a measure of the (absolute, squared) error that accounts for the uncertainty in the prediction:
 
 
-```python
+``` { .python .copy }
 prediction.nes_error(y)
 ```
 
 
 
 
-    0.7203372088729851
+<div class="result" markdown>
+    0.7203374977305831
+</div>
 
 

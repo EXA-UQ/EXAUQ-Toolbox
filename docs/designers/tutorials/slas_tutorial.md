@@ -16,6 +16,7 @@ If you are unfamiliar with how to train a GP using the EXAUQ-Toolbox, you may wa
 first work through the tutorial, [Training A Gaussian Process Emulator](./training_gp_tutorial.md).
 
 <div class="admonition note">
+<div class="result" markdown>
     <p class="admonition-title">Note</p>
     <p>
         The function <code>compute_single_level_loo_samples</code> implements the
@@ -23,6 +24,7 @@ first work through the tutorial, [Training A Gaussian Process Emulator](./traini
         Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for Gaussian process models". DOI:
         <a href="https://doi.org/10.1137/21M1404260">https://doi.org/10.1137/21M1404260</a>.
     </p>
+</div>
 </div>
 
 
@@ -38,7 +40,7 @@ $(x_1, x_2)$ where $-1 \leq x_1 \leq 1$ and $1 \leq x_2 \leq 100$. We can expres
 code as follows:
 
 
-```python
+``` { .python .copy }
 from exauq.core.modelling import SimulatorDomain, Input
 import numpy as np
 
@@ -60,7 +62,7 @@ aid of [scipy](https://scipy.org/)) and using a GP with a Matern 5/2 kernel. The
 [Training A Gaussian Process Emulator](./training_gp_tutorial.md).
 
 
-```python
+``` { .python .copy }
 from scipy.stats.qmc import LatinHypercube
 from exauq.core.modelling import TrainingDatum
 from exauq.core.emulators import MogpEmulator
@@ -85,8 +87,10 @@ gp = MogpEmulator(kernel="Matern52")
 gp.fit(data)
 ```
 
+<div class="result" markdown>
     Too few unique inputs; defaulting to flat priors
     Too few unique inputs; defaulting to flat priors
+</div>
 
 
 (The messages printed are from the `mogp_emulator` package and can be ignored: they
@@ -106,7 +110,7 @@ corresponding simulator output (or outputs in the batch case). We use the functi
 By default, a batch consisting of a single, new design point will be calculated:
 
 
-```python
+``` { .python .copy }
 from exauq.core.designers import compute_single_level_loo_samples
 
 # Suppress warnings that arise from mogp_emulator
@@ -120,7 +124,9 @@ new_design_pts[0]
 
 
 
-    Input(np.float64(0.7567085448645503), np.float64(57.21106166608449))
+<div class="result" markdown>
+    Input(np.float64(0.9123648084857612), np.float64(57.969585575716906))
+</div>
 
 
 
@@ -128,7 +134,7 @@ If instead we want to compute multiple new design points in one go, we can do th
 specifying a different batch size:
 
 
-```python
+``` { .python .copy }
 new_design_pts = compute_single_level_loo_samples(gp, domain, batch_size=5)
 new_design_pts
 ```
@@ -136,11 +142,13 @@ new_design_pts
 
 
 
-    (Input(np.float64(-0.8878723653186296), np.float64(54.91469164105966)),
-     Input(np.float64(0.4014917314330182), np.float64(56.65413397149486)),
-     Input(np.float64(-0.7791653570882409), np.float64(56.444472500139696)),
-     Input(np.float64(0.8971048282589944), np.float64(47.48264288797346)),
-     Input(np.float64(0.9596768835095553), np.float64(51.622284034874035)))
+<div class="result" markdown>
+    (Input(np.float64(0.3121786431504767), np.float64(55.84731888607564)),
+     Input(np.float64(-0.714369858819013), np.float64(56.467075523054405)),
+     Input(np.float64(-0.7031285324472387), np.float64(52.94237232599945)),
+     Input(np.float64(-0.6948171961040246), np.float64(54.291724400055024)),
+     Input(np.float64(0.32094153495984545), np.float64(54.75773060166758)))
+</div>
 
 
 
@@ -151,7 +159,7 @@ It's worth pointing out that these design points are not equal to any of the tra
 for the GP:
 
 
-```python
+``` { .python .copy }
 training_inputs = [datum.input for datum in gp.training_data]
 for x in new_design_pts:
     assert not any(x == x_train for x_train in training_inputs)
@@ -164,7 +172,7 @@ This first requires us to compute the simulator values at the design points (in 
 using the toy function defined earlier) in order to create new training data:
 
 
-```python
+``` { .python .copy }
 new_outputs = [sim_func(x) for x in new_design_pts]
 new_data = [TrainingDatum(x, y) for x, y in zip(new_design_pts, new_outputs)]
 ```
@@ -172,7 +180,7 @@ new_data = [TrainingDatum(x, y) for x, y in zip(new_design_pts, new_outputs)]
 To update the GP, we fit it with both the old and new training data combined:
 
 
-```python
+``` { .python .copy }
 # gp.training_data is a tuple, so make a list to extend
 # with the new data
 data = list(gp.training_data) + new_data
@@ -182,7 +190,9 @@ gp.fit(data)
 print("Number of training data:", len(gp.training_data))
 ```
 
+<div class="result" markdown>
     Number of training data: 25
+</div>
 
 
 This completes one adaptive sampling 'iteration'. It's important to note that, when
@@ -198,7 +208,7 @@ also introduced a helper function to assist in retraining the GP. (Once again, t
 messages printed are from the `mogp_emulator` package and can be ignored.)
 
 
-```python
+``` { .python .copy }
 def update_gp(gp, additional_data):
     """Updates the fit of the supplied GP with additional training data."""
 
@@ -220,57 +230,37 @@ for i in range(5):
 
 ```
 
-    Prior solver failed to converge
-    Prior solver failed to converge
-
-
-    Prior solver failed to converge
-    Prior solver failed to converge
-
-
-    Prior solver failed to converge
-
-
-    Prior solver failed to converge
-
-
-    Prior solver failed to converge
-
-
-    Prior solver failed to converge
-    Prior solver failed to converge
-
-
-    Prior solver failed to converge
-
-
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-
-
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-
-
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-
-
-    Prior solver failed to converge
-    Prior solver failed to converge
-
-
+<div class="result" markdown>
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
-
-
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+</div>
 

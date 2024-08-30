@@ -15,12 +15,14 @@ This tutorial will show you how to:
 * Make new predictions of simulator outputs using the trained multi-level GP.
 
 <div class="admonition note">
+<div class="result" markdown>
     <p class="admonition-title">Note</p>
     <p>
         Due to the pseudo-stochastic nature of the algorithms for fitting
         Gaussian processes, you may get slight differences in some of the code outputs in
         this tutorial.
     </p>
+</div>
 </div>
 
 ## A toy multi-level simulator
@@ -55,7 +57,7 @@ and $\delta$, which allows us to emulate each function separately via a multi-le
 We express all this in code as follows:
 
 
-```python
+``` { .python .copy }
 from exauq.core.modelling import SimulatorDomain, Input
 import numpy as np
 
@@ -86,7 +88,7 @@ representing the levels. For example, we can create a multi-level collection of 
 point numbers, for 3 levels, like so:
 
 
-```python
+``` { .python .copy }
 from exauq.core.modelling import MultiLevel
 
 # Creates floating point numbers at levels 1, 2 and 3
@@ -98,9 +100,11 @@ print("Level 2 value:", ml_numbers[2])
 print("Level 3 value:", ml_numbers[3])
 ```
 
+<div class="result" markdown>
     Level 1 value: 1.1
     Level 2 value: 2.2
     Level 3 value: 3.3
+</div>
 
 
 In general, providing a sequence of length `n` to `MultiLevel` will assign the list
@@ -109,14 +113,16 @@ elements to the levels `1, 2, ..., n` in order.
 We can get the levels in a multi-level collection by using the `levels` property:
 
 
-```python
+``` { .python .copy }
 ml_numbers.levels
 ```
 
 
 
 
+<div class="result" markdown>
     (1, 2, 3)
+</div>
 
 
 
@@ -124,7 +130,7 @@ As an application, let's use the `MultiLevel` class to encapsulate the different
 our simulator, which will make our code a little neater later:
 
 
-```python
+``` { .python .copy }
 ml_simulator = MultiLevel([sim_level1, sim_delta])
 ```
 
@@ -143,7 +149,7 @@ experimental design from a Latin hypercube sample, see the section,
 [Training a Gaussian Process Emulator](./training_gp_tutorial.md) tutorial.)
 
 
-```python
+``` { .python .copy }
 from scipy.stats.qmc import LatinHypercube
 from exauq.core.modelling import MultiLevel, TrainingDatum
 
@@ -168,7 +174,7 @@ each level separately. Note how we use the multi-level object of simulator funct
 created earlier.
 
 
-```python
+``` { .python .copy }
 # Create level 1 simulator outputs and training data
 outputs1 = [ml_simulator[1](x) for x in design[1]]
 data1 = [TrainingDatum(x, y) for x, y in zip(lhs_inputs1, outputs1)]
@@ -185,7 +191,7 @@ If we wish, we can verify that we have the correct data at each level by doing s
 manual inspections:
 
 
-```python
+``` { .python .copy }
 print("Number of level 1 training data:", len(training_data[1]))
 print("Number of level 2 training data:", len(training_data[2]))
 
@@ -199,6 +205,7 @@ print(repr(training_data[2][0]))
 print(repr(training_data[2][1]))
 ```
 
+<div class="result" markdown>
     Number of level 1 training data: 20
     Number of level 2 training data: 5
     
@@ -209,6 +216,7 @@ print(repr(training_data[2][1]))
     Level 2:
     TrainingDatum(input=Input(np.float64(-0.6860872668651894), np.float64(8.14123867468156)), output=np.float64(0.04053108865750232))
     TrainingDatum(input=Input(np.float64(0.2779780667419962), np.float64(61.11931671766958)), output=np.float64(0.857129851613081))
+</div>
 
 
 ## Defining and fitting a multi-level GP
@@ -217,7 +225,7 @@ Next, we need to define a multi-level GP with two levels, which we can do using 
 which we'll do using the `MogpEmulator` class, with a Matern 5/2 kernel for each level.
 
 
-```python
+``` { .python .copy }
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import MultiLevelGaussianProcess
 
@@ -227,10 +235,12 @@ gp2 = MogpEmulator(kernel="Matern52")
 mlgp = MultiLevelGaussianProcess([gp1, gp2])
 ```
 
+<div class="result" markdown>
     Too few unique inputs; defaulting to flat priors
     Too few unique inputs; defaulting to flat priors
     Too few unique inputs; defaulting to flat priors
     Too few unique inputs; defaulting to flat priors
+</div>
 
 
 (The messages printed are from the `mogp_emulator` package and can be ignored: they
@@ -241,14 +251,16 @@ data. Note that each level of the GP has its own training data, so the `training
 property of the multi-level GP is a `MultiLevel` object: 
 
 
-```python
+``` { .python .copy }
 mlgp.training_data
 ```
 
 
 
 
+<div class="result" markdown>
     MultiLevel({1: (), 2: ()})
+</div>
 
 
 
@@ -256,7 +268,7 @@ Finally, we train the multi-level GP with the multi-level data we created earlie
 the `fit` method:
 
 
-```python
+``` { .python .copy }
 mlgp.fit(training_data)
 
 # Verify that the data is as we expect
@@ -273,7 +285,7 @@ Emulator](./training_gp_tutorial.md), the prediction consists of both the point
 estimate and a measure of the uncertainty of the prediction:
 
 
-```python
+``` { .python .copy }
 x = Input(0.5, 50)
 prediction = mlgp.predict(x)
 
@@ -283,16 +295,18 @@ print("Variance of estimate:", prediction.variance)
 print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
-    GaussianProcessPrediction(estimate=np.float64(2549.8545299083357), variance=np.float64(1.2361476969878584), standard_deviation=1.1118217919198465)
-    Point estimate: 2549.8545299083357
-    Variance of estimate: 1.2361476969878584
-    Standard deviation of estimate: 1.1118217919198465
+<div class="result" markdown>
+    GaussianProcessPrediction(estimate=np.float64(2549.8545301180034), variance=np.float64(1.236147336654947), standard_deviation=1.1118216298736714)
+    Point estimate: 2549.8545301180034
+    Variance of estimate: 1.236147336654947
+    Standard deviation of estimate: 1.1118216298736714
+</div>
 
 
 Let's see how well the prediction did against the true simulator value:
 
 
-```python
+``` { .python .copy }
 y = sim_func(x)  # the true value
 pct_error = 100 * abs((prediction.estimate - y) / y)
 
@@ -301,22 +315,26 @@ print("Actual simulator value:", y)
 print("Percentage error:", pct_error)
 ```
 
-    Predicted value: 2549.8545299083357
+<div class="result" markdown>
+    Predicted value: 2549.8545301180034
     Actual simulator value: 2548.835786437627
-    Percentage error: 0.039968972349233134
+    Percentage error: 0.03996898057524886
+</div>
 
 
 As in the non-levelled case, we can also calculate the normalised expected square error
 for the prediction:
 
 
-```python
+``` { .python .copy }
 prediction.nes_error(y)
 ```
 
 
 
 
-    0.7947013663196281
+<div class="result" markdown>
+    0.7947014462360164
+</div>
 
 

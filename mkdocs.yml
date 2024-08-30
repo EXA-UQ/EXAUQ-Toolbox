@@ -29,7 +29,6 @@ nav:
       - "Training a Gaussian Process Emulator": "designers/tutorials/training_gp_tutorial.md"
       - "Training a Multi-Level Gaussian Process Emulator": "designers/tutorials/training_multi_level_gp_tutorial.md"
       - "Single Level Adaptive Sampling": "designers/tutorials/slas_tutorial.md"
-      - "scratch": "designers/tutorials/scratch.md"
   - "Command Line App":
     - "cli/index.md"
     - "A First Walkthrough": "cli/first-walkthrough.md"
@@ -48,6 +47,7 @@ theme:
     - navigation.sections  # navigation pane, see https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#navigation-sections
     - navigation.indexes
     - content.code.annotate  # code annotations, see https://squidfunk.github.io/mkdocs-material/reference/code-blocks/#adding-annotations
+    - contend.code.copy  # code copy button, see https://squidfunk.github.io/mkdocs-material/reference/code-blocks/#code-copy-button
 
 # See:
 # - https://squidfunk.github.io/mkdocs-material/reference/admonitions/
