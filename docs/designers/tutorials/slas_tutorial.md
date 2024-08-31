@@ -124,7 +124,7 @@ new_design_pts[0]
 
 
 <div class="result" markdown>
-    Input(np.float64(0.9123648084857612), np.float64(57.969585575716906))
+    Input(np.float64(0.08590071198389615), np.float64(55.8108647177939))
 </div>
 
 
@@ -142,11 +142,11 @@ new_design_pts
 
 
 <div class="result" markdown>
-    (Input(np.float64(0.3121786431504767), np.float64(55.84731888607564)),
-     Input(np.float64(-0.714369858819013), np.float64(56.467075523054405)),
-     Input(np.float64(-0.7031285324472387), np.float64(52.94237232599945)),
-     Input(np.float64(-0.6948171961040246), np.float64(54.291724400055024)),
-     Input(np.float64(0.32094153495984545), np.float64(54.75773060166758)))
+    (Input(np.float64(-0.971563230700168), np.float64(55.62776475187036)),
+     Input(np.float64(0.17581931349728386), np.float64(56.021636379998235)),
+     Input(np.float64(-0.9714817010469277), np.float64(52.3134916601648)),
+     Input(np.float64(0.2479024530503664), np.float64(54.347836612943055)),
+     Input(np.float64(0.9889425035622783), np.float64(57.36960691288379)))
 </div>
 
 
@@ -235,35 +235,152 @@ for i in range(5):
 
 <div class="result" markdown>
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    Prior solver failed to converge
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    Prior solver failed to converge
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated with new design point (np.float64(0.9999999991018438), np.float64(16.065886178681524))
+</div>
+
+
+<div class="result" markdown>
+    Prior solver failed to converge
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated with new design point (np.float64(0.6059701598900631), np.float64(1.000000025365651))
+    Prior solver failed to converge
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    Prior solver failed to converge
+    Prior solver failed to converge
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated with new design point (np.float64(-0.5200880413218203), np.float64(46.829119635676285))
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated with new design point (np.float64(-0.8204022852101289), np.float64(99.99999814146602))
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated with new design point (np.float64(0.24989682692719373), np.float64(99.99996024868736))
 </div>
 

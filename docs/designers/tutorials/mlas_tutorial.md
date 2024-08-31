@@ -180,7 +180,11 @@ print("Level to run it at:", level)
 
 <div class="result" markdown>
     Prior solver failed to converge
-    New design point: (np.float64(-0.2505775847626143), np.float64(99.999999999568))
+</div>
+
+
+<div class="result" markdown>
+    New design point: (np.float64(-0.2505760387960482), np.float64(99.9999999985283))
     Level to run it at: 2
 </div>
 
@@ -206,7 +210,11 @@ print("Level to run batch at:", level)
 
 <div class="result" markdown>
     Prior solver failed to converge
-    New design points: (Input(np.float64(-0.2505774470666772), np.float64(99.99999999496188)), Input(np.float64(0.999999999961342), np.float64(42.04250358378818)), Input(np.float64(-0.9999999999808721), np.float64(71.01964119851641)), Input(np.float64(0.11741715830414967), np.float64(99.9999999986932)), Input(np.float64(0.569363734853523), np.float64(1.000000001142449)))
+</div>
+
+
+<div class="result" markdown>
+    New design points: (Input(np.float64(-0.25057599912213857), np.float64(99.99999999609055)), Input(np.float64(0.9999999999865832), np.float64(42.042327137813345)), Input(np.float64(-0.9999999999980986), np.float64(71.01967014710128)), Input(np.float64(0.5678501554375679), np.float64(1.0000000005014442)), Input(np.float64(0.11667026949325177), np.float64(99.99999999754547)))
     Level to run batch at: 2
 </div>
 
@@ -244,6 +252,10 @@ print(
 
 <div class="result" markdown>
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Number of training data at each level: {1: 20, 2: 10}
 </div>
 
@@ -291,23 +303,51 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    Floating point error in optimization routine, skipping this iteration
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated level 2 with new design point (np.float64(0.9999999997043489), np.float64(79.77010810602515))
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
     Prior solver failed to converge
-    ==> Updated level 2 with new design point (np.float64(0.9999999998218978), np.float64(79.80434572564523))
+    Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
     Prior solver failed to converge
     Prior solver failed to converge
+</div>
+
+
+<div class="result" markdown>
     Prior solver failed to converge
     Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    ==> Updated level 2 with new design point (np.float64(0.5957990512239411), np.float64(75.04483886960159))
-    Prior solver failed to converge
-    ==> Updated level 2 with new design point (np.float64(-0.9999999997570881), np.float64(42.93180682347495))
-    ==> Updated level 2 with new design point (np.float64(-0.5813981590575882), np.float64(76.58508040329568))
-    ==> Updated level 2 with new design point (np.float64(0.7249022095602284), np.float64(99.99999995723631))
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated level 2 with new design point (np.float64(0.5561655621346941), np.float64(78.91976803819304))
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated level 2 with new design point (np.float64(-0.9999999996767867), np.float64(45.518813378614865))
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated level 2 with new design point (np.float64(-0.4638375058311358), np.float64(74.5559059526351))
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated level 2 with new design point (np.float64(0.7065593103926127), np.float64(99.99999999946611))
 </div>
 
