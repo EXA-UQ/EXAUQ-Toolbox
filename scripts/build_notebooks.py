@@ -27,6 +27,7 @@ def build_notebooks(notebook_dir: Path, run_notebooks: bool = False) -> None:
             ep = ExecutePreprocessor(timeout=600)
             try:
                 # Execute notebook (mutates the nb in-place)
+                print(f"Running notebook {nb_path.name}")
                 ep.preprocess(nb)
             except CellExecutionError as e:
                 msg = f"Error executing the notebook {nb_path.name}.\n"
@@ -38,6 +39,7 @@ def build_notebooks(notebook_dir: Path, run_notebooks: bool = False) -> None:
         source, resources = exporter.from_notebook_node(nb)
 
         # Post-process markdown text
+        print(f"Building markdown of notebook {nb_path.name}")
         source = process_markdown(source)
 
         # Write markdown source
