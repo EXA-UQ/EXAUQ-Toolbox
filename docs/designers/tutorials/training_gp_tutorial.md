@@ -12,14 +12,11 @@ to:
   design.
 * Make new predictions of simulator outputs using the trained GP.
 
-<div class="admonition note">
-    <p class="admonition-title">Note</p>
-    <p>
-        Due to the pseudo-stochastic nature of the algorithms for fitting
-        Gaussian processes, you may get slight differences in some of the code outputs in
-        this tutorial.
-    </p>
-</div>
+!!! note
+
+    Due to the pseudo-stochastic nature of the algorithms for fitting
+    Gaussian processes, you may get slight differences in some of the code outputs in
+    this tutorial.
 
 ## Simulator domain and inputs
 
@@ -285,9 +282,9 @@ our GP, making it ready to emulate our simulator. We put this to work in the nex
 
 To finish off, let's use our newly-trained GP to estimate the output of our simulator at a
 new input. We make a prediction with the GP using the
-[`predict`][exauq.core.emulators.MogpEmulator.predict] method. Predictions from
-GPs come with both the actual estimate and a measure of the uncertainty of that estimate.
-This is packaged up in a
+[`predict`][exauq.core.emulators.MogpEmulator.predict] method. Predictions from emulators
+come with both the actual estimate and a measure of the uncertainty of that estimate. For
+GPs, this is packaged up in a
 [`GaussianProcessPrediction`][exauq.core.modelling.GaussianProcessPrediction] object,
 which provides the [`estimate`][exauq.core.modelling.GaussianProcessPrediction.estimate]
 property for the point estimate and the
@@ -335,8 +332,10 @@ print("Percentage error:", pct_error)
 
 
 Finally, because the prediction comes from a GP, we can also calculate the normalised
-expected square error, which gives a measure of the (absolute, squared) error that
-accounts for the uncertainty in the prediction:
+expected square error via the
+[`nes_error`][exauq.core.modelling.GaussianProcessPrediction.nes_error], which gives a
+measure of the (absolute, squared) error that accounts for the uncertainty in the
+prediction:
 
 
 ``` { .python .copy }
