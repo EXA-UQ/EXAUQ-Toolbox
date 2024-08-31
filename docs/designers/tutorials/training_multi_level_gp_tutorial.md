@@ -175,11 +175,11 @@ created earlier.
 ``` { .python .copy }
 # Create level 1 simulator outputs and training data
 outputs1 = [ml_simulator[1](x) for x in design[1]]
-data1 = [TrainingDatum(x, y) for x, y in zip(lhs_inputs1, outputs1)]
+data1 = [TrainingDatum(x, y) for x, y in zip(design[1], outputs1)]
 
 # Create level 2 simulator outputs and training data
 outputs2 = [ml_simulator[2](x) for x in design[2]]
-data2 = [TrainingDatum(x, y) for x, y in zip(lhs_inputs2, outputs2)]
+data2 = [TrainingDatum(x, y) for x, y in zip(design[2], outputs2)]
 
 # Combine into a multi-level object
 training_data = MultiLevel([data1, data2])
