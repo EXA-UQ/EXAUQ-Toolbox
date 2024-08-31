@@ -204,7 +204,7 @@ In general, we can perform multiple adaptive sampling iterations to further impr
 fit of the GP with newly sampled design point(s). The following code goes through five
 more sampling iterations, producing a single new design point at each iteration. We have
 also introduced a helper function to assist in retraining the GP. (Once again, the
-messages printed are from the `mogp_emulator` package and can be ignored.)
+messages from the `mogp_emulator` package can be ignored.)
 
 
 ``` { .python .copy }
@@ -216,6 +216,7 @@ def update_gp(gp, additional_data):
     data = list(gp.training_data) + additional_data
     gp.fit(data)
 
+
 for i in range(5):
     # Find new design point adaptively (via batch of length 1)
     x = compute_single_level_loo_samples(gp, domain)[0]
@@ -226,6 +227,9 @@ for i in range(5):
     # Update GP fit
     new_data = [TrainingDatum(x, y)]
     update_gp(gp, new_data)
+
+    # Print design point found and level applied at
+    print(f"==> Updated with new design point {x}")
 
 ```
 
