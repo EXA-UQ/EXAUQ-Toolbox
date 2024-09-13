@@ -20,8 +20,10 @@ TODO: add link to designers guides etc.
 -   :material-cogs:{ .lg .middle } **API Reference**
 
     ---
+    Details of the objects, functions etc. provided by the exauq package.
 
-    Coming soon!
+    <!-- Following is a link to fake markdown doc but it will get converted to correct html page link -->
+    [:octicons-arrow-right-24: Go to API reference](./api/__init__.md)
 
 -   :simple-gnubash:{ .lg .middle } **Command Line Application**
 
@@ -29,6 +31,6 @@ TODO: add link to designers guides etc.
 
     Manage simulation jobs from the comfort of your own laptop.
 
-    [:octicons-arrow-right-24: Reference](./cli/index.md)
+    [:octicons-arrow-right-24: Go to CLA reference](./cli/index.md)
 
 </div>

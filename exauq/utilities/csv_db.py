@@ -218,7 +218,7 @@ class CsvDB(object):
 
         Parameters
         ----------
-        predicte_fn : Callable[[dict[str, str]], bool], optional
+        predicate_fn : Callable[[dict[str, str]], bool], optional
             (Default: ``None``) A function that maps a record to a boolean value. If
             ``None`` then all records in the database will be returned.
 

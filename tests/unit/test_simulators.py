@@ -2,17 +2,32 @@ import os
 import pathlib
 import sys
 import tempfile
-import unittest.mock
+import unittest
+from datetime import datetime, timedelta
 from numbers import Real
+from threading import Thread
+from time import sleep
 from typing import Type
+from unittest.mock import Mock, patch
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.sim_management.hardware import JobStatus
-from exauq.sim_management.jobs import JobId
+from exauq.sim_management.hardware import HardwareInterface, JobStatus
+from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.simulators import (
+    CompletedJobStrategy,
+    FailedJobStrategy,
+    FailedSubmitJobStrategy,
+    InvalidJobStatusError,
+    JobIDGenerator,
+    JobManager,
+    PendingCancelJobStrategy,
+    PendingSubmitJobStrategy,
+    RunningJobStrategy,
     SimulationsLog,
     SimulationsLogLookupError,
     Simulator,
+    SubmittedJobStrategy,
+    UnknownJobIdError,
 )
 from exauq.sim_management.types import FilePath
 from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
@@ -28,12 +43,10 @@ def make_fake_simulator(
     `simulations_log` is ``None`` then the simulator returned has no previous simulations.
     """
 
-    with unittest.mock.patch(
+    with patch(
         "exauq.sim_management.simulators.SimulationsLog",
         new=make_fake_simulations_log_class(simulations),
-    ), unittest.mock.patch(
-        "exauq.sim_management.simulators.JobManager", new=DumbJobManager
-    ):
+    ), patch("exauq.sim_management.simulators.JobManager", new=DumbJobManager):
         return Simulator(
             SimulatorDomain([(-10, 10)]), DumbHardwareInterface(), simulations_log
         )
@@ -128,7 +141,7 @@ class TestSimulator(unittest.TestCase):
         """Test that a simulator can be initialised with a path to a file containing
         records of previous simulations."""
 
-        with unittest.mock.patch(
+        with patch(
             "exauq.sim_management.simulators.SimulationsLog",
             new=make_fake_simulations_log_class(tuple()),
         ):
@@ -147,9 +160,7 @@ class TestSimulator(unittest.TestCase):
         """Test that a new log file with name 'simulations.csv' is created in the
         working directory as the default."""
 
-        with unittest.mock.patch(
-            "exauq.sim_management.simulators.SimulationsLog"
-        ) as mock:
+        with patch("exauq.sim_management.simulators.SimulationsLog") as mock:
             _ = Simulator(self.simulator_domain, self.hardware_interface)
             mock.assert_called_once_with("simulations.csv", self.simulator_domain.dim)
 
@@ -535,6 +546,496 @@ class TestSimulationsLog(unittest.TestCase):
 
         log = SimulationsLog(self.simulations_file, input_dim=1)
         self.assertEqual(tuple(), log.get_unsubmitted_inputs())
+
+
+class TestJobManager(unittest.TestCase):
+    def setUp(self):
+        self.mock_simulations_log = Mock(spec=SimulationsLog)
+        self.mock_simulations_log.get_non_terminated_jobs.return_value = []
+
+        self.mock_interface1 = Mock(spec=HardwareInterface)
+        self.mock_interface1.name = "mock_interface1"
+        self.mock_interface1.level = 1
+
+        self.mock_interface2 = Mock(spec=HardwareInterface)
+        self.mock_interface2.name = "mock_interface2"
+        self.mock_interface2.level = 2
+
+        self.job_manager = JobManager(
+            self.mock_simulations_log, [self.mock_interface1, self.mock_interface2]
+        )
+
+    def tearDown(self):
+        # Ensure the JobManager is shut down properly after each test
+        self.job_manager.shutdown()
+        if self.job_manager._thread and self.job_manager._thread.is_alive():
+            self.job_manager._thread.join(timeout=5)  # Wait up to 5 seconds
+
+    def test_init(self):
+        """Test that JobManager initializes with correct attributes."""
+        self.assertIsInstance(self.job_manager._simulations_log, SimulationsLog)
+        self.assertIsInstance(self.job_manager._interfaces, dict)
+        self.assertEqual(len(self.job_manager._interfaces), 2)
+        self.assertEqual(self.job_manager._interfaces[1][0], self.mock_interface1)
+        self.assertEqual(self.job_manager._interfaces[2][0], self.mock_interface2)
+
+    @patch("exauq.sim_management.simulators.JobIDGenerator.generate_id")
+    def test_submit(self, mock_generate_id):
+        """Test that a job is correctly submitted and recorded."""
+        mock_generate_id.return_value = JobId("123")
+        input_data = Input(1.0, 2.0)
+
+        job = self.job_manager.submit(input_data)
+
+        self.assertEqual(job.id, JobId("123"))
+        self.assertEqual(job.data, input_data)
+        self.mock_simulations_log.add_new_record.assert_called_once_with(
+            input_data,
+            "123",
+            job_status=JobStatus.PENDING_SUBMIT,
+            job_level=1,
+            interface_name="mock_interface1",
+        )
+
+    def test_submit_multiple_jobs(self):
+        """Test that multiple jobs can be submitted and are correctly tracked."""
+        input_data1 = Input(1.0, 2.0)
+        input_data2 = Input(3.0, 4.0)
+
+        with patch(
+            "exauq.sim_management.simulators.JobIDGenerator.generate_id",
+            side_effect=[JobId("123"), JobId("456")],
+        ):
+            job1 = self.job_manager.submit(input_data1)
+            job2 = self.job_manager.submit(input_data2)
+
+        self.assertEqual(job1.id, JobId("123"))
+        self.assertEqual(job2.id, JobId("456"))
+        self.assertEqual(len(self.job_manager._monitored_jobs), 2)
+
+    def test_cancel(self):
+        """Test that a job can be cancelled and its status is updated."""
+        job_id = JobId("123")
+        mock_job = Job(job_id, Input(1.0, 2.0), 1, "mock_interface")
+        self.job_manager._monitored_jobs = [mock_job]
+
+        cancelled_job = self.job_manager.cancel(job_id)
+
+        self.assertEqual(cancelled_job, mock_job)
+        self.mock_simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.PENDING_CANCEL
+        )
+
+    def test_cancel_non_existent_job(self):
+        """Test that cancelling a non-existent job raises UnknownJobIdError."""
+        non_existent_job_id = JobId("999")
+
+        self.mock_simulations_log.get_job_status.side_effect = SimulationsLogLookupError(
+            f"No such job exists with ID {non_existent_job_id}"
+        )
+
+        with self.assertRaises(UnknownJobIdError) as context:
+            self.job_manager.cancel(non_existent_job_id)
+
+        self.assertIn("Could not cancel job", str(context.exception))
+        self.assertIn("no such job exists", str(context.exception))
+
+    def test_cancel_terminated_job(self):
+        """Test that cancelling a terminated job raises InvalidJobStatusError."""
+        terminated_job_id = JobId("888")
+
+        self.mock_simulations_log.get_job_status.return_value = JobStatus.COMPLETED
+
+        with self.assertRaises(InvalidJobStatusError) as context:
+            self.job_manager.cancel(terminated_job_id)
+
+        self.assertIn("Cannot cancel 'job' with terminal status", str(context.exception))
+
+    def test_cancel_active_job(self):
+        """Test that an active job can be cancelled and its status is updated."""
+        active_job_id = JobId("777")
+        active_job = Job(active_job_id, Input(1.0, 2.0), 1, "mock_interface")
+
+        self.job_manager._monitored_jobs = [active_job]
+
+        cancelled_job = self.job_manager.cancel(active_job_id)
+
+        self.assertEqual(cancelled_job, active_job)
+        self.mock_simulations_log.update_job_status.assert_called_once_with(
+            str(active_job_id), JobStatus.PENDING_CANCEL
+        )
+
+    def test_monitor(self):
+        """Test that jobs are correctly added to the monitored jobs list."""
+        job1 = Job(JobId("123"), Input(1.0, 2.0), 1, "mock_interface1")
+        job2 = Job(JobId("456"), Input(3.0, 4.0), 1, "mock_interface1")
+
+        self.job_manager.monitor([job1, job2])
+
+        self.assertEqual(len(self.job_manager._monitored_jobs), 2)
+        self.assertIn(job1, self.job_manager._monitored_jobs)
+        self.assertIn(job2, self.job_manager._monitored_jobs)
+
+    @patch("threading.Thread.start")
+    def test_monitor_jobs_thread_creation(self, mock_thread_start):
+        """Test that a monitoring thread is created when jobs are added."""
+        job = Job(JobId("123"), Input(1.0, 2.0), 1, "mock_interface1")
+
+        self.job_manager.monitor([job])
+
+        self.assertIsNotNone(self.job_manager._thread)
+        self.assertIsInstance(self.job_manager._thread, Thread)
+        mock_thread_start.assert_called_once()
+
+        self.assertIn(job, self.job_manager._monitored_jobs)
+
+    def test_monitor_with_existing_jobs(self):
+        """Test that existing non-terminated jobs are added to monitored jobs on
+        initialization."""
+        existing_job = Job(JobId("789"), Input(5.0, 6.0), 1, "mock_interface1")
+        self.mock_simulations_log.get_non_terminated_jobs.return_value = [existing_job]
+
+        new_job_manager = JobManager(
+            self.mock_simulations_log, [self.mock_interface1, self.mock_interface2]
+        )
+
+        self.assertIn(existing_job, new_job_manager._monitored_jobs)
+
+        new_job_manager.shutdown()
+
+    def test_get_interface(self):
+        """Test that the correct interface is retrieved by name."""
+        interface = self.job_manager.get_interface("mock_interface1")
+        self.assertEqual(interface, self.mock_interface1)
+
+    def test_interface_selection_based_on_level(self):
+        """Test that the correct interface is selected based on the specified level."""
+        input_data = Input(1.0, 2.0)
+
+        with patch(
+            "exauq.sim_management.simulators.JobIDGenerator.generate_id",
+            return_value=JobId("123"),
+        ):
+            job = self.job_manager.submit(input_data, level=2)
+
+        self.assertEqual(job.interface_name, "mock_interface2")
+
+    def test_remove_job(self):
+        """Test that a job is correctly removed from monitored jobs and the count is
+        updated."""
+        job = Job(JobId("123"), Input(1.0, 2.0), 1, "mock_interface1")
+        self.job_manager._monitored_jobs = [job]
+        self.job_manager._interface_job_monitor_counts["mock_interface1"] = 1
+
+        self.job_manager.remove_job(job)
+
+        self.assertEqual(len(self.job_manager._monitored_jobs), 0)
+        self.assertEqual(
+            self.job_manager._interface_job_monitor_counts["mock_interface1"], 0
+        )
+
+    def test_shutdown(self):
+        """Test that shutdown correctly stops the monitoring thread."""
+        self.job_manager._thread = Mock()
+        self.job_manager._thread.is_alive.return_value = True
+
+        self.job_manager.shutdown()
+
+        self.assertTrue(self.job_manager._shutdown_event.is_set())
+        self.job_manager._thread.join.assert_called_once()
+
+
+class TestJobStrategies(unittest.TestCase):
+    def setUp(self):
+        self.mock_job_manager = Mock(spec=JobManager)
+        self.mock_job = Mock(spec=Job)
+        self.mock_job.id = JobId("123")
+        self.mock_job.interface_name = "mock_interface"
+        self.mock_interface = Mock(spec=HardwareInterface)
+        self.mock_job_manager.get_interface.return_value = self.mock_interface
+
+    def test_completed_job_strategy(self):
+        """Test that CompletedJobStrategy correctly updates job status and removes the
+        job."""
+        strategy = CompletedJobStrategy()
+        self.mock_interface.get_job_output.return_value = 42.0
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.insert_result.assert_called_once_with(
+            "123", 42.0
+        )
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.COMPLETED
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+    def test_completed_job_strategy_no_output(self):
+        """Test that CompletedJobStrategy handles jobs with no output correctly."""
+        strategy = CompletedJobStrategy()
+        self.mock_interface.get_job_output.return_value = None
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.insert_result.assert_called_once_with(
+            "123", None
+        )
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.COMPLETED
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+    def test_failed_job_strategy(self):
+        """Test that FailedJobStrategy updates job status to FAILED and removes the
+        job."""
+        strategy = FailedJobStrategy()
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.FAILED
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+    def test_running_job_strategy_from_submitted(self):
+        """Test that RunningJobStrategy updates job status from SUBMITTED to RUNNING."""
+        strategy = RunningJobStrategy()
+        self.mock_job_manager.simulations_log.get_job_status.return_value = (
+            JobStatus.SUBMITTED
+        )
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.RUNNING
+        )
+
+    def test_running_job_strategy_already_running(self):
+        """Test that RunningJobStrategy doesn't update status for already running jobs."""
+        strategy = RunningJobStrategy()
+        self.mock_job_manager.simulations_log.get_job_status.return_value = (
+            JobStatus.RUNNING
+        )
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.update_job_status.assert_not_called()
+
+    def test_submitted_job_strategy(self):
+        """Test that SubmittedJobStrategy doesn't perform any actions."""
+        strategy = SubmittedJobStrategy()
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        # SubmittedJobStrategy doesn't do anything, so we're just checking it doesn't
+        # raise an exception
+        self.mock_job_manager.simulations_log.update_job_status.assert_not_called()
+        self.mock_job_manager.remove_job.assert_not_called()
+
+    @patch("exauq.sim_management.simulators.sleep")
+    def test_pending_submit_job_strategy_success(self, mock_sleep):
+        """Test that PendingSubmitJobStrategy successfully submits a job and updates
+        its status."""
+        strategy = PendingSubmitJobStrategy()
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_interface.submit_job.assert_called_once_with(self.mock_job)
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.SUBMITTED
+        )
+        mock_sleep.assert_not_called()
+
+    @patch("exauq.sim_management.simulators.sleep")
+    @patch("random.uniform", return_value=0.05)  # To make the test deterministic
+    def test_pending_submit_job_strategy_retry(self, mock_uniform, mock_sleep):
+        """Test that PendingSubmitJobStrategy retries submission on failure with
+        exponential backoff."""
+        strategy = PendingSubmitJobStrategy()
+        self.mock_interface.submit_job.side_effect = [
+            Exception("Network error"),
+            Exception("Another error"),
+            None,
+        ]
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.assertEqual(self.mock_interface.submit_job.call_count, 3)
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.SUBMITTED
+        )
+        self.assertEqual(mock_sleep.call_count, 2)
+        mock_sleep.assert_any_call(2.05)
+        mock_sleep.assert_any_call(4.05)
+
+    @patch("exauq.sim_management.simulators.sleep")
+    @patch("random.uniform", return_value=0.05)  # To make the test deterministic
+    def test_pending_submit_job_strategy_max_retries(self, mock_uniform, mock_sleep):
+        """Test that PendingSubmitJobStrategy fails after maximum retries and updates
+        status."""
+        strategy = PendingSubmitJobStrategy()
+        self.mock_interface.submit_job.side_effect = Exception("Network error")
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.assertEqual(self.mock_interface.submit_job.call_count, 5)  # Max retries
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.FAILED_SUBMIT
+        )
+        self.assertEqual(mock_sleep.call_count, 4)  # Called 4 times for 5 attempts
+        expected_sleep_times = [2.05, 4.05, 8.05, 16.05]
+        for call, expected_time in zip(mock_sleep.call_args_list, expected_sleep_times):
+            self.assertAlmostEqual(call[0][0], expected_time, places=2)
+
+    def test_pending_cancel_job_strategy_success(self):
+        """Test that PendingCancelJobStrategy successfully cancels a running job."""
+        strategy = PendingCancelJobStrategy()
+        self.mock_interface.get_job_status.return_value = JobStatus.RUNNING
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_interface.cancel_job.assert_called_once_with(self.mock_job.id)
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.CANCELLED
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+    def test_pending_cancel_job_strategy_already_completed(self):
+        """Test that PendingCancelJobStrategy raises an error for already completed
+        jobs."""
+        strategy = PendingCancelJobStrategy()
+        self.mock_interface.get_job_status.return_value = JobStatus.COMPLETED
+
+        with self.assertRaises(InvalidJobStatusError):
+            strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_interface.cancel_job.assert_not_called()
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.COMPLETED
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+    def test_failed_submit_job_strategy(self):
+        """Test that FailedSubmitJobStrategy updates job status to FAILED_SUBMIT and
+        removes the job."""
+        strategy = FailedSubmitJobStrategy()
+
+        strategy.handle(self.mock_job, self.mock_job_manager)
+
+        self.mock_job_manager.simulations_log.update_job_status.assert_called_once_with(
+            "123", JobStatus.FAILED_SUBMIT
+        )
+        self.mock_job_manager.remove_job.assert_called_once_with(self.mock_job)
+
+
+class TestJobIDGenerator(unittest.TestCase):
+    def setUp(self):
+        self.generator = JobIDGenerator()
+
+    def test_generate_id_format(self):
+        """Test that generated JobID has correct format and length."""
+        job_id = self.generator.generate_id()
+        self.assertIsInstance(job_id, JobId)
+        self.assertEqual(len(str(job_id)), 17)  # YYYYMMDDHHMMSSfff format
+        self.assertTrue(str(job_id).isdigit())
+
+    def test_generate_id_uniqueness(self):
+        """Test that consecutive generated JobIDs are unique."""
+        job_id1 = self.generator.generate_id()
+        job_id2 = self.generator.generate_id()
+        self.assertNotEqual(job_id1, job_id2)
+
+    def test_generate_id_monotonic_increase(self):
+        """Test that generated JobIDs increase monotonically."""
+        job_id1 = self.generator.generate_id()
+        job_id2 = self.generator.generate_id()
+        self.assertLess(int(str(job_id1)), int(str(job_id2)))
+
+    def test_generate_id_millisecond_resolution(self):
+        """Test that generated JobID has millisecond resolution and falls within
+        expected time range."""
+        start_time = datetime.now()
+        job_id = self.generator.generate_id()
+        end_time = datetime.now()
+
+        job_id_time = datetime.strptime(str(job_id), "%Y%m%d%H%M%S%f")
+
+        # Truncate start_time and end_time to millisecond precision
+        start_time = start_time.replace(microsecond=start_time.microsecond // 1000 * 1000)
+        end_time = end_time.replace(microsecond=end_time.microsecond // 1000 * 1000)
+
+        self.assertLessEqual(start_time, job_id_time)
+        self.assertLessEqual(job_id_time, end_time)
+
+    def test_generate_id_wait_for_next_millisecond(self):
+        """Test that JobIDGenerator waits for next millisecond if necessary."""
+        generator = JobIDGenerator()
+        job_id1 = generator.generate_id()
+        sleep(0.0005)  # Sleep for half a millisecond
+        job_id2 = generator.generate_id()
+
+        # Convert JobId to datetime objects
+        time1 = datetime.strptime(str(job_id1), "%Y%m%d%H%M%S%f")
+        time2 = datetime.strptime(str(job_id2), "%Y%m%d%H%M%S%f")
+
+        # Calculate the time difference in milliseconds
+        time_diff_ms = (time2 - time1).total_seconds() * 1000
+
+        # Assertions
+        self.assertNotEqual(job_id1, job_id2)  # IDs should be different
+        self.assertGreater(time_diff_ms, 0)  # Second ID should be later
+        self.assertLess(time_diff_ms, 10)  # Difference should be less than 10ms
+
+    def test_thread_safety(self):
+        """Test that JobIDGenerator is thread-safe and generates unique IDs across
+        multiple threads."""
+        num_threads = 10
+        ids_per_thread = 100
+        all_ids = []
+
+        def generate_ids():
+            for _ in range(ids_per_thread):
+                all_ids.append(self.generator.generate_id())
+
+        threads = [Thread(target=generate_ids) for _ in range(num_threads)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        self.assertEqual(len(all_ids), num_threads * ids_per_thread)
+        self.assertEqual(len(set(all_ids)), len(all_ids))  # All IDs are unique
+
+    def test_generate_id_across_second_boundary(self):
+        """Test that JobIDGenerator correctly handles ID generation across second
+        boundaries."""
+        generator = JobIDGenerator()
+
+        # Get the first ID
+        job_id1 = generator.generate_id()
+        job_id1_str = str(job_id1)
+
+        # Wait until we're in the next second
+        job_id1_second = int(job_id1_str[12:14])
+        while True:
+            now = datetime.now()
+            if now.second != job_id1_second:
+                break
+            sleep(0.01)
+
+        # Get the second ID
+        job_id2 = generator.generate_id()
+        job_id2_str = str(job_id2)
+
+        # Assert that the seconds are different
+        self.assertNotEqual(job_id1_str[:14], job_id2_str[:14])  # Different seconds
+        self.assertLess(int(job_id1_str), int(job_id2_str))
+
+        # Additional check: Ensure the difference is exactly 1 second
+        time_diff = datetime.strptime(
+            job_id2_str[:14], "%Y%m%d%H%M%S"
+        ) - datetime.strptime(job_id1_str[:14], "%Y%m%d%H%M%S")
+        self.assertEqual(time_diff.total_seconds(), 1)
 
 
 if __name__ == "__main__":
