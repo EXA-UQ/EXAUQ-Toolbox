@@ -47,7 +47,7 @@
     
       <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="https://unpkg.com/katex@0/dist/katex.min.css">
+      <link rel="stylesheet" href="../../stylesheets/katex.min.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -1194,7 +1194,7 @@
 <h1 id="single-level-adaptive-sampling">Single Level Adaptive Sampling</h1>
 <p>This tutorial will show you how to extend an initial experimental design for a Gaussian
 process (GP) emulator, using an adaptive sampling technique. The idea is to take our
-current GP and find a new design point (or batch or points) that will have 'the greatest
+current GP and find a new design point (or batch of points) that will have 'the greatest
 impact' on improving the fit of the GP.</p>
 <p>This tutorial will show you how to:</p>
 <ul>
@@ -1269,10 +1269,10 @@ Too few unique inputs; defaulting to flat priors
 </code></pre></div>
 </div>
 <p>(The messages printed are from the <code>mogp_emulator</code> package and can be ignored: they
-arise when initialising a new GP due to the face that it hasn't been trained on any data.)</p>
+arise when initialising a new GP due to the fact that it hasn't been trained on any data.)</p>
 <h2 id="extend-the-design-using-leave-one-out-adaptive-sampling">Extend the design using leave-one-out adaptive sampling</h2>
 <p>Let's now find a new design point using the leave-one-out adaptive design methodology. The
-idea is to take our current GP and find a new design point (or batch or points) that will
+idea is to take our current GP and find a new design point (or batch of points) that will
 have 'the greatest impact' on improving the fit of the GP, when combined with the
 corresponding simulator output (or outputs in the batch case). We use the function
 <a class="autorefs autorefs-internal" href="../../api/core/designers.html#exauq.core.designers.compute_single_level_loo_samples"><code>compute_single_level_loo_samples</code></a>
@@ -1293,7 +1293,7 @@ to do this. This function requires two arguments:</p>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">new_design_pts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Input(np.float64(0.08590071198389615), np.float64(55.8108647177939))
+<div class="language-text highlight"><pre><span></span><code>Input(np.float64(0.019123403457888433), np.float64(55.88325957924735))
 </code></pre></div>
 </div>
 <p>If instead we want to compute multiple new design points in one go, we can do this by
@@ -1302,11 +1302,11 @@ specifying a different batch size:</p>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">new_design_pts</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>(Input(np.float64(-0.971563230700168), np.float64(55.62776475187036)),
- Input(np.float64(0.17581931349728386), np.float64(56.021636379998235)),
- Input(np.float64(-0.9714817010469277), np.float64(52.3134916601648)),
- Input(np.float64(0.2479024530503664), np.float64(54.347836612943055)),
- Input(np.float64(0.9889425035622783), np.float64(57.36960691288379)))
+<div class="language-text highlight"><pre><span></span><code>(Input(np.float64(-0.7492101572260026), np.float64(54.53112567773405)),
+ Input(np.float64(0.8719081643763096), np.float64(52.89178319374546)),
+ Input(np.float64(-0.9695837518710214), np.float64(57.033189328722706)),
+ Input(np.float64(-0.5267237494003253), np.float64(54.487611372379675)),
+ Input(np.float64(0.18456388436365234), np.float64(57.00346126884436)))
 </code></pre></div>
 </div>
 <p>Note how the new design points all lie within the simulator domain we defined earlier,
@@ -1338,7 +1338,7 @@ using the toy function defined earlier) in order to create new training data:</p
 </code></pre></div>
 </div>
 <p>This completes one adaptive sampling 'iteration'. It's important to note that, when
-creating a batch of multiple new design points, the fit of the GP is not updated between
+creating multiple new design points in a batch, the fit of the GP is not updated between
 the creation of each new point in the batch.</p>
 <h2 id="repeated-application">Repeated application</h2>
 <p>In general, we can perform multiple adaptive sampling iterations to further improve the
@@ -1371,10 +1371,7 @@ messages from the <code>mogp_emulator</code> package can be ignored.)</p>
 </span></code></pre></div>
 <div class="result">
 <div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
+Prior solver failed to converge
 Prior solver failed to converge
 </code></pre></div>
 </div>
@@ -1392,33 +1389,7 @@ Prior solver failed to converge
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.9999999991018438), np.float64(16.065886178681524))
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.6059701598900631), np.float64(1.000000025365651))
-Prior solver failed to converge
-Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-Prior solver failed to converge
-Prior solver failed to converge
-Prior solver failed to converge
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.9999992424898836), np.float64(10.953099882155492))
 </code></pre></div>
 </div>
 <div class="result">
@@ -1428,71 +1399,24 @@ Prior solver failed to converge
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-Prior solver failed to converge
-Prior solver failed to converge
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.9999518055474946), np.float64(42.64962498961694))
 </code></pre></div>
 </div>
 <div class="result">
 <div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
 Prior solver failed to converge
-Prior solver failed to converge
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-Prior solver failed to converge
-Prior solver failed to converge
-Prior solver failed to converge
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.9999974724617748), np.float64(94.98594902202395))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-Prior solver failed to converge
-Prior solver failed to converge
-Prior solver failed to converge
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.9999373947538726), np.float64(24.879397188494778))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-Prior solver failed to converge
-Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.5200880413218203), np.float64(46.829119635676285))
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.8204022852101289), np.float64(99.99999814146602))
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.24989682692719373), np.float64(99.99996024868736))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.6475910352838794), np.float64(99.99993353903156))
 </code></pre></div>
 </div>
 
@@ -1548,9 +1472,9 @@ Prior solver failed to converge
       
         <script src="../../javascripts/katex.js"></script>
       
-        <script src="https://unpkg.com/katex@0/dist/katex.min.js"></script>
+        <script src="../../javascripts/katex.min.js"></script>
       
-        <script src="https://unpkg.com/katex@0/dist/contrib/auto-render.min.js"></script>
+        <script src="../../javascripts/auto-render.min.js"></script>
       
     
   </body>

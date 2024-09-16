@@ -3,7 +3,7 @@
 This tutorial will show you how to extend an initial experimental design for a multi-level
 Gaussian process (GP), using an adaptive sampling technique. Similarly to the
 [non-levelled / single level case](./slas_tutorial.md), the idea is to take our current
-multi-level GP and find a new design point (or batch or points) that will have best
+multi-level GP and find a new design point (or batch of points) that will best
 improve the fit of the multi-level GP. In contrast to the single level case, we also need
 to determine the particular GP level for the new design point (or points), which
 determines the simulator run(s) required.
@@ -19,7 +19,7 @@ This tutorial will show you how to:
 If you are unfamiliar with how to train a multi-level GP using the EXAUQ-Toolbox, you may
 want to first work through the tutorial,
 [Training a Multi-Level Gaussian Process Emulator](./training_multi_level_gp_tutorial.md). 
-You may also wish to have worked through the
+You may also wish to work through the
 [Single Level Adaptive Sampling](./slas_tutorial.md) tutorial, to familiarise yourself
 with adaptive sampling in the non-levelled case.
 
@@ -184,7 +184,7 @@ print("Level to run it at:", level)
 
 
 <div class="result" markdown>
-    New design point: (np.float64(-0.2505760387960482), np.float64(99.9999999985283))
+    New design point: (np.float64(-0.25057816255206145), np.float64(99.99999999957782))
     Level to run it at: 2
 </div>
 
@@ -214,7 +214,7 @@ print("Level to run batch at:", level)
 
 
 <div class="result" markdown>
-    New design points: (Input(np.float64(-0.25057599912213857), np.float64(99.99999999609055)), Input(np.float64(0.9999999999865832), np.float64(42.042327137813345)), Input(np.float64(-0.9999999999980986), np.float64(71.01967014710128)), Input(np.float64(0.5678501554375679), np.float64(1.0000000005014442)), Input(np.float64(0.11667026949325177), np.float64(99.99999999754547)))
+    New design points: (Input(np.float64(-0.25057829462558634), np.float64(99.99999999801312)), Input(np.float64(-0.999999999976053), np.float64(70.97891960592197)), Input(np.float64(0.9999999999992959), np.float64(41.956772739235014)), Input(np.float64(0.5676976223902448), np.float64(1.0000000002884049)), Input(np.float64(0.11667965978007155), np.float64(99.99999999909942)))
     Level to run batch at: 2
 </div>
 
@@ -249,11 +249,6 @@ print(
     {level: len(mlgp[level].training_data) for level in mlgp.levels}
     )
 ```
-
-<div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
 
 <div class="result" markdown>
     Number of training data at each level: {1: 20, 2: 10}
@@ -303,51 +298,28 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
+    ==> Updated level 2 with new design point (np.float64(0.9999999999992757), np.float64(77.89999484785737))
+</div>
+
+
+<div class="result" markdown>
+    ==> Updated level 2 with new design point (np.float64(0.5633828285924407), np.float64(78.88801714035827))
     Prior solver failed to converge
 </div>
 
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.9999999997043489), np.float64(79.77010810602515))
+    ==> Updated level 2 with new design point (np.float64(0.7044914999642888), np.float64(99.99999999477811))
 </div>
 
 
 <div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
+    ==> Updated level 2 with new design point (np.float64(0.9999999997618763), np.float64(23.04425024496773))
     Prior solver failed to converge
 </div>
 
 
 <div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.5561655621346941), np.float64(78.91976803819304))
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.9999999996767867), np.float64(45.518813378614865))
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.4638375058311358), np.float64(74.5559059526351))
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.7065593103926127), np.float64(99.99999999946611))
+    ==> Updated level 2 with new design point (np.float64(-0.9999999898496873), np.float64(87.19043644363062))
 </div>
 

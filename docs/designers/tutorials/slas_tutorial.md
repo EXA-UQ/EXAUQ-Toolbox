@@ -2,7 +2,7 @@
 
 This tutorial will show you how to extend an initial experimental design for a Gaussian
 process (GP) emulator, using an adaptive sampling technique. The idea is to take our
-current GP and find a new design point (or batch or points) that will have 'the greatest
+current GP and find a new design point (or batch of points) that will have 'the greatest
 impact' on improving the fit of the GP.
 
 This tutorial will show you how to:
@@ -91,12 +91,12 @@ gp.fit(data)
 
 
 (The messages printed are from the `mogp_emulator` package and can be ignored: they
-arise when initialising a new GP due to the face that it hasn't been trained on any data.)
+arise when initialising a new GP due to the fact that it hasn't been trained on any data.)
 
 ## Extend the design using leave-one-out adaptive sampling
 
 Let's now find a new design point using the leave-one-out adaptive design methodology. The
-idea is to take our current GP and find a new design point (or batch or points) that will
+idea is to take our current GP and find a new design point (or batch of points) that will
 have 'the greatest impact' on improving the fit of the GP, when combined with the
 corresponding simulator output (or outputs in the batch case). We use the function
 [`compute_single_level_loo_samples`][exauq.core.designers.compute_single_level_loo_samples]
@@ -124,7 +124,7 @@ new_design_pts[0]
 
 
 <div class="result" markdown>
-    Input(np.float64(0.08590071198389615), np.float64(55.8108647177939))
+    Input(np.float64(0.019123403457888433), np.float64(55.88325957924735))
 </div>
 
 
@@ -142,11 +142,11 @@ new_design_pts
 
 
 <div class="result" markdown>
-    (Input(np.float64(-0.971563230700168), np.float64(55.62776475187036)),
-     Input(np.float64(0.17581931349728386), np.float64(56.021636379998235)),
-     Input(np.float64(-0.9714817010469277), np.float64(52.3134916601648)),
-     Input(np.float64(0.2479024530503664), np.float64(54.347836612943055)),
-     Input(np.float64(0.9889425035622783), np.float64(57.36960691288379)))
+    (Input(np.float64(-0.7492101572260026), np.float64(54.53112567773405)),
+     Input(np.float64(0.8719081643763096), np.float64(52.89178319374546)),
+     Input(np.float64(-0.9695837518710214), np.float64(57.033189328722706)),
+     Input(np.float64(-0.5267237494003253), np.float64(54.487611372379675)),
+     Input(np.float64(0.18456388436365234), np.float64(57.00346126884436)))
 </div>
 
 
@@ -195,7 +195,7 @@ print("Number of training data:", len(gp.training_data))
 
 
 This completes one adaptive sampling 'iteration'. It's important to note that, when
-creating a batch of multiple new design points, the fit of the GP is not updated between
+creating multiple new design points in a batch, the fit of the GP is not updated between
 the creation of each new point in the batch.
 
 ## Repeated application
@@ -235,10 +235,6 @@ for i in range(5):
 
 <div class="result" markdown>
     Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
     Prior solver failed to converge
     Prior solver failed to converge
 </div>
@@ -261,38 +257,7 @@ for i in range(5):
 
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.9999999991018438), np.float64(16.065886178681524))
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.6059701598900631), np.float64(1.000000025365651))
-    Prior solver failed to converge
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
+    ==> Updated with new design point (np.float64(0.9999992424898836), np.float64(10.953099882155492))
 </div>
 
 
@@ -304,83 +269,27 @@ for i in range(5):
 
 
 <div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
+    ==> Updated with new design point (np.float64(-0.9999518055474946), np.float64(42.64962498961694))
 </div>
 
 
 <div class="result" markdown>
     Prior solver failed to converge
     Prior solver failed to converge
-    Prior solver failed to converge
 </div>
 
 
 <div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
+    ==> Updated with new design point (np.float64(-0.9999974724617748), np.float64(94.98594902202395))
 </div>
 
 
 <div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
+    ==> Updated with new design point (np.float64(0.9999373947538726), np.float64(24.879397188494778))
 </div>
 
 
 <div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.5200880413218203), np.float64(46.829119635676285))
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.8204022852101289), np.float64(99.99999814146602))
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.24989682692719373), np.float64(99.99996024868736))
+    ==> Updated with new design point (np.float64(0.6475910352838794), np.float64(99.99993353903156))
 </div>
 

@@ -29,8 +29,7 @@ For this tutorial, we'll be using a normal Python function that will act as a to
 simulator. Its domain will be the rectangle $\mathcal{D}$ consisting of points $(x_1, x_2)$ where
 $-1 \leq x_1 \leq 1$ and $1 \leq x_2 \leq 100$. (In practice, a real simulator would most
 likely run on a different computer with powerful performance capabilities — perhaps even
-exascale levels of computational power — and the domain will have more quite a few more
-dimensions than just two.)
+exascale levels of computational power — and the domain will likely have quite a few more dimensions.)
 
 We begin by creating the domain of the simulator to represent the above rectangle. We
 do this by using the [`SimulatorDomain`][exauq.core.modelling.SimulatorDomain] class,
@@ -160,8 +159,8 @@ print(lhs_array)
 
 
 Note that the previous code block created a Numpy array of values, of shape `(20, 2)`,
-and each value lies between 0 and 1. In order to work with the design with the
-EXAUQ-Toolbox, we need to convert the array into a sequence of
+and each value lies between 0 and 1. To work with the design in the EXAUQ-Toolbox, 
+we need to convert the array into a sequence of
 [`Input`][exauq.core.modelling.Input] objects. Furthermore, because we want a design that
 fills the whole of our simulator domain $\mathcal{D}$, we need to also rescale the inputs
 from the unit square to our
@@ -291,7 +290,7 @@ property for the point estimate and the
 [`variance`][exauq.core.modelling.GaussianProcessPrediction.variance] and
 [`standard_deviation`][exauq.core.modelling.GaussianProcessPrediction.standard_deviation]
 properties for a measure of the uncertainty (as the predictive variance and standard
-deviation, respectfully).
+deviation, respectively).
 
 
 ``` { .python .copy }
@@ -305,10 +304,10 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2549.606804501105), variance=np.float64(2.5214393883943558), standard_deviation=1.587904086648295)
-    Point estimate: 2549.606804501105
-    Variance of estimate: 2.5214393883943558
-    Standard deviation of estimate: 1.587904086648295
+    GaussianProcessPrediction(estimate=np.float64(2549.606787264347), variance=np.float64(2.521427646279335), standard_deviation=1.5879003892811838)
+    Point estimate: 2549.606787264347
+    Variance of estimate: 2.521427646279335
+    Standard deviation of estimate: 1.5879003892811838
 </div>
 
 
@@ -325,9 +324,9 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2549.606804501105
+    Predicted value: 2549.606787264347
     Actual simulator value: 2548.835786437627
-    Percentage error: 0.030249813172770406
+    Percentage error: 0.03024913691272134
 </div>
 
 
@@ -346,7 +345,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.7203380743660769
+    0.7203371924276764
 </div>
 
 

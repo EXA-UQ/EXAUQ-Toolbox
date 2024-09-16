@@ -47,7 +47,7 @@
     
       <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="https://unpkg.com/katex@0/dist/katex.min.css">
+      <link rel="stylesheet" href="../../stylesheets/katex.min.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -1201,8 +1201,7 @@ the <strong>simulator domain</strong> (or just <strong>domain</strong>).</p>
 simulator. Its domain will be the rectangle <span class="arithmatex">\(\mathcal{D}\)</span> consisting of points <span class="arithmatex">\((x_1, x_2)\)</span> where
 <span class="arithmatex">\(-1 \leq x_1 \leq 1\)</span> and <span class="arithmatex">\(1 \leq x_2 \leq 100\)</span>. (In practice, a real simulator would most
 likely run on a different computer with powerful performance capabilities — perhaps even
-exascale levels of computational power — and the domain will have more quite a few more
-dimensions than just two.)</p>
+exascale levels of computational power — and the domain will likely have quite a few more dimensions.)</p>
 <p>We begin by creating the domain of the simulator to represent the above rectangle. We
 do this by using the <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.SimulatorDomain"><code>SimulatorDomain</code></a> class,
 like so:</p>
@@ -1298,8 +1297,8 @@ In code, this is given as follows:</p>
 </code></pre></div>
 </div>
 <p>Note that the previous code block created a Numpy array of values, of shape <code>(20, 2)</code>,
-and each value lies between 0 and 1. In order to work with the design with the
-EXAUQ-Toolbox, we need to convert the array into a sequence of
+and each value lies between 0 and 1. To work with the design in the EXAUQ-Toolbox, 
+we need to convert the array into a sequence of
 <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.Input"><code>Input</code></a> objects. Furthermore, because we want a design that
 fills the whole of our simulator domain <span class="arithmatex">\(\mathcal{D}\)</span>, we need to also rescale the inputs
 from the unit square to our
@@ -1392,7 +1391,7 @@ property for the point estimate and the
 <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.Prediction.variance"><code>variance</code></a> and
 <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.Prediction.standard_deviation"><code>standard_deviation</code></a>
 properties for a measure of the uncertainty (as the predictive variance and standard
-deviation, respectfully).</p>
+deviation, respectively).</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">prediction</span> <span class="o">=</span> <span class="n">gp</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
@@ -1402,10 +1401,10 @@ deviation, respectfully).</p>
 </span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2549.606804501105), variance=np.float64(2.5214393883943558), standard_deviation=1.587904086648295)
-Point estimate: 2549.606804501105
-Variance of estimate: 2.5214393883943558
-Standard deviation of estimate: 1.587904086648295
+<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2549.606787264347), variance=np.float64(2.521427646279335), standard_deviation=1.5879003892811838)
+Point estimate: 2549.606787264347
+Variance of estimate: 2.521427646279335
+Standard deviation of estimate: 1.5879003892811838
 </code></pre></div>
 </div>
 <p>Let's see how well the prediction did against the true simulator value:</p>
@@ -1417,9 +1416,9 @@ Standard deviation of estimate: 1.587904086648295
 </span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2549.606804501105
+<div class="language-text highlight"><pre><span></span><code>Predicted value: 2549.606787264347
 Actual simulator value: 2548.835786437627
-Percentage error: 0.030249813172770406
+Percentage error: 0.03024913691272134
 </code></pre></div>
 </div>
 <p>Finally, because the prediction comes from a GP, we can also calculate the normalised
@@ -1430,7 +1429,7 @@ prediction:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">prediction</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>0.7203380743660769
+<div class="language-text highlight"><pre><span></span><code>0.7203371924276764
 </code></pre></div>
 </div>
 
@@ -1486,9 +1485,9 @@ prediction:</p>
       
         <script src="../../javascripts/katex.js"></script>
       
-        <script src="https://unpkg.com/katex@0/dist/katex.min.js"></script>
+        <script src="../../javascripts/katex.min.js"></script>
       
-        <script src="https://unpkg.com/katex@0/dist/contrib/auto-render.min.js"></script>
+        <script src="../../javascripts/auto-render.min.js"></script>
       
     
   </body>

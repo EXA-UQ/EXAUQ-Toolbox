@@ -25,7 +25,7 @@ This tutorial will show you how to:
 This tutorial will look at taking a multi-level approach to emulating the toy simulator
 found in the tutorial,
 [Training A Gaussian Process Emulator](./training_gp_tutorial.md).
-This is is defined to be the mathematical function
+This is defined to be the mathematical function
 $$
 f(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) \
 + \mathrm{sin}(4\pi x_1 x_2)
@@ -299,10 +299,10 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2549.854501016028), variance=np.float64(1.236306253952852), standard_deviation=1.111893094660117)
-    Point estimate: 2549.854501016028
-    Variance of estimate: 1.236306253952852
-    Standard deviation of estimate: 1.111893094660117
+    GaussianProcessPrediction(estimate=np.float64(2549.8545299444013), variance=np.float64(1.2361407522164936), standard_deviation=1.111818668765952)
+    Point estimate: 2549.8545299444013
+    Variance of estimate: 1.2361407522164936
+    Standard deviation of estimate: 1.111818668765952
 </div>
 
 
@@ -319,9 +319,9 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2549.854501016028
+    Predicted value: 2549.8545299444013
     Actual simulator value: 2548.835786437627
-    Percentage error: 0.03996783880002359
+    Percentage error: 0.039968973764214745
 </div>
 
 
@@ -337,7 +337,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.7946803434057587
+    0.7947020129223423
 </div>
 
 
