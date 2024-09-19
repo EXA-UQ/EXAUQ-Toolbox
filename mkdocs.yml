@@ -76,10 +76,10 @@ markdown_extensions:
 
 # For KaTeX to render maths, see
 # https://squidfunk.github.io/mkdocs-material/reference/math/#katex
-extra_javascript:
+extra_javascript: 
   - javascripts/katex.js
-  - javascripts/katex.min.js
-  - javascripts/auto-render.min.js
+  - https://unpkg.com/katex@0/dist/katex.min.js
+  - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
 
 extra_css:
-  - stylesheets/katex.min.css
+  - https://unpkg.com/katex@0/dist/katex.min.css
