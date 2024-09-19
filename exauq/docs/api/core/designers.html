@@ -47,7 +47,7 @@
     
       <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../stylesheets/katex.min.css">
+      <link rel="stylesheet" href="https://unpkg.com/katex@0/dist/katex.min.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -1581,7 +1581,7 @@ and exploitation of the input space.</p>
     Gaussian process models". DOI: https://doi.org/10.1137/21M1404260</p>
 </details>
               <details class="quote">
-                <summary>Source code in <code>exauq/core/designers.py</code></summary>
+                <summary>Source code in <code>exauq\core\designers.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-298">298</a></span>
 <span class="normal"><a href="#__codelineno-0-299">299</a></span>
 <span class="normal"><a href="#__codelineno-0-300">300</a></span>
@@ -2337,7 +2337,7 @@ domain.</p>
 </span></code></pre></div>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-479">479</a></span>
 <span class="normal"><a href="#__codelineno-0-480">480</a></span>
 <span class="normal"><a href="#__codelineno-0-481">481</a></span>
@@ -2490,7 +2490,7 @@ both the potential improvement over the current best target and the desire to
 explore less sampled regions of the domain.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-446">446</a></span>
 <span class="normal"><a href="#__codelineno-0-447">447</a></span>
 <span class="normal"><a href="#__codelineno-0-448">448</a></span>
@@ -2620,7 +2620,7 @@ model's prediction at <code>x</code>, the current maximum target value, and the 
 deviation of the prediction.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-534">534</a></span>
 <span class="normal"><a href="#__codelineno-0-535">535</a></span>
 <span class="normal"><a href="#__codelineno-0-536">536</a></span>
@@ -2780,7 +2780,7 @@ the input space.</p>
 </span></code></pre></div>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-584">584</a></span>
 <span class="normal"><a href="#__codelineno-0-585">585</a></span>
 <span class="normal"><a href="#__codelineno-0-586">586</a></span>
@@ -2922,7 +2922,7 @@ inputs created all belong to the supplied simulator domain.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/designers.py</code></summary>
+                <summary>Source code in <code>exauq\core\designers.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-59"> 59</a></span>
 <span class="normal"><a href="#__codelineno-0-60"> 60</a></span>
 <span class="normal"><a href="#__codelineno-0-61"> 61</a></span>
@@ -3063,7 +3063,7 @@ inputs created all belong to the supplied simulator domain.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-74"> 74</a></span>
 <span class="normal"><a href="#__codelineno-0-75"> 75</a></span>
 <span class="normal"><a href="#__codelineno-0-76"> 76</a></span>
@@ -3228,7 +3228,7 @@ returned (except now it has been fit to the LOO errors).</p>
 multiplying the lengths of the domain's dimensions by <code>sqrt(-0.5 / log(10 ** (-8)))</code>.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-104">104</a></span>
 <span class="normal"><a href="#__codelineno-0-105">105</a></span>
 <span class="normal"><a href="#__codelineno-0-106">106</a></span>
@@ -3498,7 +3498,7 @@ that is left out.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-213">213</a></span>
 <span class="normal"><a href="#__codelineno-0-214">214</a></span>
 <span class="normal"><a href="#__codelineno-0-215">215</a></span>
@@ -3738,7 +3738,7 @@ deep copy of <code>gp</code> will be used instead.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-874">874</a></span>
 <span class="normal"><a href="#__codelineno-0-875">875</a></span>
 <span class="normal"><a href="#__codelineno-0-876">876</a></span>
@@ -3892,7 +3892,7 @@ hyperparameters found in <code>mlgp</code> are used when fitting to the data.</p
     Calculate the prediction of a LOO multi-level GP at a left-out training input.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-961"> 961</a></span>
 <span class="normal"><a href="#__codelineno-0-962"> 962</a></span>
 <span class="normal"><a href="#__codelineno-0-963"> 963</a></span>
@@ -4121,7 +4121,7 @@ multiplying the lengths of the domain's dimensions by <code>sqrt(-0.5 / log(10 *
 Note that the same lower bounds are used for each level.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1024">1024</a></span>
 <span class="normal"><a href="#__codelineno-0-1025">1025</a></span>
 <span class="normal"><a href="#__codelineno-0-1026">1026</a></span>
@@ -4366,7 +4366,7 @@ described above.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-756">756</a></span>
 <span class="normal"><a href="#__codelineno-0-757">757</a></span>
 <span class="normal"><a href="#__codelineno-0-758">758</a></span>
@@ -4684,7 +4684,7 @@ utilities.optimisation.maximise :
     Multi-Level Gaussian Process Models". arXiv: https://arxiv.org/abs/2307.09095</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1100">1100</a></span>
 <span class="normal"><a href="#__codelineno-0-1101">1101</a></span>
 <span class="normal"><a href="#__codelineno-0-1102">1102</a></span>
@@ -5159,7 +5159,7 @@ utilities.optimisation.maximise :
     Gaussian process models". DOI: https://doi.org/10.1137/21M1404260</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-633">633</a></span>
 <span class="normal"><a href="#__codelineno-0-634">634</a></span>
 <span class="normal"><a href="#__codelineno-0-635">635</a></span>
@@ -5467,7 +5467,7 @@ utilities.optimisation.maximise :
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/designers.py</code></summary>
+              <summary>Source code in <code>exauq\core\designers.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-917">917</a></span>
 <span class="normal"><a href="#__codelineno-0-918">918</a></span>
 <span class="normal"><a href="#__codelineno-0-919">919</a></span>
@@ -5617,9 +5617,9 @@ utilities.optimisation.maximise :
       
         <script src="../../javascripts/katex.js"></script>
       
-        <script src="../../javascripts/katex.min.js"></script>
+        <script src="https://unpkg.com/katex@0/dist/katex.min.js"></script>
       
-        <script src="../../javascripts/auto-render.min.js"></script>
+        <script src="https://unpkg.com/katex@0/dist/contrib/auto-render.min.js"></script>
       
     
   </body>

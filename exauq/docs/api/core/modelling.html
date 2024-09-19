@@ -47,7 +47,7 @@
     
       <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../stylesheets/katex.min.css">
+      <link rel="stylesheet" href="https://unpkg.com/katex@0/dist/katex.min.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -2371,7 +2371,7 @@ can be trained with simulator outputs using an experimental design
 methodology.</p>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-875">875</a></span>
 <span class="normal"><a href="#__codelineno-0-876">876</a></span>
 <span class="normal"><a href="#__codelineno-0-877">877</a></span>
@@ -2636,7 +2636,7 @@ represent bounds for the process variance.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-896">896</a></span>
 <span class="normal"><a href="#__codelineno-0-897">897</a></span>
 <span class="normal"><a href="#__codelineno-0-898">898</a></span>
@@ -2751,7 +2751,7 @@ represent bounds for the process variance.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-930">930</a></span>
 <span class="normal"><a href="#__codelineno-0-931">931</a></span>
 <span class="normal"><a href="#__codelineno-0-932">932</a></span>
@@ -2827,7 +2827,7 @@ such as an explicit formula for calculating the normalised expected squared erro
 simulator input/output pair.</p>
 </details>
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-948"> 948</a></span>
 <span class="normal"><a href="#__codelineno-0-949"> 949</a></span>
 <span class="normal"><a href="#__codelineno-0-950"> 950</a></span>
@@ -3191,7 +3191,7 @@ inputs is empty, in which case an empty array should be returned.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1058">1058</a></span>
 <span class="normal"><a href="#__codelineno-0-1059">1059</a></span>
 <span class="normal"><a href="#__codelineno-0-1060">1060</a></span>
@@ -3296,7 +3296,7 @@ this Gaussian process.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1022">1022</a></span>
 <span class="normal"><a href="#__codelineno-0-1023">1023</a></span>
 <span class="normal"><a href="#__codelineno-0-1024">1024</a></span>
@@ -3435,7 +3435,7 @@ represent bounds for the process variance.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-970"> 970</a></span>
 <span class="normal"><a href="#__codelineno-0-971"> 971</a></span>
 <span class="normal"><a href="#__codelineno-0-972"> 972</a></span>
@@ -3551,7 +3551,7 @@ input.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1004">1004</a></span>
 <span class="normal"><a href="#__codelineno-0-1005">1005</a></span>
 <span class="normal"><a href="#__codelineno-0-1006">1006</a></span>
@@ -3622,7 +3622,7 @@ is required. Users should derive from this class when creating concrete classes 
 hyperparameters.</p>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1483">1483</a></span>
 <span class="normal"><a href="#__codelineno-0-1484">1484</a></span>
 <span class="normal"><a href="#__codelineno-0-1485">1485</a></span>
@@ -3671,7 +3671,7 @@ typically represent programs for calculating the outputs of complex models
 for given inputs.</p>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2069">2069</a></span>
 <span class="normal"><a href="#__codelineno-0-2070">2070</a></span>
 <span class="normal"><a href="#__codelineno-0-2071">2071</a></span>
@@ -3777,7 +3777,7 @@ for given inputs.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2077">2077</a></span>
 <span class="normal"><a href="#__codelineno-0-2078">2078</a></span>
 <span class="normal"><a href="#__codelineno-0-2079">2079</a></span>
@@ -3915,7 +3915,7 @@ parameter should be a positive.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1519">1519</a></span>
 <span class="normal"><a href="#__codelineno-0-1520">1520</a></span>
 <span class="normal"><a href="#__codelineno-0-1521">1521</a></span>
@@ -4284,7 +4284,7 @@ parameter should be a positive.</p>
 using the natural log.</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1623">1623</a></span>
 <span class="normal"><a href="#__codelineno-0-1624">1624</a></span>
 <span class="normal"><a href="#__codelineno-0-1625">1625</a></span>
@@ -4333,7 +4333,7 @@ using the natural log.</p>
 ``process_var -&gt; log(process_var).</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1636">1636</a></span>
 <span class="normal"><a href="#__codelineno-0-1637">1637</a></span>
 <span class="normal"><a href="#__codelineno-0-1638">1638</a></span>
@@ -4375,7 +4375,7 @@ using the natural log.</p>
       <p>Transform a nugget to the (natural) log scale via <code>nugget -&gt; log(nugget)</code>.</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1646">1646</a></span>
 <span class="normal"><a href="#__codelineno-0-1647">1647</a></span>
 <span class="normal"><a href="#__codelineno-0-1648">1648</a></span>
@@ -4448,7 +4448,7 @@ error at a simulator output, utilising the Gaussian assumption.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-783">783</a></span>
 <span class="normal"><a href="#__codelineno-0-784">784</a></span>
 <span class="normal"><a href="#__codelineno-0-785">785</a></span>
@@ -4713,7 +4713,7 @@ variance and squared error of the emulator's prediction at the simulator input:<
    Gaussian process models". DOI: https://doi.org/10.1137/21M1404260</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-801">801</a></span>
 <span class="normal"><a href="#__codelineno-0-802">802</a></span>
 <span class="normal"><a href="#__codelineno-0-803">803</a></span>
@@ -4962,7 +4962,7 @@ preserved during construction of an <code>Input</code>. See the Examples.</p>
 </span></code></pre></div>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-264">264</a></span>
 <span class="normal"><a href="#__codelineno-0-265">265</a></span>
 <span class="normal"><a href="#__codelineno-0-266">266</a></span>
@@ -5470,7 +5470,7 @@ numbers (dim &gt; 1), a single real number (dim = 1), or None (dim = 0).</p>
 coordinates as this <code>Input</code></p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-434">434</a></span>
 <span class="normal"><a href="#__codelineno-0-435">435</a></span>
 <span class="normal"><a href="#__codelineno-0-436">436</a></span>
@@ -5533,7 +5533,7 @@ coordinates as this <code>Input</code></p>
 <code>Input</code> built from the given slice of coordinate entries.</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-461">461</a></span>
 <span class="normal"><a href="#__codelineno-0-462">462</a></span>
 <span class="normal"><a href="#__codelineno-0-463">463</a></span>
@@ -5589,7 +5589,7 @@ coordinates as this <code>Input</code></p>
       <p>Returns the number of coordinates in this input.</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-456">456</a></span>
 <span class="normal"><a href="#__codelineno-0-457">457</a></span>
 <span class="normal"><a href="#__codelineno-0-458">458</a></span>
@@ -5648,7 +5648,7 @@ value (i.e. not None or NaN).</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-375">375</a></span>
 <span class="normal"><a href="#__codelineno-0-376">376</a></span>
 <span class="normal"><a href="#__codelineno-0-377">377</a></span>
@@ -5792,7 +5792,7 @@ determine whether an object has a level attached to it:</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-35">35</a></span>
 <span class="normal"><a href="#__codelineno-0-36">36</a></span>
 <span class="normal"><a href="#__codelineno-0-37">37</a></span>
@@ -5998,7 +5998,7 @@ is not also a MultiLevel instance:</p>
 </span></code></pre></div>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1084">1084</a></span>
 <span class="normal"><a href="#__codelineno-0-1085">1085</a></span>
 <span class="normal"><a href="#__codelineno-0-1086">1086</a></span>
@@ -6320,7 +6320,7 @@ values created by applying <code>f</code> to the (level, value) pairs of <code>s
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1187">1187</a></span>
 <span class="normal"><a href="#__codelineno-0-1188">1188</a></span>
 <span class="normal"><a href="#__codelineno-0-1189">1189</a></span>
@@ -6434,7 +6434,7 @@ each level defined by <code>gps</code>.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1224">1224</a></span>
 <span class="normal"><a href="#__codelineno-0-1225">1225</a></span>
 <span class="normal"><a href="#__codelineno-0-1226">1226</a></span>
@@ -7106,7 +7106,7 @@ how bounds should be constructed for each level's Gaussian process.</p>
   <p>AbstractGaussianProcess.fit : Fitting individual Gaussian processes.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1338">1338</a></span>
 <span class="normal"><a href="#__codelineno-0-1339">1339</a></span>
 <span class="normal"><a href="#__codelineno-0-1340">1340</a></span>
@@ -7331,7 +7331,7 @@ equal to the sum of the predicted variances of the level-wise GPs multiplied by
 the squares of the coefficients.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1441">1441</a></span>
 <span class="normal"><a href="#__codelineno-0-1442">1442</a></span>
 <span class="normal"><a href="#__codelineno-0-1443">1443</a></span>
@@ -7508,7 +7508,7 @@ root of the variance.</p>
   <p><code>exauq.core.numerics.equal_within_tolerance</code> : Equality up to tolerances.</p>
 </details>
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-691">691</a></span>
 <span class="normal"><a href="#__codelineno-0-692">692</a></span>
 <span class="normal"><a href="#__codelineno-0-693">693</a></span>
@@ -7782,7 +7782,7 @@ root of the variance.</p>
       <p>Checks equality with another object up to default tolerances.</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-772">772</a></span>
 <span class="normal"><a href="#__codelineno-0-773">773</a></span>
 <span class="normal"><a href="#__codelineno-0-774">774</a></span>
@@ -7892,7 +7892,7 @@ coordinate in the domain.</p>
 </span></code></pre></div>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1656">1656</a></span>
 <span class="normal"><a href="#__codelineno-0-1657">1657</a></span>
 <span class="normal"><a href="#__codelineno-0-1658">1658</a></span>
@@ -8836,7 +8836,7 @@ points is <code>2 ** dim</code>, where dim is the number of dimensions of the do
 whose coordinates lie within the bounds defined by this domain.</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1767">1767</a></span>
 <span class="normal"><a href="#__codelineno-0-1768">1768</a></span>
 <span class="normal"><a href="#__codelineno-0-1769">1769</a></span>
@@ -8929,7 +8929,7 @@ input points lie outside the domain's bounds.</p>
 </span></code></pre></div>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-2023">2023</a></span>
 <span class="normal"><a href="#__codelineno-0-2024">2024</a></span>
 <span class="normal"><a href="#__codelineno-0-2025">2025</a></span>
@@ -9094,7 +9094,7 @@ are equidistant from a point in the collection. In such cases, the point that is
 found first in the iteration will be returned.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1948">1948</a></span>
 <span class="normal"><a href="#__codelineno-0-1949">1949</a></span>
 <span class="normal"><a href="#__codelineno-0-1950">1950</a></span>
@@ -9324,7 +9324,7 @@ to the dimension of this domain.</p>
 </span></code></pre></div>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1792">1792</a></span>
 <span class="normal"><a href="#__codelineno-0-1793">1793</a></span>
 <span class="normal"><a href="#__codelineno-0-1794">1794</a></span>
@@ -9529,7 +9529,7 @@ number that is not a missing value (i.e. not None or NaN).</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+                <summary>Source code in <code>exauq\core\modelling.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-498">498</a></span>
 <span class="normal"><a href="#__codelineno-0-499">499</a></span>
 <span class="normal"><a href="#__codelineno-0-500">500</a></span>
@@ -10033,7 +10033,7 @@ corresponding outputs together.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-555">555</a></span>
 <span class="normal"><a href="#__codelineno-0-556">556</a></span>
 <span class="normal"><a href="#__codelineno-0-557">557</a></span>
@@ -10211,7 +10211,7 @@ non-missing floats.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-593">593</a></span>
 <span class="normal"><a href="#__codelineno-0-594">594</a></span>
 <span class="normal"><a href="#__codelineno-0-595">595</a></span>
@@ -10415,7 +10415,7 @@ non-missing floats.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-119">119</a></span>
 <span class="normal"><a href="#__codelineno-0-120">120</a></span>
 <span class="normal"><a href="#__codelineno-0-121">121</a></span>
@@ -10487,7 +10487,7 @@ is taken.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-139">139</a></span>
 <span class="normal"><a href="#__codelineno-0-140">140</a></span>
 <span class="normal"><a href="#__codelineno-0-141">141</a></span>
@@ -10589,7 +10589,7 @@ retrieved with <code>get_level</code>).</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/core/modelling.py</code></summary>
+              <summary>Source code in <code>exauq\core\modelling.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-80"> 80</a></span>
 <span class="normal"><a href="#__codelineno-0-81"> 81</a></span>
 <span class="normal"><a href="#__codelineno-0-82"> 82</a></span>
@@ -10729,9 +10729,9 @@ retrieved with <code>get_level</code>).</p>
       
         <script src="../../javascripts/katex.js"></script>
       
-        <script src="../../javascripts/katex.min.js"></script>
+        <script src="https://unpkg.com/katex@0/dist/katex.min.js"></script>
       
-        <script src="../../javascripts/auto-render.min.js"></script>
+        <script src="https://unpkg.com/katex@0/dist/contrib/auto-render.min.js"></script>
       
     
   </body>

@@ -47,7 +47,7 @@
     
       <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../../stylesheets/katex.min.css">
+      <link rel="stylesheet" href="https://unpkg.com/katex@0/dist/katex.min.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -1907,7 +1907,7 @@ completion, and then removes the job from the JobManager's monitoring list.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1030">1030</a></span>
 <span class="normal"><a href="#__codelineno-0-1031">1031</a></span>
 <span class="normal"><a href="#__codelineno-0-1032">1032</a></span>
@@ -2020,7 +2020,7 @@ logging.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1055">1055</a></span>
 <span class="normal"><a href="#__codelineno-0-1056">1056</a></span>
 <span class="normal"><a href="#__codelineno-0-1057">1057</a></span>
@@ -2128,7 +2128,7 @@ to be taken when a job fails to submit for execution.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1078">1078</a></span>
 <span class="normal"><a href="#__codelineno-0-1079">1079</a></span>
 <span class="normal"><a href="#__codelineno-0-1080">1080</a></span>
@@ -2214,7 +2214,7 @@ to be taken when a job fails to submit for execution.</p>
       <p>Raised when the status of a job is not appropriate for some action.</p>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-560">560</a></span>
 <span class="normal"><a href="#__codelineno-0-561">561</a></span>
 <span class="normal"><a href="#__codelineno-0-562">562</a></span>
@@ -2295,7 +2295,7 @@ millisecond.</p>
 </span></code></pre></div>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1274">1274</a></span>
 <span class="normal"><a href="#__codelineno-0-1275">1275</a></span>
 <span class="normal"><a href="#__codelineno-0-1276">1276</a></span>
@@ -2460,7 +2460,7 @@ millisecond.</p>
       <p>Initializes the JobIDGenerator, preparing it for generating unique job IDs.</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1301">1301</a></span>
 <span class="normal"><a href="#__codelineno-0-1302">1302</a></span>
 <span class="normal"><a href="#__codelineno-0-1303">1303</a></span>
@@ -2515,7 +2515,7 @@ ensuring uniqueness to the millisecond.</p>
 </span></code></pre></div>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1308">1308</a></span>
 <span class="normal"><a href="#__codelineno-0-1309">1309</a></span>
 <span class="normal"><a href="#__codelineno-0-1310">1310</a></span>
@@ -2756,7 +2756,7 @@ its status accordingly in the simulations log, and ensures proper shutdown of
 monitoring threads.</p>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-578">578</a></span>
 <span class="normal"><a href="#__codelineno-0-579">579</a></span>
 <span class="normal"><a href="#__codelineno-0-580">580</a></span>
@@ -3668,7 +3668,7 @@ monitoring threads.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-776">776</a></span>
 <span class="normal"><a href="#__codelineno-0-777">777</a></span>
 <span class="normal"><a href="#__codelineno-0-778">778</a></span>
@@ -3811,7 +3811,7 @@ monitoring threads.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-895">895</a></span>
 <span class="normal"><a href="#__codelineno-0-896">896</a></span>
 <span class="normal"><a href="#__codelineno-0-897">897</a></span>
@@ -3909,7 +3909,7 @@ concurrently will not interfere with each other or duplicate monitoring efforts.
 <p>Adds <code>job1</code> and <code>job2</code> to the monitoring queue and starts monitoring their statuses.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-836">836</a></span>
 <span class="normal"><a href="#__codelineno-0-837">837</a></span>
 <span class="normal"><a href="#__codelineno-0-838">838</a></span>
@@ -4019,7 +4019,7 @@ associated hardware interface.</p>
 its monitoring and updating the job count for its associated hardware interface.</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-926">926</a></span>
 <span class="normal"><a href="#__codelineno-0-927">927</a></span>
 <span class="normal"><a href="#__codelineno-0-928">928</a></span>
@@ -4110,7 +4110,7 @@ capabilities, ensuring that the application can be closed without leaving
 orphaned threads.</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-953">953</a></span>
 <span class="normal"><a href="#__codelineno-0-954">954</a></span>
 <span class="normal"><a href="#__codelineno-0-955">955</a></span>
@@ -4233,7 +4233,7 @@ further interaction or querying of its status.</p>
 obtaining its unique ID. The job is prepared for submission through the job handling strategies.</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-671">671</a></span>
 <span class="normal"><a href="#__codelineno-0-672">672</a></span>
 <span class="normal"><a href="#__codelineno-0-673">673</a></span>
@@ -4374,7 +4374,7 @@ job manager.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-989"> 989</a></span>
 <span class="normal"><a href="#__codelineno-0-990"> 990</a></span>
 <span class="normal"><a href="#__codelineno-0-991"> 991</a></span>
@@ -4523,7 +4523,7 @@ functionalities.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1004">1004</a></span>
 <span class="normal"><a href="#__codelineno-0-1005">1005</a></span>
 <span class="normal"><a href="#__codelineno-0-1006">1006</a></span>
@@ -4638,7 +4638,7 @@ and status updates.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1202">1202</a></span>
 <span class="normal"><a href="#__codelineno-0-1203">1203</a></span>
 <span class="normal"><a href="#__codelineno-0-1204">1204</a></span>
@@ -4851,7 +4851,7 @@ is marked as FAILED_SUBMIT.</p>
 and jitter to avoid thundering herd problems.</p>
 </details>
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1148">1148</a></span>
 <span class="normal"><a href="#__codelineno-0-1149">1149</a></span>
 <span class="normal"><a href="#__codelineno-0-1150">1150</a></span>
@@ -5022,7 +5022,7 @@ unnecessarily updating the status of jobs already marked as running.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1102">1102</a></span>
 <span class="normal"><a href="#__codelineno-0-1103">1103</a></span>
 <span class="normal"><a href="#__codelineno-0-1104">1104</a></span>
@@ -5133,7 +5133,7 @@ output should have the heading 'Output'.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-147">147</a></span>
 <span class="normal"><a href="#__codelineno-0-148">148</a></span>
 <span class="normal"><a href="#__codelineno-0-149">149</a></span>
@@ -6043,7 +6043,7 @@ Defaults to JobStatus.PENDING_SUBMIT.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-287">287</a></span>
 <span class="normal"><a href="#__codelineno-0-288">288</a></span>
 <span class="normal"><a href="#__codelineno-0-289">289</a></span>
@@ -6241,7 +6241,7 @@ handling them based on their current state. It enforces data integrity by
 ensuring that each job ID is unique and correctly mapped to a valid job status.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-502">502</a></span>
 <span class="normal"><a href="#__codelineno-0-503">503</a></span>
 <span class="normal"><a href="#__codelineno-0-504">504</a></span>
@@ -6375,7 +6375,7 @@ ensuring that each job ID is unique and correctly mapped to a valid job status.<
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-409">409</a></span>
 <span class="normal"><a href="#__codelineno-0-410">410</a></span>
 <span class="normal"><a href="#__codelineno-0-411">411</a></span>
@@ -6447,7 +6447,7 @@ ensuring that each job ID is unique and correctly mapped to a valid job status.<
       <p>Return records based on given job ids and job status codes</p>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-380">380</a></span>
 <span class="normal"><a href="#__codelineno-0-381">381</a></span>
 <span class="normal"><a href="#__codelineno-0-382">382</a></span>
@@ -6539,7 +6539,7 @@ simulation output, or <code>None</code> if this hasn't yet been computed.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-253">253</a></span>
 <span class="normal"><a href="#__codelineno-0-254">254</a></span>
 <span class="normal"><a href="#__codelineno-0-255">255</a></span>
@@ -6611,7 +6611,7 @@ signaling they have not been dispatched for execution.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-436">436</a></span>
 <span class="normal"><a href="#__codelineno-0-437">437</a></span>
 <span class="normal"><a href="#__codelineno-0-438">438</a></span>
@@ -6701,7 +6701,7 @@ file.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-349">349</a></span>
 <span class="normal"><a href="#__codelineno-0-350">350</a></span>
 <span class="normal"><a href="#__codelineno-0-351">351</a></span>
@@ -6830,7 +6830,7 @@ raises a <code>SimulationsLogLookupError</code>.</p>
 data corruption or race conditions.</p>
 </details>
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-455">455</a></span>
 <span class="normal"><a href="#__codelineno-0-456">456</a></span>
 <span class="normal"><a href="#__codelineno-0-457">457</a></span>
@@ -6955,7 +6955,7 @@ data corruption or race conditions.</p>
       <p>Raised when a simulations log does not contain a particular record.</p>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-554">554</a></span>
 <span class="normal"><a href="#__codelineno-0-555">555</a></span>
 <span class="normal"><a href="#__codelineno-0-556">556</a></span>
@@ -7048,7 +7048,7 @@ the simulator has been retrieved, the output is recorded as <code>None</code>.</
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-28"> 28</a></span>
 <span class="normal"><a href="#__codelineno-0-29"> 29</a></span>
 <span class="normal"><a href="#__codelineno-0-30"> 30</a></span>
@@ -7366,7 +7366,7 @@ output, if this has previously been computed.</p>
     </ul>
 
             <details class="quote">
-              <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+              <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-112">112</a></span>
 <span class="normal"><a href="#__codelineno-0-113">113</a></span>
 <span class="normal"><a href="#__codelineno-0-114">114</a></span>
@@ -7491,7 +7491,7 @@ monitoring, and logging.</p>
     </ul>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1125">1125</a></span>
 <span class="normal"><a href="#__codelineno-0-1126">1126</a></span>
 <span class="normal"><a href="#__codelineno-0-1127">1127</a></span>
@@ -7575,7 +7575,7 @@ monitoring, and logging.</p>
       <p>Raised when a job ID does not correspond to a job.</p>
 
               <details class="quote">
-                <summary>Source code in <code>exauq/sim_management/simulators.py</code></summary>
+                <summary>Source code in <code>exauq\sim_management\simulators.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-568">568</a></span>
 <span class="normal"><a href="#__codelineno-0-569">569</a></span>
 <span class="normal"><a href="#__codelineno-0-570">570</a></span>
@@ -7675,9 +7675,9 @@ monitoring, and logging.</p>
       
         <script src="../../javascripts/katex.js"></script>
       
-        <script src="../../javascripts/katex.min.js"></script>
+        <script src="https://unpkg.com/katex@0/dist/katex.min.js"></script>
       
-        <script src="../../javascripts/auto-render.min.js"></script>
+        <script src="https://unpkg.com/katex@0/dist/contrib/auto-render.min.js"></script>
       
     
   </body>
