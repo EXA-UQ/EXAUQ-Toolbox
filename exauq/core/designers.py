@@ -488,7 +488,7 @@ class PEICalculator:
 
         Parameters
         ----------
-        x : collection of Input
+        repulsion_points : collection of Input
             The inputs to be added to the repulsion points set.
 
         Raises

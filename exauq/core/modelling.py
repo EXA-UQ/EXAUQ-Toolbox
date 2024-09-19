@@ -520,7 +520,10 @@ class TrainingDatum(object):
     """
 
     input: Input
+    """(Read-only) An input to a simulator."""
+
     output: Real
+    """(Read-only) The output of the simulator at the input."""
 
     def __post_init__(self):
         self._validate_input(self.input)
@@ -721,8 +724,14 @@ class Prediction:
     """
 
     estimate: Real
+    """(Read-only) The estimated value of the prediction."""
+
     variance: Real
+    """(Read-only) The variance of the prediction."""
+
     standard_deviation: Real = dataclasses.field(default=None, init=False)
+    """(Read-only) The standard deviation of the prediction, calculated as the square
+    root of the variance."""
 
     def __post_init__(self):
         self._validate_estimate(self.estimate)
@@ -1542,8 +1551,13 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
     """
 
     corr_length_scales: Union[Sequence[Real], np.ndarray[Real]]
+    """(Read-only) The correlation length scale parameters."""
+
     process_var: Real
+    """(Read-only) The process variance."""
+
     nugget: Optional[Real] = None
+    """(Read only, default: None) The nugget, or ``None`` if not supplied."""
 
     def __post_init__(self):
         if not isinstance(self.corr_length_scales, (Sequence, np.ndarray)):
