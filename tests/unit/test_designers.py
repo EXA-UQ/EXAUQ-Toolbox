@@ -2045,7 +2045,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         ) as mock_maximise:
             _ = self.compute_multi_level_loo_samples(seeds=seeds)
 
-        # checks {"seed": seeds[a]} is a subset of mock_maximise.call_args.kwargs[b]
+        # checks {"seed": seeds[a]} is a subset of mock_maximise.call_args[b].kwargs
         self.assertLessEqual(
             {"seed": seeds[1]}.items(), mock_maximise.call_args_list[0].kwargs.items()
         )
