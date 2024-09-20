@@ -57,7 +57,7 @@ def _find_input_outside_domain(
 
     return None
 
-def oneshot(
+def oneshot_lhs(
     domain: SimulatorDomain, design_num: int, seed: Optional[int] = None   
 ) -> tuple[Input]:
     """
