@@ -58,7 +58,7 @@ def oneshot(
     
     # Use the dimension of the domain in defining the Latin hypercube sampler.
     # Seed used to make the sampling repeatable.
-    sampler = LatinHypercube(domain.dim, seed)
+    sampler = LatinHypercube(domain.dim, seed=seed)
     lhs_array = sampler.random(n=design_num)
 
     # Rescaled into domain
