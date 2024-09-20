@@ -1114,7 +1114,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         ) as mock_maximise:
             _ = compute_single_level_loo_samples(self.gp, self.domain)
 
-        #assertDictContainsSubset equivalent
+        # checks {"seed": None} is a subset of mock_maximise.call_args.kwargs
         self.assertLessEqual(
             {"seed": None}.items(), mock_maximise.call_args.kwargs.items()
         )
@@ -1132,7 +1132,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         ) as mock_maximise:
             _ = compute_single_level_loo_samples(self.gp, self.domain, seed=seed)
 
-        #assertDictContainsSubset equivalent
+        # checks {"seed": seed} is a subset of mock_maximise.call_args.kwargs
         self.assertLessEqual(
             {"seed": seed}.items(), mock_maximise.call_args.kwargs.items()
         ) 
@@ -2045,7 +2045,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         ) as mock_maximise:
             _ = self.compute_multi_level_loo_samples(seeds=seeds)
 
-        #assertDictContainsSubset equivalent
+        # checks {"seed": seeds[a]} is a subset of mock_maximise.call_args.kwargs[b]
         self.assertLessEqual(
             {"seed": seeds[1]}.items(), mock_maximise.call_args_list[0].kwargs.items()
         )
