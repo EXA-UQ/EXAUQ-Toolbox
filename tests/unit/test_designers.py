@@ -1114,7 +1114,10 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         ) as mock_maximise:
             _ = compute_single_level_loo_samples(self.gp, self.domain)
 
-        self.assertDictContainsSubset({"seed": None}, mock_maximise.call_args.kwargs)
+        # checks {"seed": None} is a subset of mock_maximise.call_args.kwargs
+        self.assertLessEqual(
+            {"seed": None}.items(), mock_maximise.call_args.kwargs.items()
+        )
 
     def test_use_of_seed(self):
         """If a seed is provided, then maximisation of pseudo-expected improvement is
@@ -1129,7 +1132,10 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         ) as mock_maximise:
             _ = compute_single_level_loo_samples(self.gp, self.domain, seed=seed)
 
-        self.assertDictContainsSubset({"seed": seed}, mock_maximise.call_args.kwargs)
+        # checks {"seed": seed} is a subset of mock_maximise.call_args.kwargs
+        self.assertLessEqual(
+            {"seed": seed}.items(), mock_maximise.call_args.kwargs.items()
+        ) 
 
     def test_number_of_new_design_points_matches_batch_number(self):
         """The number of new design points returned is equal to the supplied batch
@@ -2039,13 +2045,14 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         ) as mock_maximise:
             _ = self.compute_multi_level_loo_samples(seeds=seeds)
 
-        self.assertDictContainsSubset(
-            {"seed": seeds[1]}, mock_maximise.call_args_list[0].kwargs
-        )
-        self.assertDictContainsSubset(
-            {"seed": seeds[2]}, mock_maximise.call_args_list[1].kwargs
+        # checks {"seed": seeds[a]} is a subset of mock_maximise.call_args[b].kwargs
+        self.assertLessEqual(
+            {"seed": seeds[1]}.items(), mock_maximise.call_args_list[0].kwargs.items()
         )
 
+        self.assertLessEqual(
+            {"seed": seeds[2]}.items(), mock_maximise.call_args_list[1].kwargs.items()
+        )
 
 # TODO: test that repulsion points are updated with previously calculated inputs in
 # batch mode.
