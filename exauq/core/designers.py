@@ -57,7 +57,7 @@ def _find_input_outside_domain(
     return None
 
 def oneshot_lhs(
-    domain: SimulatorDomain, design_num: int, seed: Optional[int] = None   
+    domain: SimulatorDomain, batch_size: int, seed: Optional[int] = None   
 ) -> tuple[Input, ...]:
     """
     Create a "one-shot" design for a simulator using the Latin hypercube method.
@@ -73,7 +73,7 @@ def oneshot_lhs(
         The domain of a simulator, defining the bounded input space over which the Latin
         hypercube will be generated.
     
-    design_num : int
+    batch_size : int
         The number of design points to create within the domain.
 
     seed : int, optional
@@ -99,18 +99,18 @@ def oneshot_lhs(
         )
     
     check_int(
-        design_num, 
-        TypeError(f"Expected 'design_num' to be of type int, but received {type(design_num)}.")
+        batch_size, 
+        TypeError(f"Expected 'batch_size' to be of type int, but received {type(batch_size)}.")
     )
-    if design_num < 0: 
+    if batch_size < 0: 
         raise ValueError(
-            f"Expected 'design_num' to be a non-negative integer but is equal to {design_num}."
+            f"Expected 'batch_size' to be a non-negative integer but is equal to {batch_size}."
         )
     
     # Use the dimension of the domain in defining the Latin hypercube sampler.
     # Seed used to make the sampling repeatable.
     sampler = LatinHypercube(domain.dim, seed=seed)
-    lhs_array = sampler.random(n=design_num)
+    lhs_array = sampler.random(n=batch_size)
 
     # Rescaled into domain
     lhs_inputs = tuple([domain.scale(row) for row in lhs_array])

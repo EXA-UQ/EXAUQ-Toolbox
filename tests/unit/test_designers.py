@@ -43,36 +43,36 @@ from tests.utilities.utilities import ExauqTestCase, exact
 class TestOneshotLhs(ExauqTestCase):
     def setUp(self) -> None: 
         self.domain = SimulatorDomain([(0, 1)])
-        self.design_num = 5
+        self.batch_size = 5
         self.seed = 1
 
-    def test_oneshot_lhs_design_num_type_error(self):
+    def test_oneshot_lhs_batch_size_type_error(self):
         """Test that a TypeError is raised if something other than an int is provided
-        as the design_num"""
+        as the batch_size"""
 
-        design_num = 0.54
+        batch_size = 0.54
         with self.assertRaisesRegex(
             TypeError, 
-            exact(f"Expected 'design_num' to be of type int, but received {type(design_num)}."),
+            exact(f"Expected 'batch_size' to be of type int, but received {type(batch_size)}."),
         ):
-            oneshot_lhs(self.domain, design_num, self.seed)
+            oneshot_lhs(self.domain, batch_size, self.seed)
 
-    def test_oneshot_lhs_design_num_negative_error(self):
-        """Test that a ValueError is raised if the design_num is provided as negative."""
+    def test_oneshot_lhs_batch_size_negative_error(self):
+        """Test that a ValueError is raised if the batch_size is provided as negative."""
 
-        design_num = -1
+        batch_size = -1
         with self.assertRaisesRegex(
             ValueError, 
             exact(
-                f"Expected 'design_num' to be a non-negative integer but is equal to {design_num}."
+                f"Expected 'batch_size' to be a non-negative integer but is equal to {batch_size}."
             ),
         ):
-            oneshot_lhs(self.domain, design_num, self.seed)  
+            oneshot_lhs(self.domain, batch_size, self.seed)  
 
     def test_oneshot_lhs_returns_tuple_inputs(self):
         """Test that a tuple of Inputs are returned"""
 
-        for x in oneshot_lhs(self.domain, self.design_num, self.seed):
+        for x in oneshot_lhs(self.domain, self.batch_size, self.seed):
             self.assertIsInstance(x, Input)
 
     def test_oneshot_lhs_return_tuple_length(self):
@@ -87,7 +87,7 @@ class TestOneshotLhs(ExauqTestCase):
     def test_oneshot_lhs_returns_inputs_from_domain(self): 
         """Test that the inputs returned belong to the SimulatorDomain provided"""
 
-        for x in oneshot_lhs(self.domain, self.design_num, self.seed): 
+        for x in oneshot_lhs(self.domain, self.batch_size, self.seed): 
             self.assertTrue(x in self.domain)
 
 
