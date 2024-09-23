@@ -102,9 +102,9 @@ def oneshot_lhs(
         batch_size, 
         TypeError(f"Expected 'batch_size' to be of type int, but received {type(batch_size)}.")
     )
-    if batch_size < 0: 
+    if batch_size <= 0: 
         raise ValueError(
-            f"Expected 'batch_size' to be a non-negative integer but is equal to {batch_size}."
+            f"Expected 'batch_size' to be a non-negative integer >0 but is equal to {batch_size}."
         )
     
     # Use the dimension of the domain in defining the Latin hypercube sampler.

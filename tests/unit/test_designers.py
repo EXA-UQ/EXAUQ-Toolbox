@@ -64,7 +64,19 @@ class TestOneshotLhs(ExauqTestCase):
         with self.assertRaisesRegex(
             ValueError, 
             exact(
-                f"Expected 'batch_size' to be a non-negative integer but is equal to {batch_size}."
+                f"Expected 'batch_size' to be a non-negative integer >0 but is equal to {batch_size}."
+            ),
+        ):
+            oneshot_lhs(self.domain, batch_size, self.seed)  
+
+    def test_oneshot_lhs_batch_size_zero_error(self):
+        """Test that a ValueError is raised if the batch_size is provided as 0"""
+
+        batch_size = 0
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact(
+                f"Expected 'batch_size' to be a non-negative integer >0 but is equal to {batch_size}."
             ),
         ):
             oneshot_lhs(self.domain, batch_size, self.seed)  
