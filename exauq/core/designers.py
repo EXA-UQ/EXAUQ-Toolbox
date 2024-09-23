@@ -96,12 +96,16 @@ def oneshot_lhs(
     
     if not isinstance(domain, SimulatorDomain):
         raise TypeError(
-            f'Expected domain to be of type SimulatorDomain, but received {type(domain)}'
+            f'Expected domain to be of type SimulatorDomain, but received {type(domain)}.'
         )
     
-    if not isinstance(design_num, int):
-        raise TypeError(
-            f'Expected design_num to be of type int, but received {type(design_num)}'
+    check_int(
+        design_num, 
+        TypeError(f"Expected 'design_num' to be of type int, but received {type(design_num)}.")
+    )
+    if design_num < 0: 
+        raise ValueError(
+            f"Expected 'design_num' to be a non-negative integer but is equal to {design_num}."
         )
     
     # Use the dimension of the domain in defining the Latin hypercube sampler.
