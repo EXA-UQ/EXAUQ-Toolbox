@@ -103,11 +103,6 @@ def oneshot_lhs(
         raise TypeError(
             f'Expected design_num to be of type int, but received {type(design_num)}'
         )
-
-    if seed is not None and not isinstance(seed, int):
-        raise TypeError(
-            f'Expected seed to be None or of type int, but received {type(seed)}'
-        )
     
     # Use the dimension of the domain in defining the Latin hypercube sampler.
     # Seed used to make the sampling repeatable.
