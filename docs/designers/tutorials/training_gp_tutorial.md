@@ -121,72 +121,20 @@ def sim_func(x: Input) -> float:
 
 ## Creating an experimental design
 
-We'll now go on to create a one-shot experimental design for this simulator, using the Latin hypercube method. The following code uses functionality provided by [scipy](https://scipy.org/) to create a Latin hypercube sample of 20 new input points.
+We'll now go on to create a one-shot experimental design for this simulator, using the Latin hypercube method. The following wrapper function [`oneshot_lhs`][exauq.core.designers.oneshot_lhs] uses functionality provided by [scipy](https://scipy.org/) to create a Latin hypercube sample of 20 new input points.
 
 
 ``` { .python .copy }
-from scipy.stats.qmc import LatinHypercube
+from exauq.core.designers import oneshot_lhs
 
 # Use the dimension of the domain in defining the Latin hypercube sampler.
 # Also set a seed to make the sampling repeatable.
-sampler = LatinHypercube(domain.dim, seed=1)
-lhs_array = sampler.random(n=20)
-print(lhs_array)
+lhs_inputs = oneshot_lhs(domain = domain, 
+                         batch_size = 20, 
+                         seed = 1)
 ```
 
-<div class="result" markdown>
-    [[0.27440892 0.75247682]
-     [0.59279202 0.05256753]
-     [0.83440843 0.72883368]
-     [0.15861487 0.27954004]
-     [0.72252032 0.34862204]
-     [0.66232434 0.52309283]
-     [0.78351341 0.86057856]
-     [0.43484026 0.42732511]
-     [0.14329792 0.62984435]
-     [0.33982724 0.18688433]
-     [0.86248177 0.58597956]
-     [0.02574045 0.10096314]
-     [0.20191714 0.8137605 ]
-     [0.92293866 0.38615544]
-     [0.9919674  0.90150373]
-     [0.37419657 0.49420672]
-     [0.46882551 0.96116584]
-     [0.51934983 0.20413511]
-     [0.64802036 0.67357054]
-     [0.07703321 0.04688252]]
-</div>
-
-
-Note that the previous code block created a Numpy array of values, of shape `(20, 2)`,
-and each value lies between 0 and 1. To work with the design in the EXAUQ-Toolbox, 
-we need to convert the array into a sequence of
-[`Input`][exauq.core.modelling.Input] objects. Furthermore, because we want a design that
-fills the whole of our simulator domain $\mathcal{D}$, we need to also rescale the inputs
-from the unit square to our
-domain. 
-
-Fortunately, we can use the [`scale`][exauq.core.modelling.SimulatorDomain.scale] method
-from [`SimulatorDomain`][exauq.core.modelling.SimulatorDomain] to accomplish this in
-one go. We loop through the Numpy array and use the
-[`scale`][exauq.core.modelling.SimulatorDomain.scale] method to convert each row of
-the array into an [`Input`][exauq.core.modelling.Input] object that is rescaled to live
-in the domain:
-
-
-``` { .python .copy }
-lhs_inputs = [domain.scale(row) for row in lhs_array]
-
-# Print the first couple of inputs to verify conversion:
-print(repr(lhs_inputs[0]))
-print(repr(lhs_inputs[1]))
-```
-
-<div class="result" markdown>
-    Input(np.float64(-0.45118216247002574), np.float64(75.49520470318662))
-    Input(np.float64(0.18558403872803675), np.float64(6.204185236670643))
-</div>
-
+Behind the scenes within [`oneshot_lhs`][exauq.core.designers.oneshot_lhs], Scipy creates a Numpy array of values of shape `(20, 2)`, where each value lies between 0 and 1. To work with the design in the EXAUQ-Toolbox, this array has to be converted into a sequence of [`Input`][exauq.core.modelling.Input] objects. Furthermore, because we want a design that fills the whole of our simulator domain $\mathcal{D}$, the inputs are rescaled from the unit square to our domain using the [`scale`][exauq.core.modelling.SimulatorDomain.scale] method. 
 
 This defines our one-shot experimental design. Next let's go on to train a Gaussian process emulator with this design.
 

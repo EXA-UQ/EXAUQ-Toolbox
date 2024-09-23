@@ -90,26 +90,22 @@ ml_simulator = MultiLevel([sim_level1, sim_delta])
 
 To perform adaptive sampling, we need to begin with a multi-level GP trained with an initial design. We'll adopt the approach taken in
 [Training a Multi-Level Gaussian Process Emulator](./training_multi_level_gp_tutorial.md),
-using a Latin hypercube design (with the aid of [scipy](https://scipy.org/)) for creating
+using a Latin hypercube designer [`oneshot_lhs`][exauq.core.designers.oneshot_lhs] (with the aid of [scipy](https://scipy.org/)) for creating
 the training data for each level of the multi-level GP and defining the multi-level GP
 to have Matern 5/2 kernel for each level. The full code for doing this is as follows:
 
 
 ``` { .python .copy }
-from scipy.stats.qmc import LatinHypercube
+from exauq.core.designers import oneshot_lhs
 from exauq.core.modelling import MultiLevel, TrainingDatum
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import MultiLevelGaussianProcess
 
-
-# Set seed for repeatability.
-sampler = LatinHypercube(domain.dim, seed=1)
-
 # Create level 1 experimental design of 20 data points
-lhs_inputs1 = [domain.scale(row) for row in sampler.random(n=20)]
+lhs_inputs1 = oneshot_lhs(domain, 20, seed=1)
 
 # Create level 2 experimental design of 5 data points
-lhs_inputs2 = [domain.scale(row) for row in sampler.random(n=5)]
+lhs_inputs2 = oneshot_lhs(domain, 5, seed=1)
 
 # Put into a multi-level object
 design = MultiLevel([lhs_inputs1, lhs_inputs2])
