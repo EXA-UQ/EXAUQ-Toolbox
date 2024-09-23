@@ -15,6 +15,7 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
     SimpleDesigner,
+    oneshot_lhs,
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_loo_prediction,
@@ -37,6 +38,65 @@ from exauq.core.modelling import (
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
 from tests.utilities.utilities import ExauqTestCase, exact
+
+
+class TestOneshotLhs(ExauqTestCase):
+    def setUp(self) -> None: 
+        self.domain = SimulatorDomain([(0, 1)])
+        self.seed = 1
+        self.design_num = 5
+        
+    def test_oneshot_lhs_design_num_type_error(self):
+        """Test that a TypeError is raised if something other than an int is provided
+        as the design_num"""
+
+        design_num = 0.54
+        with self.assertRaisesRegex(
+            TypeError, 
+            exact(f"Expected design_num to be of type int, but received {type(design_num)}"),
+        ):
+            oneshot_lhs(self.domain, design_num, self.seed)
+
+    def test_oneshot_lhs_design_num_negative_error(self):
+        """Test that a ValueError is raised if the design_num is provided as negative."""
+
+        design_num = -1
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact(f"Expected 'num_design' to be a positive integer >0 but is equal to {design_num}")
+        ):
+            oneshot_lhs(self.domain, design_num, self.seed)  
+
+    def test_oneshot_lhs_design_num_zero_case(self):
+        """Test that a ValueError is raised if the design_num is provided as 0"""
+
+        design_num = 0
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact(f"Expected 'num_design to be a postitive integer >0 but is equal to {design_num}")
+        ):
+            oneshot_lhs(self.domain, design_num, self.seed)
+
+    def test_oneshot_lhs_returns_tuple_inputs(self):
+        """Test that a tuple of Inputs are returned"""
+
+        for x in oneshot_lhs(self.domain, self.design_num, self.seed):
+            self.assertIsInstance(x, Input)
+
+    def test_oneshot_lhs_return_tuple_length(self):
+        """Test that length of tuple returned is correct."""
+
+        for num_design in range(1,4):
+            with self.subTest(num_design = num_design): 
+                lhs_outputs = oneshot_lhs(self.domain, num_design, self.seed)
+                self.assertIsInstance(lhs_outputs, tuple)
+                self.assertEqual(num_design, len(lhs_outputs))
+
+    def test_oneshot_lhs_returns_inputs_from_domain(self): 
+        """Test that the inputs returned belong to the SimulatorDomain provided"""
+
+        for x in oneshot_lhs(self.domain, self.design_num, self.seed): 
+            self.assertTrue(x in self.domain)
 
 
 class TestSimpleDesigner(unittest.TestCase):
