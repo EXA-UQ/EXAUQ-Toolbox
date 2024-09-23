@@ -19,7 +19,6 @@ from exauq.core.modelling import (
     SimulatorDomain,
     TrainingDatum,
 )
-from exauq.core.modelling import Input, SimulatorDomain
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
 from exauq.utilities.validation import check_int
@@ -59,11 +58,11 @@ def _find_input_outside_domain(
 
 def oneshot_lhs(
     domain: SimulatorDomain, design_num: int, seed: Optional[int] = None   
-) -> tuple[Input]:
+) -> tuple[Input, ...]:
     """
     Create a "one-shot" design for a simulator using the Latin hypercube method.
 
-    The Latin hypercube sample generates points in the unit square to spacialy fill the 
+    The Latin hypercube sample generates points in the unit square to spatially fill the 
     domain as best as possible. It is then rescaled to match the design of the simulator. 
     The algorithm is implemented from the Scipy package using the provided domain and 
     number of design points chosen (see notes for further details). 
