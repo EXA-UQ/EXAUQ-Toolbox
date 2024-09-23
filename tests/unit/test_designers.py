@@ -43,9 +43,9 @@ from tests.utilities.utilities import ExauqTestCase, exact
 class TestOneshotLhs(ExauqTestCase):
     def setUp(self) -> None: 
         self.domain = SimulatorDomain([(0, 1)])
-        self.seed = 1
         self.design_num = 5
-        
+        self.seed = 1
+
     def test_oneshot_lhs_design_num_type_error(self):
         """Test that a TypeError is raised if something other than an int is provided
         as the design_num"""
@@ -53,7 +53,7 @@ class TestOneshotLhs(ExauqTestCase):
         design_num = 0.54
         with self.assertRaisesRegex(
             TypeError, 
-            exact(f"Expected design_num to be of type int, but received {type(design_num)}"),
+            exact(f"Expected 'design_num' to be of type int, but received {type(design_num)}."),
         ):
             oneshot_lhs(self.domain, design_num, self.seed)
 
@@ -63,19 +63,11 @@ class TestOneshotLhs(ExauqTestCase):
         design_num = -1
         with self.assertRaisesRegex(
             ValueError, 
-            exact(f"Expected 'num_design' to be a positive integer >0 but is equal to {design_num}")
+            exact(
+                f"Expected 'design_num' to be a non-negative integer but is equal to {design_num}."
+            ),
         ):
             oneshot_lhs(self.domain, design_num, self.seed)  
-
-    def test_oneshot_lhs_design_num_zero_case(self):
-        """Test that a ValueError is raised if the design_num is provided as 0"""
-
-        design_num = 0
-        with self.assertRaisesRegex(
-            ValueError, 
-            exact(f"Expected 'num_design to be a postitive integer >0 but is equal to {design_num}")
-        ):
-            oneshot_lhs(self.domain, design_num, self.seed)
 
     def test_oneshot_lhs_returns_tuple_inputs(self):
         """Test that a tuple of Inputs are returned"""
