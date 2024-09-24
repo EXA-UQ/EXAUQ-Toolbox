@@ -54,24 +54,18 @@ def sim_func(x: Input) -> float:
 ## Initial design
 
 To perform adaptive sampling, we need to begin with a Gaussian process (GP) emulator
-trained with an initial design. We'll do this by using a Latin hypercube design (with the
+trained with an initial design. We'll do this by using a Latin hypercube designer [`oneshot_lhs`][exauq.core.designers.oneshot_lhs] (with the
 aid of [scipy](https://scipy.org/)) and using a GP with a Matern 5/2 kernel. The approach below is a condensed version of that found in the tutorial
 [Training A Gaussian Process Emulator](./training_gp_tutorial.md).
 
 
 ``` { .python .copy }
-from scipy.stats.qmc import LatinHypercube
+from exauq.core.designers import oneshot_lhs
 from exauq.core.modelling import TrainingDatum
 from exauq.core.emulators import MogpEmulator
 
-
 # Create Latin hypercube sample, setting a seed to make the sampling repeatable.
-sampler = LatinHypercube(domain.dim, seed=1)
-lhs_array = sampler.random(n=20)
-
-# Scale the samples from the unit square to Input objects that are contained in the
-# domain.
-lhs_inputs = [domain.scale(row) for row in lhs_array]
+lhs_inputs = oneshot_lhs(domain, 20, seed=1)
 
 # Calculate simulator outputs, using our toy simulator function.
 outputs = [sim_func(x) for x in lhs_inputs]

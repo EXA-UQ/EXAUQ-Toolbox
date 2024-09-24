@@ -15,6 +15,7 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
     SimpleDesigner,
+    oneshot_lhs,
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_loo_prediction,
@@ -37,6 +38,69 @@ from exauq.core.modelling import (
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
 from tests.utilities.utilities import ExauqTestCase, exact
+
+
+class TestOneshotLhs(ExauqTestCase):
+    def setUp(self) -> None: 
+        self.domain = SimulatorDomain([(0, 1)])
+        self.batch_size = 5
+        self.seed = 1
+
+    def test_oneshot_lhs_batch_size_type_error(self):
+        """Test that a TypeError is raised if something other than an int is provided
+        as the batch_size"""
+
+        batch_size = 0.54
+        with self.assertRaisesRegex(
+            TypeError, 
+            exact(f"Expected 'batch_size' to be of type int, but received {type(batch_size)}."),
+        ):
+            oneshot_lhs(self.domain, batch_size, self.seed)
+
+    def test_oneshot_lhs_batch_size_negative_error(self):
+        """Test that a ValueError is raised if the batch_size is provided as negative."""
+
+        batch_size = -1
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact(
+                f"Expected 'batch_size' to be a non-negative integer >0 but is equal to {batch_size}."
+            ),
+        ):
+            oneshot_lhs(self.domain, batch_size, self.seed)  
+
+    def test_oneshot_lhs_batch_size_zero_error(self):
+        """Test that a ValueError is raised if the batch_size is provided as 0"""
+
+        batch_size = 0
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact(
+                f"Expected 'batch_size' to be a non-negative integer >0 but is equal to {batch_size}."
+            ),
+        ):
+            oneshot_lhs(self.domain, batch_size, self.seed)  
+
+    def test_oneshot_lhs_returns_tuple_inputs(self):
+        """Test that a tuple of Inputs are returned"""
+
+        for x in oneshot_lhs(self.domain, self.batch_size, self.seed):
+            self.assertIsInstance(x, Input)
+
+    def test_oneshot_lhs_return_tuple_length(self):
+        """Test that length of tuple returned is correct."""
+
+        for num_design in range(1,4):
+            with self.subTest(num_design = num_design): 
+                lhs_outputs = oneshot_lhs(self.domain, num_design, self.seed)
+                self.assertIsInstance(lhs_outputs, tuple)
+                self.assertEqual(num_design, len(lhs_outputs))
+
+    def test_oneshot_lhs_returns_inputs_from_domain(self): 
+        """Test that the inputs returned belong to the SimulatorDomain provided"""
+
+        for x in oneshot_lhs(self.domain, self.batch_size, self.seed): 
+            self.assertTrue(x in self.domain)
 
 
 class TestSimpleDesigner(unittest.TestCase):
