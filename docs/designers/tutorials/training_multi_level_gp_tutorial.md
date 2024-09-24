@@ -140,7 +140,7 @@ multi-level objects. We need to construct some multi-level training data, utilis
 experimental designs for each level's simulator, then train a multi-level GP with this
 data.
 
-To create the training data, we'll use a Latin hypercube design (with the aid of
+To create the training data, we'll use a Latin hypercube designer [`oneshot_lhs`][exauq.core.designers.oneshot_lhs] (with the aid of
 [scipy](https://scipy.org/)) at each level. (For more detailed explanation of creating an
 experimental design from a Latin hypercube sample, see the section,
 **Creating an experimental design** from the
@@ -148,23 +148,17 @@ experimental design from a Latin hypercube sample, see the section,
 
 
 ``` { .python .copy }
-from scipy.stats.qmc import LatinHypercube
+from exauq.core.designers import oneshot_lhs
 from exauq.core.modelling import MultiLevel, TrainingDatum
 
-# Set seed for repeatability.
-sampler = LatinHypercube(domain.dim, seed=1)
-
 # Create level 1 experimental design of 20 data points
-lhs_array1 = sampler.random(n=20)
-lhs_inputs1 = [domain.scale(row) for row in lhs_array1]
+lhs_inputs1 = oneshot_lhs(domain, 20, seed=1)
 
 # Create level 2 experimental design of 5 data points
-lhs_array2 = sampler.random(n=5)
-lhs_inputs2 = [domain.scale(row) for row in lhs_array2]
+lhs_inputs2 = oneshot_lhs(domain, 5, seed=1)
 
 # Put into a multi-level object
 design = MultiLevel([lhs_inputs1, lhs_inputs2])
-
 ```
 
 Next, we calculate the simulator outputs and create the training data, doing this for
