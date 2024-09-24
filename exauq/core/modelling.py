@@ -2064,7 +2064,16 @@ class SimulatorDomain(object):
             if point not in unique_pseudopoints:
                 unique_pseudopoints.append(point)
         return tuple(unique_pseudopoints)
+    
+    def get_boundary_mesh(self, n: int) -> tuple[Input, ...]:
 
+        mesh_points = []
+        for point in product(*self.bounds):
+            input_point = Input(*point)
+            if input_point not in mesh_points:
+                mesh_points.append(input_point)
+
+        return tuple(mesh_points)
 
 class AbstractSimulator(abc.ABC):
     """Represents an abstract simulator.
