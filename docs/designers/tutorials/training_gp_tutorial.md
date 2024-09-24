@@ -134,7 +134,7 @@ lhs_inputs = oneshot_lhs(domain = domain,
                          seed = 1)
 ```
 
-Behind the scenes within [`oneshot_lhs`][exauq.core.designers.oneshot_lhs], Scipy creates a Numpy array of values of shape `(20, 2)`, where each value lies between 0 and 1. To work with the design in the EXAUQ-Toolbox, this array has to be converted into a sequence of [`Input`][exauq.core.modelling.Input] objects. Furthermore, because we want a design that fills the whole of our simulator domain $\mathcal{D}$, the inputs are rescaled from the unit square to our domain using the [`scale`][exauq.core.modelling.SimulatorDomain.scale] method. 
+Behind the scenes in [`oneshot_lhs`][exauq.core.designers.oneshot_lhs], SciPy generates a Numpy array of shape (20, 2), where each value lies between 0 and 1. To integrate this design into the EXAUQ-Toolbox, the array is transformed into a sequence of [`Input`][exauq.core.modelling.Input] objects using the [`scale`][exauq.core.modelling.SimulatorDomain.scale] method.
 
 This defines our one-shot experimental design. Next let's go on to train a Gaussian process emulator with this design.
 
