@@ -1576,12 +1576,20 @@ class TestSimulatorDomain(unittest.TestCase):
             exact(f"Expected 'n' to be a positive integer >=2 but is equal to {n}"), 
         ):
             domain.get_boundary_mesh(n)
+        
+    def test_get_boundary_mesh_returns_list_inputs(self):
+        """Test that a list of Input objects is returned."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+
+        for x in domain.get_boundary_mesh(2):
+            self.assertIsInstance(x, Input)
 
     def test_get_boundary_mesh_calculate_values_2d(self):
         """This test ensures the correct boundary values are calculated
         starting with 2D
         """
-
+        
         domain = SimulatorDomain([(0, 2), (0, 2)])
         n = 3
         mesh_points = domain.get_boundary_mesh(n)
