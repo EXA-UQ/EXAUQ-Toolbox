@@ -1562,7 +1562,7 @@ class TestSimulatorDomain(unittest.TestCase):
         n = 2.1
         with self.assertRaisesRegex(
             TypeError, 
-            exact(f"Expected 'n' to be an integer but received {type(n)}"),
+            exact(f"Expected 'n' to be of type int, but received {type(n)}."),
         ):
             domain.get_boundary_mesh(n)
         
@@ -1573,7 +1573,7 @@ class TestSimulatorDomain(unittest.TestCase):
         n = 1
         with self.assertRaisesRegex(
             ValueError, 
-            exact(f"Expected 'n' to be a positive integer >=2 but is equal to {n}"), 
+            exact(f"Expected 'n' to be a positive integer >=2 but is equal to {n}."), 
         ):
             domain.get_boundary_mesh(n)
         
@@ -1589,7 +1589,7 @@ class TestSimulatorDomain(unittest.TestCase):
         """This test ensures the correct boundary values are calculated
         starting with 2D
         """
-        
+
         domain = SimulatorDomain([(0, 2), (0, 2)])
         n = 3
         mesh_points = domain.get_boundary_mesh(n)

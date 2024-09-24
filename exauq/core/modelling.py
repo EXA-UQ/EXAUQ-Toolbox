@@ -19,6 +19,7 @@ from numpy.typing import NDArray
 import exauq.utilities.validation as validation
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.csv_db import Path
+from exauq.utilities.validation import check_int
 
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 T = TypeVar("T")
@@ -2066,6 +2067,15 @@ class SimulatorDomain(object):
         return tuple(unique_pseudopoints)
     
     def get_boundary_mesh(self, n: int) -> tuple[Input, ...]:
+
+        check_int(
+            n,
+            TypeError(f"Expected 'n' to be of type int, but received {type(n)}."),
+        )
+        if n < 2: 
+            raise ValueError(
+                f"Expected 'n' to be a positive integer >=2 but is equal to {n}."
+                )
 
         mesh_points = []
         for point in product(*self.bounds):
