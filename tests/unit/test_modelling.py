@@ -1646,8 +1646,7 @@ class TestSimulatorDomain(unittest.TestCase):
 
     def test_get_boundary_mesh_different_bounds(self):
         """This test ensures the correct boundary values are calculated with 
-        differing bounds in each dimension.         
-        """
+        differing bounds in each dimension."""
 
         domain = SimulatorDomain([(0, 2), (0, 4)])
         n = 3
@@ -1661,6 +1660,42 @@ class TestSimulatorDomain(unittest.TestCase):
             Input(2, 0),
             Input(2, 2),
             Input(2, 4)
+        )
+        self.assertTrue(compare_input_tuples(mesh_points, expected_points))
+
+    def test_get_boundary_mesh_different_n(self):
+        """This test ensures the correct boundary values are calcualated with 
+        a different value of n."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        n = 5
+        mesh_points = domain.get_boundary_mesh(n)
+        expected_points = (
+            Input(0, 0),
+            Input(0, 0.25),
+            Input(0, 0.5),
+            Input(0, 0.75),
+            Input(0, 1),
+            Input(0.25, 0),
+            Input(0.25, 0.25),
+            Input(0.25, 0.5),
+            Input(0.25, 0.75),
+            Input(0.25, 1.00),
+            Input(0.5, 0),
+            Input(0.5, 0.25),
+            Input(0.5, 0.5),
+            Input(0.5, 0.75),
+            Input(0.5, 1.0),
+            Input(0.75, 0),
+            Input(0.75, 0.25),
+            Input(0.75, 0.5),
+            Input(0.75, 0.75),
+            Input(0.75, 1.0),
+            Input(1, 0),
+            Input(1, 0.25),
+            Input(1, 0.5),
+            Input(1, 0.75),
+            Input(1, 1.0),
         )
         self.assertTrue(compare_input_tuples(mesh_points, expected_points))
 
