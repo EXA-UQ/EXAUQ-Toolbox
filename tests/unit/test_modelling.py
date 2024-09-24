@@ -1554,6 +1554,107 @@ class TestSimulatorDomain(unittest.TestCase):
 
         self.assertTrue(compare_input_tuples(pseudopoints, expected))
 
+    def test_get_boundary_mesh_n_type_error(self):
+        """This test ensures TypeError is raised if something other than an int is provided 
+        for n"""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        n = 2.1
+        with self.assertRaisesRegex(
+            TypeError, 
+            exact(f"Expected 'n' to be an integer but received {type(n)}"),
+        ):
+            domain.get_boundary_mesh(n)
+        
+    def test_get_boundary_mesh_n_value_error(self):
+        """This test ensures a ValueError is raised if n !>= 2"""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        n = 1
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact(f"Expected 'n' to be a positive integer >=2 but is equal to {n}"), 
+        ):
+            domain.get_boundary_mesh(n)
+
+    def test_get_boundary_mesh_calculate_values_2d(self):
+        """This test ensures the correct boundary values are calculated
+        starting with 2D
+        """
+
+        domain = SimulatorDomain([(0, 2), (0, 2)])
+        n = 3
+        mesh_points = domain.get_boundary_mesh(n)
+        expected_points = (
+            Input(0, 0),
+            Input(0, 1),
+            Input(0, 2),
+            Input(1, 0),
+            Input(1, 2),
+            Input(2, 0),
+            Input(2, 1),
+            Input(2, 2)
+        )
+
+        self.assertTrue(compare_input_tuples(mesh_points, expected_points))
+
+    def test_get_boundary_mesh_calculate_values_3d(self):
+        """This test ensures the correct boundary values are calculated
+        in higher dimensions as well e.g 3D"""
+
+        domain = SimulatorDomain([(0, 2), (0, 2), (0, 2)])
+        n = 3
+        mesh_points = domain.get_boundary_mesh(n)
+        expected_points = (
+            Input(0, 0, 0), 
+            Input(0, 0, 1), 
+            Input(0, 0, 2), 
+            Input(0, 1, 0), 
+            Input(0, 1, 1), 
+            Input(0, 1, 2), 
+            Input(0, 2, 0), 
+            Input(0, 2, 1), 
+            Input(0, 2, 2), 
+            Input(1, 0, 0), 
+            Input(1, 0, 1), 
+            Input(1, 0, 2), 
+            Input(1, 1, 0),  
+            Input(1, 1, 2), 
+            Input(1, 2, 0), 
+            Input(1, 2, 1), 
+            Input(1, 2, 2), 
+            Input(2, 0, 0), 
+            Input(2, 0, 1), 
+            Input(2, 0, 2), 
+            Input(2, 1, 0), 
+            Input(2, 1, 1), 
+            Input(2, 1, 2), 
+            Input(2, 2, 0), 
+            Input(2, 2, 1), 
+            Input(2, 2, 2)
+        )
+
+        self.assertTrue(compare_input_tuples(mesh_points, expected_points))
+
+    def test_get_boundary_mesh_different_bounds(self):
+        """This test ensures the correct boundary values are calculated with 
+        differing bounds in each dimension.         
+        """
+
+        domain = SimulatorDomain([(0, 2), (0, 4)])
+        n = 3
+        mesh_points = domain.get_boundary_mesh(n)
+        expected_points = (
+            Input(0, 0),
+            Input(0, 2),
+            Input(0, 4),
+            Input(1, 0),
+            Input(1, 4),
+            Input(2, 0),
+            Input(2, 2),
+            Input(2, 4)
+        )
+        self.assertTrue(compare_input_tuples(mesh_points, expected_points))
 
 class StubClass:
     """A stub class for testing level tagging."""
