@@ -106,7 +106,9 @@ def set_level(obj: T, level: int) -> LevelTagged[T]:
     """
 
     if not isinstance(level, int):
-        raise TypeError(f"Expected 'level' to be an integer, but received {type(level)}.")
+        raise TypeError(
+            f"Expected 'level' to be an integer, but received {type(level)}."
+        )
     elif hasattr(obj, LevelTagged.level_attr):
         raise ValueError(
             f"Cannot set a level on argument 'obj' with value {obj} as existing attribute "
@@ -588,7 +590,8 @@ class TrainingDatum(object):
         """
 
         return [
-            cls(Input.from_array(input), output) for input, output in zip(inputs, outputs)
+            cls(Input.from_array(input), output)
+            for input, output in zip(inputs, outputs)
         ]
 
     @classmethod
@@ -1057,7 +1060,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
+    def correlation(
+        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
+    ) -> NDArray:
         """Compute the correlation matrix for two sequences of simulator inputs.
 
         If ``corr_matrix`` is the Numpy array output by this method, the its should be a
@@ -1267,7 +1272,9 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
     @staticmethod
     def _parse_gps(
         gps,
-    ) -> Union[Mapping[Any, AbstractGaussianProcess], Sequence[AbstractGaussianProcess]]:
+    ) -> Union[
+        Mapping[Any, AbstractGaussianProcess], Sequence[AbstractGaussianProcess]
+    ]:
         """Validate a collection of Gaussian processes for constructing a multi-level GP,
         returning as a multi-level collection or else raising an exception."""
 
@@ -1304,7 +1311,9 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
             coefficients = map(float, coefficients)
             return MultiLevel(dict(zip(self.levels, coefficients)))
         else:
-            coefficients = MultiLevel(coefficients).map(lambda level, coeff: float(coeff))
+            coefficients = MultiLevel(coefficients).map(
+                lambda level, coeff: float(coeff)
+            )
             if missing_levels := (set(self.levels) - set(coefficients.levels)):
                 missing_levels_str = ", ".join(map(str, sorted(missing_levels)))
                 raise ValueError(
@@ -1341,11 +1350,14 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         training_data: MultiLevel[Collection[TrainingDatum]],
         hyperparameters: Optional[
             Union[
-                MultiLevel[GaussianProcessHyperparameters], GaussianProcessHyperparameters
+                MultiLevel[GaussianProcessHyperparameters],
+                GaussianProcessHyperparameters,
             ]
         ] = None,
         hyperparameter_bounds: Optional[
-            Union[MultiLevel[Sequence[OptionalFloatPairs]], Sequence[OptionalFloatPairs]]
+            Union[
+                MultiLevel[Sequence[OptionalFloatPairs]], Sequence[OptionalFloatPairs]
+            ]
         ] = None,
     ) -> None:
         """Fit this multi-level Gaussian process to levelled training data.
@@ -1495,7 +1507,8 @@ class AbstractHyperparameters(abc.ABC):
 
 def _validate_nonnegative_real_domain(arg_name: str):
     """A decorator to be applied to functions with a single real-valued argument called
-    `arg_name`. The decorator adds validation that the argument is a real number >= 0."""
+    `arg_name`. The decorator adds validation that the argument is a real number >= 0.
+    """
 
     def decorator(func):
         @functools.wraps(func)
@@ -1616,7 +1629,9 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
         return all(
             [
                 nuggets_equal,
-                equal_within_tolerance(self.corr_length_scales, other.corr_length_scales),
+                equal_within_tolerance(
+                    self.corr_length_scales, other.corr_length_scales
+                ),
                 equal_within_tolerance(self.process_var, other.process_var),
             ]
         )
@@ -1867,7 +1882,8 @@ class SimulatorDomain(object):
             True if the point is within the bounds, False otherwise.
         """
         return all(
-            self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim)
+            self._bounds[i][0] <= point[i] <= self._bounds[i][1]
+            for i in range(self._dim)
         )
 
     def _validate_points_dim(self, collection: Collection[Input]) -> None:
@@ -2065,25 +2081,46 @@ class SimulatorDomain(object):
             if point not in unique_pseudopoints:
                 unique_pseudopoints.append(point)
         return tuple(unique_pseudopoints)
-    
+
     def get_boundary_mesh(self, n: int) -> tuple[Input, ...]:
 
         check_int(
             n,
             TypeError(f"Expected 'n' to be of type int, but received {type(n)}."),
         )
-        if n < 2: 
+        if n < 2:
             raise ValueError(
                 f"Expected 'n' to be a positive integer >=2 but is equal to {n}."
-                )
+            )
 
         mesh_points = []
-        for point in product(*self.bounds):
-            input_point = Input(*point)
-            if input_point not in mesh_points:
-                mesh_points.append(input_point)
+
+        # Current Issues:
+        #   - Doesn't work with different bounds in different dimensions
+
+        # For each dimension
+        for i in range(self.dim):
+
+            # Find the boundaries along the domain bounds
+            boundaries = np.linspace(*self.bounds[i], n)
+
+            # Find the points using the product and create for multiple dimensions
+            for point in product(*[boundaries for _ in range(self.dim)]):
+
+                # Check the point is on the boundary
+                if any(item in self.bounds[i] for item in point):
+
+                    # Convert the points iteratively into the Input Class
+                    input_point = Input(*point)
+
+                    # Check the points are unique
+                    if input_point not in mesh_points:
+
+                        # Hence add to list of mesh points
+                        mesh_points.append(input_point)
 
         return tuple(mesh_points)
+
 
 class AbstractSimulator(abc.ABC):
     """Represents an abstract simulator.
