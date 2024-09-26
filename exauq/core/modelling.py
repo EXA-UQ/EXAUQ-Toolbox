@@ -2098,14 +2098,12 @@ class SimulatorDomain(object):
         # Current Issues:
         #   - Doesn't work with different bounds in different dimensions
 
-        # For each dimension
+        # Boundary for each dimension
+        boundaries = [np.linspace(*self.bounds[i], n) for i in range(self.dim)]
+        
+        # Find the points using the product and create for multiple dimensions
         for i in range(self.dim):
-
-            # Find the boundaries along the domain bounds
-            boundaries = np.linspace(*self.bounds[i], n)
-
-            # Find the points using the product and create for multiple dimensions
-            for point in product(*[boundaries for _ in range(self.dim)]):
+            for point in product(*boundaries):
 
                 # Check the point is on the boundary
                 if any(item in self.bounds[i] for item in point):
