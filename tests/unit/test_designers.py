@@ -2124,9 +2124,11 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         """Ensure that, if seeds are provided, the same seed is being used to create every
         pseudo-expected improvement design point not just the first.
 
-        From test_unseeded_by_default (test_optimisation.py), maximise should give slightly different
-        results with unseeded but the same args. Hence, if seed is correctly used for every design point creation there should be no unique items here.
-        """
+        From test_unseeded_by_default (test_optimisation.py), maximise should give slightly
+        different results with unseeded but the same args.
+
+        Hence, if seed is correctly used for every design point creation there should be no
+        unique items across multiple runs."""
 
         mock_maximise_return = (self.default_domain.scale([0.5]), 1)
         seeds = MultiLevel([99, None])
