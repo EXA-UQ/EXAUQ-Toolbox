@@ -2074,7 +2074,7 @@ class SimulatorDomain(object):
 
         The mesh calculated could also be referred to as mesh of equally spaced psuedopoints
         which all lie on the boundary of the domain of dimensions D. In 2D this would refer to 
-        simply as points spaced equally round the edge of a, say (x, y) rectangle. However, 
+        simply as points spaced equally round the edge of an (x, y) rectangle. However, 
         higher dimensions would also consider bounding faces, surfaces etc.
 
         The particularly handy usage of this method is for boundary repulsion points. These can
