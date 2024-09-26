@@ -1319,7 +1319,9 @@ def compute_multi_level_loo_samples(
         pei = ml_pei[level]
         for i in range(batch_size - 1):
             pei.add_repulsion_points([design_points[i]])
-            new_design_pt, _ = maximise(lambda x: pei.compute(x), domain)
+            new_design_pt, _ = maximise(
+                lambda x: pei.compute(x), domain, seed=seeds[level]
+            )
             design_points.append(new_design_pt)
 
     return level, tuple(design_points)
