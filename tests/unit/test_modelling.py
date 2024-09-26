@@ -1680,8 +1680,7 @@ class TestSimulatorDomain(unittest.TestCase):
             Input(2, 2),
             Input(2, 4),
         )
-        self.assertTrue(compare_input_tuples(mesh_points, expected_points),
-                        f"MeshPoints {mesh_points}")
+        self.assertTrue(compare_input_tuples(mesh_points, expected_points))
 
     def test_get_boundary_mesh_different_n(self):
         """This test ensures the correct boundary values are calcualated with

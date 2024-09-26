@@ -2095,9 +2095,6 @@ class SimulatorDomain(object):
 
         mesh_points = []
 
-        # Current Issues:
-        #   - Doesn't work with different bounds in different dimensions
-
         # Boundary for each dimension
         boundaries = [np.linspace(*self.bounds[i], n) for i in range(self.dim)]
         
@@ -2105,8 +2102,8 @@ class SimulatorDomain(object):
         for i in range(self.dim):
             for point in product(*boundaries):
 
-                # Check the point is on the boundary
-                if any(item in self.bounds[i] for item in point):
+                # Check the point is on the boundary (which it should only do for the dimension bounded)
+                if any(self.bounds[i] == point[i]):
 
                     # Convert the points iteratively into the Input Class
                     input_point = Input(*point)
