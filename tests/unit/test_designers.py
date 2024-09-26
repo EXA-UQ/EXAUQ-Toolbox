@@ -41,7 +41,7 @@ from tests.utilities.utilities import ExauqTestCase, exact
 
 
 class TestOneshotLhs(ExauqTestCase):
-    def setUp(self) -> None: 
+    def setUp(self) -> None:
         self.domain = SimulatorDomain([(0, 1)])
         self.batch_size = 5
         self.seed = 1
@@ -52,8 +52,10 @@ class TestOneshotLhs(ExauqTestCase):
 
         batch_size = 0.54
         with self.assertRaisesRegex(
-            TypeError, 
-            exact(f"Expected 'batch_size' to be of type int, but received {type(batch_size)}."),
+            TypeError,
+            exact(
+                f"Expected 'batch_size' to be of type int, but received {type(batch_size)}."
+            ),
         ):
             oneshot_lhs(self.domain, batch_size, self.seed)
 
@@ -62,24 +64,24 @@ class TestOneshotLhs(ExauqTestCase):
 
         batch_size = -1
         with self.assertRaisesRegex(
-            ValueError, 
+            ValueError,
             exact(
                 f"Expected 'batch_size' to be a non-negative integer >0 but is equal to {batch_size}."
             ),
         ):
-            oneshot_lhs(self.domain, batch_size, self.seed)  
+            oneshot_lhs(self.domain, batch_size, self.seed)
 
     def test_oneshot_lhs_batch_size_zero_error(self):
         """Test that a ValueError is raised if the batch_size is provided as 0"""
 
         batch_size = 0
         with self.assertRaisesRegex(
-            ValueError, 
+            ValueError,
             exact(
                 f"Expected 'batch_size' to be a non-negative integer >0 but is equal to {batch_size}."
             ),
         ):
-            oneshot_lhs(self.domain, batch_size, self.seed)  
+            oneshot_lhs(self.domain, batch_size, self.seed)
 
     def test_oneshot_lhs_returns_tuple_inputs(self):
         """Test that a tuple of Inputs are returned"""
@@ -90,16 +92,16 @@ class TestOneshotLhs(ExauqTestCase):
     def test_oneshot_lhs_return_tuple_length(self):
         """Test that length of tuple returned is correct."""
 
-        for num_design in range(1,4):
-            with self.subTest(num_design = num_design): 
+        for num_design in range(1, 4):
+            with self.subTest(num_design=num_design):
                 lhs_outputs = oneshot_lhs(self.domain, num_design, self.seed)
                 self.assertIsInstance(lhs_outputs, tuple)
                 self.assertEqual(num_design, len(lhs_outputs))
 
-    def test_oneshot_lhs_returns_inputs_from_domain(self): 
+    def test_oneshot_lhs_returns_inputs_from_domain(self):
         """Test that the inputs returned belong to the SimulatorDomain provided"""
 
-        for x in oneshot_lhs(self.domain, self.batch_size, self.seed): 
+        for x in oneshot_lhs(self.domain, self.batch_size, self.seed):
             self.assertTrue(x in self.domain)
 
 
@@ -1199,7 +1201,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         # checks {"seed": seed} is a subset of mock_maximise.call_args.kwargs
         self.assertLessEqual(
             {"seed": seed}.items(), mock_maximise.call_args.kwargs.items()
-        ) 
+        )
 
     def test_number_of_new_design_points_matches_batch_number(self):
         """The number of new design points returned is equal to the supplied batch
@@ -2117,6 +2119,33 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         self.assertLessEqual(
             {"seed": seeds[2]}.items(), mock_maximise.call_args_list[1].kwargs.items()
         )
+
+    def test_use_of_same_seed(self):
+        """Ensure that, if seeds are provided, the same seed is being used to create every
+        pseudo-expected improvement design point not just the first.
+
+        From test_unseeded_by_default (test_optimisation.py), maximise should give slightly
+        different results with unseeded but the same args.
+
+        Hence, if seed is correctly used for every design point creation there should be no
+        unique items across multiple runs."""
+
+        mock_maximise_return = (self.default_domain.scale([0.5]), 1)
+        seeds = MultiLevel([99, None])
+        batch_size = 5
+        with unittest.mock.patch(
+            "exauq.core.designers.maximise",
+            autospec=True,
+            return_value=mock_maximise_return,
+        ) as _:
+            results = [
+                self.compute_multi_level_loo_samples(batch_size=batch_size, seeds=seeds)
+                for _ in range(10)
+            ]
+
+        for result in results:
+            self.assertTupleEqual(results[0], result)
+
 
 # TODO: test that repulsion points are updated with previously calculated inputs in
 # batch mode.
