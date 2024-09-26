@@ -106,9 +106,7 @@ def set_level(obj: T, level: int) -> LevelTagged[T]:
     """
 
     if not isinstance(level, int):
-        raise TypeError(
-            f"Expected 'level' to be an integer, but received {type(level)}."
-        )
+        raise TypeError(f"Expected 'level' to be an integer, but received {type(level)}.")
     elif hasattr(obj, LevelTagged.level_attr):
         raise ValueError(
             f"Cannot set a level on argument 'obj' with value {obj} as existing attribute "
@@ -590,8 +588,7 @@ class TrainingDatum(object):
         """
 
         return [
-            cls(Input.from_array(input), output)
-            for input, output in zip(inputs, outputs)
+            cls(Input.from_array(input), output) for input, output in zip(inputs, outputs)
         ]
 
     @classmethod
@@ -1060,9 +1057,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def correlation(
-        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
-    ) -> NDArray:
+    def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
         """Compute the correlation matrix for two sequences of simulator inputs.
 
         If ``corr_matrix`` is the Numpy array output by this method, the its should be a
@@ -1272,9 +1267,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
     @staticmethod
     def _parse_gps(
         gps,
-    ) -> Union[
-        Mapping[Any, AbstractGaussianProcess], Sequence[AbstractGaussianProcess]
-    ]:
+    ) -> Union[Mapping[Any, AbstractGaussianProcess], Sequence[AbstractGaussianProcess]]:
         """Validate a collection of Gaussian processes for constructing a multi-level GP,
         returning as a multi-level collection or else raising an exception."""
 
@@ -1311,9 +1304,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
             coefficients = map(float, coefficients)
             return MultiLevel(dict(zip(self.levels, coefficients)))
         else:
-            coefficients = MultiLevel(coefficients).map(
-                lambda level, coeff: float(coeff)
-            )
+            coefficients = MultiLevel(coefficients).map(lambda level, coeff: float(coeff))
             if missing_levels := (set(self.levels) - set(coefficients.levels)):
                 missing_levels_str = ", ".join(map(str, sorted(missing_levels)))
                 raise ValueError(
@@ -1355,9 +1346,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
             ]
         ] = None,
         hyperparameter_bounds: Optional[
-            Union[
-                MultiLevel[Sequence[OptionalFloatPairs]], Sequence[OptionalFloatPairs]
-            ]
+            Union[MultiLevel[Sequence[OptionalFloatPairs]], Sequence[OptionalFloatPairs]]
         ] = None,
     ) -> None:
         """Fit this multi-level Gaussian process to levelled training data.
@@ -1629,9 +1618,7 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
         return all(
             [
                 nuggets_equal,
-                equal_within_tolerance(
-                    self.corr_length_scales, other.corr_length_scales
-                ),
+                equal_within_tolerance(self.corr_length_scales, other.corr_length_scales),
                 equal_within_tolerance(self.process_var, other.process_var),
             ]
         )
@@ -1882,8 +1869,7 @@ class SimulatorDomain(object):
             True if the point is within the bounds, False otherwise.
         """
         return all(
-            self._bounds[i][0] <= point[i] <= self._bounds[i][1]
-            for i in range(self._dim)
+            self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim)
         )
 
     def _validate_points_dim(self, collection: Collection[Input]) -> None:
@@ -2083,6 +2069,46 @@ class SimulatorDomain(object):
         return tuple(unique_pseudopoints)
 
     def get_boundary_mesh(self, n: int) -> tuple[Input, ...]:
+        """
+        Calculates and returns a tuple of inputs for an equally spaced boundary mesh of the domain.
+
+        The mesh calculated could also be referred to as mesh of equally spaced psuedopoints
+        which all lie on the boundary of the domain of dimensions D. In 2D this would refer to 
+        simply as points spaced equally round the edge of a, say (x, y) rectangle. However, 
+        higher dimensions would also consider bounding faces, surfaces etc.
+
+        The particularly handy usage of this method is for boundary repulsion points. These can
+        easily be calculated in order to force the simulation away from the edge of the domain. For each 
+        boundary there will be n^(d-1) points where d is the dimension of the domain.
+
+        Parameters
+        ----------
+        n: integer
+            The number of evenly-spaced points for each boundary face of the domain. n >= 2 as n = 2 will simply
+            return the bounds of the domain.
+
+        Returns
+        -------
+        tuple[Input, ...]
+            A tuple containing all the calculated equally spaced pseudopoints along the domain's boundary.
+
+        Raises
+        ------
+        TypeError
+            If n is not of type integer.
+
+        ValueError
+            If n < 2.
+
+        Examples
+        --------
+        >>> bounds = [(0, 2), (0, 4)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> n = 3
+        >>> mesh_points = domain.get_boundary_mesh(n)
+        >>> mesh_points # mesh_points equally spaced along the boundary of the domain
+        >>> Input(0, 0), Input(0, 2), Input(0, 4), Input(1, 0), Input(1, 4), Input(2, 0), Input(2, 2), Input(2, 4)
+        """
 
         check_int(
             n,
@@ -2095,23 +2121,15 @@ class SimulatorDomain(object):
 
         mesh_points = []
 
-        # Boundary for each dimension
+        # Boundary of equally spaced points for each dimension
         boundaries = [np.linspace(*self.bounds[i], n) for i in range(self.dim)]
-        
-        # Find the points using the product and create for multiple dimensions
+
+        # Generate points across each dimension checking on boundary and unique.
         for i in range(self.dim):
             for point in product(*boundaries):
-
-                # Check the point is on the boundary (which it should only do for the dimension bounded)
                 if any(self.bounds[i] == point[i]):
-
-                    # Convert the points iteratively into the Input Class
                     input_point = Input(*point)
-
-                    # Check the points are unique
                     if input_point not in mesh_points:
-
-                        # Hence add to list of mesh points
                         mesh_points.append(input_point)
 
         return tuple(mesh_points)
