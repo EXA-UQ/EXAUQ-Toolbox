@@ -26,7 +26,7 @@ def equal_within_tolerance(
         Real numbers or sequences of real numbers to test equality of.
     rel_tol : None, optional
         The maximum allowed relative difference. Dynamically passed at runtime to allow
-        for updating of FLOAT_TOLERANCE. Defaults to FLOAT_TOLERANCE (1e-9) if no change. 
+        for updating of FLOAT_TOLERANCE. Defaults to FLOAT_TOLERANCE (1e-9) if no change.
     abs_tol : None, optional
         The minimum permitted absolute difference. Dynamically passed at runtime to allow
         for updating of FLOAT_TOLERANCE. Defaults to FLOAT_TOLERANCE (1e-9) if no change.
@@ -61,23 +61,19 @@ def _is_seq(x) -> bool:
 def set_tolerance(tol: float):
     """
     Allows the updating of the global FLOAT_TOLERANCE from 1e-9 to the value
-    that is inputted ... e.g 1e-4. 
+    that is inputted ... e.g 1e-4.
 
     Parameters
     ----------
     tol : float
-        The new tolerance you wish to set the global FLOAT_TOLERANCE to. 
+        The new tolerance you wish to set the global FLOAT_TOLERANCE to.
     """
 
     if not isinstance(tol, float):
-        raise TypeError(
-            f"Expected 'tol' to be of type float but receieved {type(tol)}."
-        )
+        raise TypeError(f"Expected 'tol' to be of type float but receieved {type(tol)}.")
 
     if tol < 0:
-        raise ValueError(
-            f"Expected 'tol' to be non-negative but received {tol}."
-        )
+        raise ValueError(f"Expected 'tol' to be non-negative but received {tol}.")
 
     global FLOAT_TOLERANCE
     FLOAT_TOLERANCE = tol
