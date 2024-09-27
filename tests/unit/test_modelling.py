@@ -184,7 +184,9 @@ class TestInput(unittest.TestCase):
 
         x = Input(2)
         i = 1
-        with self.assertRaisesRegex(IndexError, exact(f"Input index {i} out of range.")):
+        with self.assertRaisesRegex(
+            IndexError, exact(f"Input index {i} out of range.")
+        ):
             x[i]
 
     def test_sequence_implementation(self):
@@ -460,7 +462,9 @@ class TestTrainingDatum(unittest.TestCase):
         self.write_csv_data(self.path, [[1, 2, 3], [10, "inf", 30]])
         with self.assertRaisesRegex(
             AssertionError,
-            exact(f"Could not read data from {self.path}: infinite or NaN values found."),
+            exact(
+                f"Could not read data from {self.path}: infinite or NaN values found."
+            ),
         ):
             _ = TrainingDatum.read_from_csv(self.path)
 
@@ -468,7 +472,9 @@ class TestTrainingDatum(unittest.TestCase):
         self.write_csv_data(self.path, [[1, 2, 3], [10, "NaN", 30]], mode="w")
         with self.assertRaisesRegex(
             AssertionError,
-            exact(f"Could not read data from {self.path}: infinite or NaN values found."),
+            exact(
+                f"Could not read data from {self.path}: infinite or NaN values found."
+            ),
         ):
             _ = TrainingDatum.read_from_csv(self.path)
 
@@ -549,7 +555,9 @@ class TestPrediction(ExauqTestCase):
         var = -0.1
         with self.assertRaisesRegex(
             ValueError,
-            exact(f"'variance' must be a non-negative real number, but received {var}."),
+            exact(
+                f"'variance' must be a non-negative real number, but received {var}."
+            ),
         ):
             Prediction(estimate=1, variance=var)
 
@@ -592,7 +600,9 @@ class TestPrediction(ExauqTestCase):
         estimate = 0
         for var1 in [0.1 * n for n in range(101)]:
             p1 = Prediction(estimate, var1)
-            for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
+            for var2 in filter(
+                lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)
+            ):
                 p2 = Prediction(estimate, var2)
                 self.assertIs(p1 == p2, equal_within_tolerance(var1, var2))
                 self.assertIs(p2 == p1, p1 == p2)
@@ -973,7 +983,9 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         ):
             arg = self.hyperparameters[hyperparameter]["arg"]
             transformation_func = self.hyperparameters[hyperparameter]["func"]
-            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
+            with self.subTest(
+                hyperparameter=hyperparameter, x=x
+            ), self.assertRaisesRegex(
                 TypeError,
                 exact(f"Expected '{arg}' to be a real number, but received {type(x)}."),
             ):
@@ -987,7 +999,9 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         ):
             arg = self.hyperparameters[hyperparameter]["arg"]
             transformation_func = self.hyperparameters[hyperparameter]["func"]
-            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
+            with self.subTest(
+                hyperparameter=hyperparameter, x=x
+            ), self.assertRaisesRegex(
                 ValueError,
                 exact(f"'{arg}' cannot be < 0, but received {x}."),
             ):
@@ -996,7 +1010,9 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
 
 class TestSimulatorDomain(unittest.TestCase):
     def setUp(self) -> None:
-        self.epsilon = FLOAT_TOLERANCE / 2  # Useful for testing equality up to tolerance
+        self.epsilon = (
+            FLOAT_TOLERANCE / 2
+        )  # Useful for testing equality up to tolerance
         self.bounds = [(0, 2), (0, 1)]
         self.domain = SimulatorDomain(self.bounds)
 
@@ -1429,7 +1445,8 @@ class TestSimulatorDomain(unittest.TestCase):
 
     def test_closest_boundary_points_returns_one_point_per_boundary(self):
         """Test that there is one exactly one point returned per boundary in the case
-        where all points are closer to one particular coordinate slice than the other."""
+        where all points are closer to one particular coordinate slice than the other.
+        """
 
         bounds = [(0, 1), (-1, 1)]
         domain = SimulatorDomain(bounds)
@@ -1452,7 +1469,9 @@ class TestSimulatorDomain(unittest.TestCase):
             with self.subTest(coord=coord, limit=limit):
                 self.assertEqual(
                     1,
-                    len([x for x in boundary_points if is_on_boundary(x, coord, limit)]),
+                    len(
+                        [x for x in boundary_points if is_on_boundary(x, coord, limit)]
+                    ),
                 )
 
     def test_closest_boundary_points_does_not_return_boundary_corners(self):
@@ -1553,6 +1572,142 @@ class TestSimulatorDomain(unittest.TestCase):
         )
 
         self.assertTrue(compare_input_tuples(pseudopoints, expected))
+
+    def test_get_boundary_mesh_n_type_error(self):
+        """This test ensures TypeError is raised if something other than an int is provided
+        for n"""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        n = 2.1
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(f"Expected 'n' to be of type int, but received {type(n)}."),
+        ):
+            domain.get_boundary_mesh(n)
+
+    def test_get_boundary_mesh_n_value_error(self):
+        """This test ensures a ValueError is raised if n !>= 2"""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        n = 1
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(f"Expected 'n' to be a positive integer >=2 but is equal to {n}."),
+        ):
+            domain.get_boundary_mesh(n)
+
+    def test_get_boundary_mesh_returns_list_inputs(self):
+        """Test that a list of Input objects is returned."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+
+        for x in domain.get_boundary_mesh(2):
+            self.assertIsInstance(x, Input)
+
+    def test_get_boundary_mesh_calculate_values_2d(self):
+        """This test ensures the correct boundary values are calculated
+        starting with 2D
+        """
+
+        domain = SimulatorDomain([(0, 2), (0, 2)])
+        n = 3
+        mesh_points = domain.get_boundary_mesh(n)
+        expected_points = (
+            Input(0, 0),
+            Input(0, 1),
+            Input(0, 2),
+            Input(1, 0),
+            Input(1, 2),
+            Input(2, 0),
+            Input(2, 1),
+            Input(2, 2),
+        )
+
+        self.assertTrue(compare_input_tuples(mesh_points, expected_points))
+
+    def test_get_boundary_mesh_calculate_values_3d(self):
+        """This test ensures the correct boundary values are calculated
+        in higher dimensions as well e.g 3D"""
+
+        domain = SimulatorDomain([(0, 2), (0, 2), (0, 2)])
+        n = 3
+        mesh_points = domain.get_boundary_mesh(n)
+        expected_points = (
+            Input(0, 0, 0),
+            Input(0, 0, 1),
+            Input(0, 0, 2),
+            Input(0, 1, 0),
+            Input(0, 1, 1),
+            Input(0, 1, 2),
+            Input(0, 2, 0),
+            Input(0, 2, 1),
+            Input(0, 2, 2),
+            Input(1, 0, 0),
+            Input(1, 0, 1),
+            Input(1, 0, 2),
+            Input(1, 1, 0),
+            Input(1, 1, 2),
+            Input(1, 2, 0),
+            Input(1, 2, 1),
+            Input(1, 2, 2),
+            Input(2, 0, 0),
+            Input(2, 0, 1),
+            Input(2, 0, 2),
+            Input(2, 1, 0),
+            Input(2, 1, 1),
+            Input(2, 1, 2),
+            Input(2, 2, 0),
+            Input(2, 2, 1),
+            Input(2, 2, 2),
+        )
+
+        self.assertTrue(compare_input_tuples(mesh_points, expected_points))
+
+    def test_get_boundary_mesh_different_bounds(self):
+        """This test ensures the correct boundary values are calculated with
+        differing bounds in each dimension."""
+
+        domain = SimulatorDomain([(0, 2), (0, 4)])
+        n = 3
+        mesh_points = domain.get_boundary_mesh(n)
+        expected_points = (
+            Input(0, 0),
+            Input(0, 2),
+            Input(0, 4),
+            Input(1, 0),
+            Input(1, 4),
+            Input(2, 0),
+            Input(2, 2),
+            Input(2, 4),
+        )
+        self.assertTrue(compare_input_tuples(mesh_points, expected_points))
+
+    def test_get_boundary_mesh_different_n(self):
+        """This test ensures the correct boundary values are calcualated with
+        a different value of n."""
+
+        domain = SimulatorDomain([(0, 1), (0, 1)])
+        n = 5
+        mesh_points = domain.get_boundary_mesh(n)
+        expected_points = (
+            Input(0, 0),
+            Input(0, 0.25),
+            Input(0, 0.5),
+            Input(0, 0.75),
+            Input(0, 1),
+            Input(0.25, 0),
+            Input(0.25, 1.00),
+            Input(0.5, 0),
+            Input(0.5, 1.0),
+            Input(0.75, 0),
+            Input(0.75, 1.0),
+            Input(1, 0),
+            Input(1, 0.25),
+            Input(1, 0.5),
+            Input(1, 0.75),
+            Input(1, 1.0),
+        )
+        self.assertTrue(compare_input_tuples(mesh_points, expected_points))
 
 
 class StubClass:
@@ -1785,7 +1940,9 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         )
         self.hyperparameter_bounds = MultiLevel(
             {
-                level: self.make_white_noise_gp_hyperparameter_bounds((level + 10, None))
+                level: self.make_white_noise_gp_hyperparameter_bounds(
+                    (level + 10, None)
+                )
                 for level in self.training_data
             }
         )
@@ -1818,7 +1975,9 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         some_bad_coeffs = [{1: 1, 2: "a"}, [1, [1]], "a"]
         for bad_coeffs in some_bad_coeffs:
             with self.assertRaises(TypeError):
-                _ = self.make_multi_level_gp([WhiteNoiseGP(), WhiteNoiseGP()], bad_coeffs)
+                _ = self.make_multi_level_gp(
+                    [WhiteNoiseGP(), WhiteNoiseGP()], bad_coeffs
+                )
 
     def test_coefficients_single_value_used_at_each_level(self):
         """If a single float is given for the coefficients, then this value is used at
@@ -2011,7 +2170,9 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         self.assertEqual(self.hyperparameters, mlgp.fit_hyperparameters)
 
         for level in self.training_data.levels:
-            self.assertEqual(self.hyperparameters[level], mlgp[level].fit_hyperparameters)
+            self.assertEqual(
+                self.hyperparameters[level], mlgp[level].fit_hyperparameters
+            )
 
     def test_fit_single_level_hyperparameters_applied_to_all_levels(self):
         """If a non-levelled set of hyperparameters is supplied, then these are applied to
