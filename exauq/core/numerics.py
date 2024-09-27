@@ -12,8 +12,8 @@ FLOAT_TOLERANCE = 1e-9
 def equal_within_tolerance(
     x: Union[Real, Sequence[Real]],
     y: Union[Real, Sequence[Real]],
-    rel_tol: Real = FLOAT_TOLERANCE,
-    abs_tol: Real = FLOAT_TOLERANCE,
+    rel_tol: Real = None,
+    abs_tol: Real = None,
 ) -> bool:
     """Test equality of two real numbers or sequences of real numbers up to a tolerance.
 
@@ -24,16 +24,21 @@ def equal_within_tolerance(
     ----------
     x, y : Union[numbers.Real, Sequence[numbers.Real]]
         Real numbers or sequences of real numbers to test equality of.
-    rel_tol : numbers.Real, optional
-        The maximum allowed relative difference.
-    abs_tol : numbers.Real, optional
-        The minimum permitted absolute difference.
+    rel_tol : None, optional
+        The maximum allowed relative difference. Dynamically passed at runtime to allow
+        for updating of FLOAT_TOLERANCE. Defaults to FLOAT_TOLERANCE (1e-9) if no change. 
+    abs_tol : None, optional
+        The minimum permitted absolute difference. Dynamically passed at runtime to allow
+        for updating of FLOAT_TOLERANCE. Defaults to FLOAT_TOLERANCE (1e-9) if no change.
 
     Returns
     -------
     bool
         Whether the two numbers or sequences of numbers are equal up to the relative and absolute tolerances.
     """
+    # Use FLOAT_TOLERANCE if rel_tol and abs_tol aren't provided
+    rel_tol = rel_tol or FLOAT_TOLERANCE
+    abs_tol = abs_tol or FLOAT_TOLERANCE
 
     if _is_seq(x) and _is_seq(y):
         return len(x) == len(y) and all(
