@@ -51,3 +51,28 @@ def equal_within_tolerance(
 
 def _is_seq(x) -> bool:
     return isinstance(x, (Sequence, np.ndarray))
+
+
+def set_tolerance(tol: float):
+    """
+    Allows the updating of the global FLOAT_TOLERANCE from 1e-9 to the value
+    that is inputted ... e.g 1e-4. 
+
+    Parameters
+    ----------
+    tol : float
+        The new tolerance you wish to set the global FLOAT_TOLERANCE to. 
+    """
+
+    if not isinstance(tol, float):
+        raise TypeError(
+            f"Expected 'tol' to be of type float but receieved {type(tol)}."
+        )
+
+    if tol < 0:
+        raise ValueError(
+            f"Expected 'tol' to be non-negative but received {tol}."
+        )
+
+    global FLOAT_TOLERANCE
+    FLOAT_TOLERANCE = tol
