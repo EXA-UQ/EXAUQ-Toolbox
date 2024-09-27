@@ -2073,12 +2073,12 @@ class SimulatorDomain(object):
         Calculates and returns a tuple of inputs for an equally spaced boundary mesh of the domain.
 
         The mesh calculated could also be referred to as mesh of equally spaced psuedopoints
-        which all lie on the boundary of the domain of dimensions D. In 2D this would refer to 
-        simply as points spaced equally round the edge of an (x, y) rectangle. However, 
+        which all lie on the boundary of the domain of dimensions D. In 2D this would refer to
+        simply as points spaced equally round the edge of an (x, y) rectangle. However,
         higher dimensions would also consider bounding faces, surfaces etc.
 
         The particularly handy usage of this method is for boundary repulsion points. These can
-        easily be calculated in order to force the simulation away from the edge of the domain. For each 
+        easily be calculated in order to force the simulation away from the edge of the domain. For each
         boundary there will be n^(d-1) points where d is the dimension of the domain.
 
         Parameters
@@ -2119,20 +2119,19 @@ class SimulatorDomain(object):
                 f"Expected 'n' to be a positive integer >=2 but is equal to {n}."
             )
 
-        mesh_points = []
-
-        # Boundary of equally spaced points for each dimension
+        # Create boundaries and mesh of domain
         boundaries = [np.linspace(*self.bounds[i], n) for i in range(self.dim)]
+        points = np.stack(np.meshgrid(*boundaries), -1).reshape(-1, self.dim)
 
-        # Generate points across each dimension checking on boundary and unique.
-        for i in range(self.dim):
-            for point in product(*boundaries):
-                if any(self.bounds[i] == point[i]):
-                    input_point = Input(*point)
-                    if input_point not in mesh_points:
-                        mesh_points.append(input_point)
-
-        return tuple(mesh_points)
+        # Check points lie on bounds
+        upper_bound = np.array([self.bounds[i][1] for i in range(self.dim)])
+        lower_bound = np.array([self.bounds[i][0] for i in range(self.dim)])
+        on_upper_bound = np.isclose(points, upper_bound)
+        on_lower_bound = np.isclose(points, lower_bound)
+        mask = np.any(on_upper_bound | on_lower_bound, axis=1)
+        masked_points = points[mask]
+        mesh_points = tuple(Input(*point) for point in masked_points)
+        return mesh_points
 
 
 class AbstractSimulator(abc.ABC):
