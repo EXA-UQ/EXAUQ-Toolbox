@@ -19,6 +19,7 @@ from numpy.typing import NDArray
 import exauq.utilities.validation as validation
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.csv_db import Path
+from exauq.utilities.validation import check_int
 
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 T = TypeVar("T")
@@ -1340,7 +1341,8 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         training_data: MultiLevel[Collection[TrainingDatum]],
         hyperparameters: Optional[
             Union[
-                MultiLevel[GaussianProcessHyperparameters], GaussianProcessHyperparameters
+                MultiLevel[GaussianProcessHyperparameters],
+                GaussianProcessHyperparameters,
             ]
         ] = None,
         hyperparameter_bounds: Optional[
@@ -1494,7 +1496,8 @@ class AbstractHyperparameters(abc.ABC):
 
 def _validate_nonnegative_real_domain(arg_name: str):
     """A decorator to be applied to functions with a single real-valued argument called
-    `arg_name`. The decorator adds validation that the argument is a real number >= 0."""
+    `arg_name`. The decorator adds validation that the argument is a real number >= 0.
+    """
 
     def decorator(func):
         @functools.wraps(func)
@@ -2064,6 +2067,71 @@ class SimulatorDomain(object):
             if point not in unique_pseudopoints:
                 unique_pseudopoints.append(point)
         return tuple(unique_pseudopoints)
+
+    def get_boundary_mesh(self, n: int) -> tuple[Input, ...]:
+        """
+        Calculates and returns a tuple of inputs for an equally spaced boundary mesh of the domain.
+
+        The mesh calculated could also be referred to as mesh of equally spaced psuedopoints
+        which all lie on the boundary of the domain of dimensions D. In 2D this would refer to
+        simply as points spaced equally round the edge of an (x, y) rectangle. However,
+        higher dimensions would also consider bounding faces, surfaces etc.
+
+        The particularly handy usage of this method is for boundary repulsion points. These can
+        easily be calculated in order to force the simulation away from the edge of the domain. For each
+        boundary there will be n^(d-1) points where d is the dimension of the domain.
+
+        Parameters
+        ----------
+        n: integer
+            The number of evenly-spaced points for each boundary face of the domain. n >= 2 as n = 2 will simply
+            return the bounds of the domain.
+
+        Returns
+        -------
+        tuple[Input, ...]
+            A tuple containing all the calculated equally spaced pseudopoints along the domain's boundary.
+
+        Raises
+        ------
+        TypeError
+            If n is not of type integer.
+
+        ValueError
+            If n < 2.
+
+        Examples
+        --------
+        >>> bounds = [(0, 2), (0, 4)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> n = 3
+        >>> mesh_points = domain.get_boundary_mesh(n)
+        >>> mesh_points # mesh_points equally spaced along the boundary of the domain
+        >>> Input(0, 0), Input(0, 2), Input(0, 4), Input(1, 0), Input(1, 4), Input(2, 0), Input(2, 2), Input(2, 4)
+        """
+
+        check_int(
+            n,
+            TypeError(f"Expected 'n' to be of type int, but received {type(n)}."),
+        )
+        if n < 2:
+            raise ValueError(
+                f"Expected 'n' to be a positive integer >=2 but is equal to {n}."
+            )
+
+        # Create boundaries and mesh of domain
+        boundaries = [np.linspace(*self.bounds[i], n) for i in range(self.dim)]
+        points = np.stack(np.meshgrid(*boundaries), -1).reshape(-1, self.dim)
+
+        # Check points lie on bounds
+        upper_bound = np.array([self.bounds[i][1] for i in range(self.dim)])
+        lower_bound = np.array([self.bounds[i][0] for i in range(self.dim)])
+        on_upper_bound = np.isclose(points, upper_bound)
+        on_lower_bound = np.isclose(points, lower_bound)
+        mask = np.any(on_upper_bound | on_lower_bound, axis=1)
+        masked_points = points[mask]
+        mesh_points = tuple(Input(*point) for point in masked_points)
+        return mesh_points
 
 
 class AbstractSimulator(abc.ABC):
