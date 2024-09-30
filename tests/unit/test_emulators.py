@@ -150,14 +150,12 @@ class TestMogpEmulator(ExauqTestCase):
         training_data = [
             TrainingDatum(Input(0), 1),
             TrainingDatum(Input(0.2), 1),
-
-            #Set identical TrainingDatum inputs to fail
+            # Set identical TrainingDatum inputs to fail
             TrainingDatum(Input(0.4), 1),
             TrainingDatum(Input(0.4), 1),
         ]
         with self.assertRaisesRegex(
-            ValueError, 
-            exact("Points in 'TrainingDatum' must be unique")
+            ValueError, exact("Points in 'TrainingDatum' must be unique")
         ):
             emulator.fit(training_data, hyperparameters=params)
 
