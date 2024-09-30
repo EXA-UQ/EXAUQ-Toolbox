@@ -879,6 +879,9 @@ class AbstractEmulator(abc.ABC):
     Classes that inherit from this abstract base class define emulators which
     can be trained with simulator outputs using an experimental design
     methodology.
+
+    NOTE: Classes derived from this abstract base class MUST implement required checks on 
+    duplicated Inputs. Only unique Inputs should be allowed within the training data. 
     """
 
     @property
@@ -953,6 +956,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     are implemented as Gaussian process. They should utilise
     `GaussianProcessHyperparameters` for methods and properties that use parameters, or
     return objects, of type `AbstractHyperparameters`.
+
+    NOTE: Classes derived from this abstract base class MUST implement required checks on 
+    duplicated Inputs. Only unique Inputs should be allowed within the training data. 
 
     Notes
     -----
