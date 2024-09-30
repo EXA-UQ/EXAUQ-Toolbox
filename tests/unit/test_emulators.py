@@ -141,6 +141,26 @@ class TestMogpEmulator(ExauqTestCase):
         self.assertEqual(0, emulator.gp.targets.size)
         self.assertEqual(tuple(), emulator.training_data)
 
+    def test_unique_training_data(self):
+        """Test that a ValueError is raised if non-unique training data is passed
+        to the emulator."""
+
+        params = MogpHyperparameters(corr_length_scales=[2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+        training_data = [
+            TrainingDatum(Input(0), 1),
+            TrainingDatum(Input(0.2), 1),
+
+            #Set identical TrainingDatum inputs to fail
+            TrainingDatum(Input(0.4), 1),
+            TrainingDatum(Input(0.4), 1),
+        ]
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact("Points in 'TrainingDatum' must be unique")
+        ):
+            emulator.fit(training_data, hyperparameters=params)
+
     def test_correlation_arg_validation(self):
         """A TypeError is raised if one of the args is not a sequence of Input objects."""
 
