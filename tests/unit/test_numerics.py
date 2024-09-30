@@ -4,9 +4,9 @@ import unittest
 
 import numpy as np
 
-from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
+from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance, set_tolerance
 from tests.utilities.utilities import make_window
-
+from tests.utilities.utilities import exact
 
 class TestEqualWithinTolerance(unittest.TestCase):
     def setUp(self) -> None:
@@ -170,6 +170,43 @@ class TestEqualWithinTolerance(unittest.TestCase):
 
         y = (1, 2, 3, 4)
         self.assertFalse(equal_within_tolerance(x, y))
+
+class TestSetTolerance(unittest.TestCase):
+    def setup(self) -> None:
+        self.tol = 1e-5
+
+    def test_set_tolerance_tol_type_error(self):
+        """This test ensures that a TypeError is raised if a float is not passed"""
+
+        tol = [1,2]
+        with self.assertRaisesRegex(
+            TypeError, 
+            exact(
+                f"Expected 'tol' to be of type float but receieved {type(tol)}."), 
+        ):
+            set_tolerance(tol)
+        
+    def test_set_tolerance_tol_negative_error(self):
+        """This test ensures that a ValueError is raised if a non-positive float is passed"""
+        
+        tol = -1.5
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact(f"Expected 'tol' to be non-negative but received {tol}.")
+        ):
+            set_tolerance(tol)
+
+    def test_set_tolerance_check(self):
+        """This test ensures the functionality of changing the global tolerance is working"""
+        
+        # Note: default tolerance is 1e-9 (hence should "fail")
+        x = [1,2]
+        y = [1, 2 + 1e-6]
+        assert not equal_within_tolerance(x, y)
+
+        # If tolerance correctly changed - should now pass
+        set_tolerance(1e-5)
+        assert equal_within_tolerance(x,y)
 
 
 if __name__ == "__main__":

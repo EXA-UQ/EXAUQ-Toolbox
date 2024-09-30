@@ -4,7 +4,7 @@ from typing import Callable, Optional
 import scipy.optimize
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.core.numerics import FLOAT_TOLERANCE
+import exauq.core.numerics as numerics
 
 
 def maximise(
@@ -87,8 +87,8 @@ def maximise(
         result = scipy.optimize.differential_evolution(
             lambda x: -func(Input.from_array(x)),
             bounds=domain.bounds,
-            tol=FLOAT_TOLERANCE,
-            atol=FLOAT_TOLERANCE,
+            tol=numerics.FLOAT_TOLERANCE,
+            atol=numerics.FLOAT_TOLERANCE,
             seed=seed,
         )
     except Exception as e:
