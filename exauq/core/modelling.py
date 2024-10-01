@@ -1774,7 +1774,9 @@ class SimulatorDomain(object):
             isinstance(item, Input)
             and len(item) == self._dim
             and all(
-                bound[0] <= item[i] <= bound[1] for i, bound in enumerate(self._bounds)
+                (equal_within_tolerance(bound[0], item[i]) or bound[0] < item[i]) and
+                (equal_within_tolerance(item[i], bound[1]) or item [i] < bound[1])
+                for i, bound in enumerate(self._bounds)
             )
         )
 
