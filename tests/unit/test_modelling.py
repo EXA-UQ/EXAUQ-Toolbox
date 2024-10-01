@@ -1054,8 +1054,9 @@ class TestSimulatorDomain(unittest.TestCase):
         """Test that an Input with a coordinate that lies very close to the domain's bounds
         still belongs within the domain if within tolerance."""
 
-        x1 = Input(0, 2+1e-10, 1e-10, 0.5)
-        assert x1 in self.domain
+        x1 = Input(0, 2+1e-10)
+        x2 = Input(1e-10, 0.5)
+        assert x1, x2 in self.domain
 
     def test_init_with_valid_bounds(self):
         try:
