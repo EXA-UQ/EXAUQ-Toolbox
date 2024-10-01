@@ -1183,6 +1183,9 @@ def compute_multi_level_loo_samples(
     The `costs` should represent the costs of running each level's simulator on a single
     input.
 
+    If `additional_repulsion_pts` is provided, then these points will be added into the 
+    calculations at the level they are allocated to in the PEI. 
+
     If `seeds` is provided, then the seeds provided for the levels will be used when
     maximising the pseudo-expected improvement of the LOO errors GP for each level (the
     same seeds will be used level-wise to find each new simulator input in the batch).
