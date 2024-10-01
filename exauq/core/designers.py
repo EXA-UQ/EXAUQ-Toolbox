@@ -1208,6 +1208,9 @@ def compute_multi_level_loo_samples(
     batch_size : int, optional
         (Default: 1) The number of new design points to compute. Should be a positive
         integer.
+    additional_repulsion_pts: MultiLevel[Collection[Input]], optional
+        (Default: None) A multi-level collection of hand-chosen Input repulsion points to 
+        aid computation of samples.
     seeds : MultiLevel[Optional[int]], optional
         (Default: None) A multi-level collection of random number seeds to use when
         maximising pseudo-expected improvements for each level. If ``None`` then none of
