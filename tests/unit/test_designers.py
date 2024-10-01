@@ -4,7 +4,7 @@ import itertools
 import math
 import unittest
 import unittest.mock
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Optional
 from unittest.mock import MagicMock
@@ -1833,6 +1833,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         domain: Optional[SimulatorDomain] = None,
         costs: Optional[MultiLevel[Real]] = None,
         batch_size: Optional[int] = 1,
+        additional_repulsion_pts: Optional[MultiLevel[Collection[Input]]] = None,
         seeds: Optional[MultiLevel[int]] = None,
     ) -> tuple[int, tuple[Input, ...]]:
         mlgp = self.default_mlgp if mlgp is None else mlgp
@@ -1840,7 +1841,12 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         costs = self.default_costs if costs is None else costs
 
         return compute_multi_level_loo_samples(
-            mlgp, domain, costs, batch_size=batch_size, seeds=seeds
+            mlgp,
+            domain,
+            costs,
+            batch_size=batch_size,
+            additional_repulsion_pts=additional_repulsion_pts,
+            seeds=seeds,
         )
 
     def test_arg_type_errors(self):
@@ -1849,6 +1855,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         * The input multi-level GP is not of type MultiLevelGaussianProcess.
         * The domain is not of type SimulatorDomain.
         * The batch size is not an integer.
+        * The repulsion points are not a MultiLevel Collection of Inputs (or None)
         * The seeds are not a MultiLevel collection (or None).
         """
 
@@ -1876,6 +1883,15 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             ),
         ):
             _ = self.compute_multi_level_loo_samples(batch_size=arg)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'additional_repulsion_pts' to be a MultiLevel collection of {Input} objects, "
+                f"but received {type(arg)} instead."
+            ),
+        ):
+            _ = self.compute_multi_level_loo_samples(additional_repulsion_pts=arg)
 
         with self.assertRaisesRegex(
             TypeError,
@@ -2097,6 +2113,57 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                         abs_tol=self.tolerance,
                     )
                 )
+
+    def test_additional_repulsion_pts_used_for_multi_level(self):
+        """If additional repulsion points are provided, then these are used in the
+        calculation of pseudo-expected improvement for the LOO errors GP across all levels.
+        """
+
+        costs = self.make_level_costs([1, 10, 100])
+        domain = SimulatorDomain([(0, 1)])
+        mlgp = MultiLevelGaussianProcess([MogpEmulator(), MogpEmulator(), MogpEmulator()])
+        training_data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                ],
+                2: [
+                    TrainingDatum(Input(0.4), 2),
+                    TrainingDatum(Input(0.5), 99),
+                    TrainingDatum(Input(0.6), -4),
+                ],
+                3: [
+                    TrainingDatum(Input(0.7), 3),
+                    TrainingDatum(Input(0.8), -3),
+                    TrainingDatum(Input(0.9), 3),
+                ],
+            }
+        )
+
+        mlgp.fit(training_data)
+
+        # Compute a new design point
+        level, design_pt = compute_multi_level_loo_samples(mlgp, domain, costs)
+
+        # This creates a MultiLevel for the values to equal None which are not the level for the design point
+        repulsion_pts = MultiLevel(
+            {lvl: (design_pt if lvl == level else None) for lvl in mlgp.levels}
+        )
+
+        # Re-run computation but now using the new design point as a repulsion point.
+        # Should find different design points created.
+        level, design_pt2 = compute_multi_level_loo_samples(
+            mlgp,
+            domain,
+            costs,
+            additional_repulsion_pts=repulsion_pts,
+        )
+
+        self.assertNotEqualWithinTolerance(
+            design_pt2, design_pt, rel_tol=self.tolerance, abs_tol=self.tolerance
+        )
 
     def test_use_of_seed(self):
         """If seeds are provided, then maximisation of pseudo-expected improvement is
