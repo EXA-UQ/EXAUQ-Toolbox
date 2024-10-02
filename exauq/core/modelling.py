@@ -1668,14 +1668,17 @@ class SimulatorDomain(object):
 
     Attributes
     ----------
-    dim : int
-        (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
-        from this domain have.
     bounds : tuple[tuple[Real, Real], ...]
         (Read-only) The bounds defining this domain, as a tuple of pairs of
         real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each pair ``(a_i, b_i)``
         representing the lower and upper bounds for the corresponding coordinate in the
         domain.
+    dim : int
+        (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
+        from this domain have.
+    corners: tuple[Input, ...]
+        (Read-only) The corner of the bounds defining this domain. Initialised as None but then 
+        found as a tuple of Inputs within the constructor.  
 
     Parameters
     ----------
