@@ -27,7 +27,7 @@ from exauq.core.modelling import (
     remove_level,
     set_level,
 )
-from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
+from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance, set_tolerance
 from exauq.utilities.csv_db import Path
 from tests.unit.fakes import FakeGP, WhiteNoiseGP, WhiteNoiseGPHyperparameters
 from tests.utilities.utilities import (
@@ -1050,13 +1050,42 @@ class TestSimulatorDomain(unittest.TestCase):
         self.assertFalse(x1 in self.domain)
         self.assertFalse(x2 in self.domain)
 
+    def test_input_close_to_domain_bound_on_tolerance(self):
+        """Test that an Input with a coordinate that lies on the domain's bounds
+        still belongs within the domain if on the tolerance level tolerance."""
+
+        # Check with changing tolerance 
+        tol = 1e-7
+        set_tolerance(tol)
+
+        # Test on Boundary + tolerance
+        x1 = Input(0, 1 + tol)
+        x2 = Input(tol, 0.5)
+        self.assertTrue(x1 in self.domain)
+        self.assertTrue(x2 in self.domain)
+        
+    def test_input_close_to_domain_bound_outside_tolerance(self):
+        """Test that an Input with a coordinate that lies very close to the domain's bounds
+        but outside tolerance still flags failure."""
+
+        # Test just outside of boundary
+        x1 = Input(0, 1+1e-5)
+        x2 = Input(-1e-5, 0.5)
+        self.assertFalse(x1 in self.domain)
+        self.assertFalse(x2 in self.domain)
+
     def test_input_close_to_domain_bound_within_tolerance(self):
         """Test that an Input with a coordinate that lies very close to the domain's bounds
         still belongs within the domain if within tolerance."""
 
-        x1 = Input(0, 2+1e-10)
-        x2 = Input(1e-10, 0.5)
-        assert x1, x2 in self.domain
+        # Test just inside boundary of tolerance
+        x1 = Input(0, 1+1e-12)
+        x2 = Input(-1e-12, 0.5)
+        self.assertTrue(x1 in self.domain)
+        self.assertTrue(x2 in self.domain)
+
+        # Reset tolerance back to default
+        set_tolerance(1e-9)
 
     def test_init_with_valid_bounds(self):
         try:
