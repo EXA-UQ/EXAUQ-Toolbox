@@ -1859,24 +1859,6 @@ class SimulatorDomain(object):
             )
         )
 
-    def _within_bounds(self, point: Input) -> bool:
-        """
-        Check if a single point is within the bounds of the domain.
-
-        Parameters
-        ----------
-        point : Input
-            The point to check.
-
-        Returns
-        -------
-        bool
-            True if the point is within the bounds, False otherwise.
-        """
-        return all(
-            self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim)
-        )
-
     def _validate_points_dim(self, collection: Collection[Input]) -> None:
         """
         Validates that all points in a collection have the same dimensionality as the domain.
@@ -1999,7 +1981,7 @@ class SimulatorDomain(object):
         self._validate_points_dim(inputs)
 
         # Check all points are within domain bounds
-        if not all(self._within_bounds(point) for point in inputs):
+        if not all(point in self for point in inputs):
             raise ValueError(
                 "All points in the collection must be within the domain bounds."
             )
