@@ -1677,8 +1677,8 @@ class SimulatorDomain(object):
         (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
         from this domain have.
     corners: tuple[Input, ...]
-        (Read-only) The corner of the bounds defining this domain. Initialised as None but then 
-        found as a tuple of Inputs within the constructor.  
+        (Read-only) The corner of the bounds defining this domain. Initialised as None but then
+        found as a tuple of Inputs within the constructor.
 
     Parameters
     ----------
@@ -1772,13 +1772,14 @@ class SimulatorDomain(object):
 
     def __contains__(self, item: Any):
         """Returns ``True`` when `item` is an `Input` of the correct dimension and
-        whose coordinates lie within, or within tolerance, of the bounds defined by this domain."""
+        whose coordinates lie within, or within tolerance, of the bounds defined by this domain.
+        """
         return (
             isinstance(item, Input)
             and len(item) == self._dim
             and all(
-                (equal_within_tolerance(bound[0], item[i]) or bound[0] < item[i]) and
-                (equal_within_tolerance(item[i], bound[1]) or item [i] < bound[1])
+                (equal_within_tolerance(bound[0], item[i]) or bound[0] < item[i])
+                and (equal_within_tolerance(item[i], bound[1]) or item[i] < bound[1])
                 for i, bound in enumerate(self._bounds)
             )
         )
