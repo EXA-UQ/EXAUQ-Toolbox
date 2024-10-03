@@ -125,7 +125,7 @@ class MogpEmulator(AbstractGaussianProcess):
             )
         else:
             return None
-    
+
     @staticmethod
     @suppress_print
     def _make_gp(**kwargs) -> GaussianProcess:
@@ -162,7 +162,7 @@ class MogpEmulator(AbstractGaussianProcess):
         process model, or ``None`` if the model has not been fitted to data."""
 
         return self._fit_hyperparameters
-    
+
     @suppress_print
     def fit(
         self,
