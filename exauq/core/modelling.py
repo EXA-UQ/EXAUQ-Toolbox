@@ -1785,18 +1785,24 @@ class SimulatorDomain(object):
         )
 
     @property
-    def dim(self) -> int:
-        """(Read-only) The dimension of this domain, i.e. the number of coordinates
-        inputs from this domain have."""
-        return self._dim
-
-    @property
     def bounds(self) -> tuple[tuple[Real, Real], ...]:
         """(Read-only) The bounds defining this domain, as a tuple of pairs of
         real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each pair ``(a_i, b_i)``
         representing the lower and upper bounds for the corresponding coordinate in the
         domain."""
         return self._bounds
+
+    @property
+    def dim(self) -> int:
+        """(Read-only) The dimension of this domain, i.e. the number of coordinates
+        inputs from this domain have."""
+        return self._dim
+
+    @property
+    def corners(self) -> tuple[Input]:
+        """(Read-only) The corner points of the domain, where each coordinate is at its
+        respective lower or upper bound."""
+        return self._corners
 
     def scale(self, coordinates: Sequence[Real]) -> Input:
         """Scale coordinates from the unit hypercube into coordinates for this domain.
@@ -1910,32 +1916,6 @@ class SimulatorDomain(object):
     def _calculate_distance(point_01: Sequence, point_02: Sequence):
         return sum((c1 - c2) ** 2 for c1, c2 in zip(point_01, point_02)) ** 0.5
 
-    @property
-    def get_corners(self) -> tuple[Input]:
-        """
-        Returns all the corner points of the domain.
-
-        A corner point of a domain is defined as a point where each coordinate
-        is equal to either the lower or upper bound of its respective dimension.
-        This method calculates all possible combinations of lower and upper bounds
-        for each dimension to find all the corner points of the domain.
-
-        Returns
-        -------
-        tuple[Input]
-            A tuple containing all the corner points of the domain. The number of corner
-            points is ``2 ** dim``, where dim is the number of dimensions of the domain.
-
-        Examples
-        --------
-        >>> bounds = [(0, 1), (0, 1)]
-        >>> domain = SimulatorDomain(bounds)
-        >>> domain.get_corners
-        (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
-        """
-
-        return self._corners
-
     def closest_boundary_points(self, inputs: Collection[Input]) -> tuple[Input]:
         """
         Finds the closest point on the boundary for each point in the input collection.
@@ -2017,7 +1997,7 @@ class SimulatorDomain(object):
 
         A pseudopoint in this context is defined as a point on the boundary of the domain,
         or a corner of the domain. This method computes two types of pseudopoints: Boundary
-        pseudopoints and Corner pseudopoints, using the `closest_boundary_points` and `get_corners`
+        pseudopoints and Corner pseudopoints, using the `closest_boundary_points` and `corners`
         methods respectively.
 
         Parameters

@@ -1241,21 +1241,21 @@ class TestSimulatorDomain(unittest.TestCase):
                 self.assertAlmostEqual(z, bnds[0] + x * (bnds[1] - bnds[0]))
 
     def test_get_corners_2d_domain(self):
-        """Verify that get_corners accurately identifies and returns all four corners of a 2D
+        """Verify that corners accurately identifies and returns all four corners of a 2D
         unit square domain."""
 
         domain = SimulatorDomain([(0, 1), (0, 1)])
-        corners = domain.get_corners
+        corners = domain.corners
         expected_corners = (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_3d_domain(self):
-        """This test validates that the get_corners method correctly generates and returns all
+        """This test validates that the corners method correctly generates and returns all
         the corner points of a three-dimensional domain, ensuring each corner is identified and
         returned properly."""
 
         domain = SimulatorDomain([(0, 1), (0, 1), (0, 1)])
-        corners = domain.get_corners
+        corners = domain.corners
         expected_corners = (
             Input(0, 0, 0),
             Input(0, 0, 1),
@@ -1269,32 +1269,32 @@ class TestSimulatorDomain(unittest.TestCase):
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_negative_bounds(self):
-        """This test ensures that the `get_corners` method accurately identifies and returns all
+        """This test ensures that the `corners` method accurately identifies and returns all
         corner points for a two-dimensional domain with negative bounds, verifying its
         correctness when dealing with negative numbers."""
 
         domain = SimulatorDomain([(-1, 0), (-1, 0)])
-        corners = domain.get_corners
+        corners = domain.corners
         expected_corners = (Input(-1, -1), Input(-1, 0), Input(0, -1), Input(0, 0))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_2d_rectangle(self):
-        """This test verifies that the `get_corners` method correctly calculates and returns all
+        """This test verifies that the `corners` method correctly calculates and returns all
         corner points for a two-dimensional rectangular domain, ensuring its functionality is not
         limited to square domains."""
 
         domain = SimulatorDomain([(0, 2), (0, 1)])
-        corners = domain.get_corners
+        corners = domain.corners
         expected_corners = (Input(0, 0), Input(0, 1), Input(2, 0), Input(2, 1))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_3d_rectangular_prism(self):
-        """This test ensures the `get_corners` method accurately identifies all corners of a
+        """This test ensures the `corners` method accurately identifies all corners of a
         three-dimensional rectangular prism domain, showcasing its adaptability to handle domains
         of various shapes and dimensions."""
 
         domain = SimulatorDomain([(0, 2), (0, 1), (0, 3)])
-        corners = domain.get_corners
+        corners = domain.corners
         expected_corners = (
             Input(0, 0, 0),
             Input(0, 0, 3),
@@ -1308,22 +1308,22 @@ class TestSimulatorDomain(unittest.TestCase):
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_single_dimension(self):
-        """This test verifies that the `get_corners` method correctly identifies the endpoints of
+        """This test verifies that the `corners` method correctly identifies the endpoints of
         a one-dimensional domain, demonstrating the method's capability to handle domains with a
         single dimension."""
 
         domain = SimulatorDomain([(0, 1)])
-        corners = domain.get_corners
+        corners = domain.corners
         expected_corners = (Input(0), Input(1))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
     def test_get_corners_zero_width_bound(self):
-        """This test ensures that the get_corners method accurately generates corner points for a
+        """This test ensures that the corners method accurately generates corner points for a
         domain with a zero-width bound in one dimension, demonstrating the method's robustness in
         handling edge cases."""
 
         domain = SimulatorDomain([(0, 0), (0, 1)])
-        corners = domain.get_corners
+        corners = domain.corners
         expected_corners = (Input(0, 0), Input(0, 1))
         self.assertTrue(compare_input_tuples(corners, expected_corners))
 
@@ -1332,7 +1332,7 @@ class TestSimulatorDomain(unittest.TestCase):
         each other, then there is only one corner coordinate for that dimension."""
 
         domain = SimulatorDomain([(0, 1), (0, self.epsilon)])
-        corners = domain.get_corners
+        corners = domain.corners
         self.assertEqual(2, len(corners))
         for corner in corners:
             self.assertTrue(equal_within_tolerance(0, corner[1]))
