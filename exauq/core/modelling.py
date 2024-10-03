@@ -1916,7 +1916,7 @@ class SimulatorDomain(object):
     def _calculate_distance(point_01: Sequence, point_02: Sequence):
         return sum((c1 - c2) ** 2 for c1, c2 in zip(point_01, point_02)) ** 0.5
 
-    def closest_boundary_points(self, inputs: Collection[Input]) -> tuple[Input]:
+    def closest_boundary_points(self, inputs: Collection[Input]) -> tuple[Input, ...]:
         """
         Finds the closest point on the boundary for each point in the input collection.
         Distance is calculated using the Euclidean distance.
@@ -1930,7 +1930,7 @@ class SimulatorDomain(object):
 
         Returns
         -------
-        tuple[Input]
+        tuple[Input, ...]
             The boundary points closest to a point in the given `inputs`.
 
         Raises
@@ -1991,7 +1991,7 @@ class SimulatorDomain(object):
 
         return tuple(closest_boundary_points)
 
-    def calculate_pseudopoints(self, inputs: Collection[Input]) -> tuple[Input]:
+    def calculate_pseudopoints(self, inputs: Collection[Input]) -> tuple[Input, ...]:
         """
         Calculates and returns a tuple of pseudopoints for a given collection of input points.
 
@@ -2008,7 +2008,7 @@ class SimulatorDomain(object):
 
         Returns
         -------
-        tuple[Input]
+        tuple[Input, ...]
             A tuple containing all the calculated pseudopoints.
 
         Raises
@@ -2034,6 +2034,7 @@ class SimulatorDomain(object):
         for point in pseudopoints:
             if point not in unique_pseudopoints:
                 unique_pseudopoints.append(point)
+
         return tuple(unique_pseudopoints)
 
     def get_boundary_mesh(self, n: int) -> tuple[Input, ...]:
