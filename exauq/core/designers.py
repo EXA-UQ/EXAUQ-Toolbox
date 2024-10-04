@@ -121,51 +121,6 @@ def oneshot_lhs(
     return lhs_inputs
 
 
-class SimpleDesigner(object):
-    """A designer producing simulator inputs based on random generation.
-
-    This designer produces simulator inputs by sampling each coordinate uniformly. The
-    inputs created all belong to the supplied simulator domain.
-
-    Parameters
-    ----------
-    domain : SimulatorDomain
-        A domain for a simulator.
-    """
-
-    def __init__(self, domain: SimulatorDomain):
-        self._domain = domain
-
-    def make_design_batch(self, size: int) -> list[Input]:
-        """Create a batch of new simulator inputs.
-
-        The inputs returned are created by sampling each coordinate uniformly.
-
-        Parameters
-        ----------
-        size : int
-            The number of inputs to create.
-
-        Returns
-        -------
-        list[Input]
-            A batch of new simulator inputs.
-        """
-        check_int(
-            size,
-            TypeError(f"Expected 'size' to be an integer but received {type(size)}."),
-        )
-        if size < 0:
-            raise ValueError(
-                f"Expected 'size' to be a non-negative integer but is equal to {size}."
-            )
-
-        rng = np.random.default_rng()
-        return [
-            self._domain.scale(rng.uniform(size=self._domain.dim)) for _ in range(size)
-        ]
-
-
 def compute_loo_errors_gp(
     gp: AbstractGaussianProcess,
     domain: SimulatorDomain,
@@ -1183,8 +1138,8 @@ def compute_multi_level_loo_samples(
     The `costs` should represent the costs of running each level's simulator on a single
     input.
 
-    If `additional_repulsion_pts` is provided, then these points will be added into the 
-    calculations at the level they are allocated to in the PEI. 
+    If `additional_repulsion_pts` is provided, then these points will be added into the
+    calculations at the level they are allocated to in the PEI.
 
     If `seeds` is provided, then the seeds provided for the levels will be used when
     maximising the pseudo-expected improvement of the LOO errors GP for each level (the
@@ -1212,7 +1167,7 @@ def compute_multi_level_loo_samples(
         (Default: 1) The number of new design points to compute. Should be a positive
         integer.
     additional_repulsion_pts: MultiLevel[Collection[Input]], optional
-        (Default: None) A multi-level collection of hand-chosen Input repulsion points to 
+        (Default: None) A multi-level collection of hand-chosen Input repulsion points to
         aid computation of samples.
     seeds : MultiLevel[Optional[int]], optional
         (Default: None) A multi-level collection of random number seeds to use when
