@@ -15,17 +15,12 @@ from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     GaussianProcessPrediction,
     Input,
-    LevelTagged,
     MultiLevel,
     MultiLevelGaussianProcess,
     OptionalFloatPairs,
     Prediction,
     SimulatorDomain,
     TrainingDatum,
-    _LevelTaggedOld,
-    get_level,
-    remove_level,
-    set_level,
 )
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance
 from exauq.utilities.csv_db import Path
@@ -1722,123 +1717,6 @@ class StubClass:
 
     def set_b(self, b) -> None:
         self.b = b
-
-
-class TestLevelTagged(ExauqTestCase):
-    def setUp(self) -> None:
-        self.a = StubClass(1)
-
-    def test_set_and_get_level(self):
-        """An object can be tagged with an integer level and this level can be
-        subsequently retrieved. When a tag is set, the original object is modified and a
-        reference to this object is returned."""
-
-        level = 99
-        a = set_level(self.a, level)
-        self.assertEqual(level, get_level(a))
-        self.assertIs(a, self.a)
-
-    def test_instance_check(self):
-        """An object is tagged with a level precisely when it is an instance of
-        LevelTagged."""
-
-        obj = StubClass(1)
-        self.assertNotIsInstance(obj, LevelTagged)
-        obj = set_level(obj, 2)
-        self.assertIsInstance(obj, LevelTagged)
-        self.assertIsInstance(obj, StubClass)  # check still an object of type A
-
-    def test_set_level_non_int_error(self):
-        """A TypeError is raised if a users tries to set a level that is not an integer."""
-
-        level = "1"
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(f"Expected 'level' to be an integer, but received {type(level)}."),
-        ):
-            _ = set_level(self.a, level)
-
-    def test_get_level_returns_none_if_no_level(self):
-        """A level of None is returned if the object hasn't been tagged with a level."""
-
-        self.assertIsNone(get_level(self.a))
-
-    def test_set_level_attribute_already_present(self):
-        """A level cannot be set if it would overwrite an existing attributes."""
-
-        setattr(self.a, LevelTagged.level_attr, "foo")
-        with self.assertRaisesRegex(
-            ValueError,
-            f"Cannot set a level on argument 'obj' with value {self.a} as existing attribute "
-            f"'{LevelTagged.level_attr}' would be overwritten.",
-        ):
-            _ = set_level(self.a, 99)
-
-    def test_remove_level_removes_level(self):
-        """An object can have its level removed."""
-
-        # A label that is set can be removed.
-        a = set_level(self.a, 99)
-        remove_level(a)
-        self.assertIsNone(get_level(a))
-        self.assertIs(self.a, a)
-
-
-class TestLevelTaggedOld(ExauqTestCase):
-    def test_get_level(self):
-        """The level tagged onto the object can be obtained from the `level` attribute."""
-
-        class A:
-            def __init__(self, a: int, b=None):
-                self.a = a
-                self.b = b
-
-            def a_plus(self, x: int) -> int:
-                return self.a + x
-
-            def set_b(self, b) -> None:
-                self.b = b
-
-        class TaggedA(_LevelTaggedOld, A):
-            pass
-
-        level = 1
-        tagged = TaggedA(level, 99, "b")
-        self.assertEqual(level, tagged.level)
-
-    def test_cannot_modify_level(self):
-        """The level cannot be modified once set."""
-
-        tagged = _LevelTaggedOld(1)
-        with self.assertRaisesRegex(
-            AttributeError, "Cannot modify this instance's 'level' attribute."
-        ):
-            tagged.level = 99
-
-    def test_parent_class_has_level_attribute_error(self):
-        """A TypeError is raised if subclassing from LevelTagged would involve masking a
-        `level` attribute from a parent class (as worked out from method resolution
-        order)."""
-
-        class A:
-            def level(self):
-                return "level from A"
-
-        with self.assertRaisesRegex(TypeError, "^Cannot create class"):
-
-            class TaggedA(_LevelTaggedOld, A):
-                pass
-
-        class B:
-            def __init__(self):
-                self.level = 99
-
-        with self.assertRaisesRegex(TypeError, "^Cannot initialise object"):
-
-            class TaggedB(_LevelTaggedOld, B):
-                pass
-
-            _ = TaggedB(level=10)
 
 
 class TestMultiLevel(ExauqTestCase):
