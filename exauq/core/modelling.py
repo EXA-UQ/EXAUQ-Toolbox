@@ -1677,8 +1677,8 @@ class SimulatorDomain(object):
         (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
         from this domain have.
     corners: tuple[Input, ...]
-        (Read-only) The corner of the bounds defining this domain. Initialised as None but then
-        found as a tuple of Inputs within the constructor.
+        (Read-only) The corner points of the domain, where each coordinate is at its
+        respective lower or upper bound.
 
     Parameters
     ----------
