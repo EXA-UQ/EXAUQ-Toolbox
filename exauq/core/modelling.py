@@ -126,10 +126,18 @@ class Input(Sequence):
         supplied tuple if so or raising an exception if not."""
 
         validation.check_entries_not_none(
-            args, TypeError("Input coordinates must be real numbers, not None")
+            args,
+            TypeError(
+                f"Expected 'Input coordinates' to be of type {Real}, "
+                "but received None type instead"
+            ),
         )
         validation.check_entries_real(
-            args, TypeError("Arguments must be instances of real numbers")
+            args,
+            TypeError(
+                f"Expected 'arguments' to be of type {Real}, "
+                "but one or more 'arguments' were of an unexpected type."
+            ),
         )
         validation.check_entries_finite(
             args, ValueError("Cannot supply NaN or non-finite numbers as arguments")
@@ -156,7 +164,7 @@ class Input(Sequence):
 
         if not isinstance(input, np.ndarray):
             raise TypeError(
-                f"Expected 'input' of type numpy.ndarray but received {type(input)}."
+                f"Expected 'input' to be of type numpy.ndarray, but received {type(input)} instead."
             )
 
         if not input.ndim == 1:
@@ -236,7 +244,7 @@ class Input(Sequence):
 
         except TypeError:
             raise TypeError(
-                f"Subscript must be an 'int' or slice, but received {type(item)}."
+                f"Expected 'subscript' to be of type int or slice, but received {type(item)} instead."
             )
 
         except IndexError:
@@ -296,7 +304,10 @@ class TrainingDatum(object):
         TypeError if not."""
 
         if not isinstance(input, Input):
-            raise TypeError("Argument 'input' must be of type Input")
+            raise TypeError(
+                "Expected argument 'input' to be of type Input, "
+                f"but received {type(input)} instead."
+            )
 
     @staticmethod
     def _validate_output(observation: Any) -> None:
@@ -304,10 +315,18 @@ class TrainingDatum(object):
         if not."""
 
         validation.check_not_none(
-            observation, TypeError("Argument 'output' cannot be None")
+            observation,
+            TypeError(
+                f"Expected argument 'output' to be of type {Real}, "
+                "but received None type instead."
+            ),
         )
         validation.check_real(
-            observation, TypeError("Argument 'output' must define a real number")
+            observation,
+            TypeError(
+                f"Expected argument 'output' to be of type {Real}, "
+                f"but received {type(observation)} instead."
+            ),
         )
         validation.check_finite(
             observation, ValueError("Argument 'output' cannot be NaN or non-finite")
@@ -508,7 +527,7 @@ class Prediction:
         validation.check_real(
             estimate,
             TypeError(
-                f"Expected 'estimate' to define a real number, but received {type(estimate)} "
+                f"Expected 'estimate' to be of type {Real}, but received {type(estimate)} "
                 "instead."
             ),
         )
@@ -520,7 +539,7 @@ class Prediction:
         validation.check_real(
             variance,
             TypeError(
-                "Expected 'variance' to define a real number, but received "
+                f"Expected 'variance' to be of type {Real}, but received "
                 f"{type(variance)} instead."
             ),
         )
@@ -610,8 +629,8 @@ class GaussianProcessPrediction(Prediction):
         validation.check_real(
             observed_output,
             TypeError(
-                f"Expected 'observed_output' to be of type {Real} but received type "
-                f"{type(observed_output)}."
+                f"Expected 'observed_output' to be of type {Real}, but received "
+                f"{type(observed_output)} instead."
             ),
         )
 
@@ -926,8 +945,8 @@ class MultiLevel(dict[int, T]):
             return {i + 1: elem for i, elem in enumerate(elements)}
         else:
             raise TypeError(
-                "Argument 'elements' must be a mapping with int keys or a sequence, "
-                f"but received object of type {type(elements)}."
+                "Expected argument 'elements' to be a mapping with type int keys or type sequence, "
+                f"but received {type(elements)} instead."
             )
 
     @property
@@ -1033,10 +1052,10 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         if not _can_instantiate_multi_level(gps, AbstractGaussianProcess):
             raise TypeError(
-                "Expected 'gps' to be a mapping of integers to "
-                f"{AbstractGaussianProcess.__name__} or a sequence of "
-                f"{AbstractGaussianProcess.__name__}, but received object of "
-                f"type {type(gps)} instead."
+                "Expected 'gps' to be a mapping of type int to "
+                f"{AbstractGaussianProcess.__name__} or type sequence of "
+                f"{AbstractGaussianProcess.__name__}, but received "
+                f"{type(gps)} instead."
             )
         else:
             return gps
@@ -1050,8 +1069,9 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
             coefficients, Real
         ):
             raise TypeError(
-                "Expected 'coefficients' to be a mapping of integers to real numbers, "
-                "a sequence of real numbers, or a real number."
+                f"Expected 'coefficients' to be a mapping of type int to type {Real}, "
+                f"of type sequence of {Real}, or type {Real}, "
+                f"but received {type(coefficients)} instead"
             )
         elif isinstance(coefficients, Real):
             return self._fill_out(float(coefficients), self.levels)
@@ -1153,7 +1173,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         if not isinstance(training_data, MultiLevel):
             raise TypeError(
                 f"Expected 'training_data' to be an instance of {MultiLevel.__name__}, but received "
-                f"{type(training_data)}."
+                f"{type(training_data)} instead."
             )
         else:
             training_data = MultiLevel(
@@ -1227,7 +1247,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         if not isinstance(x, Input):
             raise TypeError(
-                f"Expected 'x' to be of type {Input.__name__}, but received {type(x)}."
+                f"Expected 'x' to be an instance of {Input.__name__}, but received {type(x)} instead."
             )
 
         level_predictions = self.map(lambda level, gp: gp.predict(x))
@@ -1266,7 +1286,7 @@ def _validate_nonnegative_real_domain(arg_name: str):
             # arrays to pass through with deprecation warning.
             if not isinstance(arg, Real):
                 raise TypeError(
-                    f"Expected '{arg_name}' to be a real number, but received {type(arg)}."
+                    f"Expected '{arg_name}' to be of type {Real}, but received {type(arg)} instead."
                 )
 
             if arg < 0:
@@ -1325,8 +1345,8 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
     def __post_init__(self):
         if not isinstance(self.corr_length_scales, (Sequence, np.ndarray)):
             raise TypeError(
-                "Expected 'corr_length_scales' to be a sequence or Numpy array, but "
-                f"received {type(self.corr_length_scales)}."
+                "Expected 'corr_length_scales' to be of type sequence or type Numpy array, but "
+                f"received {type(self.corr_length_scales)} instead."
             )
 
         nonpositive_corrs = [
@@ -1343,8 +1363,8 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
         validation.check_real(
             self.process_var,
             TypeError(
-                "Expected 'process_var' to be a real number, but received "
-                f"{type(self.process_var)}."
+                f"Expected 'process_var' to be of type {Real}, but received "
+                f"{type(self.process_var)} instead."
             ),
         )
         if self.process_var <= 0:
@@ -1356,12 +1376,12 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
         if self.nugget is not None:
             if not isinstance(self.nugget, Real):
                 raise TypeError(
-                    f"Expected 'nugget' to be a real number, but received {type(self.nugget)}."
+                    f"Expected 'nugget' to be of type {Real}, but received {type(self.nugget)} instead."
                 )
 
             if self.nugget < 0:
                 raise ValueError(
-                    f"Expected 'nugget' to be a positive real number, but received {self.nugget}."
+                    f"Expected 'nugget' to be of type positive {Real}, but received {self.nugget} instead."
                 )
 
     def __eq__(self, other) -> bool:
@@ -1507,13 +1527,17 @@ class SimulatorDomain(object):
         >>> SimulatorDomain.validate_bounds([(1, 0), (0, 1)])
         """
         if bounds is None:
-            raise TypeError("Bounds cannot be None. 'bounds' should be a sequence.")
+            raise TypeError(
+                "Expected 'bounds' to be of type sequence, but received None type instead."
+            )
 
         if not bounds:
             raise ValueError("At least one pair of bounds must be provided.")
 
         if not isinstance(bounds, Sequence):
-            raise TypeError("Bounds should be a sequence.")
+            raise TypeError(
+                f"Expected 'bounds' to be of type sequence, but received {type(bounds)} instead."
+            )
 
         for bound in bounds:
             if not isinstance(bound, tuple) or len(bound) != 2:
@@ -1521,7 +1545,9 @@ class SimulatorDomain(object):
 
             low, high = bound
             if not (isinstance(low, Real) and isinstance(high, Real)):
-                raise TypeError("Bounds must be real numbers.")
+                raise TypeError(
+                    f"Expected 'bounds' to be of type {Real} but received {type(low)} and {type(high)} instead."
+                )
 
             if low > high:
                 if not equal_within_tolerance(low, high):
@@ -1872,7 +1898,7 @@ class SimulatorDomain(object):
 
         check_int(
             n,
-            TypeError(f"Expected 'n' to be of type int, but received {type(n)}."),
+            TypeError(f"Expected 'n' to be of type int, but received {type(n)} instead."),
         )
         if n < 2:
             raise ValueError(

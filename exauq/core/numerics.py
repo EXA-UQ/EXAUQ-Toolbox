@@ -49,8 +49,8 @@ def equal_within_tolerance(
         return math.isclose(x, y, rel_tol=rel_tol, abs_tol=abs_tol)
     else:
         raise TypeError(
-            "Both arguments must be composed of real numbers, or sequences / Numpy arrays "
-            "thereof."
+            f"Both 'arguments' must be of type {Real}, type sequences or type Numpy arrays, "
+            "but one or more arguments were of an unexpected type."
         )
 
 
@@ -70,7 +70,9 @@ def set_tolerance(tol: float):
     """
 
     if not isinstance(tol, float):
-        raise TypeError(f"Expected 'tol' to be of type float but receieved {type(tol)}.")
+        raise TypeError(
+            f"Expected 'tol' to be of type float, but receieved {type(tol)} instead."
+        )
 
     if tol < 0:
         raise ValueError(f"Expected 'tol' to be non-negative but received {tol}.")

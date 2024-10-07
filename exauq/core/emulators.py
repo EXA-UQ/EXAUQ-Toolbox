@@ -215,7 +215,7 @@ class MogpEmulator(AbstractGaussianProcess):
         ):
             raise TypeError(
                 "Expected 'hyperparameters' to be None or of type "
-                f"{MogpHyperparameters.__name__}, but received {type(hyperparameters)}."
+                f"{MogpHyperparameters.__name__}, but received {type(hyperparameters)} instead."
             )
 
         self._validate_hyperparameter_bounds(hyperparameter_bounds)
@@ -260,7 +260,8 @@ class MogpEmulator(AbstractGaussianProcess):
 
         except TypeError:
             raise TypeError(
-                f"Expected a finite collection of TrainingDatum, but received {type(training_data)}."
+                f"Expected 'training_data' to be of type finite collection of TrainingDatum, "
+                f"but received {type(training_data)} instead."
             )
 
     def _validate_hyperparameter_bounds(
@@ -294,12 +295,13 @@ class MogpEmulator(AbstractGaussianProcess):
                 )
         except TypeError:
             raise TypeError(
-                f"Expected 'bounds' to be a sequence, but received {type(bounds)}."
+                f"Expected 'bounds' to be of type sequence, but received {type(bounds)} instead."
             )
 
         if not all(bound is None or isinstance(bound, Real) for bound in bounds):
             raise TypeError(
-                f"Expected each bound in {bounds} to be None or of type {Real}."
+                f"Expected each 'bound' in {bounds} to be None or of type {Real} "
+                "but one or more elements were of an unexpected type."
             )
 
         lower, upper = bounds
@@ -445,7 +447,7 @@ class MogpEmulator(AbstractGaussianProcess):
         except TypeError:
             # Raised if inputs1 or inputs2 not iterable
             raise TypeError(
-                "Expected 'inputs1' and 'inputs2' to be sequences of Input objects, "
+                "Expected 'inputs1' and 'inputs2' to be of type sequences of Input objects, "
                 f"but received {type(inputs1)} and {type(inputs2)} instead."
             )
 
@@ -454,7 +456,8 @@ class MogpEmulator(AbstractGaussianProcess):
             and all(isinstance(x, Input) for x in inputs2)
         ):
             raise TypeError(
-                "Expected 'inputs1' and 'inputs2' to only contain Input objects."
+                "Expected all 'inputs1' and 'inputs2' to be of type Input objects, "
+                "but one or more elements were of an unexpected type."
             )
 
         try:
@@ -514,12 +517,13 @@ class MogpEmulator(AbstractGaussianProcess):
         except TypeError:
             if not isinstance(inputs, Sequence):
                 raise TypeError(
-                    "Expected 'inputs' to be a sequence of Input objects, but received "
+                    "Expected 'inputs' to be of type sequence of Input objects, but received "
                     f"{type(inputs)} instead."
                 ) from None
             else:
                 raise TypeError(
-                    "Expected 'inputs' to only contain Input objects."
+                    "Expected all elements of 'inputs' to be of type Input objects, "
+                    "but one or more elements were of an unexpected type."
                 ) from None
 
     def predict(self, x: Input) -> GaussianProcessPrediction:
@@ -544,7 +548,9 @@ class MogpEmulator(AbstractGaussianProcess):
         """
 
         if not isinstance(x, Input):
-            raise TypeError(f"Expected 'x' to be of type Input, but received {type(x)}.")
+            raise TypeError(
+                f"Expected 'x' to be of type Input, but received {type(x)} instead."
+            )
 
         if len(self.training_data) == 0:
             raise RuntimeError(
@@ -633,7 +639,7 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
         if not isinstance(params, GPParams):
             raise TypeError(
                 "Expected 'params' to be of type mogp_emulator.GPParams.GPParams, but "
-                f"received {type(params)}."
+                f"received {type(params)} instead."
             )
 
         if params.corr is None and params.cov is None:
@@ -703,8 +709,8 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
 
         if not isinstance(nugget_type, str):
             raise TypeError(
-                "Expected 'nugget_type' to be of type str, but got "
-                f"{type(nugget_type)}."
+                "Expected 'nugget_type' to be of type str, but received "
+                f"{type(nugget_type)} instead."
             )
 
         nugget_types = ["fixed", "fit", "adaptive", "pivot"]

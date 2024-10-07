@@ -30,13 +30,13 @@ def _check_collection_of_inputs(coll: Any, name: str):
 
     if not isinstance(coll, Collection):
         raise TypeError(
-            f"Expected '{name}' to be a collection of {Input} objects, "
+            f"Expected '{name}' to be of type collection of {Input}s,"
             f"but received {type(coll)} instead."
         )
     elif any(not isinstance(x, Input) for x in coll):
         raise TypeError(
-            f"Expected '{name}' to be a collection of {Input} objects, "
-            f"but this is not the case."
+            f"Expected '{name}' to be of type collection of {Input}s,"
+            f"but one or more elements were of an unexpected type."
         )
     else:
         pass
@@ -96,13 +96,13 @@ def oneshot_lhs(
 
     if not isinstance(domain, SimulatorDomain):
         raise TypeError(
-            f"Expected domain to be of type SimulatorDomain, but received {type(domain)}."
+            f"Expected 'domain' to be of type SimulatorDomain, but received {type(domain)} instead."
         )
 
     check_int(
         batch_size,
         TypeError(
-            f"Expected 'batch_size' to be of type int, but received {type(batch_size)}."
+            f"Expected 'batch_size' to be of type int, but received {type(batch_size)} instead."
         ),
     )
     if batch_size <= 0:
@@ -451,13 +451,14 @@ class PEICalculator:
 
         if not all(isinstance(datum, TrainingDatum) for datum in self._gp.training_data):
             raise TypeError(
-                "All elements in 'gp' training data must be instances of TrainingDatum"
+                f"Expected all elements in '_gp.training_data' to be of {type(TrainingDatum)},"
+                f"but one or more elements were of an unexpected type."
             )
 
     def _validate_input_type(self, x: Any, method_name: str) -> Input:
         if not isinstance(x, Input):
             raise TypeError(
-                f"In method '{method_name}', expected 'x' to be one of type {Input}, "
+                f"In method '{method_name}', expected 'x' to be of type {Input}, "
                 f"but received {type(x)} instead."
             )
 
@@ -737,7 +738,7 @@ def compute_single_level_loo_samples(
     """
     if not isinstance(batch_size, int):
         raise TypeError(
-            f"Expected 'batch_size' to be an integer, but received {type(batch_size)} instead."
+            f"Expected 'batch_size' to be of type int, but received {type(batch_size)} instead."
         )
 
     if batch_size < 1:
@@ -1239,7 +1240,7 @@ def compute_multi_level_loo_samples(
         additional_repulsion_pts = MultiLevel({level: None for level in mlgp.levels})
     elif not isinstance(additional_repulsion_pts, MultiLevel):
         raise TypeError(
-            f"Expected 'additional_repulsion_pts' to be a MultiLevel collection of {Input} objects, "
+            f"Expected 'additional_repulsion_pts' to be of type MultiLevel collection of {Input}s, "
             f"but received {type(additional_repulsion_pts)} instead."
         )
 
@@ -1247,7 +1248,7 @@ def compute_multi_level_loo_samples(
         seeds = MultiLevel({level: None for level in mlgp.levels})
     elif not isinstance(seeds, MultiLevel):
         raise TypeError(
-            f"Expected 'seeds' to be of type {MultiLevel} with integer values, but "
+            f"Expected 'seeds' to be of type {MultiLevel} of int, but "
             f"received {type(seeds)} instead."
         )
 
@@ -1259,7 +1260,7 @@ def compute_multi_level_loo_samples(
 
     if not isinstance(batch_size, int):
         raise TypeError(
-            f"Expected 'batch_size' to be an integer, but received {type(batch_size)} instead."
+            f"Expected 'batch_size' to be of type int, but received {type(batch_size)} instead."
         )
 
     if batch_size < 1:

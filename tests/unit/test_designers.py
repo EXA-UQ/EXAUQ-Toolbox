@@ -53,7 +53,7 @@ class TestOneshotLhs(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'batch_size' to be of type int, but received {type(batch_size)}."
+                f"Expected 'batch_size' to be of type int, but received {type(batch_size)} instead."
             ),
         ):
             oneshot_lhs(self.domain, batch_size, self.seed)
@@ -524,7 +524,7 @@ class TestPEICalculator(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                f"Expected 'additional_repulsion_pts' to be of type collection of {Input}s,"
                 f"but received {type(arg)} instead."
             ),
         ):
@@ -534,8 +534,8 @@ class TestPEICalculator(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
-                "but this is not the case."
+                f"Expected 'additional_repulsion_pts' to be of type collection of {Input}s,"
+                f"but one or more elements were of an unexpected type."
             ),
         ):
             _ = PEICalculator(self.domain, self.gp, additional_repulsion_pts=arg2)
@@ -871,7 +871,7 @@ class TestPEICalculator(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
+                f"Expected 'repulsion_points' to be of type collection of {Input}s,"
                 f"but received {type(arg)} instead."
             ),
         ):
@@ -881,8 +881,8 @@ class TestPEICalculator(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
-                "but this is not the case."
+                f"Expected 'repulsion_points' to be of type collection of {Input}s,"
+                f"but one or more elements were of an unexpected type."
             ),
         ):
             self.pei_calculator.add_repulsion_points(arg2)
@@ -1040,7 +1040,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'batch_size' to be an integer, but received {type(arg)} instead."
+                f"Expected 'batch_size' to be of type int, but received {type(arg)} instead."
             ),
         ):
             _ = compute_single_level_loo_samples(self.gp, self.domain, batch_size=arg)
@@ -1049,7 +1049,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                f"Expected 'additional_repulsion_pts' to be of type collection of {Input}s,"
                 f"but received {type(arg2)} instead."
             ),
         ):
@@ -1061,8 +1061,8 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
-                "but this is not the case."
+                f"Expected 'additional_repulsion_pts' to be of type collection of {Input}s,"
+                "but one or more elements were of an unexpected type."
             ),
         ):
             _ = compute_single_level_loo_samples(
@@ -1824,7 +1824,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'batch_size' to be an integer, but received {type(arg)} instead."
+                f"Expected 'batch_size' to be of type int, but received {type(arg)} instead."
             ),
         ):
             _ = self.compute_multi_level_loo_samples(batch_size=arg)
@@ -1832,7 +1832,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'additional_repulsion_pts' to be a MultiLevel collection of {Input} objects, "
+                f"Expected 'additional_repulsion_pts' to be of type MultiLevel collection of {Input}s, "
                 f"but received {type(arg)} instead."
             ),
         ):
@@ -1841,7 +1841,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'seeds' to be of type {MultiLevel} with integer values, but "
+                f"Expected 'seeds' to be of type {MultiLevel} of int, but "
                 f"received {type(arg)} instead."
             ),
         ):

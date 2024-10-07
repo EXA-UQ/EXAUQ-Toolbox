@@ -159,8 +159,8 @@ class TestMogpEmulator(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                "Expected 'inputs1' and 'inputs2' to be sequences of Input objects, but received "
-                f"{type(inputs1)} and {type(inputs2)} instead."
+                "Expected 'inputs1' and 'inputs2' to be of type sequences of Input objects, "
+                f"but received {type(inputs1)} and {type(inputs2)} instead."
             ),
         ):
             _ = emulator.correlation(inputs1, inputs2)
@@ -169,7 +169,8 @@ class TestMogpEmulator(ExauqTestCase):
         inputs2 = [Input(3)]
         with self.assertRaisesRegex(
             TypeError,
-            exact("Expected 'inputs1' and 'inputs2' to only contain Input objects."),
+            exact("Expected all 'inputs1' and 'inputs2' to be of type Input objects, "
+                "but one or more elements were of an unexpected type."),
         ):
             _ = emulator.correlation(inputs1, inputs2)
 
@@ -177,7 +178,8 @@ class TestMogpEmulator(ExauqTestCase):
         inputs2 = Input(3)
         with self.assertRaisesRegex(
             TypeError,
-            exact("Expected 'inputs1' and 'inputs2' to only contain Input objects."),
+            exact("Expected all 'inputs1' and 'inputs2' to be of type Input objects, "
+                "but one or more elements were of an unexpected type."),
         ):
             _ = emulator.correlation(inputs1, inputs2)
 
@@ -384,7 +386,7 @@ class TestMogpEmulator(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                "Expected 'inputs' to be a sequence of Input objects, but received "
+                "Expected 'inputs' to be of type sequence of Input objects, but received "
                 f"{type(inputs)} instead."
             ),
         ):
@@ -393,7 +395,8 @@ class TestMogpEmulator(ExauqTestCase):
         inputs = Input(1)
         with self.assertRaisesRegex(
             TypeError,
-            exact("Expected 'inputs' to only contain Input objects."),
+            exact("Expected all elements of 'inputs' to be of type Input objects, "
+                    "but one or more elements were of an unexpected type."),
         ):
             _ = emulator.covariance_matrix(inputs)
 
@@ -434,7 +437,8 @@ class TestMogpEmulator(ExauqTestCase):
                 with self.assertRaisesRegex(
                     TypeError,
                     exact(
-                        f"Expected a finite collection of TrainingDatum, but received {type(data)}."
+                        f"Expected 'training_data' to be of type finite collection of TrainingDatum, "
+                        f"but received {type(data)} instead."
                     ),
                 ):
                     emulator.fit(data)
@@ -734,7 +738,7 @@ class TestMogpEmulator(ExauqTestCase):
         for x in [0.5, None, "0.5"]:
             with self.subTest(x=x), self.assertRaisesRegex(
                 TypeError,
-                exact(f"Expected 'x' to be of type Input, but received {type(x)}."),
+                exact(f"Expected 'x' to be of type Input, but received {type(x)} instead."),
             ):
                 emulator.predict(x)
 
@@ -882,7 +886,7 @@ class TestMogpHyperparameters(ExauqTestCase):
             with self.subTest(nugget_type=nugget_type), self.assertRaisesRegex(
                 TypeError,
                 exact(
-                    f"Expected 'nugget_type' to be of type str, but got {type(nugget_type)}."
+                    f"Expected 'nugget_type' to be of type str, but received {type(nugget_type)} instead."
                 ),
             ):
                 _ = self.make_hyperparameters().to_mogp_gp_params(nugget_type=nugget_type)
@@ -978,7 +982,7 @@ class TestMogpHyperparameters(ExauqTestCase):
             TypeError,
             exact(
                 "Expected 'params' to be of type mogp_emulator.GPParams.GPParams, but "
-                f"received {type(params)}."
+                f"received {type(params)} instead."
             ),
         ):
             _ = MogpHyperparameters.from_mogp_gp_params("foo")
