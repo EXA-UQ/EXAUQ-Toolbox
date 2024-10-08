@@ -4,7 +4,7 @@ and adapting to work with the implemented designers from ``exauq.core.designers`
 
 
 MogpEmulator
------------------------- -----------------------------------------------------------------
+-------------------------------------------------------------------------------------------
 `correlation`               Compute correlation matrix for Input Sequences.
 
 `covariance_matrix`         Compute covariance matrix for Input Sequences.
@@ -21,7 +21,7 @@ MogpEmulator
 
 
 MogpHyperparameters
---------------------- ----------------------------------------------------------------------
+---------------------------------------------------------------------------------------------
 `from_mogp_gp_params`      Create instance of `MogpHyperparameters`.
 
 `to_mogp_gp_params`        Convert to an instance of ``mogp_emulator.GPParams.GPParams``.

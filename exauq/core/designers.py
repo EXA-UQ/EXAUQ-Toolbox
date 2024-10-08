@@ -6,7 +6,7 @@ improvemnt (PEI) class.
 
 
 Sampling Methods
------------------
+-------------------------------------------------------------------------------------------
 `compute_single_level_loo_samples`        Single level leave-one-out design points.
 
 `compute_multi_level_loo_samples`         Multi level leave-one-out design points.
@@ -15,20 +15,20 @@ Sampling Methods
 
 
 PEI Calculator
----------------
-`repulsion_points`            Current set of repulsion points.
+-------------------------------------------------------------------------------------------
+`repulsion_points`                        Current set of repulsion points.
 
-`add_repulsion_points`        Add simulator points to repulsion points.
+`add_repulsion_points`                    Add simulator points to repulsion points.
 
-`compute`                     Compute pseudo expected improvement for a given input.
+`compute`                                 Compute pseudo expected improvement for a given input.
 
-`expected_improvement`        Calculate expected improvement for a given input.
+`expected_improvement`                    Calculate expected improvement for a given input.
 
-`repulsion`                   Calculate repulsion factor for a given input.
+`repulsion`                               Calculate repulsion factor for a given input.
 
 
 Computing LOO
---------------
+---------------------------------------------------------------------------------------------------------
 `compute_loo_gp`                         Calculate a leave-one-out GP.
 
 `compute_loo_errors_gp`                  Calculate a GP trained on leave-one-out errors.
@@ -43,7 +43,7 @@ Computing LOO
 
 
 Mean Function Usage
--------------------- 
+-------------------------------------------------------------------------------------------
 TO BE IMPLEMENTED\n 
 (ie Constant/Linear etc.)
 """

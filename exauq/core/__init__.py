@@ -2,7 +2,7 @@
 exauq.core
 ===========
 
----------------
+-------------------------------------------------------------------------------------------
 The exauq core package contains everything required for the creation and training 
 of both single level and multi-level deterministic Gaussian process (GP) emulators 
 and leave-one-out (LOO) sampling methods on customisable designs. The GP emulation
@@ -13,7 +13,7 @@ repulsion points across the boundary.
 Tutorials on how to create a basic experimental design can be found within the 
 Experimental Design tutorials. 
 
-------------------
+-------------------------------------------------------------------------------------------
 modules 
 =========
 
@@ -37,7 +37,7 @@ Numerical tolerance checks.
 
 
 References 
------------
+-------------------------------------------------------------------------------------------
 
 `mogp_emulator`:  https://github.com/alan-turing-institute/mogp-emulator
 

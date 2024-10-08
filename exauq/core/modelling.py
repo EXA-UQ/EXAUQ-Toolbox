@@ -4,37 +4,37 @@ are abstract base classes which allow the derivation and training of both single
 creation and manipulation of Inputs/TrainingDatum, alongside creation and management of the domain space. 
 
 Abstraction (Classes)
-----------------------
-`Abstract Emulator`           Represents an abstract emulator for simulators.
+-------------------------------------------------------------------------------------------
+`Abstract Emulator`                     Represents an abstract emulator for simulators.
 
-`AbstractGaussianProcess`     Represents an abstract Gaussian process emulator for simulators.
+`AbstractGaussianProcess`               Represents an abstract Gaussian process emulator for simulators.
 
-`AbstractHyperParameters`     A base class for hyperparameters used to train an emulator.
+`AbstractHyperParameters`               A base class for hyperparameters used to train an emulator.
 
-`AbstractSimulator`           Represents an abstract simulator.
+`AbstractSimulator`                     Represents an abstract simulator.
 
 
 Gaussian Processes (Classes)
------------------------------
-`GaussianProcessHyperparameters`      Represents the hyperparameters for use in fitting Gaussian processes.
+-------------------------------------------------------------------------------------------
+`GaussianProcessHyperparameters`        Represents the hyperparameters for use in fitting Gaussian processes.
 
-`Prediction`                          Represents the prediction of an emulator at a simulator input.
+`Prediction`                            Represents the prediction of an emulator at a simulator input.
 
-`GaussianProcessPrediction`           Represents a prediction arising from a Gaussian process.
+`GaussianProcessPrediction`             Represents a prediction arising from a Gaussian process.
 
-`MultiLevel`                          A multi-level collection of objects, as a mapping from level to objects.
+`MultiLevel`                            A multi-level collection of objects, as a mapping from level to objects.
 
-`MultiLevelGaussianProcess`           A multi-level Gaussian process emulator for simulators.
+`MultiLevelGaussianProcess`             A multi-level Gaussian process emulator for simulators.
 
 Design Points (Classes)
------------------------
-`Input`                  Class representing the input co-ordinate vectors to a simulator or emulator.
+-------------------------------------------------------------------------------------------
+`Input`                                 Class representing the input co-ordinate vectors to a simulator or emulator.
 
-`TrainingDatum`          Class representing a training point for an emulator.
+`TrainingDatum`                         Class representing a training point for an emulator.
 
 Domain Space
--------------
-`SimulatorDomain`     Class representing the domain of a simulator.
+-------------------------------------------------------------------------------------------
+`SimulatorDomain`                       Class representing the domain of a simulator.
 """
 
 from __future__ import annotations
