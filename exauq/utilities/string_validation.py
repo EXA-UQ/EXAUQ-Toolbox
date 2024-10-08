@@ -45,7 +45,7 @@ def validate_interface_name(interface_name: Optional[str]) -> Optional[str]:
 
     if not isinstance(interface_name, str):
         raise TypeError(
-            f"Expected 'interface_tag' to be of type {str} or None but received "
+            f"Expected 'interface_tag' to be None or of type {str}, but received "
             f"{type(interface_name)} instead."
         )
 

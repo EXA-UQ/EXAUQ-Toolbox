@@ -76,7 +76,7 @@ class TestMaximise(ExauqTestCase):
         seed = 1.1
         with self.assertRaisesRegex(
             TypeError,
-            exact(f"Random seed must be an integer, but received type {type(seed)}."),
+            exact(f"Expected 'seed' to be of type int, but received {type(seed)} instead."),
         ):
             _ = maximise(self.f, self.domain, seed=seed)
 

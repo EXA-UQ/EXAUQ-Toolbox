@@ -66,7 +66,7 @@ def maximise(
 
     if seed is not None and not isinstance(seed, int):
         raise TypeError(
-            f"Random seed must be an integer, but received type {type(seed)}."
+            f"Expected 'seed' to be of type int, but received {type(seed)} instead."
         )
 
     try:
