@@ -1,3 +1,18 @@
+"""
+Contains the tolerance checks that are required within numerics calculations with the 
+`FLOAT_TOLERANCE` attribute alongside the ability to set your own global tolerance. 
+
+Tolerance Control
+------------------
+`FLOAT_TOLERANCE`             Global attribute of tolerance for toolbox
+
+`equal_within_tolerance`      Function to check equality of two real numbers up to a tolerance
+
+`set_tolerance`               Function used to set global tolerance    
+"""
+
+
+
 import math
 from collections.abc import Sequence
 from numbers import Real

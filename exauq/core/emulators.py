@@ -1,4 +1,32 @@
-"""Provides emulators for simulators."""
+"""
+Provides the emulators for the simulators building upon the `mogp` package
+and adapting to work with the implemented designers from ``exauq.core.designers``.
+
+
+MogpEmulator
+------------------------ -----------------------------------------------------------------
+`correlation`               Compute correlation matrix for Input Sequences.
+
+`covariance_matrix`         Compute covariance matrix for Input Sequences.
+
+`fit`                       Fit emulator to the data.
+
+`fit_hyperparameters`       **(Read-Only)** Hyperparameters of current fitted GP.
+
+`gp`                        **(Read-Only)** Underlying GP for this emulator.
+
+`predict`                   Make predicton for simulator output given Input.
+
+`training_data`             **(Read-only)** The data on which the emulator has been trained.
+
+
+MogpHyperparameters
+--------------------- ----------------------------------------------------------------------
+`from_mogp_gp_params`      Create instance of `MogpHyperparameters`.
+
+`to_mogp_gp_params`        Convert to an instance of ``mogp_emulator.GPParams.GPParams``.
+
+"""
 
 from __future__ import annotations
 
