@@ -74,13 +74,13 @@ class Input(Sequence):
 
     Parameters
     ----------
-    *args : tuple of numbers.Real
+    *args : tuple of Real
         The coordinates of the input. Each coordinate must define a finite
         number that is not a missing value (i.e. not None or NaN).
 
     Attributes
     ----------
-    value : tuple of numbers.Real, numbers.Real or None
+    value : tuple of Real, Real or None
         Represents the point as a tuple of real numbers (dim > 1), a single real
         number (dim = 1) or None (dim = 0). Note that finer-grained typing is
         preserved during construction of an `Input`. See the Examples.
@@ -188,7 +188,7 @@ class Input(Sequence):
 
         Parameters
         ----------
-        input : numpy.ndarray
+        input :
             A 1-dimensional Numpy array defining the coordinates of the input.
             Each array entry should define a finite number that is not a missing
             value (i.e. not None or NaN).
@@ -385,12 +385,12 @@ class TrainingDatum(object):
 
         Parameters
         ----------
-        inputs : np.ndarray
+        inputs :
             A 2-dimensional array of simulator inputs, with each row defining
             a single input. Thus, the shape of `inputs` is ``(n, d)`` where
             ``n`` is the number of inputs and ``d`` is the number of input
             coordinates.
-        outputs : np.ndarray
+        outputs :
             A 1-dimensional array of simulator outputs, whose length is equal
             to ``n``, the number of inputs (i.e. rows) in `inputs`. The
             ``i``th entry of `outputs` corresponds to the input at row ``i`` of
@@ -429,15 +429,15 @@ class TrainingDatum(object):
 
         Parameters
         ----------
-        path : str or os.PathLike
+        path :
             The path to a csv file.
-        output_col : int, optional
-            (Default: -1) The (0-based) index of the column that defines the simulator
+        output_col :
+            The (0-based) index of the column that defines the simulator
             outputs. Negative values count backwards from the end of the list of columns
             (the default Python behaviour). The default value corresponds to the last
             column in each row.
-        header : bool, optional
-            (Default: False) Whether the csv contains a header row that should be skipped.
+        header :
+            Whether the csv contains a header row that should be skipped.
 
         Returns
         -------
@@ -631,7 +631,7 @@ class GaussianProcessPrediction(Prediction):
 
         Parameters
         ----------
-        observed_output : Real
+        observed_output :
             The output of a simulator to compare this prediction with. Must be a finite
             number.
 
@@ -655,12 +655,12 @@ class GaussianProcessPrediction(Prediction):
         ```
 
         where `m` is the point estimate of the Gaussian process prediction at `x` and
-        `var` is the predictive variance of this estimate.[1]_
+        `var` is the predictive variance of this estimate [1].
 
         References
         ----------
-        .. [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
-           Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+        [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
+           Gaussian process models". DOI: <https://doi.org/10.1137/21M1404260>
         """
 
         validation.check_real(
@@ -726,15 +726,15 @@ class AbstractEmulator(abc.ABC):
 
         Parameters
         ----------
-        training_data : collection of TrainingDatum
+        training_data :
             The pairs of inputs and simulator outputs on which the emulator
             should be trained.
-        hyperparameters : AbstractHyperparameters, optional
-            (Default: None) Hyperparameters to use directly in fitting the emulator.
+        hyperparameters :
+            Hyperparameters to use directly in fitting the emulator.
             If ``None`` then the hyperparameters should be estimated as part of
             fitting to data.
-        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
-            (Default: None) A sequence of bounds to apply to hyperparameters
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
             length scale parameters, in the same order as the ordering of the
@@ -750,7 +750,7 @@ class AbstractEmulator(abc.ABC):
 
         Parameters
         ----------
-        x : Input
+        x :
             A simulator input.
 
         Returns
@@ -800,15 +800,15 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        training_data : collection of TrainingDatum
+        training_data :
             The pairs of inputs and simulator outputs on which the Gaussian process
             should be trained.
-        hyperparameters : GaussianProcessHyperparameters, optional
-            (Default: None) Hyperparameters for a Gaussian process to use directly in
+        hyperparameters :
+            Hyperparameters for a Gaussian process to use directly in
             fitting the emulator. If ``None`` then the hyperparameters should be estimated
             as part of fitting to data.
-        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
-            (Default: None) A sequence of bounds to apply to hyperparameters
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
             length scale parameters, in the same order as the ordering of the
@@ -824,7 +824,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        x : Input
+        x :
             A simulator input.
 
         Returns
@@ -848,12 +848,10 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         trained on data: in these cases an empty array should be returned.
 
         The default implementation of this method calls the `correlation` method with the
-        simulator inputs used for training and the given `inputs`. There is no additional
-        error handling, so users requiring error handling should override this method.
-
+        simulator inputs used for training and the given `inputs`.
         Parameters
         ----------
-        inputs : Sequence[Input]
+        inputs :
             A sequence of simulator inputs.
 
         Returns
@@ -862,6 +860,12 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             The covariance matrix for the sequence of inputs, as an array of shape
             ``(len(inputs), n)`` where ``n`` is the number of training data points for
             this Gaussian process.
+
+        Notes
+        -------
+        There is no additional error handling, so users requiring error handling should
+        override this method.
+
         """
 
         if not self.training_data:
@@ -876,7 +880,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
         """Compute the correlation matrix for two sequences of simulator inputs.
 
-        If ``corr_matrix`` is the Numpy array output by this method, the its should be a
+        If ``corr_matrix`` is the Numpy array output by this method, then it should be a
         2-dimensional array of shape ``(len(inputs1), len(inputs2))`` such that
         ``corr_matrix[i, j]`` is equal to the correlation between ``inputs1[i]`` and
         ``inputs2[j]`` (or, in pseudocode, ``corr_matrix[i, j] = correlation(inputs1[i],
@@ -885,7 +889,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        inputs1, inputs2 : Sequence[Input]
+        inputs1, inputs2 :
             Sequences of simulator inputs.
 
         Returns
@@ -920,7 +924,7 @@ class MultiLevel(dict[int, T]):
 
     Attributes
     ----------
-    levels : tuple of int
+    levels : tuple[int, ...]
         (Read-only) The levels in the collection, in increasing order.
 
     Notes
@@ -1009,7 +1013,7 @@ class MultiLevel(dict[int, T]):
 
         Parameters
         ----------
-        f : Callable[[int, T], S]
+        f :
             The function to apply to (level, value) pairs.
 
         Returns
@@ -1051,14 +1055,14 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
     Parameters
     ----------
-    gps : Mapping[int, AbstractGaussianProcess] or Sequence[AbstractGaussianProcess]
+    gps :
         The Gaussian processes for each level in this multi-level GP. If provided as a
         mapping of integers to Gaussian processes, then the levels for this multi-level
         GP will be the keys of this mapping (note these don't need to be sequential or
         start from 1). If provided as a sequence of Gaussian processes, then these will
         be assigned to levels 1, 2, ... in the order provided by the sequence.
-    coefficients : Mapping[int, Real] or Sequence[Real] or Real, optional
-        (Default: 1) The coefficients to multiply the Gaussian processes at each level by,
+    coefficients :
+        The coefficients to multiply the Gaussian processes at each level by,
         when considering this multi-level GP as a weighted sum of the Gaussian processes.
         If provided as a mapping of integers to real numbers, then the keys will be
         considered as levels, and there must be a coefficient supplied for each level
@@ -1181,20 +1185,20 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         Parameters
         ----------
-        training_data : MultiLevel[Collection[TrainingDatum]]
+        training_data :
             A level-wise collection of pairs of simulator inputs and outputs for training
             the Gaussian processes by level. If data is not supplied for a level featuring
             in `self.levels` then no training is performed at that level.
-        hyperparameters : MultiLevel[GaussianProcessHyperparameters] or GaussianProcessHyperparameters, optional
-            (Default: None) Either a level-wise collection of hyperparameters to use
+        hyperparameters :
+            Either a level-wise collection of hyperparameters to use
             directly when fitting each level's Gaussian process, or a single set of
             hyperparameters to use on each of the levels. If ``None`` then the
             hyperparameters will be estimated at each level when fitting. If a
             ``MultiLevel`` collection is supplied and a level from `self.levels` is
             missing from the collection, then the hyperparameters at that level will be
             estimated when training the corresponding Gaussian process.
-        hyperparameter_bounds : MultiLevel[Sequence[OptionalFloatPairs]]] or Sequence[OptionalFloatPairs], optional
-            (Default: None) Either a level-wise collection of bounds to apply to
+        hyperparameter_bounds :
+            Either a level-wise collection of bounds to apply to
             hyperparameters during estimation, or a single collection of bounds to use on
             each of the levels. If a ``MultiLevel`` collection is supplied and a level
             from `self.levels` is missing from the collection, then the hyperparameters at
@@ -1204,7 +1208,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         See Also
         --------
-        AbstractGaussianProcess.fit : Fitting individual Gaussian processes.
+        `AbstractGaussianProcess.fit` : Fitting individual Gaussian processes.
         """
 
         if not isinstance(training_data, MultiLevel):
@@ -1262,7 +1266,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         Parameters
         ----------
-        x : Input
+        x :
             A simulator input.
 
         Returns
@@ -1351,7 +1355,7 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
 
     Parameters
     ----------
-    corr_length_scales : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of Real
         The correlation length scale parameters. The length of the sequence or array
         should equal the number of input coordinates for an emulator and each scale
         parameter should be a positive.
@@ -1362,7 +1366,7 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
 
     Attributes
     ----------
-    corr_length_scales : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of Real
         (Read-only) The correlation length scale parameters.
     process_var : numbers.Real
         (Read-only) The process variance.
@@ -1485,10 +1489,10 @@ class SimulatorDomain(object):
 
     Attributes
     ----------
-    dim : int
+    dim :
         (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
         from this domain have.
-    bounds : tuple[tuple[Real, Real], ...]
+    bounds :
         (Read-only) The bounds defining this domain, as a tuple of pairs of
         real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each pair ``(a_i, b_i)``
         representing the lower and upper bounds for the corresponding coordinate in the
@@ -1496,7 +1500,7 @@ class SimulatorDomain(object):
 
     Parameters
     ----------
-    bounds : Sequence[tuple[Real, Real]]
+    bounds :
         A sequence of tuples of real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each
         pair ``(a_i, b_i)`` representing the lower and upper bounds for the corresponding
         coordinate in the domain.
@@ -1631,7 +1635,7 @@ class SimulatorDomain(object):
 
         Parameters
         ----------
-        coordinates : collections.abc.Sequence[numbers.Real]
+        coordinates :
             Coordinates of a point lying in a unit hypercube.
 
         Returns
@@ -1778,7 +1782,7 @@ class SimulatorDomain(object):
 
         Parameters
         ----------
-        inputs : Collection[Input]
+        inputs :
             A collection of points for which the closest boundary points are to be found.
             Each point in the collection must be an instance of `Input` and have the same
             dimensionality as the domain.
@@ -1792,6 +1796,7 @@ class SimulatorDomain(object):
         ------
         ValueError
             If any point in the collection is not within the bounds of the domain.
+        ValueError
             If any point in the collection does not have the same dimensionality as the domain.
 
         Examples
@@ -1857,7 +1862,7 @@ class SimulatorDomain(object):
 
         Parameters
         ----------
-        inputs : Collection[Input]
+        inputs :
             A collection of input points for which to calculate the pseudopoints. Each input point
             must have the same number of dimensions as the domain and must lie within the domain's bounds.
 
@@ -1895,8 +1900,8 @@ class SimulatorDomain(object):
         """
         Calculates and returns a tuple of inputs for an equally spaced boundary mesh of the domain.
 
-        The mesh calculated could also be referred to as mesh of equally spaced psuedopoints
-        which all lie on the boundary of the domain of dimensions D. In 2D this would refer to
+        The mesh calculated could also be referred to as mesh of equally spaced pseudopoints
+        which all lie on the boundary of the domain of dimensions $D$. In 2D this would refer to
         simply as points spaced equally round the edge of an (x, y) rectangle. However,
         higher dimensions would also consider bounding faces, surfaces etc.
 
@@ -1906,7 +1911,7 @@ class SimulatorDomain(object):
 
         Parameters
         ----------
-        n: integer
+        n:
             The number of evenly-spaced points for each boundary face of the domain. n >= 2 as n = 2 will simply
             return the bounds of the domain.
 
@@ -1917,11 +1922,14 @@ class SimulatorDomain(object):
 
         Raises
         ------
-        TypeError
-            If n is not of type integer.
-
         ValueError
-            If n < 2.
+            If n < 2 as n = 2 returns the corners of the domain.
+
+        Notes
+        -------
+        Due to the poor scaling of boundary meshes for k number of dimensions and n points (in the order
+        of $n^{k-1}$), it is worth considering the time required for calculation of particularly dense,
+        or particularly high in dimension meshes. Ensure to attempt dimensionality reduction wherever possible.
 
         Examples
         --------
@@ -1971,7 +1979,7 @@ class AbstractSimulator(abc.ABC):
 
         Parameters
         ----------
-        x : Input
+        x :
             An input to evaluate the simulator at.
 
         Returns

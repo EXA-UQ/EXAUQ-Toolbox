@@ -11,8 +11,6 @@ Tolerance Control
 `set_tolerance`               Function used to set global tolerance    
 """
 
-
-
 import math
 from collections.abc import Sequence
 from numbers import Real
@@ -37,12 +35,12 @@ def equal_within_tolerance(
 
     Parameters
     ----------
-    x, y : Union[numbers.Real, Sequence[numbers.Real]]
+    x, y :
         Real numbers or sequences of real numbers to test equality of.
-    rel_tol : None, optional
+    rel_tol :
         The maximum allowed relative difference. Dynamically passed at runtime to allow
         for updating of FLOAT_TOLERANCE. Defaults to FLOAT_TOLERANCE (1e-9) if no change.
-    abs_tol : None, optional
+    abs_tol :
         The minimum permitted absolute difference. Dynamically passed at runtime to allow
         for updating of FLOAT_TOLERANCE. Defaults to FLOAT_TOLERANCE (1e-9) if no change.
 
@@ -75,12 +73,12 @@ def _is_seq(x) -> bool:
 
 def set_tolerance(tol: float):
     """
-    Allows the updating of the global FLOAT_TOLERANCE from 1e-9 to the value
-    that is inputted ... e.g 1e-4.
+    Allows the updating of the global FLOAT_TOLERANCE from default (1e-9) to the tol value
+    passed.
 
     Parameters
     ----------
-    tol : float
+    tol :
         The new tolerance you wish to set the global FLOAT_TOLERANCE to.
     """
 

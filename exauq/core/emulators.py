@@ -68,7 +68,7 @@ class MogpEmulator(AbstractGaussianProcess):
     'SquaredExponential' (the default), 'Matern52' and 'ProductMat52'; these should be
     specified as strings during initialisation.
 
-    The underlying ``GaussianProcess` object can be obtained through the
+    The underlying ``GaussianProcess`` object can be obtained through the
     `gp` property. Note that the `fit` method, used to train the emulator, will
     modify the underlying ``GaussianProcess``.
 
@@ -213,15 +213,15 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Parameters
         ----------
-        training_data : collection of TrainingDatum
+        training_data :
             The pairs of inputs and simulator outputs on which the emulator
             should be trained. Should be a finite collection of such pairs.
-        hyperparameters : MogpHyperparameters, optional
-            (Default: None) Hyperparameters to use directly in fitting the Gaussian
+        hyperparameters :
+            Hyperparameters to use directly in fitting the Gaussian
             process. If ``None`` then the hyperparameters will be estimated as part of
             fitting to data.
-        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
-            (Default: None) A sequence of bounds to apply to hyperparameters
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
             length parameters, while the last tuple should represent bounds for
@@ -405,7 +405,7 @@ class MogpEmulator(AbstractGaussianProcess):
 
         For the definitions of the transformations from raw values, see:
 
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        <https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams>
         """
 
         for _, upper in bounds:
@@ -452,7 +452,7 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Parameters
         ----------
-        inputs1, inputs2 : Sequence[Input]
+        inputs1, inputs2 :
             Sequences of simulator inputs.
 
         Returns
@@ -524,7 +524,7 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Parameters
         ----------
-        inputs : Sequence[Input]
+        inputs :
             A sequence of simulator inputs.
 
         Returns
@@ -559,13 +559,13 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Parameters
         ----------
-        x : Input
+        x :
             A simulator input.
 
         Returns
         -------
         GaussianProcessPrediction
-            The Gaussian process's prediction of the simulator output from the given
+            The Gaussian process' prediction of the simulator output from the given
             input.
 
         Raises
@@ -621,7 +621,7 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
     ``mogp_emulator.GPParams.GPParams`` class. The correlation length scale parameters,
     process variance and nugget described below are on the 'transformed' (linear) scale
     rather than the log scale; cf.
-    https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+    [mogp_docs.GPParams.GPParams](https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams).
 
     Equality of `MogpHyperparameters` objects is tested hyperparameter-wise up to the
     default numerical precision defined in ``exauq.core.numerics.FLOAT_TOLERANCE``
@@ -629,23 +629,23 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
 
     Parameters
     ----------
-    corr_length_scales : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of Real
         The correlation length scale parameters. The length of the sequence or array
         should equal the number of input coordinates for an emulator and each scale
         parameter should be a positive.
     process_var: numbers.Real
         The process variance, which should be positive.
     nugget : numbers.Real, optional
-        (Default: None) A nugget, which should be non-negative if provided.
+         A nugget, which should be non-negative if provided.
 
     Attributes
     ----------
-    corr_length_scales : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of Real
         (Read-only) The correlation length scale parameters.
     process_var: numbers.Real
         (Read-only) The process variance.
     nugget : numbers.Real, optional
-        (Read only, default: None) The nugget, or ``None`` if not supplied.
+        (Read only) The nugget, or ``None`` if not supplied.
     """
 
     @classmethod
@@ -655,7 +655,7 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
 
         Parameters
         ----------
-        params : mogp_emulator.GPParams.GPParams
+        params :
             A parameters object from mogp-emulator.
 
         Returns
@@ -707,16 +707,11 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
           output object will be as specified in `nugget_type`, representing the case
           where the nugget is computed in some way different to hyperparameter estimation.
 
-        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.nugget_type).
-        for details of the `nugget_type` attribute in ``mogp_emulator.GPParams.GPParams``
-        objects and
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#mogp_emulator.GaussianProcess.GaussianProcess
-        for a discussion about what the different nugget fitting methods mean.
 
         Parameters
         ----------
         nugget_type : one of {"fixed", "fit", "adaptive", "pivot"}
-            (Default: 'fixed') The type of nugget to be specified in construction of the
+            The type of nugget to be specified in construction of the
             returned ``mogp_emulator.GPParams.GPParams`` object. See above for discussion
             on valid values.
 
@@ -728,11 +723,12 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
 
         See Also
         --------
-        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.nugget_type).
+        See [mogp-emulator/nugget_type](https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.nugget_type)
         for details of the `nugget_type` attribute in ``mogp_emulator.GPParams.GPParams``
         objects and
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#mogp_emulator.GaussianProcess.GaussianProcess
+        [mogp-emulator/nugget_fitting_methods](https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#mogp_emulator.GaussianProcess.GaussianProcess)
         for a discussion about what the different nugget fitting methods mean.
+
         """
 
         if not isinstance(nugget_type, str):

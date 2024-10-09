@@ -39,11 +39,15 @@ Numerical tolerance checks.
 References 
 -------------------------------------------------------------------------------------------
 
-`mogp_emulator`:  https://github.com/alan-turing-institute/mogp-emulator
+`mogp_emulator`:  <https://github.com/alan-turing-institute/mogp-emulator>
 
-`LOO Sampling`:  Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive
-Sampling for Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+`LOO Sampling`: 
+
+Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive
+Sampling for Gaussian process models". DOI: <https://doi.org/10.1137/21M1404260>
+
+Kimpton, L. M. et al. (2023) "Cross-Validation Based Adaptive Sampling for
+        Multi-Level Gaussian Process Models". arXiv: <https://arxiv.org/abs/2307.09095>
 
 
 """
-
