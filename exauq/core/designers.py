@@ -4,6 +4,7 @@ import math
 from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Optional
+import random as random
 
 import numpy as np
 from scipy.stats import norm
@@ -20,7 +21,7 @@ from exauq.core.modelling import (
     TrainingDatum,
 )
 from exauq.core.numerics import equal_within_tolerance
-from exauq.utilities.optimisation import maximise
+from exauq.utilities.optimisation import maximise, generate_seeds
 from exauq.utilities.validation import check_int
 
 
@@ -808,10 +809,16 @@ def compute_single_level_loo_samples(
         raise e from None
 
     pei = PEICalculator(domain, gp_e, additional_repulsion_pts=additional_repulsion_pts)
+    
+    if seed is not None:
+        seeds = generate_seeds(seed, batch_size)
+        
+    else:
+        seeds = [None] * batch_size
 
     design_points = []
-    for _ in range(batch_size):
-        new_design_point, _ = maximise(lambda x: pei.compute(x), domain, seed=seed)
+    for design_pt_seed in seeds:
+        new_design_point, _ = maximise(lambda x: pei.compute(x), domain, seed=design_pt_seed)
         design_points.append(new_design_point)
         pei.add_repulsion_points([new_design_point])
 
