@@ -1185,7 +1185,8 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             {"seed": None}.items(), mock_maximise.call_args.kwargs.items()
         )
 
-    def test_use_of_seed(self):
+
+    def test_use_of_initial_seed(self):
         """If a seed is provided, then maximisation of pseudo-expected improvement is
         performed with this seed."""
 
@@ -1201,6 +1202,32 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         # checks {"seed": seed} is a subset of mock_maximise.call_args.kwargs
         self.assertLessEqual(
             {"seed": seed}.items(), mock_maximise.call_args.kwargs.items()
+        )
+
+    def test_use_of_seed_sequence(self):
+        """If a seed is provided with a batch_size > 1, then maximisation of pseudo-expected improvement is
+        performed with the newly generated sequence of seeds which, for a small batch size, should 
+        statistically be all different."""
+
+        mock_maximise_return = (self.domain.scale([0.5]), 1)
+        seed = 99
+        batch_size = 5
+        with unittest.mock.patch(
+            "exauq.core.designers.maximise",
+            autospec=True,
+            return_value=mock_maximise_return,
+        ) as mock_maximise:
+            _ = compute_single_level_loo_samples(self.gp, self.domain, batch_size=batch_size, seed=seed)
+
+        # collect all the seeds used
+        seeds_used = [
+            call.kwargs['seed'] for call in mock_maximise.call_args_list
+            if 'seed' in call.kwargs
+        ]
+
+        # checks all seeds are different
+        self.assertTrue(
+            len(seeds_used) == len(set(seeds_used))
         )
 
     def test_number_of_new_design_points_matches_batch_number(self):
