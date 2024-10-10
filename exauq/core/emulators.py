@@ -646,6 +646,11 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
         (Read-only) The process variance.
     nugget : numbers.Real, optional
         (Read only) The nugget, or ``None`` if not supplied.
+
+    See Also
+    ---------
+    [equal_within_tolerance][exauq.core.numerics.equal_within_tolerance] :
+    Numerical tolerance check.
     """
 
     @classmethod

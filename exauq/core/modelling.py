@@ -537,7 +537,8 @@ class Prediction:
 
     See Also
     --------
-    ``exauq.core.numerics.equal_within_tolerance`` : Equality up to tolerances.
+    [``equal_within_tolerance``][exauq.core.numerics.equal_within_tolerance] : 
+    Equality up to tolerances.
     """
 
     estimate: Real
@@ -1072,6 +1073,11 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         to the levels in ascending order, as defined by the ordering of the coefficient
         sequence. If provided as a single real number then this coefficient is assigned to
         each level defined by `gps`.
+
+    See Also
+    --------
+    [MultiLevelGaussianProcess.predict][exauq.core.modelling.MultiLevelGaussianProcess.predict] :
+    Predict a simulator output for a given input.
     """
 
     def __init__(
@@ -1208,7 +1214,8 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         See Also
         --------
-        `AbstractGaussianProcess.fit` : Fitting individual Gaussian processes.
+        [`AbstractGaussianProcess.fit`][exauq.core.modelling.AbstractGaussianProcess.fit] : 
+        Fitting individual Gaussian processes.
         """
 
         if not isinstance(training_data, MultiLevel):
@@ -1372,6 +1379,11 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
         (Read-only) The process variance.
     nugget : numbers.Real, optional
         (Read only, default: None) The nugget, or ``None`` if not supplied.
+
+    See Also: 
+    ---------
+    [equal_within_tolerance][exauq.core.numerics.equal_within_tolerance]:
+    Numerical tolerance check. 
     """
 
     corr_length_scales: Union[Sequence[Real], np.ndarray[Real]]

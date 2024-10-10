@@ -769,19 +769,19 @@ def compute_single_level_loo_samples(
 
     See Also
     --------
-    `compute_loo_errors_gp`:
+    [`compute_loo_errors_gp`][exauq.core.designers.compute_loo_errors_gp]:
         Computation of the leave-one-out errors Gaussian process.
 
-    `PEICalculator` :
+    [`PEICalculator`][exauq.core.designers.PEICalculator] :
         Pseudo-expected improvement calculation.
 
-    `modelling.SimulatorDomain.calculate_pseudopoints` :
+    [`SimulatorDomain.calculate_pseudopoints`][exauq.core.modelling.SimulatorDomain.calculate_pseudopoints] :
         Calculation of pseudopoints for a collection of simulator inputs.
 
-    `modelling.GaussianProcessPrediction.nes_error` :
+    [`GaussianProcessPrediction.nes_error`][exauq.core.modelling.GaussianProcessPrediction.nes_error] :
         Normalised expected squared error for a prediction from a Gaussian process.
 
-    `utilities.optimisation.maximise` :
+    [`optimisation.maximise`][exauq.utilities.optimisation.maximise] :
         Global maximisation over a simulator domain, used on pseudo-expected improvement
         for the LOO errors GP.
 
@@ -1065,7 +1065,7 @@ def compute_multi_level_loo_error_data(
 
     See Also
     --------
-    `compute_multi_level_loo_prediction` :
+    [`compute_multi_level_loo_prediction`][exauq.core.designers.compute_multi_level_loo_prediction] :
         Calculate the prediction of a LOO multi-level GP at a left-out training input.
 
     """
@@ -1145,7 +1145,7 @@ def compute_multi_level_loo_errors_gp(
 
     See Also
     --------
-    `compute_multi_level_loo_error_data` :
+    [`compute_multi_level_loo_error_data`][exauq.core.designers.compute_multi_level_loo_error_data] :
         Calculation of the leave-one-out error data used to train this function's output.
 
     Notes
@@ -1247,16 +1247,16 @@ def compute_multi_level_loo_samples(
 
     See Also
     --------
-    `compute_multi_level_loo_errors_gp` :
+    [`compute_multi_level_loo_errors_gp`][exauq.core.designers.compute_multi_level_loo_errors_gp]:
         Computation of the multi-level leave-one-out errors GP.
 
-    `PEICalculator` :
+    [`PEICalculator`][exauq.core.designers.PEICalculator] :
         Pseudo-expected improvement calculation.
 
-    `modelling.GaussianProcessPrediction.nes_error` :
+    [`GaussianProcessPrediction.nes_error`][exauq.core.modelling.GaussianProcessPrediction.nes_error]:
         Normalised expected squared error for a prediction from a Gaussian process.
 
-    `utilities.optimisation.maximise` :
+    [`optimisation.maximise`][exauq.utilities.optimisation.maximise] :
         Global maximisation over a simulator domain, used on pseudo-expected improvement
         for the multi-level LOO errors GP.
 
