@@ -5,6 +5,7 @@ import scipy.optimize
 
 from exauq.core.modelling import Input, SimulatorDomain
 import exauq.core.numerics as numerics
+from numpy import random
 
 
 def maximise(
@@ -98,3 +99,42 @@ def maximise(
         raise RuntimeError(f"Maximisation failed to converge: {result.message}")
 
     return Input(*result.x), -float(result.fun)
+
+
+def generate_seeds(seed: int, batch_size: int) -> tuple:
+    """
+    Generate a tuple of seeds from an initial seed equal to the length of the batch_size
+    passed by `compute_single_level_loo_samples` or `compute_multilevel_loo_samples`
+
+    An arbitrary high integer cap of 1e9 is set as the seed is simply used for 
+    reproducibility rather than being used as part of the generation of LOO samples.  
+
+    Parameters
+    ----------
+    seed :
+        The initial seed to seed the random sample of seeds generated.
+    batch_size:
+        The length of the array of seeds generated
+
+    Returns
+    --------
+    tuple
+        A tuple of seeds generated of length batch_size and seeded from the initial seed.
+    """
+
+    if not isinstance(seed, int):
+        raise TypeError(
+            f"Expected 'seed' to be of type int, but received {type(seed)} instead."
+        )
+
+    if not isinstance(batch_size, int):
+        raise TypeError(
+            f"Expected 'batch_size' to be of type int, but receieved {type(batch_size)} instead."
+        )
+
+    rng = random.default_rng(seed)
+
+    seeds = rng.integers(0, int(1e9), size=batch_size)
+    seeds[0] = seed
+
+    return tuple(map(int,seeds))
