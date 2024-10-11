@@ -810,11 +810,7 @@ def compute_single_level_loo_samples(
 
     pei = PEICalculator(domain, gp_e, additional_repulsion_pts=additional_repulsion_pts)
     
-    if seed is not None:
-        seeds = generate_seeds(seed, batch_size)
-        
-    else:
-        seeds = [None] * batch_size
+    seeds = generate_seeds(seed, batch_size)
 
     design_points = []
     for design_pt_seed in seeds:
@@ -1294,7 +1290,7 @@ def compute_multi_level_loo_samples(
             f"Expected 'additional_repulsion_pts' to be a MultiLevel collection of {Input} objects, "
             f"but received {type(additional_repulsion_pts)} instead."
         )
-    
+
     if seeds is None:
         seeds = MultiLevel({level: None for level in mlgp.levels})
     elif not isinstance(seeds, MultiLevel):
@@ -1321,7 +1317,6 @@ def compute_multi_level_loo_samples(
     
     # Generate seed sequences
     seeds = MultiLevel({level: generate_seeds(seeds[level], batch_size) for level in mlgp.levels})
-    print(seeds, flush =True)
 
     # Create LOO errors GP for each level
     ml_errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain, output_mlgp=None)
