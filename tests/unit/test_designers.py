@@ -2214,15 +2214,39 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             {"seed": seeds[2]}.items(), mock_maximise.call_args_list[1].kwargs.items()
         )
 
-    def test_use_of_same_seed(self):
-        """Ensure that, if seeds are provided, the same seed is being used to create every
-        pseudo-expected improvement design point not just the first.
+    def test_use_of_different_seed(self):
+        """Ensure that for each design point created with a batch, a different seed is 
+        used from the `generate_seeds` function. Given such a small number it is statistically
+        likely they will all be different although there is no need for enforcemment.
+        """    
+
+        mock_maximise_return = (self.default_domain.scale([0.5]), 1)
+        batch_size = 5
+        seeds = MultiLevel([99, 121])
+        with unittest.mock.patch(
+            "exauq.core.designers.maximise", 
+            autospec = True, 
+            return_value=mock_maximise_return, 
+        ) as mock_maximise:
+            _ = self.compute_multi_level_loo_samples(batch_size=batch_size, seeds=seeds)
+
+        # collect all the seeds used
+        seeds_used = [
+            call.kwargs['seed'] for call in mock_maximise.call_args_list
+            if 'seed' in call.kwargs
+        ]
+
+        self.assertEqual(len(seeds_used), len(set(seeds_used)))
+
+    def test_use_of_seed_across_batch(self):
+        """Ensure that, if seeds are provided, a different seed is being used to create every
+        pseudo-expected improvement design point within a single batch.
 
         From test_unseeded_by_default (test_optimisation.py), maximise should give slightly
         different results with unseeded but the same args.
 
-        Hence, if seed is correctly used for every design point creation there should be no
-        unique items across multiple runs."""
+        Hence, if seed is correctly used for every design point creation within a batch
+        there should be no unique batches across multiple runs."""
 
         mock_maximise_return = (self.default_domain.scale([0.5]), 1)
         seeds = MultiLevel([99, None])
@@ -2245,4 +2269,5 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 # batch mode.
 
 if __name__ == "__main__":
+
     unittest.main()
