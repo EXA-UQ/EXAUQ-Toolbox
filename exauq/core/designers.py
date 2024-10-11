@@ -1294,7 +1294,7 @@ def compute_multi_level_loo_samples(
             f"Expected 'additional_repulsion_pts' to be a MultiLevel collection of {Input} objects, "
             f"but received {type(additional_repulsion_pts)} instead."
         )
-
+    
     if seeds is None:
         seeds = MultiLevel({level: None for level in mlgp.levels})
     elif not isinstance(seeds, MultiLevel):
@@ -1318,6 +1318,10 @@ def compute_multi_level_loo_samples(
         raise ValueError(
             f"Expected batch size to be a positive integer, but received {batch_size} instead."
         )
+    
+    # Generate seed sequences
+    seeds = MultiLevel({level: generate_seeds(seeds[level], batch_size) for level in mlgp.levels})
+    print(seeds, flush =True)
 
     # Create LOO errors GP for each level
     ml_errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain, output_mlgp=None)
@@ -1333,7 +1337,7 @@ def compute_multi_level_loo_samples(
     delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
     maximal_pei_values = ml_pei.map(
         lambda level, pei: maximise(
-            lambda x: pei.compute(x) / delta_costs[level], domain, seed=seeds[level]
+            lambda x: pei.compute(x) / delta_costs[level], domain, seed=seeds[level][0]
         )
     )
 
@@ -1346,7 +1350,7 @@ def compute_multi_level_loo_samples(
         for i in range(batch_size - 1):
             pei.add_repulsion_points([design_points[i]])
             new_design_pt, _ = maximise(
-                lambda x: pei.compute(x), domain, seed=seeds[level]
+                lambda x: pei.compute(x), domain, seed=seeds[level][i + 1]
             )
             design_points.append(new_design_pt)
 
