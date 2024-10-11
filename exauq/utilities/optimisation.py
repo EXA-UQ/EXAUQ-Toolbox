@@ -101,7 +101,7 @@ def maximise(
     return Input(*result.x), -float(result.fun)
 
 
-def generate_seeds(seed: int, batch_size: int) -> tuple:
+def generate_seeds(seed: int | None, batch_size: int) -> tuple:
     """
     Generate a tuple of seeds from an initial seed equal to the length of the batch_size
     passed by `compute_single_level_loo_samples` or `compute_multilevel_loo_samples`
@@ -112,7 +112,8 @@ def generate_seeds(seed: int, batch_size: int) -> tuple:
     Parameters
     ----------
     seed :
-        The initial seed to seed the random sample of seeds generated.
+        The initial seed to seed the random sample of seeds generated. If None is passed
+        will simply return a tuple of None equal to length of batch_size.
     batch_size:
         The length of the array of seeds generated
 
@@ -121,8 +122,10 @@ def generate_seeds(seed: int, batch_size: int) -> tuple:
     tuple
         A tuple of seeds generated of length batch_size and seeded from the initial seed.
     """
-
-    if not isinstance(seed, int):
+    if seed is None:
+        return tuple([None]*batch_size)
+    
+    elif not isinstance(seed, int):
         raise TypeError(
             f"Expected 'seed' to be of type int, but received {type(seed)} instead."
         )
