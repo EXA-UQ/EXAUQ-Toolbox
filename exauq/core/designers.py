@@ -1160,6 +1160,7 @@ def compute_multi_level_loo_samples(
     domain: SimulatorDomain,
     costs: MultiLevel[Real],
     batch_size: int = 1,
+    additional_repulsion_pts: Optional[MultiLevel[Collection[Input]]] = None,
     seeds: Optional[MultiLevel[int]] = None,
 ) -> tuple[int, tuple[Input, ...]]:
     """Compute a batch of design points adaptively for a multi-level Gaussian process (GP).
@@ -1174,6 +1175,9 @@ def compute_multi_level_loo_samples(
 
     The `costs` should represent the costs of running each level's simulator on a single
     input.
+
+    If `additional_repulsion_pts` is provided, then these points will be added into the 
+    calculations at the level they are allocated to in the PEI. 
 
     If `seeds` is provided, then the seeds provided for the levels will be used when
     maximising the pseudo-expected improvement of the LOO errors GP for each level (the
@@ -1200,6 +1204,9 @@ def compute_multi_level_loo_samples(
     batch_size : int, optional
         (Default: 1) The number of new design points to compute. Should be a positive
         integer.
+    additional_repulsion_pts: MultiLevel[Collection[Input]], optional
+        (Default: None) A multi-level collection of hand-chosen Input repulsion points to 
+        aid computation of samples.
     seeds : MultiLevel[Optional[int]], optional
         (Default: None) A multi-level collection of random number seeds to use when
         maximising pseudo-expected improvements for each level. If ``None`` then none of
@@ -1266,6 +1273,14 @@ def compute_multi_level_loo_samples(
             "from 'costs'."
         )
 
+    if additional_repulsion_pts is None:
+        additional_repulsion_pts = MultiLevel({level: None for level in mlgp.levels})
+    elif not isinstance(additional_repulsion_pts, MultiLevel):
+        raise TypeError(
+            f"Expected 'additional_repulsion_pts' to be a MultiLevel collection of {Input} objects, "
+            f"but received {type(additional_repulsion_pts)} instead."
+        )
+
     if seeds is None:
         seeds = MultiLevel({level: None for level in mlgp.levels})
     elif not isinstance(seeds, MultiLevel):
@@ -1294,7 +1309,11 @@ def compute_multi_level_loo_samples(
     ml_errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain, output_mlgp=None)
 
     # Get the PEI calculator for each level
-    ml_pei = ml_errors_gp.map(lambda _, gp: PEICalculator(domain, gp))
+    ml_pei = ml_errors_gp.map(
+        lambda level, gp: PEICalculator(
+            domain, gp, additional_repulsion_pts=additional_repulsion_pts[level]
+        )
+    )
 
     # Find PEI argmax, with (weighted) PEI value, for each level
     delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
