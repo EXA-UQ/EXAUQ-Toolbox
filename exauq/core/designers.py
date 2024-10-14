@@ -725,7 +725,7 @@ def compute_single_level_loo_samples(
     use of different Gaussian process settings (e.g. a different kernel function).
 
     If `seed` is provided, then this will be used when maximising the pseudo-expected
-    improvement of the LOO errors GP (the same seed will be used to find each new
+    improvement of the LOO errors GP (a sequence of seeds will be generated to find each new
     simulator input in the batch). Providing a seed does not necessarily mean calculation
     of the output design points is deterministic, as this also depends on computation of
     the LOO errors GP being deterministic.
@@ -1190,10 +1190,10 @@ def compute_multi_level_loo_samples(
     calculations at the level they are allocated to in the PEI. 
 
     If `seeds` is provided, then the seeds provided for the levels will be used when
-    maximising the pseudo-expected improvement of the LOO errors GP for each level (the
-    same seeds will be used level-wise to find each new simulator input in the batch).
-    Note that ``None`` can be provided for a level, which means the maximisation at that
-    level won't be seeded. Providing seeds does not necessarily mean calculation of the
+    maximising the pseudo-expected improvement of the LOO errors GP for each level (a 
+    sequence of seeds will be generated level-wise to find each new simulator input 
+    in the batch). Note that ``None`` can be provided for a level, which means the maximisation 
+    at that level won't be seeded. Providing seeds does not necessarily mean calculation of the
     output design points is deterministic, as this also depends on computation of the LOO
     errors GP being deterministic.
 
