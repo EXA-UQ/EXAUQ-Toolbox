@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.utilities.optimisation import maximise
+from exauq.utilities.optimisation import maximise, generate_seeds
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -143,6 +143,107 @@ class TestMaximise(ExauqTestCase):
             "^Maximisation failed to converge: ",
         ):
             _ = maximise(f, self.domain, seed=self.seed)
+
+class TestGenerateSeeds(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.seed = 1
+        self.batch_size = 5
+
+    def test_type_errors(self):
+        """A TypeError is raised if the supplied seed is not an integer or None
+        
+        A TypeError is raised if the supplied batch_size is not an integer."""
+
+        arg = "a"
+        with self.assertRaisesRegex(
+            TypeError, 
+            exact(
+                f"Expected 'seed' to be None or of type int, but received {type(arg)} instead."
+            )
+        ):
+            _ = generate_seeds(arg, self.batch_size)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(f"Expected 'batch_size' to be of type int, but received {type(arg)} instead."
+            )
+        ):
+            _ = generate_seeds(self.seed, arg)
+
+    def test_value_errors(self):
+        """A ValueError is raised if the supplied seed is not a positive integer
+        
+        A ValueError is raised if the supplied batch_size is not a positive integer
+        >=1 and < 1e9"""
+
+        arg = -2
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact(
+                f"Expected 'seed' to be None or >=0, but received {arg} instead."
+            )
+        ):
+            _ = generate_seeds(arg, self.batch_size)
+
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact(
+                f"Expected 'batch_size' to be >=1 and <1e9, but received {arg} instead."
+            )
+        ):
+            _ = generate_seeds(self.seed, arg)
+
+        arg2 = int(1e10)
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact(
+                f"Expected 'batch_size' to be >=1 and <1e9, but received {arg2} instead."
+            )
+        ):
+            _ = generate_seeds(self.seed, arg2)
+
+    def test_length_seeds(self):
+        """Ensures that the length of the returned seeds is the same as the batch_size passed"""
+
+        seeds = generate_seeds(self.seed, self.batch_size)
+
+        self.assertTrue(
+            len(seeds) == self.batch_size
+        )
+
+    def test_return_type_int(self):
+        """Ensures that all elements returned are integers within a tuple"""
+
+        seeds = generate_seeds(self.seed, self.batch_size)
+
+        self.assertIsInstance(seeds, tuple)
+
+        for seed in seeds: 
+            self.assertIsInstance(seed, int)
+
+    def test_return_type_none(self):
+        """Ensures that all elements returned are None within a tuple
+        if None is passed as the seed""" 
+
+        seeds = generate_seeds(None, self.batch_size)
+
+        self.assertIsInstance(seeds, tuple)
+
+        for seed in seeds:
+            self.assertEqual(seed, None)
+
+    def test_unique_seeds(self):
+        """Ensures all returned seeds are unique"""
+
+        # By poisson distribution this gives 99+% chance of having duplicates
+        # but keeps the test at a sensible time
+        batch_size = int(1e5)
+        seeds = generate_seeds(self.seed, batch_size)
+
+        self.assertTrue(
+            len(set(seeds)) == batch_size
+        )
 
 
 if __name__ == "__main__":
