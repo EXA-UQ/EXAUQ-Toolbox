@@ -5,7 +5,7 @@ import scipy.optimize
 
 from exauq.core.modelling import Input, SimulatorDomain
 import exauq.core.numerics as numerics
-from numpy import random
+import random
 
 
 def maximise(
@@ -103,7 +103,7 @@ def maximise(
 
 def generate_seeds(seed: int | None, batch_size: int) -> tuple:
     """
-    Generate a tuple of seeds from an initial seed equal to the length of the batch_size
+    Generate a tuple of unique seeds from an initial seed equal to the length of the batch_size
     passed by `compute_single_level_loo_samples` or `compute_multilevel_loo_samples`
 
     An arbitrary high integer cap of 1e9 is set as the seed is simply used for 
@@ -127,17 +127,23 @@ def generate_seeds(seed: int | None, batch_size: int) -> tuple:
     
     elif not isinstance(seed, int):
         raise TypeError(
-            f"Expected 'seed' to be of type int, but received {type(seed)} instead."
+            f"Expected 'seed' to be None or of type int, but received {type(seed)} instead."
         )
 
     if not isinstance(batch_size, int):
         raise TypeError(
-            f"Expected 'batch_size' to be of type int, but receieved {type(batch_size)} instead."
+            f"Expected 'batch_size' to be of type int, but received {type(batch_size)} instead."
         )
 
-    rng = random.default_rng(seed)
+    if seed < 0 and not None:
+        raise ValueError(f"Expected 'seed' to be None or >=0, but received {seed} instead.")
+    
+    if batch_size < 1 or batch_size >= 1e9:
+        raise ValueError(f"Expected 'batch_size' to be >=1 and <1e9, but received {batch_size} instead.")
 
-    seeds = rng.integers(0, int(1e9), size=batch_size)
+    random.seed(seed)
+
+    seeds = random.sample(range(0, int(1e9)), batch_size)
     seeds[0] = seed
 
     return tuple(map(int,seeds))
