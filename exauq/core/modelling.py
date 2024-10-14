@@ -1509,10 +1509,10 @@ class SimulatorDomain(object):
         real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each pair ``(a_i, b_i)``
         representing the lower and upper bounds for the corresponding coordinate in the
         domain.
-    dim : int
+    dim : 
         (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
         from this domain have.
-    corners: tuple[Input, ...]
+    corners:
         (Read-only) The corner points of the domain, where each coordinate is at its
         respective lower or upper bound.
 
