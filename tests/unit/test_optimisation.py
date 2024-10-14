@@ -144,6 +144,7 @@ class TestMaximise(ExauqTestCase):
         ):
             _ = maximise(f, self.domain, seed=self.seed)
 
+
 class TestGenerateSeeds(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -152,54 +153,53 @@ class TestGenerateSeeds(unittest.TestCase):
 
     def test_type_errors(self):
         """A TypeError is raised if the supplied seed is not an integer or None
-        
+
         A TypeError is raised if the supplied batch_size is not an integer."""
 
         arg = "a"
         with self.assertRaisesRegex(
-            TypeError, 
+            TypeError,
             exact(
                 f"Expected 'seed' to be None or of type int, but received {type(arg)} instead."
-            )
+            ),
         ):
             _ = generate_seeds(arg, self.batch_size)
 
         with self.assertRaisesRegex(
             TypeError,
-            exact(f"Expected 'batch_size' to be of type int, but received {type(arg)} instead."
-            )
+            exact(
+                f"Expected 'batch_size' to be of type int, but received {type(arg)} instead."
+            ),
         ):
             _ = generate_seeds(self.seed, arg)
 
     def test_value_errors(self):
         """A ValueError is raised if the supplied seed is not a positive integer
-        
+
         A ValueError is raised if the supplied batch_size is not a positive integer
         >=1 and < 1e9"""
 
         arg = -2
         with self.assertRaisesRegex(
-            ValueError, 
-            exact(
-                f"Expected 'seed' to be None or >=0, but received {arg} instead."
-            )
+            ValueError,
+            exact(f"Expected 'seed' to be None or >=0, but received {arg} instead."),
         ):
             _ = generate_seeds(arg, self.batch_size)
 
         with self.assertRaisesRegex(
-            ValueError, 
+            ValueError,
             exact(
                 f"Expected 'batch_size' to be >=1 and <1e9, but received {arg} instead."
-            )
+            ),
         ):
             _ = generate_seeds(self.seed, arg)
 
         arg2 = int(1e10)
         with self.assertRaisesRegex(
-            ValueError, 
+            ValueError,
             exact(
                 f"Expected 'batch_size' to be >=1 and <1e9, but received {arg2} instead."
-            )
+            ),
         ):
             _ = generate_seeds(self.seed, arg2)
 
@@ -208,9 +208,7 @@ class TestGenerateSeeds(unittest.TestCase):
 
         seeds = generate_seeds(self.seed, self.batch_size)
 
-        self.assertTrue(
-            len(seeds) == self.batch_size
-        )
+        self.assertTrue(len(seeds) == self.batch_size)
 
     def test_return_type_int(self):
         """Ensures that all elements returned are integers within a tuple"""
@@ -219,12 +217,12 @@ class TestGenerateSeeds(unittest.TestCase):
 
         self.assertIsInstance(seeds, tuple)
 
-        for seed in seeds: 
+        for seed in seeds:
             self.assertIsInstance(seed, int)
 
     def test_return_type_none(self):
         """Ensures that all elements returned are None within a tuple
-        if None is passed as the seed""" 
+        if None is passed as the seed"""
 
         seeds = generate_seeds(None, self.batch_size)
 
@@ -237,13 +235,11 @@ class TestGenerateSeeds(unittest.TestCase):
         """Ensures all returned seeds are unique"""
 
         # By poisson distribution this gives 99+% chance of having duplicates
-        # but keeps the test at a sensible time
+        # for uniform distribution but keeps the test at a sensible time
         batch_size = int(1e5)
         seeds = generate_seeds(self.seed, batch_size)
 
-        self.assertTrue(
-            len(set(seeds)) == batch_size
-        )
+        self.assertTrue(len(set(seeds)) == batch_size)
 
 
 if __name__ == "__main__":
