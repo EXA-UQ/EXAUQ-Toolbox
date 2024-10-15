@@ -122,3 +122,30 @@ class TestSuppressPrint(unittest.TestCase):
         self.assertEqual(stdout.getvalue(), "")
 
         self.assertEqual(result, 3)
+
+    def test_suppress_print_with_static_method(self):
+        """Ensure the decorator is compatible with static methods without issues."""
+
+        @staticmethod
+        @suppress_print
+        def static_method():
+            print("This is a static method")
+            return "Static method test"
+
+        with contextlib.redirect_stdout(io.StringIO()) as stdout:
+            result = static_method()
+
+        self.assertEqual(stdout.getvalue(), "")
+
+        self.assertEqual(result, "Static method test")
+
+    def test_suppress_print_preserve_metadata(self):
+        """Ensure that the decorator preserves the original function's metadata."""
+
+        @suppress_print
+        def test_function():
+            """This is a test function."""
+            pass
+
+        self.assertEqual(test_function.__name__, "test_function")
+        self.assertEqual(test_function.__doc__, "This is a test function.")
