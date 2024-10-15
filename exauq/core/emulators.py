@@ -23,7 +23,7 @@ from exauq.core.modelling import (
     TrainingDatum,
 )
 from exauq.utilities.mogp_fitting import fit_GP_MAP
-from exauq.utilities.decorators import suppress_print, redirect_print_to_log
+from exauq.utilities.decorators import suppress_print
 
 
 class MogpEmulator(AbstractGaussianProcess):

@@ -1,5 +1,2 @@
 # Python-specific
 __pycache__
-
-# Log-file (To be updated to full logging system at somepoint)
-application_output.log
