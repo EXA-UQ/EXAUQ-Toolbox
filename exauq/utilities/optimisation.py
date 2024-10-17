@@ -1,11 +1,11 @@
+import random
 from numbers import Real
 from typing import Callable, Optional
 
 import scipy.optimize
 
-from exauq.core.modelling import Input, SimulatorDomain
 import exauq.core.numerics as numerics
-import random
+from exauq.core.modelling import Input, SimulatorDomain
 
 
 def maximise(
@@ -106,8 +106,8 @@ def generate_seeds(seed: int | None, batch_size: int) -> tuple:
     Generate a tuple of unique seeds from an initial seed equal to the length of the batch_size
     passed by `compute_single_level_loo_samples` or `compute_multilevel_loo_samples`
 
-    An arbitrary high integer cap of 1e9 is set as the seed is simply used for 
-    reproducibility rather than being used as part of the generation of LOO samples.  
+    An arbitrary high integer cap of 1e9 is set as the seed is simply used for
+    reproducibility rather than being used as part of the generation of LOO samples.
 
     Parameters
     ----------
@@ -123,8 +123,8 @@ def generate_seeds(seed: int | None, batch_size: int) -> tuple:
         A tuple of seeds generated of length batch_size and seeded from the initial seed.
     """
     if seed is None:
-        return tuple([None]*batch_size)
-    
+        return tuple([None] * batch_size)
+
     elif not isinstance(seed, int):
         raise TypeError(
             f"Expected 'seed' to be None or of type int, but received {type(seed)} instead."
@@ -136,14 +136,18 @@ def generate_seeds(seed: int | None, batch_size: int) -> tuple:
         )
 
     if seed < 0 and not None:
-        raise ValueError(f"Expected 'seed' to be None or >=0, but received {seed} instead.")
-    
+        raise ValueError(
+            f"Expected 'seed' to be None or >=0, but received {seed} instead."
+        )
+
     if batch_size < 1 or batch_size >= 1e9:
-        raise ValueError(f"Expected 'batch_size' to be >=1 and <1e9, but received {batch_size} instead.")
+        raise ValueError(
+            f"Expected 'batch_size' to be >=1 and <1e9, but received {batch_size} instead."
+        )
 
     random.seed(seed)
 
     seeds = random.sample(range(0, int(1e9)), batch_size)
     seeds[0] = seed
 
-    return tuple(map(int,seeds))
+    return tuple(map(int, seeds))
