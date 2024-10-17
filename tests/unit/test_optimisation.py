@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.utilities.optimisation import maximise, generate_seeds
+from exauq.utilities.optimisation import generate_seeds, maximise
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
