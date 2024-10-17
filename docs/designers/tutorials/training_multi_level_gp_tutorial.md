@@ -99,8 +99,8 @@ print("Level 3 value:", ml_numbers[3])
     Level 1 value: 1.1
     Level 2 value: 2.2
     Level 3 value: 3.3
+    
 </div>
-
 
 In general, providing a sequence of length `n` to
 [`MultiLevel`][exauq.core.modelling.MultiLevel] will assign the list elements to the
@@ -206,10 +206,10 @@ print(repr(training_data[2][1]))
     TrainingDatum(input=Input(np.float64(0.18558403872803675), np.float64(6.204185236670643)), output=np.float64(43.31632756065012))
     
     Level 2:
-    TrainingDatum(input=Input(np.float64(-0.6860872668651894), np.float64(8.14123867468156)), output=np.float64(0.04053108865750232))
-    TrainingDatum(input=Input(np.float64(0.2779780667419962), np.float64(61.11931671766958)), output=np.float64(0.857129851613081))
+    TrainingDatum(input=Input(np.float64(-0.4047286498801027), np.float64(81.18081881274648)), output=np.float64(0.4087397591347326))
+    TrainingDatum(input=Input(np.float64(0.5423361549121464), np.float64(61.416740946682566)), output=np.float64(-0.9337438172833572))
+    
 </div>
-
 
 ## Defining and fitting a multi-level GP
 
@@ -229,17 +229,6 @@ gp2 = MogpEmulator(kernel="Matern52")
 
 mlgp = MultiLevelGaussianProcess([gp1, gp2])
 ```
-
-<div class="result" markdown>
-    Too few unique inputs; defaulting to flat priors
-    Too few unique inputs; defaulting to flat priors
-    Too few unique inputs; defaulting to flat priors
-    Too few unique inputs; defaulting to flat priors
-</div>
-
-
-(The messages printed are from the `mogp_emulator` package and can be ignored: they
-arise when initialising a new GP due to the fact that it hasn't been trained on any data.)
 
 As with ordinary GPs, we can verify that our multi-level GP hasn't yet been trained on
 data. Note that each level of the GP has its own training data, so the
@@ -293,12 +282,12 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2549.8545299444013), variance=np.float64(1.2361407522164936), standard_deviation=1.111818668765952)
-    Point estimate: 2549.8545299444013
-    Variance of estimate: 1.2361407522164936
-    Standard deviation of estimate: 1.111818668765952
+    GaussianProcessPrediction(estimate=np.float64(2547.8078405973465), variance=np.float64(0.7338942845990679), standard_deviation=0.8566763009439843)
+    Point estimate: 2547.8078405973465
+    Variance of estimate: 0.7338942845990679
+    Standard deviation of estimate: 0.8566763009439843
+    
 </div>
-
 
 Let's see how well the prediction did against the true simulator value:
 
@@ -313,11 +302,11 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2549.8545299444013
+    Predicted value: 2547.8078405973465
     Actual simulator value: 2548.835786437627
-    Percentage error: 0.039968973764214745
+    Percentage error: 0.04033001442267546
+    
 </div>
-
 
 As in the non-levelled case, we can also calculate the normalised expected square error
 for the prediction:
@@ -331,7 +320,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.7947020129223423
+    0.8758844241180795
 </div>
 
 

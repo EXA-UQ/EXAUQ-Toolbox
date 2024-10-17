@@ -129,17 +129,6 @@ mlgp = MultiLevelGaussianProcess([gp1, gp2])
 mlgp.fit(initial_data)
 ```
 
-<div class="result" markdown>
-    Too few unique inputs; defaulting to flat priors
-    Too few unique inputs; defaulting to flat priors
-    Too few unique inputs; defaulting to flat priors
-    Too few unique inputs; defaulting to flat priors
-</div>
-
-
-(The messages printed are from the `mogp_emulator` package and can be ignored: they
-arise when initialising a new GP due to the face that it hasn't been trained on any data.)
-
 ## Extend the design using leave-one-out adaptive sampling (single new point)
 
 Let's now find a new design point using the leave-one-out adaptive design methodology for
@@ -175,15 +164,10 @@ print("Level to run it at:", level)
 ```
 
 <div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    New design point: (np.float64(-0.25057816255206145), np.float64(99.99999999957782))
+    New design point: (np.float64(0.2781313511078019), np.float64(99.99999999510578))
     Level to run it at: 2
+    
 </div>
-
 
 In order to update the fit of the multi-level GP, we need to know which level's GP needs
 training, which we get from the `level` output by
@@ -205,15 +189,10 @@ print("Level to run batch at:", level)
 ```
 
 <div class="result" markdown>
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    New design points: (Input(np.float64(-0.25057829462558634), np.float64(99.99999999801312)), Input(np.float64(-0.999999999976053), np.float64(70.97891960592197)), Input(np.float64(0.9999999999992959), np.float64(41.956772739235014)), Input(np.float64(0.5676976223902448), np.float64(1.0000000002884049)), Input(np.float64(0.11667965978007155), np.float64(99.99999999909942)))
+    New design points: (Input(np.float64(0.27813208278780244), np.float64(99.9999999978098)), Input(np.float64(0.9999999999981752), np.float64(25.545461710647455)), Input(np.float64(-0.9999999999809875), np.float64(73.34244860693056)), Input(np.float64(-0.08218028958237618), np.float64(61.9250284586637)), Input(np.float64(0.664691813031915), np.float64(99.99999999756037)))
     Level to run batch at: 2
+    
 </div>
-
 
 Note that a single level is returned for the whole batch, i.e. all the new design points
 should go into updating the GP at that level.
@@ -248,8 +227,8 @@ print(
 
 <div class="result" markdown>
     Number of training data at each level: {1: 20, 2: 10}
+    
 </div>
-
 
 This completes one adaptive sampling 'iteration'. It's important to note that, when
 creating a batch of multiple new design points, the fit of the GP is not updated between
@@ -294,28 +273,25 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.9999999999992757), np.float64(77.89999484785737))
+    ==> Updated level 2 with new design point (np.float64(0.9999999999365581), np.float64(75.33587116834858))
+    
 </div>
-
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.5633828285924407), np.float64(78.88801714035827))
-    Prior solver failed to converge
+    ==> Updated level 2 with new design point (np.float64(-0.5884058622884303), np.float64(99.99999999770225))
+    
 </div>
-
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.7044914999642888), np.float64(99.99999999477811))
+    ==> Updated level 2 with new design point (np.float64(0.9999999978921346), np.float64(45.679752252165585))
+    
 </div>
-
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.9999999997618763), np.float64(23.04425024496773))
-    Prior solver failed to converge
+    ==> Updated level 2 with new design point (np.float64(-0.5597256705171263), np.float64(68.23532068976994))
+    
 </div>
-
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.9999999898496873), np.float64(87.19043644363062))
-</div>
-
+    ==> Updated level 2 with new design point (np.float64(0.11578722629488825), np.float64(80.26503647005399))
+    
