@@ -1186,24 +1186,6 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             {"seed": None}.items(), mock_maximise.call_args.kwargs.items()
         )
 
-    def test_use_of_initial_seed(self):
-        """If a seed is provided, then maximisation of pseudo-expected improvement is
-        performed with this seed."""
-
-        mock_maximise_return = (self.domain.scale([0.5]), 1)
-        seed = 99
-        with unittest.mock.patch(
-            "exauq.core.designers.maximise",
-            autospec=True,
-            return_value=mock_maximise_return,
-        ) as mock_maximise:
-            _ = compute_single_level_loo_samples(self.gp, self.domain, seed=seed)
-
-        # checks {"seed": seed} is a subset of mock_maximise.call_args.kwargs
-        self.assertLessEqual(
-            {"seed": seed}.items(), mock_maximise.call_args.kwargs.items()
-        )
-
     def test_use_of_seed_sequence(self):
         """If a seed is provided with a batch_size > 1, then maximisation of pseudo-expected improvement is
         performed with the newly generated sequence of seeds which should all be different.
@@ -2194,28 +2176,6 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
         self.assertNotEqualWithinTolerance(
             design_pt2, design_pt, rel_tol=self.tolerance, abs_tol=self.tolerance
-        )
-
-    def test_use_of_seed(self):
-        """If seeds are provided, then maximisation of pseudo-expected improvement is
-        performed with these seeds level-wise."""
-
-        mock_maximise_return = (self.default_domain.scale([0.5]), 1)
-        seeds = MultiLevel([99, None])
-        with unittest.mock.patch(
-            "exauq.core.designers.maximise",
-            autospec=True,
-            return_value=mock_maximise_return,
-        ) as mock_maximise:
-            _ = self.compute_multi_level_loo_samples(seeds=seeds)
-
-        # checks {"seed": seeds[a]} is a subset of mock_maximise.call_args[b].kwargs
-        self.assertLessEqual(
-            {"seed": seeds[1]}.items(), mock_maximise.call_args_list[0].kwargs.items()
-        )
-
-        self.assertLessEqual(
-            {"seed": seeds[2]}.items(), mock_maximise.call_args_list[1].kwargs.items()
         )
 
     def test_use_of_seed_across_batch(self):

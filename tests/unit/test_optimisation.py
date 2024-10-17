@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from exauq.core.modelling import Input, SimulatorDomain
-from exauq.utilities.optimisation import generate_seeds, maximise
+from exauq.utilities.optimisation import generate_seeds, maximise, MAX_SEED
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -177,7 +177,7 @@ class TestGenerateSeeds(unittest.TestCase):
         """A ValueError is raised if the supplied seed is not a positive integer
 
         A ValueError is raised if the supplied batch_size is not a positive integer
-        >=1 and < 1e9"""
+        >=1 and < MAX_SEED"""
 
         arg = -2
         with self.assertRaisesRegex(
@@ -189,16 +189,16 @@ class TestGenerateSeeds(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError,
             exact(
-                f"Expected 'batch_size' to be >=1 and <1e9, but received {arg} instead."
+                f"Expected 'batch_size' to be >=1 and <{MAX_SEED}, but received {arg} instead."
             ),
         ):
             _ = generate_seeds(self.seed, arg)
 
-        arg2 = int(1e10)
+        arg2 = MAX_SEED + 1
         with self.assertRaisesRegex(
             ValueError,
             exact(
-                f"Expected 'batch_size' to be >=1 and <1e9, but received {arg2} instead."
+                f"Expected 'batch_size' to be >=1 and <{MAX_SEED}, but received {arg2} instead."
             ),
         ):
             _ = generate_seeds(self.seed, arg2)
@@ -231,11 +231,9 @@ class TestGenerateSeeds(unittest.TestCase):
         for seed in seeds:
             self.assertEqual(seed, None)
 
-    def test_unique_seeds(self):
+    def test_large_number_of_seeds(self):
         """Ensures all returned seeds are unique"""
 
-        # By poisson distribution this gives 99+% chance of having duplicates
-        # for uniform distribution but keeps the test at a sensible time
         batch_size = int(1e5)
         seeds = generate_seeds(self.seed, batch_size)
 

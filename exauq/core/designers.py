@@ -4,7 +4,6 @@ import math
 from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Optional
-import random as random
 
 import numpy as np
 from scipy.stats import norm
@@ -21,7 +20,7 @@ from exauq.core.modelling import (
     TrainingDatum,
 )
 from exauq.core.numerics import equal_within_tolerance
-from exauq.utilities.optimisation import maximise, generate_seeds
+from exauq.utilities.optimisation import generate_seeds, maximise
 from exauq.utilities.validation import check_int
 
 

@@ -1,4 +1,5 @@
 import random
+
 from numbers import Real
 from typing import Callable, Optional
 
@@ -6,6 +7,9 @@ import scipy.optimize
 
 import exauq.core.numerics as numerics
 from exauq.core.modelling import Input, SimulatorDomain
+
+# Maximum seed determined by scipy seeding
+MAX_SEED = 2**32 - 1
 
 
 def maximise(
@@ -140,14 +144,12 @@ def generate_seeds(seed: int | None, batch_size: int) -> tuple:
             f"Expected 'seed' to be None or >=0, but received {seed} instead."
         )
 
-    if batch_size < 1 or batch_size >= 1e9:
+    if batch_size < 1 or batch_size >= MAX_SEED:
         raise ValueError(
-            f"Expected 'batch_size' to be >=1 and <1e9, but received {batch_size} instead."
+            f"Expected 'batch_size' to be >=1 and <{MAX_SEED}, but received {batch_size} instead."
         )
 
     random.seed(seed)
-
-    seeds = random.sample(range(0, int(1e9)), batch_size)
-    seeds[0] = seed
+    seeds = random.sample(range(0, MAX_SEED), batch_size)
 
     return tuple(map(int, seeds))
