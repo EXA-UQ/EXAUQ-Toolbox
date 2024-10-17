@@ -1305,15 +1305,6 @@ to have Matern 5/2 kernel for each level. The full code for doing this is as fol
 </span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="c1"># Fit to initial data</span>
 </span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="n">mlgp</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">initial_data</span><span class="p">)</span>
 </span></code></pre></div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Too few unique inputs; defaulting to flat priors
-Too few unique inputs; defaulting to flat priors
-Too few unique inputs; defaulting to flat priors
-Too few unique inputs; defaulting to flat priors
-</code></pre></div>
-</div>
-<p>(The messages printed are from the <code>mogp_emulator</code> package and can be ignored: they
-arise when initialising a new GP due to the face that it hasn't been trained on any data.)</p>
 <h2 id="extend-the-design-using-leave-one-out-adaptive-sampling-single-new-point">Extend the design using leave-one-out adaptive sampling (single new point)</h2>
 <p>Let's now find a new design point using the leave-one-out adaptive design methodology for
 multi-level simulators / GPs. We use the function
@@ -1343,11 +1334,7 @@ run than the level 1 version, so that we assign a cost of 1 to <span class="arit
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Level to run it at:&quot;</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>New design point: (np.float64(-0.25057816255206145), np.float64(99.99999999957782))
+<div class="language-text highlight"><pre><span></span><code>New design point: (np.float64(0.2781313511078019), np.float64(99.99999999510578))
 Level to run it at: 2
 </code></pre></div>
 </div>
@@ -1366,11 +1353,7 @@ specifying a different batch size:</p>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Level to run batch at:&quot;</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Prior solver failed to converge
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>New design points: (Input(np.float64(-0.25057829462558634), np.float64(99.99999999801312)), Input(np.float64(-0.999999999976053), np.float64(70.97891960592197)), Input(np.float64(0.9999999999992959), np.float64(41.956772739235014)), Input(np.float64(0.5676976223902448), np.float64(1.0000000002884049)), Input(np.float64(0.11667965978007155), np.float64(99.99999999909942)))
+<div class="language-text highlight"><pre><span></span><code>New design points: (Input(np.float64(0.27813208278780244), np.float64(99.9999999978098)), Input(np.float64(0.9999999999981752), np.float64(25.545461710647455)), Input(np.float64(-0.9999999999809875), np.float64(73.34244860693056)), Input(np.float64(-0.08218028958237618), np.float64(61.9250284586637)), Input(np.float64(0.664691813031915), np.float64(99.99999999756037)))
 Level to run batch at: 2
 </code></pre></div>
 </div>
@@ -1435,25 +1418,23 @@ ignored.)</p>
 </span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated level </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2"> with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999999992757), np.float64(77.89999484785737))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999999365581), np.float64(75.33587116834858))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.5633828285924407), np.float64(78.88801714035827))
-Prior solver failed to converge
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.5884058622884303), np.float64(99.99999999770225))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.7044914999642888), np.float64(99.99999999477811))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999978921346), np.float64(45.679752252165585))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999997618763), np.float64(23.04425024496773))
-Prior solver failed to converge
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.5597256705171263), np.float64(68.23532068976994))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.9999999898496873), np.float64(87.19043644363062))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.11578722629488825), np.float64(80.26503647005399))
 </code></pre></div>
 </div>
 

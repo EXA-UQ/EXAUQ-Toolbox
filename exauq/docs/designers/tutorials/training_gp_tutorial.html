@@ -1200,8 +1200,8 @@ the <strong>simulator domain</strong> (or just <strong>domain</strong>).</p>
 <p>For this tutorial, we'll be using a normal Python function that will act as a toy
 simulator. Its domain will be the rectangle <span class="arithmatex">\(\mathcal{D}\)</span> consisting of points <span class="arithmatex">\((x_1, x_2)\)</span> where
 <span class="arithmatex">\(-1 \leq x_1 \leq 1\)</span> and <span class="arithmatex">\(1 \leq x_2 \leq 100\)</span>. (In practice, a real simulator would most
-likely run on a different computer with powerful performance capabilities — perhaps even
-exascale levels of computational power — and the domain will likely have quite a few more dimensions.)</p>
+likely run on a different computer with powerful performance capabilities â€” perhaps even
+exascale levels of computational power â€” and the domain will likely have quite a few more dimensions.)</p>
 <p>We begin by creating the domain of the simulator to represent the above rectangle. We
 do this by using the <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.SimulatorDomain"><code>SimulatorDomain</code></a> class,
 like so:</p>
@@ -1281,18 +1281,11 @@ In code, this is given as follows:</p>
 <a href="https://mogp-emulator.readthedocs.io/en/latest/index.html">mogp_emulator</a> package, but
 provides a simpler interface. Furthermore, the
 <a class="autorefs autorefs-internal" href="../../api/core/emulators.html#exauq.core.emulators.MogpEmulator"><code>MogpEmulator</code></a> class implicitly assumes a
-zero mean function. We'll create a GP that uses a Matern 5/2 kernel function. (The
-messages printed are from the <code>mogp_emulator</code> package and can be ignored: they arise
-because the GP hasn't yet been trained on any data.)</p>
+zero mean function. We'll create a GP that uses a Matern 5/2 kernel function.</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span> <span class="nn">exauq.core.emulators</span> <span class="kn">import</span> <span class="n">MogpEmulator</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">gp</span> <span class="o">=</span> <span class="n">MogpEmulator</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="s2">&quot;Matern52&quot;</span><span class="p">)</span>
 </span></code></pre></div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Too few unique inputs; defaulting to flat priors
-Too few unique inputs; defaulting to flat priors
-</code></pre></div>
-</div>
 <p>The <a class="autorefs autorefs-internal" href="../../api/core/emulators.html#exauq.core.emulators.MogpEmulator.training_data"><code>training_data</code></a> property of
 <a class="autorefs autorefs-internal" href="../../api/core/emulators.html#exauq.core.emulators.MogpEmulator"><code>MogpEmulator</code></a>
 objects returns a tuple of the data that the GP has been trained on, if at all. We can
@@ -1355,10 +1348,10 @@ deviation, respectively).</p>
 </span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2549.606787264347), variance=np.float64(2.521427646279335), standard_deviation=1.5879003892811838)
-Point estimate: 2549.606787264347
-Variance of estimate: 2.521427646279335
-Standard deviation of estimate: 1.5879003892811838
+<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2549.6067863868957), variance=np.float64(2.521425649523735), standard_deviation=1.5878997605402347)
+Point estimate: 2549.6067863868957
+Variance of estimate: 2.521425649523735
+Standard deviation of estimate: 1.5878997605402347
 </code></pre></div>
 </div>
 <p>Let's see how well the prediction did against the true simulator value:</p>
@@ -1370,9 +1363,9 @@ Standard deviation of estimate: 1.5879003892811838
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2549.606787264347
+<div class="language-text highlight"><pre><span></span><code>Predicted value: 2549.6067863868957
 Actual simulator value: 2548.835786437627
-Percentage error: 0.03024913691272134
+Percentage error: 0.030249102487145983
 </code></pre></div>
 </div>
 <p>Finally, because the prediction comes from a GP, we can also calculate the normalised
@@ -1383,7 +1376,7 @@ prediction:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">prediction</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>0.7203371924276764
+<div class="language-text highlight"><pre><span></span><code>0.7203371597490409
 </code></pre></div>
 </div>
 

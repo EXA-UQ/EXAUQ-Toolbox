@@ -28,8 +28,8 @@ the **simulator domain** (or just **domain**).
 For this tutorial, we'll be using a normal Python function that will act as a toy
 simulator. Its domain will be the rectangle $\mathcal{D}$ consisting of points $(x_1, x_2)$ where
 $-1 \leq x_1 \leq 1$ and $1 \leq x_2 \leq 100$. (In practice, a real simulator would most
-likely run on a different computer with powerful performance capabilities — perhaps even
-exascale levels of computational power — and the domain will likely have quite a few more dimensions.)
+likely run on a different computer with powerful performance capabilities â€” perhaps even
+exascale levels of computational power â€” and the domain will likely have quite a few more dimensions.)
 
 We begin by creating the domain of the simulator to represent the above rectangle. We
 do this by using the [`SimulatorDomain`][exauq.core.modelling.SimulatorDomain] class,
@@ -54,8 +54,8 @@ print("Dimension of domain:", domain.dim)
 
 <div class="result" markdown>
     Dimension of domain: 2
+    
 </div>
-
 
 To represent the inputs to the simulator, the EXAUQ-Toolbox uses objects called
 [`Input`][exauq.core.modelling.Input]s, which behave much like ordinary tuples of numbers.
@@ -84,8 +84,8 @@ print("Second coordinate of x1:", x1[1])
     Dimension of x1: 2
     First coordinate of x1: 0
     Second coordinate of x1: 99
+    
 </div>
-
 
 We can also verify whether an [`Input`][exauq.core.modelling.Input] belongs to a simulator
 domain using the [`in`][exauq.core.modelling.SimulatorDomain.__contains__] operator:
@@ -99,8 +99,8 @@ print(x2 in domain)  # x2 is not contained in the domain
 <div class="result" markdown>
     True
     False
+    
 </div>
-
 
 We now define our toy simulator function to be the mathematical function
 $$
@@ -145,9 +145,7 @@ The EXAUQ-Toolbox provides an implementation of Gaussian processes via the
 [mogp_emulator](https://mogp-emulator.readthedocs.io/en/latest/index.html) package, but
 provides a simpler interface. Furthermore, the
 [`MogpEmulator`][exauq.core.emulators.MogpEmulator] class implicitly assumes a
-zero mean function. We'll create a GP that uses a Matern 5/2 kernel function. (The
-messages printed are from the `mogp_emulator` package and can be ignored: they arise
-because the GP hasn't yet been trained on any data.)
+zero mean function. We'll create a GP that uses a Matern 5/2 kernel function.
 
 
 ``` { .python .copy }
@@ -155,12 +153,6 @@ from exauq.core.emulators import MogpEmulator
 
 gp = MogpEmulator(kernel="Matern52")
 ```
-
-<div class="result" markdown>
-    Too few unique inputs; defaulting to flat priors
-    Too few unique inputs; defaulting to flat priors
-</div>
-
 
 The [`training_data`][exauq.core.emulators.MogpEmulator.training_data] property of
 [`MogpEmulator`][exauq.core.emulators.MogpEmulator]
@@ -252,12 +244,12 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2549.606787264347), variance=np.float64(2.521427646279335), standard_deviation=1.5879003892811838)
-    Point estimate: 2549.606787264347
-    Variance of estimate: 2.521427646279335
-    Standard deviation of estimate: 1.5879003892811838
+    GaussianProcessPrediction(estimate=np.float64(2549.6067863868957), variance=np.float64(2.521425649523735), standard_deviation=1.5878997605402347)
+    Point estimate: 2549.6067863868957
+    Variance of estimate: 2.521425649523735
+    Standard deviation of estimate: 1.5878997605402347
+    
 </div>
-
 
 Let's see how well the prediction did against the true simulator value:
 
@@ -272,11 +264,11 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2549.606787264347
+    Predicted value: 2549.6067863868957
     Actual simulator value: 2548.835786437627
-    Percentage error: 0.03024913691272134
+    Percentage error: 0.030249102487145983
+    
 </div>
-
 
 Finally, because the prediction comes from a GP, we can also calculate the normalised
 expected square error via the
@@ -293,7 +285,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.7203371924276764
+    0.7203371597490409
 </div>
 
 
