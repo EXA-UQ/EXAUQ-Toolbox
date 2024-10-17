@@ -15,7 +15,6 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
     SimpleDesigner,
-    oneshot_lhs,
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_loo_prediction,
@@ -25,6 +24,7 @@ from exauq.core.designers import (
     compute_multi_level_loo_samples,
     compute_single_level_loo_samples,
     compute_zero_mean_prediction,
+    oneshot_lhs,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
@@ -558,7 +558,8 @@ class TestPEICalculator(ExauqTestCase):
         with self.assertRaises(TypeError) as context:
             PEICalculator(self.domain, "not_a_gp_instance")
         self.assertIn(
-            "Expected 'gp' to be of type AbstractGaussianProcess", str(context.exception)
+            "Expected 'gp' to be of type AbstractGaussianProcess",
+            str(context.exception),
         )
 
     def test_validation_with_empty_gp_training_data(self):
@@ -1781,7 +1782,10 @@ class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
 
         for level in mlgp.levels:
             mlgp_params = (mlgp[level].prior_mean, mlgp[level].noise_level)
-            errors_gp_params = (errors_gp[level].prior_mean, errors_gp[level].noise_level)
+            errors_gp_params = (
+                errors_gp[level].prior_mean,
+                errors_gp[level].noise_level,
+            )
             self.assertEqual(mlgp_params, errors_gp_params)
 
     def test_use_given_mlgp_for_returned_mlgp(self):
