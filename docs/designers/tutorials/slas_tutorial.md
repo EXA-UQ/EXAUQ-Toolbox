@@ -78,15 +78,6 @@ gp = MogpEmulator(kernel="Matern52")
 gp.fit(data)
 ```
 
-<div class="result" markdown>
-    Too few unique inputs; defaulting to flat priors
-    Too few unique inputs; defaulting to flat priors
-</div>
-
-
-(The messages printed are from the `mogp_emulator` package and can be ignored: they
-arise when initialising a new GP due to the fact that it hasn't been trained on any data.)
-
 ## Extend the design using leave-one-out adaptive sampling
 
 Let's now find a new design point using the leave-one-out adaptive design methodology. The
@@ -118,7 +109,7 @@ new_design_pts[0]
 
 
 <div class="result" markdown>
-    Input(np.float64(0.019123403457888433), np.float64(55.88325957924735))
+    Input(np.float64(0.8783345963414011), np.float64(55.498549948538695))
 </div>
 
 
@@ -136,11 +127,11 @@ new_design_pts
 
 
 <div class="result" markdown>
-    (Input(np.float64(-0.7492101572260026), np.float64(54.53112567773405)),
-     Input(np.float64(0.8719081643763096), np.float64(52.89178319374546)),
-     Input(np.float64(-0.9695837518710214), np.float64(57.033189328722706)),
-     Input(np.float64(-0.5267237494003253), np.float64(54.487611372379675)),
-     Input(np.float64(0.18456388436365234), np.float64(57.00346126884436)))
+    (Input(np.float64(-0.2247465823952749), np.float64(55.63473740845275)),
+     Input(np.float64(-0.1447258101445732), np.float64(53.90074076950241)),
+     Input(np.float64(-0.8117435232490076), np.float64(50.89490986477788)),
+     Input(np.float64(-0.4403510115974675), np.float64(57.80473368302009)),
+     Input(np.float64(0.85023418663402), np.float64(48.665902278026444)))
 </div>
 
 
@@ -185,8 +176,8 @@ print("Number of training data:", len(gp.training_data))
 
 <div class="result" markdown>
     Number of training data: 25
+    
 </div>
-
 
 This completes one adaptive sampling 'iteration'. It's important to note that, when
 creating multiple new design points in a batch, the fit of the GP is not updated between
@@ -228,62 +219,25 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
+    ==> Updated with new design point (np.float64(0.6968059435820717), np.float64(1.0000070688987677))
+    
 </div>
-
 
 <div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
+    ==> Updated with new design point (np.float64(-0.9999992691131184), np.float64(89.27647835513658))
+    
 </div>
-
 
 <div class="result" markdown>
-    Prior solver failed to converge
+    ==> Updated with new design point (np.float64(0.28237845912916737), np.float64(99.9999859883154))
+    
 </div>
-
 
 <div class="result" markdown>
-    Prior solver failed to converge
+    ==> Updated with new design point (np.float64(-0.24038102421826124), np.float64(1.0000008324063145))
+    
 </div>
-
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.9999992424898836), np.float64(10.953099882155492))
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.9999518055474946), np.float64(42.64962498961694))
-</div>
-
-
-<div class="result" markdown>
-    Prior solver failed to converge
-    Prior solver failed to converge
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.9999974724617748), np.float64(94.98594902202395))
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.9999373947538726), np.float64(24.879397188494778))
-</div>
-
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.6475910352838794), np.float64(99.99993353903156))
-</div>
-
+    ==> Updated with new design point (np.float64(-0.9999993192599338), np.float64(60.433032620134775))
+    

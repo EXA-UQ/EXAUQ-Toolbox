@@ -23,6 +23,7 @@ from exauq.core.modelling import (
     TrainingDatum,
 )
 from exauq.utilities.mogp_fitting import fit_GP_MAP
+from exauq.utilities.decorators import suppress_print
 
 
 class MogpEmulator(AbstractGaussianProcess):
@@ -81,6 +82,7 @@ class MogpEmulator(AbstractGaussianProcess):
         "ProductMat52": mogp.Kernel.ProductMat52().kernel_f,
     }
 
+    @suppress_print
     def __init__(self, **kwargs):
         self._gp_kwargs = self._remove_entries(kwargs, "inputs", "targets")
         self._validate_kernel(self._gp_kwargs)
@@ -125,6 +127,7 @@ class MogpEmulator(AbstractGaussianProcess):
             return None
 
     @staticmethod
+    @suppress_print
     def _make_gp(**kwargs) -> GaussianProcess:
         """Create an mogp GaussianProcess from given kwargs, raising a
         RuntimeError if this fails.
@@ -160,6 +163,7 @@ class MogpEmulator(AbstractGaussianProcess):
 
         return self._fit_hyperparameters
 
+    @suppress_print
     def fit(
         self,
         training_data: Collection[TrainingDatum],
