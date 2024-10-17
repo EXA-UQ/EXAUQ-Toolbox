@@ -1356,8 +1356,8 @@ TrainingDatum(input=Input(np.float64(-0.45118216247002574), np.float64(75.495204
 TrainingDatum(input=Input(np.float64(0.18558403872803675), np.float64(6.204185236670643)), output=np.float64(43.31632756065012))
 
 Level 2:
-TrainingDatum(input=Input(np.float64(-0.6860872668651894), np.float64(8.14123867468156)), output=np.float64(0.04053108865750232))
-TrainingDatum(input=Input(np.float64(0.2779780667419962), np.float64(61.11931671766958)), output=np.float64(0.857129851613081))
+TrainingDatum(input=Input(np.float64(-0.4047286498801027), np.float64(81.18081881274648)), output=np.float64(0.4087397591347326))
+TrainingDatum(input=Input(np.float64(0.5423361549121464), np.float64(61.416740946682566)), output=np.float64(-0.9337438172833572))
 </code></pre></div>
 </div>
 <h2 id="defining-and-fitting-a-multi-level-gp">Defining and fitting a multi-level GP</h2>
@@ -1374,15 +1374,6 @@ each level.</p>
 </span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
 </span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="n">mlgp</span> <span class="o">=</span> <span class="n">MultiLevelGaussianProcess</span><span class="p">([</span><span class="n">gp1</span><span class="p">,</span> <span class="n">gp2</span><span class="p">])</span>
 </span></code></pre></div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Too few unique inputs; defaulting to flat priors
-Too few unique inputs; defaulting to flat priors
-Too few unique inputs; defaulting to flat priors
-Too few unique inputs; defaulting to flat priors
-</code></pre></div>
-</div>
-<p>(The messages printed are from the <code>mogp_emulator</code> package and can be ignored: they
-arise when initialising a new GP due to the fact that it hasn't been trained on any data.)</p>
 <p>As with ordinary GPs, we can verify that our multi-level GP hasn't yet been trained on
 data. Note that each level of the GP has its own training data, so the
 <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.MultiLevelGaussianProcess.training_data"><code>training_data</code></a>
@@ -1417,10 +1408,10 @@ prediction:</p>
 </span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2549.8545299444013), variance=np.float64(1.2361407522164936), standard_deviation=1.111818668765952)
-Point estimate: 2549.8545299444013
-Variance of estimate: 1.2361407522164936
-Standard deviation of estimate: 1.111818668765952
+<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2547.8078405973465), variance=np.float64(0.7338942845990679), standard_deviation=0.8566763009439843)
+Point estimate: 2547.8078405973465
+Variance of estimate: 0.7338942845990679
+Standard deviation of estimate: 0.8566763009439843
 </code></pre></div>
 </div>
 <p>Let's see how well the prediction did against the true simulator value:</p>
@@ -1432,9 +1423,9 @@ Standard deviation of estimate: 1.111818668765952
 </span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2549.8545299444013
+<div class="language-text highlight"><pre><span></span><code>Predicted value: 2547.8078405973465
 Actual simulator value: 2548.835786437627
-Percentage error: 0.039968973764214745
+Percentage error: 0.04033001442267546
 </code></pre></div>
 </div>
 <p>As in the non-levelled case, we can also calculate the normalised expected square error
@@ -1442,7 +1433,7 @@ for the prediction:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">prediction</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>0.7947020129223423
+<div class="language-text highlight"><pre><span></span><code>0.8758844241180795
 </code></pre></div>
 </div>
 
