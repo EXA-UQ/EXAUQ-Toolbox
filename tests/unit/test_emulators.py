@@ -162,7 +162,8 @@ class TestMogpEmulator(ExauqTestCase):
         with self.assertRaisesRegex(
             ValueError,
             exact(
-                f"Points {np.round(Input(0.4), 9)} and {np.round(Input(0.4 + 1e-10), 9)} in 'TrainingDatum' are not unique within tolerance."
+                f"Points {np.round(Input(0.4), 9)} and {np.round(Input(0.4 + 1e-10), 9)}"
+                " in 'TrainingDatum' are not unique within tolerance."
             ),
         ):
             emulator.fit(training_data, hyperparameters=params)
