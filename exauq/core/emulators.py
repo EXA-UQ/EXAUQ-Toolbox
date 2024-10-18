@@ -253,7 +253,8 @@ class MogpEmulator(AbstractGaussianProcess):
 
         return None
 
-    def _validate_training_data_unique(self, training_data: tuple[TrainingDatum]):
+    @staticmethod
+    def _validate_training_data_unique(training_data: tuple[TrainingDatum]):
         """Check whether the given collection of TrainingDatum are unique,
         raising a ValueError if not."""
 
