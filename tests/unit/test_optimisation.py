@@ -239,6 +239,15 @@ class TestGenerateSeeds(unittest.TestCase):
 
         self.assertTrue(len(set(seeds)) == batch_size)
 
+    def test_repeat_generate_seeds(self):
+        """Ensures that if ran multiple times with the same seed, all elements returned
+        are equal"""
+
+        seeds = [generate_seeds(self.seed, self.batch_size) for _ in range(5)]
+
+        for _, seed in enumerate(seeds):
+            self.assertTupleEqual(seeds[0], seed)
+
 
 if __name__ == "__main__":
     unittest.main()
