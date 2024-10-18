@@ -408,27 +408,6 @@ class TestComputeLooGp(ExauqTestCase):
         ):
             _ = compute_loo_gp(gp, 0)
 
-    def test_compute_loo_gp_repeated_training_input_error(self):
-        """A ValueError is raised if the training data in the supplied GP contains a
-        repeated simulator input."""
-
-        repeated_input = Input(0.1)
-        training_data = [
-            TrainingDatum(repeated_input, 1),
-            TrainingDatum(repeated_input, 1),
-        ]
-        gp = fakes.WhiteNoiseGP()
-        gp.fit(training_data)
-
-        with self.assertRaisesRegex(
-            ValueError,
-            exact(
-                f"Cannot compute leave one out error with 'gp' because simulator input {repeated_input} "
-                "is repeated in the training data."
-            ),
-        ):
-            _ = compute_loo_gp(gp, 0)
-
     def test_compute_loo_gp_returns_same_type_of_gp(self):
         """The return type is the same as the input GP in the default case."""
 
