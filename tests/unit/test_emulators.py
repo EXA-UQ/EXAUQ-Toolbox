@@ -1,6 +1,5 @@
 import itertools
 import math
-import unittest
 import unittest.mock
 
 import mogp_emulator as mogp
