@@ -13,6 +13,7 @@ from exauq.core.modelling import (
     Input,
     TrainingDatum,
 )
+from exauq.core.numerics import set_tolerance
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -147,6 +148,10 @@ class TestMogpEmulator(ExauqTestCase):
 
         params = MogpHyperparameters(corr_length_scales=[2], process_var=1, nugget=1)
         emulator = MogpEmulator()
+
+        # Ensure tolerance is set to default for test
+        set_tolerance(1e-9)
+
         training_data = [
             TrainingDatum(Input(0), 1),
             TrainingDatum(Input(0.2), 1),
@@ -155,7 +160,10 @@ class TestMogpEmulator(ExauqTestCase):
             TrainingDatum(Input(0.4 + 1e-10), 1),
         ]
         with self.assertRaisesRegex(
-            ValueError, exact("Points in 'TrainingDatum' must be unique")
+            ValueError,
+            exact(
+                f"Points {np.round(Input(0.4), 9)} and {np.round(Input(0.4 + 1e-10), 9)} in 'TrainingDatum' are not unique within tolerance."
+            ),
         ):
             emulator.fit(training_data, hyperparameters=params)
 
