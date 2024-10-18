@@ -22,7 +22,7 @@ from exauq.core.modelling import (
     OptionalFloatPairs,
     TrainingDatum,
 )
-from exauq.core.designers import _check_collection_of_inputs
+
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 from exauq.utilities.decorators import suppress_print
@@ -217,7 +217,7 @@ class MogpEmulator(AbstractGaussianProcess):
         training_data = self._parse_training_data(training_data)
         if not training_data:
             return None
-        
+
         self._validate_training_data_unique(training_data)
 
         if not (
@@ -255,17 +255,15 @@ class MogpEmulator(AbstractGaussianProcess):
 
     def _validate_training_data_unique(self, training_data: tuple[TrainingDatum]):
         """Check whether the given collection of TrainingDatum are unique,
-         raising a ValueError if not."""
+        raising a ValueError if not."""
 
-        # Given inputs are non-hashable, not easily orderable and checking within tolerance
-        unique_list = []
         inputs = [data_point.input for data_point in training_data]
 
-        for point in inputs:
-            for unique_input in unique_list:
-                if equal_within_tolerance(point, unique_input):
-                    raise ValueError("Points in 'TrainingDatum' must be unique")
-            unique_list.append(point)
+        for input1, input2 in itertools.combinations(inputs, 2):
+            if equal_within_tolerance(input1, input2):
+                raise ValueError(
+                    f"Points {np.round(input1, 9)} and {np.round(input2, 9)} in 'TrainingDatum' are not unique within tolerance."
+                )
 
     @staticmethod
     def _parse_training_data(training_data: Any) -> tuple[TrainingDatum]:
@@ -278,7 +276,7 @@ class MogpEmulator(AbstractGaussianProcess):
         try:
             _ = len(training_data)  # to catch infinite iterators
             if not all(isinstance(x, TrainingDatum) for x in training_data):
-                raise TypeError               
+                raise TypeError
 
             return tuple(training_data)
 
@@ -286,7 +284,6 @@ class MogpEmulator(AbstractGaussianProcess):
             raise TypeError(
                 f"Expected a finite collection of TrainingDatum, but received {type(training_data)}."
             )
-        
 
     def _validate_hyperparameter_bounds(
         self, hyperparameter_bounds: Sequence[OptionalFloatPairs]
