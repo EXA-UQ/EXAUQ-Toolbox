@@ -1184,8 +1184,10 @@ def compute_multi_level_loo_samples(
     errors GP across levels, where the PEIs are weighted according to the costs of
     computing the design points on simulators at the levels.
 
-    The `costs` should represent the costs of running each level's simulator on a single
-    input.
+    The `costs` should represent the successive differences costs of running each level's 
+    simulator on a single input. For example, if the level costs were 1, 10, 100 for levels
+    1, 2, 3 respectively, then 1, 11, 110 would need to be supplied if successive differences 
+    was the chosen method for calculating costs.
 
     If `additional_repulsion_pts` is provided, then these points will be added into the
     calculations at the level they are allocated to in the PEI.
@@ -1332,10 +1334,9 @@ def compute_multi_level_loo_samples(
     )
 
     # Find PEI argmax, with (weighted) PEI value, for each level
-    delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
     maximal_pei_values = ml_pei.map(
         lambda level, pei: maximise(
-            lambda x: pei.compute(x) / delta_costs[level], domain, seed=seeds[level][0]
+            lambda x: pei.compute(x) / costs[level], domain, seed=seeds[level][0]
         )
     )
 
@@ -1353,12 +1354,3 @@ def compute_multi_level_loo_samples(
             design_points.append(new_design_pt)
 
     return level, tuple(design_points)
-
-
-def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:
-    """Compute the cost of computing a successive difference of simulations at a level."""
-
-    if level == 1:
-        return costs[1]
-    else:
-        return costs[level - 1] + costs[level]
