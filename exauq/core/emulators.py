@@ -263,7 +263,8 @@ class MogpEmulator(AbstractGaussianProcess):
         for input1, input2 in itertools.combinations(inputs, 2):
             if equal_within_tolerance(input1, input2):
                 raise ValueError(
-                    f"Points {np.round(input1, 9)} and {np.round(input2, 9)} in 'TrainingDatum' are not unique within tolerance."
+                    f"Points {np.round(input1, 9)} and {np.round(input2, 9)}"
+                    " in 'TrainingDatum' are not unique within tolerance."
                 )
 
     @staticmethod
