@@ -15,7 +15,6 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
     SimpleDesigner,
-    oneshot_lhs,
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_loo_prediction,
@@ -25,6 +24,7 @@ from exauq.core.designers import (
     compute_multi_level_loo_samples,
     compute_single_level_loo_samples,
     compute_zero_mean_prediction,
+    oneshot_lhs,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
 from exauq.core.modelling import (
@@ -537,7 +537,8 @@ class TestPEICalculator(ExauqTestCase):
         with self.assertRaises(TypeError) as context:
             PEICalculator(self.domain, "not_a_gp_instance")
         self.assertIn(
-            "Expected 'gp' to be of type AbstractGaussianProcess", str(context.exception)
+            "Expected 'gp' to be of type AbstractGaussianProcess",
+            str(context.exception),
         )
 
     def test_validation_with_empty_gp_training_data(self):
@@ -1164,23 +1165,32 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
             {"seed": None}.items(), mock_maximise.call_args.kwargs.items()
         )
 
-    def test_use_of_seed(self):
-        """If a seed is provided, then maximisation of pseudo-expected improvement is
-        performed with this seed."""
+    def test_use_of_seed_sequence(self):
+        """If a seed is provided with a batch_size > 1, then maximisation of pseudo-expected improvement is
+        performed with the newly generated sequence of seeds which should all be different.
+        """
 
         mock_maximise_return = (self.domain.scale([0.5]), 1)
         seed = 99
+        batch_size = 5
         with unittest.mock.patch(
             "exauq.core.designers.maximise",
             autospec=True,
             return_value=mock_maximise_return,
         ) as mock_maximise:
-            _ = compute_single_level_loo_samples(self.gp, self.domain, seed=seed)
+            _ = compute_single_level_loo_samples(
+                self.gp, self.domain, batch_size=batch_size, seed=seed
+            )
 
-        # checks {"seed": seed} is a subset of mock_maximise.call_args.kwargs
-        self.assertLessEqual(
-            {"seed": seed}.items(), mock_maximise.call_args.kwargs.items()
-        )
+        # collect all the seeds used
+        seeds_used = [
+            call.kwargs["seed"]
+            for call in mock_maximise.call_args_list
+            if "seed" in call.kwargs
+        ]
+
+        # checks all seeds are different
+        self.assertTrue(len(seeds_used) == len(set(seeds_used)))
 
     def test_number_of_new_design_points_matches_batch_number(self):
         """The number of new design points returned is equal to the supplied batch
@@ -1733,7 +1743,10 @@ class TestComputeMultiLevelLooErrorsGp(ExauqTestCase):
 
         for level in mlgp.levels:
             mlgp_params = (mlgp[level].prior_mean, mlgp[level].noise_level)
-            errors_gp_params = (errors_gp[level].prior_mean, errors_gp[level].noise_level)
+            errors_gp_params = (
+                errors_gp[level].prior_mean,
+                errors_gp[level].noise_level,
+            )
             self.assertEqual(mlgp_params, errors_gp_params)
 
     def test_use_given_mlgp_for_returned_mlgp(self):
@@ -2144,37 +2157,15 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             design_pt2, design_pt, rel_tol=self.tolerance, abs_tol=self.tolerance
         )
 
-    def test_use_of_seed(self):
-        """If seeds are provided, then maximisation of pseudo-expected improvement is
-        performed with these seeds level-wise."""
-
-        mock_maximise_return = (self.default_domain.scale([0.5]), 1)
-        seeds = MultiLevel([99, None])
-        with unittest.mock.patch(
-            "exauq.core.designers.maximise",
-            autospec=True,
-            return_value=mock_maximise_return,
-        ) as mock_maximise:
-            _ = self.compute_multi_level_loo_samples(seeds=seeds)
-
-        # checks {"seed": seeds[a]} is a subset of mock_maximise.call_args[b].kwargs
-        self.assertLessEqual(
-            {"seed": seeds[1]}.items(), mock_maximise.call_args_list[0].kwargs.items()
-        )
-
-        self.assertLessEqual(
-            {"seed": seeds[2]}.items(), mock_maximise.call_args_list[1].kwargs.items()
-        )
-
-    def test_use_of_same_seed(self):
-        """Ensure that, if seeds are provided, the same seed is being used to create every
-        pseudo-expected improvement design point not just the first.
+    def test_use_of_seed_across_batch(self):
+        """Ensure that, if seeds are provided, a different seed is being used to create every
+        pseudo-expected improvement design point within a single batch.
 
         From test_unseeded_by_default (test_optimisation.py), maximise should give slightly
         different results with unseeded but the same args.
 
-        Hence, if seed is correctly used for every design point creation there should be no
-        unique items across multiple runs."""
+        Hence, if seed is correctly used for every design point creation within a batch
+        there should be no unique batches across multiple runs."""
 
         mock_maximise_return = (self.default_domain.scale([0.5]), 1)
         seeds = MultiLevel([99, None])
@@ -2197,4 +2188,5 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 # batch mode.
 
 if __name__ == "__main__":
+
     unittest.main()

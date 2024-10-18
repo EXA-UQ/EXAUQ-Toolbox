@@ -20,7 +20,7 @@ from exauq.core.modelling import (
     TrainingDatum,
 )
 from exauq.core.numerics import equal_within_tolerance
-from exauq.utilities.optimisation import maximise
+from exauq.utilities.optimisation import generate_seeds, maximise
 from exauq.utilities.validation import check_int
 
 
@@ -717,7 +717,7 @@ def compute_single_level_loo_samples(
     use of different Gaussian process settings (e.g. a different kernel function).
 
     If `seed` is provided, then this will be used when maximising the pseudo-expected
-    improvement of the LOO errors GP (the same seed will be used to find each new
+    improvement of the LOO errors GP (a sequence of seeds will be generated to find each new
     simulator input in the batch). Providing a seed does not necessarily mean calculation
     of the output design points is deterministic, as this also depends on computation of
     the LOO errors GP being deterministic.
@@ -802,9 +802,13 @@ def compute_single_level_loo_samples(
 
     pei = PEICalculator(domain, gp_e, additional_repulsion_pts=additional_repulsion_pts)
 
+    seeds = generate_seeds(seed, batch_size)
+
     design_points = []
-    for _ in range(batch_size):
-        new_design_point, _ = maximise(lambda x: pei.compute(x), domain, seed=seed)
+    for design_pt_seed in seeds:
+        new_design_point, _ = maximise(
+            lambda x: pei.compute(x), domain, seed=design_pt_seed
+        )
         design_points.append(new_design_point)
         pei.add_repulsion_points([new_design_point])
 
@@ -1176,14 +1180,14 @@ def compute_multi_level_loo_samples(
     The `costs` should represent the costs of running each level's simulator on a single
     input.
 
-    If `additional_repulsion_pts` is provided, then these points will be added into the 
-    calculations at the level they are allocated to in the PEI. 
+    If `additional_repulsion_pts` is provided, then these points will be added into the
+    calculations at the level they are allocated to in the PEI.
 
     If `seeds` is provided, then the seeds provided for the levels will be used when
-    maximising the pseudo-expected improvement of the LOO errors GP for each level (the
-    same seeds will be used level-wise to find each new simulator input in the batch).
-    Note that ``None`` can be provided for a level, which means the maximisation at that
-    level won't be seeded. Providing seeds does not necessarily mean calculation of the
+    maximising the pseudo-expected improvement of the LOO errors GP for each level (a
+    sequence of seeds will be generated level-wise to find each new simulator input
+    in the batch). Note that ``None`` can be provided for a level, which means the maximisation
+    at that level won't be seeded. Providing seeds does not necessarily mean calculation of the
     output design points is deterministic, as this also depends on computation of the LOO
     errors GP being deterministic.
 
@@ -1205,7 +1209,7 @@ def compute_multi_level_loo_samples(
         (Default: 1) The number of new design points to compute. Should be a positive
         integer.
     additional_repulsion_pts: MultiLevel[Collection[Input]], optional
-        (Default: None) A multi-level collection of hand-chosen Input repulsion points to 
+        (Default: None) A multi-level collection of hand-chosen Input repulsion points to
         aid computation of samples.
     seeds : MultiLevel[Optional[int]], optional
         (Default: None) A multi-level collection of random number seeds to use when
@@ -1305,6 +1309,11 @@ def compute_multi_level_loo_samples(
             f"Expected batch size to be a positive integer, but received {batch_size} instead."
         )
 
+    # Generate seed sequences
+    seeds = MultiLevel(
+        {level: generate_seeds(seeds[level], batch_size) for level in mlgp.levels}
+    )
+
     # Create LOO errors GP for each level
     ml_errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain, output_mlgp=None)
 
@@ -1319,7 +1328,7 @@ def compute_multi_level_loo_samples(
     delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
     maximal_pei_values = ml_pei.map(
         lambda level, pei: maximise(
-            lambda x: pei.compute(x) / delta_costs[level], domain, seed=seeds[level]
+            lambda x: pei.compute(x) / delta_costs[level], domain, seed=seeds[level][0]
         )
     )
 
@@ -1332,7 +1341,7 @@ def compute_multi_level_loo_samples(
         for i in range(batch_size - 1):
             pei.add_repulsion_points([design_points[i]])
             new_design_pt, _ = maximise(
-                lambda x: pei.compute(x), domain, seed=seeds[level]
+                lambda x: pei.compute(x), domain, seed=seeds[level][i + 1]
             )
             design_points.append(new_design_pt)
 
