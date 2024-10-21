@@ -139,12 +139,13 @@ to do this. By default, a batch consisting of a single, new design point will be
 - The multi-level GP to find the new design point for.
 - The [`SimulatorDomain`][exauq.core.modelling.SimulatorDomain] describing the domain on
   which the simulator is defined.
-- The relative costs of running the simulator at each level. In our case, this should be
-  the costs of running the level 1 simulator $f_1$ and the full level 2 simulator
-  $f$ (not the difference $delta$).
+- The costs of running the simulator at each level. In our case, this should be
+  the cost of running the level 1 simulator $f_1$ and then the additional cost for the full level 2 simulator
+  $f$.
 
 Let's suppose for our toy example that the full simulator is 10-times more expensive to
-run than the level 1 version, so that we assign a cost of 1 to $f_1$ and 10 to $f$.
+run than the level 1 version. This gives relative costs of 1 and 10 to $f_1$ and $f$ respectively.
+Therefore, we assign a cost of 1 to $f_1$ and 11 to $f$ given the cost for our full simulator is $C^{(2)} = c^{(1)} + c^{(2)}$.
 
 In code, we perform the adaptive sampling as follows:
 
@@ -156,7 +157,7 @@ from exauq.core.designers import compute_multi_level_loo_samples
 import warnings
 warnings.filterwarnings("ignore")
 
-costs = MultiLevel([1, 10])
+costs = MultiLevel([1, 11])
 level, new_design_pts = compute_multi_level_loo_samples(mlgp, domain, costs)
 
 print("New design point:", new_design_pts[0])
@@ -164,7 +165,7 @@ print("Level to run it at:", level)
 ```
 
 <div class="result" markdown>
-    New design point: (np.float64(0.2781313511078019), np.float64(99.99999999510578))
+    New design point: (np.float64(0.27813400481879613), np.float64(99.99999999771047))
     Level to run it at: 2
     
 </div>
@@ -189,7 +190,7 @@ print("Level to run batch at:", level)
 ```
 
 <div class="result" markdown>
-    New design points: (Input(np.float64(0.27813208278780244), np.float64(99.9999999978098)), Input(np.float64(0.9999999999981752), np.float64(25.545461710647455)), Input(np.float64(-0.9999999999809875), np.float64(73.34244860693056)), Input(np.float64(-0.08218028958237618), np.float64(61.9250284586637)), Input(np.float64(0.664691813031915), np.float64(99.99999999756037)))
+    New design points: (Input(np.float64(0.27813206334199936), np.float64(99.99999999613105)), Input(np.float64(-0.9999999999815539), np.float64(73.30012555329199)), Input(np.float64(0.9999999999983142), np.float64(25.508185417458638)), Input(np.float64(-0.08211397941960812), np.float64(61.928616171234324)), Input(np.float64(0.6646954205164309), np.float64(99.9999999981419)))
     Level to run batch at: 2
     
 </div>
@@ -273,25 +274,25 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.9999999999365581), np.float64(75.33587116834858))
+    ==> Updated level 2 with new design point (np.float64(0.9999999999892673), np.float64(75.2752485395042))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.5884058622884303), np.float64(99.99999999770225))
+    ==> Updated level 2 with new design point (np.float64(-0.5890439074453802), np.float64(99.99999999013096))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.9999999978921346), np.float64(45.679752252165585))
+    ==> Updated level 2 with new design point (np.float64(0.9999999971222091), np.float64(45.698125309273166))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.5597256705171263), np.float64(68.23532068976994))
+    ==> Updated level 2 with new design point (np.float64(-0.5525018292608445), np.float64(69.25914533608827))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.11578722629488825), np.float64(80.26503647005399))
+    ==> Updated level 2 with new design point (np.float64(0.040664453102886355), np.float64(81.00456111371182))
     

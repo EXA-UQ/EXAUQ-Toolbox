@@ -1280,7 +1280,7 @@ to do this. This function requires two arguments:</p>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">new_design_pts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Input(np.float64(0.8783345963414011), np.float64(55.498549948538695))
+<div class="language-text highlight"><pre><span></span><code>Input(np.float64(-0.43989564186729824), np.float64(54.37636339342745))
 </code></pre></div>
 </div>
 <p>If instead we want to compute multiple new design points in one go, we can do this by
@@ -1289,11 +1289,11 @@ specifying a different batch size:</p>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">new_design_pts</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>(Input(np.float64(-0.2247465823952749), np.float64(55.63473740845275)),
- Input(np.float64(-0.1447258101445732), np.float64(53.90074076950241)),
- Input(np.float64(-0.8117435232490076), np.float64(50.89490986477788)),
- Input(np.float64(-0.4403510115974675), np.float64(57.80473368302009)),
- Input(np.float64(0.85023418663402), np.float64(48.665902278026444)))
+<div class="language-text highlight"><pre><span></span><code>(Input(np.float64(0.9275254983639893), np.float64(54.352557725224536)),
+ Input(np.float64(0.8984512829749669), np.float64(56.82592896833036)),
+ Input(np.float64(-0.5844408827181062), np.float64(55.596401337094605)),
+ Input(np.float64(-0.7114079471309867), np.float64(52.47291499783807)),
+ Input(np.float64(-0.9522073814993757), np.float64(56.481066242340106)))
 </code></pre></div>
 </div>
 <p>Note how the new design points all lie within the simulator domain we defined earlier,
@@ -1357,23 +1357,23 @@ messages from the <code>mogp_emulator</code> package can be ignored.)</p>
 </span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.6968059435820717), np.float64(1.0000070688987677))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.9923852677110758), np.float64(6.594694917643089))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.9999992691131184), np.float64(89.27647835513658))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.6429895030986328), np.float64(99.99999922753946))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.28237845912916737), np.float64(99.9999859883154))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.4242029263391056), np.float64(99.99999889419603))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.24038102421826124), np.float64(1.0000008324063145))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.020039987536748072), np.float64(57.80009523393657))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.9999993192599338), np.float64(60.433032620134775))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.9509138311294454), np.float64(27.756422827659573))
 </code></pre></div>
 </div>
 
