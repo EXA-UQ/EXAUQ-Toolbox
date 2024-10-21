@@ -1838,7 +1838,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             ]
         )
         self.default_mlgp = MultiLevelGaussianProcess([gp1, gp2])
-        self.default_costs = MultiLevel([1, 10])
+        self.default_costs = MultiLevel([1, 11])
 
     def compute_multi_level_loo_samples(
         self,
@@ -2045,7 +2045,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         across all simulator levels. The weightings are reciprocals of the associated
         costs for calculating differences of simulator outputs."""
 
-        costs = self.make_level_costs([1, 10, 100])
+        costs = self.make_level_costs([1, 11, 110])
         domain = SimulatorDomain([(0, 1)])
         mlgp = MultiLevelGaussianProcess([MogpEmulator(), MogpEmulator(), MogpEmulator()])
         training_data = MultiLevel(
@@ -2084,8 +2084,8 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         expected_level, _ = max(
             [
                 (1, max_pei1 / costs[1]),
-                (2, max_pei2 / (costs[2] + costs[1])),
-                (3, max_pei3 / (costs[3] + costs[2])),
+                (2, max_pei2 / costs[2]),
+                (3, max_pei3 / costs[3]),
             ],
             key=lambda tup: tup[1],
         )
@@ -2132,7 +2132,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         calculation of pseudo-expected improvement for the LOO errors GP across all levels.
         """
 
-        costs = self.make_level_costs([1, 10, 100])
+        costs = self.make_level_costs([1, 11, 110])
         domain = SimulatorDomain([(0, 1)])
         mlgp = MultiLevelGaussianProcess([MogpEmulator(), MogpEmulator(), MogpEmulator()])
         training_data = MultiLevel(
