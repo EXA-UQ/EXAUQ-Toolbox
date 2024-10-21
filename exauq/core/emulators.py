@@ -22,6 +22,8 @@ from exauq.core.modelling import (
     OptionalFloatPairs,
     TrainingDatum,
 )
+
+from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 from exauq.utilities.decorators import suppress_print
 
@@ -206,6 +208,8 @@ class MogpEmulator(AbstractGaussianProcess):
         Raises
         ------
         ValueError
+            If `training_data` is provided with duplicate inputs: all inputs must be unique.
+
             If `hyperparameters` is provided with nugget being ``None`` but `self.gp`
             was created with nugget fitting method 'fit'.
         """
@@ -213,6 +217,8 @@ class MogpEmulator(AbstractGaussianProcess):
         training_data = self._parse_training_data(training_data)
         if not training_data:
             return None
+
+        self._validate_training_data_unique(training_data)
 
         if not (
             hyperparameters is None or isinstance(hyperparameters, MogpHyperparameters)
@@ -246,6 +252,20 @@ class MogpEmulator(AbstractGaussianProcess):
         self._training_data = training_data
 
         return None
+
+    @staticmethod
+    def _validate_training_data_unique(training_data: tuple[TrainingDatum]):
+        """Check whether the given collection of TrainingDatum are unique,
+        raising a ValueError if not."""
+
+        inputs = [data_point.input for data_point in training_data]
+
+        for input1, input2 in itertools.combinations(inputs, 2):
+            if equal_within_tolerance(input1, input2):
+                raise ValueError(
+                    f"Points {np.round(input1, 9)} and {np.round(input2, 9)}"
+                    " in 'TrainingDatum' are not unique within tolerance."
+                )
 
     @staticmethod
     def _parse_training_data(training_data: Any) -> tuple[TrainingDatum]:
