@@ -1,43 +1,72 @@
-Thank you for considering contributing to the EXAUQ-TOOLBOX, a warm welcome!
+# EXAUQ-Toolbox Contributing Guide
+
+Thank you for considering contributing to the EXAUQ-Toolbox, a warm welcome!
 Please read this contributing guide in full (and refer back to it when necessary) before
 opening issues/creating PRs. This will help us review issues / answer your questions more
 efficiently and hence help you have quicker responses!
 
-## Issues
+## Workflow
 
+Within the EXAUQ-Toolbox we champion reproducible research, which as part of that, good documentation of changes and
+test driven development lie at the heart of our ideals. Whilst this may seem a little tedious at times, this
+ensures the integrity and credibility of the toolbox which, currently, has a very small team so please do follow along!
 
+### Issues
 
-Types of issues (Main examples but not limited to):
-1) Questions regarding usage of the toolbox etc. 
-2) Bugs
-3) Feature Requests
+The key rule here is **1 question/bug/feature = 1 issue**. Please feel free to raise multiple issues (within reason), 
+but stick to one singular thing in an issue. It should be structured as follows:
 
-When writing an issue, particularly a bug/feature request, it should have some form 
-of motivation, preferably an example (ie a bug is doing this but I expect this) or
-I want a feature to do this in this case. Then it should have some form of acceptance criteria
-ie. this issue can be closed if for example, bug is fixed, or feature implemented could solve
-this and this for example. 
+1) **Motivation:** Why am I raising this as an issue? It could be a question, bug or feature request, but please let us know why you
+are raising it and how it well help the toolbox.
+2) **Example:** How can I show this? In the case of a bug or feature request, please give a basic example that we can either, reproduce in the case of a bug, use
+as the basis for a test case if it is feature based. 
+3) **Acceptance Criteria:** How will we know that this issue is now closed? You could do this via bullet points/tasks or simply an explanation that gives
+clear criteria as to where you expect the Toolbox to be when it is finished.
 
 Poorly written issues will likely not be resolved without further clarification and if none received
-will likely be removed. 
+will likely be removed. However, this process takes time so please do ensure your issues conform to our requests. 
 
-Please also link 1 bug/ 1 feature request to 1 issue. If you have multiple, that is great - but please
-create multiple separate issues for these to be solved.
+As it stands there is only 1 person maintaining the toolbox, therefore please do give some time for the issue to be resolved. If
+you wish to follow up on your own issue please feel free to open a branch and then PR (see below). 
 
-## Pull Requests
+### Labels
 
-Fill in text about how to structure PRs
+When creating issues please feel free to add appropriate labels to the issue from the list provided. This helps the team quickly 
+identify bugs from feature requests etc. without having to open issues. This may seem trivial but if there are a sudden influx of issues
+it does help us sort through them more quickly for those that are urgent or assigning them to the right person. 
 
-A PR should close at least 1 issue. Draft/WIP PRs are fully encouraged so that the maintaners of the 
-toolbox can see what you are working on. Within the PR please clearly document which issue(s) you are closing
-alongside a good description of how this issue has been closed by your PR. (Note: A well written issue will make this a lot
-easier!)
+There is also a **"Good First Issue"** label. If you are new to the EXAUQ-Toolbox and wish to contribute, please
+do take a look at these first as our team realise these are good issues to get you up to speed with contributing to the toolbox more easily. 
 
-When you think you have finished the PR please, **before requesting a review** remember to 
-1) Double check you have updated all of the relevent documentation including API, user guides / tutorials
-2) Run all of the unittests
+### Branches and Pull Requests
+
+If you wish to resolve an issue please create a new branch and label the branch **"iss{number}-{issue_title}"**. We suggesting opening 
+the branches locally and then pushing through to the remote branch when you wish. **NOTE:** This does not have to be when you are 
+finished and ready to submit your PR. Draft/WIP PRs are fully encouraged so that the maintaners of the 
+toolbox can see what you are working on please just label the title of your PR **"[WIP]{Name_of_branch}"**. 
+
+Every PR should close at least 1 issue. Please link the issue(s) at the top of your PR using the following: **"Closes #issueNo."** to 
+attach the issue to the PR. There should then be a good description of how this issue has been closed by your PR (or how far you have 
+got and where you are going if it is a draft!). A well written issue will make this a lot easier!
+
+When you think you have finished the PR please, **before requesting a review**, remember to:
+1) **Documentation:** Double check you have updated all of the relevent documentation including API, user guides / tutorials (see below).
+2) **Test:** Run all of the unittests.
 3) There are (will be) github workflows such as linting and documents rebuilding that will occur before merging. (However, a quick
-test of this yourself is also appreciated!). 
+test of this yourself is also appreciated!). See below for the standards we use.
+
+### Test Driven Development
+
+Within every PR, we expect test coverage built in for any adaptations of functions or features. These should be automated unit tests which 
+will fail before you write your new code and pass once you have implemented a bug fix/feature etc. These are created using python's unittest module and
+can be run simply using `python -m unittest discover tests` from within the poetry shell. The best examples can be found in the codebase already 
+to give ideas for exception raises, edge cases and mocking etc. 
+
+**Please take the time to test your code!**
+
+### Reviewing
+Finally when your PR is ready, change the name of the PR to **"[ReadyforReview]{branch_name}"** and request a review from one of the team. Currently, 
+we are still finalising how long reviews will take (and this will depend on the number of PRs). However, 2 weeks is probably a reasonable request currently. 
 
 ## Developing documentation
 
@@ -107,7 +136,3 @@ where to find the notebooks and where to write the markdown versions.
 Fill in text here about how to write good user guides and tutorials following TH link advice (HW will find and write!)
 
 
-## Labels
-
-Fill in text about different labels that can be used within the Toolbox depending on what people want to contribute. 
-(ie making use of the goodfirst issue label as a new contributor etc. )
