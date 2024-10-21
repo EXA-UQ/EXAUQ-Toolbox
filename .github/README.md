@@ -12,6 +12,8 @@ multi-fidelity hierarchy. (For example, runs of the highest-fidelity simulation 
 be run on an exascale computer, whereas a lower-fidelity, but cheaper, simulation may be
 run on a more conventional HPC, or a departmental server).
 
+The EXAUQ-Toolbox welcomes contributors and users to raise issues/ideas. Please do take a look through 
+our [support](support.md) page to see how you can help and how we can help you in the most efficient way!
 
 ## Installing the latest development version
 
@@ -83,67 +85,3 @@ poetry update
 ```
 
 This will update the `poetry.lock` file.
-
-
-## Developing documentation
-
-### Tooling
-
-The toolbox uses [MkDocs](https://www.mkdocs.org/) with the following plugins:
-- `mkdocs-material`: [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
-  theme.
-- `mkdocstrings`: [Auto-generation of API docs](https://mkdocstrings.github.io/) from
-  docstrings.
-- `mkdocs-gen-files`: [Programmatically generate docs at build time](https://oprypin.github.io/mkdocs-gen-files/).
-- `mkdocs-literate-nav`: [Specify navigation in markdown](https://github.com/oprypin/mkdocs-literate-nav),
-  used to support API docs generation (following the mkdocstrings recipe,
-  [Automatic code reference pages](https://mkdocstrings.github.io/recipes/#automatic-code-reference-pages)). 
-
-### Building the docs
-
-Currently, documentation is distributed within the toolbox for offline viewing. Building
-the documentation is a two step process (run from the repository root directory,
-either using `poetry run` or after first activating the Poetry environment):
-
-1. Run `python scripts/build_notebooks.py`. This converts any Jupyter notebooks
-   into markdown equivalents, which are ultimately what MkDocs will use to build the docs.
-   By default, the notebooks are executed before converting to markdown, which provides a
-   basic layer of testing for the documentation (i.e. it at least checks that the tutorial
-   runs without crashing). To skip this, supply the `-n` option to
-   `scripts/build_notebook.py`.
-2. Run `mkdocs build` to build the documentation from the contents of the `docs`
-   directory.
-
-When developing documentation, you can instead use `mkdocs serve` to start a development
-server for the docs website. This will watch for changes to the markdown source in `docs/`
-and regenerate the web content automatically. A workflow which is more suitable for quick
-feedback when writing docs:
-
-1. Run `mkdocs serve` in a separate shell.
-2. Edit markdown files in `docs/` and see the results get re-rendered live. If you edit
-   Jupyter notebooks, then convert these to markdown using `scripts/build_notebooks.py` in
-   order for them to be rendered by the development server. (Depending on what you're
-   doing, you may want to use the `-n` option; see above.)
-
-
-### Writing / editing docs
-
-Documentation should be added to appropriate subdirectories of the `docs/` directory.
-The layout is summarised as follows:
-
-- `docs/index.md`: The root page of the documentation website.
-- `docs/designers`: Tutorials and guides for doing experimental design.
-- `docs/cli`: Tutorials and guides for using the `exauq` command line app for managing
-  jobs.
-
-Landing pages for sections are called `index.md` within the relevant directory. We also
-separate out tutorials and user-guides (the former being more introductory and giving
-a tour of the main features, while the latter go into more detail of specific topics,
-while still having a 'how-to' focus).
-
-Jupyter notebooks that need to be converted to markdown via the `scripts/build_notebooks.py`
-script should go in `notebooks` subdirectories. For example,
-`docs/designers/tutorials/notebooks` contains notebooks for tutorials on experimental
-design. The `scripts/build_notebooks.py` script contains hardcoded filepaths specifying
-where to find the notebooks and where to write the markdown versions.
- 
