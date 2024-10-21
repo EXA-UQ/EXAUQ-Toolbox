@@ -1,8 +1,4 @@
-Modified BSD License (https://opensource.org/licenses/BSD-3-Clause)
-applies to all code, scripts, programs, and SOFTWARE.  
-This is any statements or instructions to be used directly or 
-indirectly in a computer in order to bring about a certain result, 
-and may include interpretive, object or source code
+Modified BSD License 
 
 Copyright (c) 2024, Univeristy of Exeter?.
 All rights reserved.
