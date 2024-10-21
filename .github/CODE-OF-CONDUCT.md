@@ -1,5 +1,7 @@
 
-# Contributor Covenant Code of Conduct
+# EXAUQ-Toolbox Contributor Code of Conduct
+
+**NOTE: THIS NEEDS UPDATING WITH ENFORCEMENT POLICIES WHEN DECIDED**
 
 ## Our Pledge
 
