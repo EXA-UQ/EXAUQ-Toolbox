@@ -5,6 +5,9 @@ Please read this contributing guide in full (and refer back to it when necessary
 opening issues/creating PRs. This will help us review issues / answer your questions more
 efficiently and hence help you have quicker responses!
 
+To download for a developer please do check out the [README](README.md) instructions and ensure you're running 
+`Python >= 3.11`. 
+
 ## Workflow
 
 Within the EXAUQ-Toolbox we champion reproducible research, which as part of that, good documentation of changes and
@@ -17,11 +20,15 @@ The key rule here is **1 question/bug/feature = 1 issue**. Please feel free to r
 but stick to one singular thing in an issue. It should be structured as follows:
 
 1) **Motivation:** Why am I raising this as an issue? It could be a question, bug or feature request, but please let us know why you
-are raising it and how it well help the toolbox.
-2) **Example:** How can I show this? In the case of a bug or feature request, please give a basic example that we can either, reproduce in the case of a bug, use
+are raising it and how it well help either the toolbox or a user of the toolbox.
+2) **Example:** How can I show this? In the case of a bug or feature request, please give a basic example that we can either, reproduce in the case of a bug or use
 as the basis for a test case if it is feature based. 
 3) **Acceptance Criteria:** How will we know that this issue is now closed? You could do this via bullet points/tasks or simply an explanation that gives
-clear criteria as to where you expect the Toolbox to be when it is finished.
+clear criteria as what your expectations are at implementation.
+
+ 
+**Note discussion:** It may be that one of the maintenance team wish to clarify/discuss your issue further, please do keep an eye once the issue is
+open to answer any questions promptly. 
 
 Poorly written issues will likely not be resolved without further clarification and if none received
 will likely be removed. However, this process takes time so please do ensure your issues conform to our requests. 
@@ -40,10 +47,10 @@ do take a look at these first as our team realise these are good issues to get y
 
 ### Branches and Pull Requests
 
-If you wish to resolve an issue please create a new branch and label the branch **"iss{number}-{issue_title}"**. We suggesting opening 
+If you wish to resolve an issue please create a new branch and label the branch **"iss{number}-{issue_title}"**. We suggest opening 
 the branches locally and then pushing through to the remote branch when you wish. **NOTE:** This does not have to be when you are 
 finished and ready to submit your PR. Draft/WIP PRs are fully encouraged so that the maintaners of the 
-toolbox can see what you are working on please just label the title of your PR **"[WIP]{Name_of_branch}"**. 
+toolbox can see what you are working on, please just label the title of your PR **"[WIP]{Name_of_branch}"**. 
 
 Every PR should close at least 1 issue. Please link the issue(s) at the top of your PR using the following: **"Closes #issueNo."** to 
 attach the issue to the PR. There should then be a good description of how this issue has been closed by your PR (or how far you have 
@@ -65,10 +72,21 @@ to give ideas for exception raises, edge cases and mocking etc.
 **Please take the time to test your code!**
 
 ### Reviewing
+
 Finally when your PR is ready, change the name of the PR to **"[ReadyforReview]{branch_name}"** and request a review from one of the team. Currently, 
 we are still finalising how long reviews will take (and this will depend on the number of PRs). However, 2 weeks is probably a reasonable request currently. 
 
-## Developing documentation
+### Github Workflows
+
+We have set up some initial workflows which help our team maintain the code more easily - these include: 
+
+- **iSort and black:** Before your code is merged into dev it will undergo [iSort](https://pycqa.github.io/isort/) (for import sorting)
+and linted using [black](https://github.com/psf/black) - more specifically `Black --line-length 90`.
+- **mkdocs build:** The docs will be rebuilt ensuring that your API documentation is the latest version, is fully up to date and builds with
+no warnings or errors.
+- **Test:** Unit tests will be run on the current determined versions of Python `3.11, 3.12` and `3.13` to ensure compatibility. 
+
+## Developing Documentation
 
 ### Tooling
 
@@ -82,7 +100,7 @@ The toolbox uses [MkDocs](https://www.mkdocs.org/) with the following plugins:
   used to support API docs generation (following the mkdocstrings recipe,
   [Automatic code reference pages](https://mkdocstrings.github.io/recipes/#automatic-code-reference-pages)). 
 
-### Building the docs
+### Building the Docs
 
 Currently, documentation is distributed within the toolbox for offline viewing. Building
 the documentation is a two step process (run from the repository root directory,
@@ -109,7 +127,7 @@ feedback when writing docs:
    doing, you may want to use the `-n` option; see above.)
 
 
-### Writing / editing docs
+### Writing / Editing Docs
 
 Documentation should be added to appropriate subdirectories of the `docs/` directory.
 The layout is summarised as follows:
@@ -129,10 +147,32 @@ script should go in `notebooks` subdirectories. For example,
 `docs/designers/tutorials/notebooks` contains notebooks for tutorials on experimental
 design. The `scripts/build_notebooks.py` script contains hardcoded filepaths specifying
 where to find the notebooks and where to write the markdown versions.
- 
+
+### API
+
+Given the usage of an auto-generated API docs, there are certain issues with formatting and rendering that 
+mean we do not follow one particular style in its entirety, however we follow the [Numpydoc conventions
+for docstrings](https://numpydoc.readthedocs.io/en/latest/format.html#style-guide) as closely as possible.
+See also the section on [multi-line docstrings from PEP 257](https://peps.python.org/pep-0257/#multi-line-docstrings) for 
+useful guidance on what to include. Note that this kind of documentation can be quite terse and is for reference only,
+as we use guides and tutorials to show examples of objects in context following the [Diátaxis](https://diataxis.fr/) approach. 
+
+The most common deviations are: 
+
+- Remove incoming argument types from docstrings and rely on in-code type hints
+- API reference links should **only** be placed into the "see also" section and not in the docstring body.
+
+If you do include examples as part of the docstring then these should follow the [doctest](https://docs.python.org/3.10/library/doctest.html) format. 
+In general, **there should be no errors or warnings through [doctest](https://docs.python.org/3.10/library/doctest.html) or building the docs with `mkdocs`**.  
+
+We ask that before you request a review for your PR, you look through the online API documentation to check that any of your changes
+are rendered correctly and any links/references etc. all work as intended. 
 
 ### User Guides & Tutorials
 
-Fill in text here about how to write good user guides and tutorials following TH link advice (HW will find and write!)
-
-
+Good documentation consists of more than just API documentation. We already have a few tutorials 
+introducing newcomers on how to use the toolbox to train emulators and do basic adaptive sampling 
+(both single and multi-level). These tutorials only cover the most basic use cases, however. 
+If you wish to contribute to the guides and tutorials, we follow the [Diátaxis](https://diataxis.fr/) approach to 
+writing documentation. Tutorials are designed for learning the basics, where as user guides should be goal-oriented, 
+consisting of directions that guide the reader through a problem or towards a result. 
