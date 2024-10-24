@@ -15,6 +15,15 @@ run on a more conventional HPC, or a departmental server).
 The EXAUQ-Toolbox welcomes contributors and users to raise issues/ideas. Please do take a look through 
 our [support](support.md) page to see how you can help and how we can help you in the most efficient way!
 
+Software developed by the RSE team at the University of Exeter, UK and funded by the EPRSC (2021-2025)
+as part of project ExCALIBUR.
+Many thanks to the code contributors of the toolbox:
+
+  - Dr. Thomas Hawes
+  - Dr. Matt Johns
+  - Dr. Enrico Olivier
+  - Mr. Harrison White
+  
 ## Installing the latest development version
 
 We strongly recommend using virtual environments (e.g. Conda environments) to
