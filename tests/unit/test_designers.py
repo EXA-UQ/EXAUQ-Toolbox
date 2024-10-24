@@ -344,8 +344,8 @@ class TestComputeLooGp(ExauqTestCase):
         # For use with FakeGP instance
         self.training_data_1dim = [
             TrainingDatum(Input(0), 1),
-            TrainingDatum(Input(0.5), 1),
-            TrainingDatum(Input(1), 1),
+            TrainingDatum(Input(0.3), 2),
+            TrainingDatum(Input(0.8), 2),
         ]
 
     def test_compute_loo_gp_arg_type_errors(self):
@@ -1667,7 +1667,7 @@ class TestComputeMultiLevelLooErrorData(ExauqTestCase):
         bad_levels = ", ".join(
             sorted({str(level) for level, data in training_data.items() if len(data) < 2})
         )
-        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data])
+        mlgp = MultiLevelGaussianProcess([fakes.FakeGP() for _ in training_data])
         mlgp.fit(training_data)
 
         with self.assertRaisesRegex(
