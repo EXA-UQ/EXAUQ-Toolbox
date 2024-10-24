@@ -107,6 +107,9 @@ class MogpEmulator(AbstractGaussianProcess):
         # Correlation length scale parameters on a negative log scale
         self._corr_transformed = None
 
+        # Inverse of covariance matrix
+        self._kinv = np.array([])
+
     @staticmethod
     def _remove_entries(_dict: dict, *args) -> dict:
         """Return a dict with the specified keys removed."""
@@ -164,6 +167,13 @@ class MogpEmulator(AbstractGaussianProcess):
         process model, or ``None`` if the model has not been fitted to data."""
 
         return self._fit_hyperparameters
+    
+    @property
+    def kinv(self) -> NDArray:
+        """(Read-only) The inverse of the covariance matrix of the training data, 
+        or an empty NumPy array if the model has not been fitted to data."""
+
+        return self._kinv
 
     @suppress_print
     def fit(
@@ -248,8 +258,10 @@ class MogpEmulator(AbstractGaussianProcess):
         self._fit_hyperparameters = MogpHyperparameters.from_mogp_gp_params(
             self._gp.theta
         )
+
         self._corr_transformed = self._gp.theta.corr_raw
         self._training_data = training_data
+        self._kinv = self._compute_kinv()
 
         return None
 
