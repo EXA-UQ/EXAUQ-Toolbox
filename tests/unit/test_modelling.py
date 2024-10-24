@@ -750,6 +750,32 @@ class TestAbstractGaussianProcess(ExauqTestCase):
             emulator.covariance_matrix(inputs),
         )
 
+    def test_validate_covariance_matrix_with_singular_matrix(self):
+        """Ensuring the error for a singular covariance matrix is caught."""
+
+        gp = MogpEmulator()
+        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 1)]
+
+        with self.assertRaisesRegex(
+            ValueError, 
+            exact("Cannot compute covariance inverse: Covariance Matrix is, or too close to singular.")
+        ):
+            gp.fit(training_data)
+
+    def test_kinv_property_correctly_calculates_and_stores_inverse(self):
+        """Ensuring that the inverse of the covariance matrix within the gp is being 
+        calculated correctly."""
+
+        gp = MogpEmulator()
+        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 2)]
+        gp.fit(training_data)
+
+        test_array = gp.covariance_matrix([datum.input for datum in training_data])
+
+        self.assertArraysEqual(
+            np.linalg.inv(test_array), 
+            gp.kinv
+        )
 
 class TestGaussianProcessHyperparameters(ExauqTestCase):
     def setUp(self) -> None:
