@@ -7,6 +7,7 @@ import csv
 import dataclasses
 import functools
 import math
+import sys
 from collections.abc import Collection, Mapping, Sequence
 from itertools import product
 from numbers import Real
@@ -14,6 +15,7 @@ from types import GenericAlias
 from typing import Any, Callable, Optional, TypeVar, Union
 
 import numpy as np
+from numpy.linalg import cond, LinAlgError
 from numpy.typing import NDArray
 
 import exauq.utilities.validation as validation
@@ -973,6 +975,13 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         """(Read-only) The hyperparameters of the fit for this Gaussian process emulator,
         or ``None`` if this emulator has not been fitted to data."""
         raise NotImplementedError
+    
+    @property
+    @abc.abstractmethod
+    def kinv(self) -> NDArray:
+        """(Read-only) The inverse of the covariance matrix of the training data, 
+        or ``None`` if the model has not been fitted to data."""
+        raise NotImplementedError
 
     @abc.abstractmethod
     def fit(
@@ -1061,6 +1070,36 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         return self.fit_hyperparameters.process_var * self.correlation(
             inputs, training_inputs
         )
+    
+    def _validate_covariance_matrix(self, k: NDArray) -> None:
+        """Validate that the covariance is a non-singular matrix before attempting to invert it"""
+
+        try:
+            if cond(k) >= 1/sys.float_info.epsilon:
+                raise ValueError("Covariance Matrix is, or too close to singular.")
+
+        except LinAlgError as e:
+            raise ValueError(f"Cannot calculate inverse of covariance matrix: {e}")
+        
+        return None
+
+    def _compute_kinv(self) -> NDArray:
+        """Compute the inversion of the covariance matrix of the training data"""
+
+        training_inputs = [datum.input for datum in self.training_data]
+
+        if not training_inputs:
+            raise ValueError("Cannot compute covariance inverse: 'gp' hasn't been trained on any data.")
+
+        try: 
+            k = self.covariance_matrix(training_inputs)
+            _ = self._validate_covariance_matrix(k)
+            kinv = np.linalg.inv(k)
+            
+        except (ValueError, LinAlgError) as e:
+            raise e.__class__(f"Cannot compute covariance inverse: {e}")
+        
+        return kinv
 
     @abc.abstractmethod
     def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
