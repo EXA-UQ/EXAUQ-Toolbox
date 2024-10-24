@@ -1003,16 +1003,20 @@ def compute_zero_mean_prediction(
     training_outputs = np.array([[datum.output] for datum in gp.training_data])
 
     try:
+
         mean = float(
             gp.covariance_matrix([x])
-            @ np.linalg.inv(gp.covariance_matrix(training_inputs))
+            @ gp.kinv
             @ training_outputs
         )
-    except ValueError:
+        
+    except ValueError as e:
         if not training_inputs:
             raise ValueError(
                 "Cannot calculate zero-mean prediction: 'gp' hasn't been trained on any data."
             )
+        else:
+            raise ValueError(f"Cannot calculate zero-mean prediction: {e}")
     except np.linalg.LinAlgError as e:
         raise ValueError(f"Cannot calculate zero-mean prediction: {e}")
 
