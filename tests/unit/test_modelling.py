@@ -184,9 +184,7 @@ class TestInput(unittest.TestCase):
 
         x = Input(2)
         i = 1
-        with self.assertRaisesRegex(
-            IndexError, exact(f"Input index {i} out of range.")
-        ):
+        with self.assertRaisesRegex(IndexError, exact(f"Input index {i} out of range.")):
             x[i]
 
     def test_sequence_implementation(self):
@@ -462,9 +460,7 @@ class TestTrainingDatum(unittest.TestCase):
         self.write_csv_data(self.path, [[1, 2, 3], [10, "inf", 30]])
         with self.assertRaisesRegex(
             AssertionError,
-            exact(
-                f"Could not read data from {self.path}: infinite or NaN values found."
-            ),
+            exact(f"Could not read data from {self.path}: infinite or NaN values found."),
         ):
             _ = TrainingDatum.read_from_csv(self.path)
 
@@ -472,9 +468,7 @@ class TestTrainingDatum(unittest.TestCase):
         self.write_csv_data(self.path, [[1, 2, 3], [10, "NaN", 30]], mode="w")
         with self.assertRaisesRegex(
             AssertionError,
-            exact(
-                f"Could not read data from {self.path}: infinite or NaN values found."
-            ),
+            exact(f"Could not read data from {self.path}: infinite or NaN values found."),
         ):
             _ = TrainingDatum.read_from_csv(self.path)
 
@@ -555,9 +549,7 @@ class TestPrediction(ExauqTestCase):
         var = -0.1
         with self.assertRaisesRegex(
             ValueError,
-            exact(
-                f"'variance' must be a non-negative real number, but received {var}."
-            ),
+            exact(f"'variance' must be a non-negative real number, but received {var}."),
         ):
             Prediction(estimate=1, variance=var)
 
@@ -600,9 +592,7 @@ class TestPrediction(ExauqTestCase):
         estimate = 0
         for var1 in [0.1 * n for n in range(101)]:
             p1 = Prediction(estimate, var1)
-            for var2 in filter(
-                lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)
-            ):
+            for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
                 p2 = Prediction(estimate, var2)
                 self.assertIs(p1 == p2, equal_within_tolerance(var1, var2))
                 self.assertIs(p2 == p1, p1 == p2)
@@ -757,13 +747,15 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 1)]
 
         with self.assertRaisesRegex(
-            ValueError, 
-            exact("Cannot compute covariance inverse: Covariance Matrix is, or too close to singular.")
+            ValueError,
+            exact(
+                "Cannot compute covariance inverse: Covariance Matrix is, or too close to singular."
+            ),
         ):
             gp.fit(training_data)
 
     def test_kinv_property_correctly_calculates_and_stores_inverse(self):
-        """Ensuring that the inverse of the covariance matrix within the gp is being 
+        """Ensuring that the inverse of the covariance matrix within the gp is being
         calculated correctly."""
 
         gp = MogpEmulator()
@@ -772,10 +764,8 @@ class TestAbstractGaussianProcess(ExauqTestCase):
 
         test_array = gp.covariance_matrix([datum.input for datum in training_data])
 
-        self.assertArraysEqual(
-            np.linalg.inv(test_array), 
-            gp.kinv
-        )
+        self.assertArraysEqual(np.linalg.inv(test_array), gp.kinv)
+
 
 class TestGaussianProcessHyperparameters(ExauqTestCase):
     def setUp(self) -> None:
@@ -1009,9 +999,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         ):
             arg = self.hyperparameters[hyperparameter]["arg"]
             transformation_func = self.hyperparameters[hyperparameter]["func"]
-            with self.subTest(
-                hyperparameter=hyperparameter, x=x
-            ), self.assertRaisesRegex(
+            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
                 TypeError,
                 exact(f"Expected '{arg}' to be a real number, but received {type(x)}."),
             ):
@@ -1025,9 +1013,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         ):
             arg = self.hyperparameters[hyperparameter]["arg"]
             transformation_func = self.hyperparameters[hyperparameter]["func"]
-            with self.subTest(
-                hyperparameter=hyperparameter, x=x
-            ), self.assertRaisesRegex(
+            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
                 ValueError,
                 exact(f"'{arg}' cannot be < 0, but received {x}."),
             ):
@@ -1036,9 +1022,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
 
 class TestSimulatorDomain(unittest.TestCase):
     def setUp(self) -> None:
-        self.epsilon = (
-            FLOAT_TOLERANCE / 2
-        )  # Useful for testing equality up to tolerance
+        self.epsilon = FLOAT_TOLERANCE / 2  # Useful for testing equality up to tolerance
         self.bounds = [(0, 2), (0, 1)]
         self.domain = SimulatorDomain(self.bounds)
 
@@ -1080,7 +1064,7 @@ class TestSimulatorDomain(unittest.TestCase):
         """Test that an Input with a coordinate that lies on the domain's bounds
         still belongs within the domain if on the tolerance level tolerance."""
 
-        # Check with changing tolerance 
+        # Check with changing tolerance
         tol = 1e-7
         set_tolerance(tol)
 
@@ -1089,13 +1073,13 @@ class TestSimulatorDomain(unittest.TestCase):
         x2 = Input(tol, 0.5)
         self.assertTrue(x1 in self.domain)
         self.assertTrue(x2 in self.domain)
-        
+
     def test_input_close_to_domain_bound_outside_tolerance(self):
         """Test that an Input with a coordinate that lies very close to the domain's bounds
         but outside tolerance still flags failure."""
 
         # Test just outside of boundary
-        x1 = Input(0, 1+1e-5)
+        x1 = Input(0, 1 + 1e-5)
         x2 = Input(-1e-5, 0.5)
         self.assertFalse(x1 in self.domain)
         self.assertFalse(x2 in self.domain)
@@ -1105,7 +1089,7 @@ class TestSimulatorDomain(unittest.TestCase):
         still belongs within the domain if within tolerance."""
 
         # Test just inside boundary of tolerance
-        x1 = Input(0, 1+1e-12)
+        x1 = Input(0, 1 + 1e-12)
         x2 = Input(-1e-12, 0.5)
         self.assertTrue(x1 in self.domain)
         self.assertTrue(x2 in self.domain)
@@ -1532,9 +1516,7 @@ class TestSimulatorDomain(unittest.TestCase):
             with self.subTest(coord=coord, limit=limit):
                 self.assertEqual(
                     1,
-                    len(
-                        [x for x in boundary_points if is_on_boundary(x, coord, limit)]
-                    ),
+                    len([x for x in boundary_points if is_on_boundary(x, coord, limit)]),
                 )
 
     def test_closest_boundary_points_does_not_return_boundary_corners(self):
@@ -2003,9 +1985,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         )
         self.hyperparameter_bounds = MultiLevel(
             {
-                level: self.make_white_noise_gp_hyperparameter_bounds(
-                    (level + 10, None)
-                )
+                level: self.make_white_noise_gp_hyperparameter_bounds((level + 10, None))
                 for level in self.training_data
             }
         )
@@ -2038,9 +2018,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         some_bad_coeffs = [{1: 1, 2: "a"}, [1, [1]], "a"]
         for bad_coeffs in some_bad_coeffs:
             with self.assertRaises(TypeError):
-                _ = self.make_multi_level_gp(
-                    [WhiteNoiseGP(), WhiteNoiseGP()], bad_coeffs
-                )
+                _ = self.make_multi_level_gp([WhiteNoiseGP(), WhiteNoiseGP()], bad_coeffs)
 
     def test_coefficients_single_value_used_at_each_level(self):
         """If a single float is given for the coefficients, then this value is used at
@@ -2233,9 +2211,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         self.assertEqual(self.hyperparameters, mlgp.fit_hyperparameters)
 
         for level in self.training_data.levels:
-            self.assertEqual(
-                self.hyperparameters[level], mlgp[level].fit_hyperparameters
-            )
+            self.assertEqual(self.hyperparameters[level], mlgp[level].fit_hyperparameters)
 
     def test_fit_single_level_hyperparameters_applied_to_all_levels(self):
         """If a non-levelled set of hyperparameters is supplied, then these are applied to

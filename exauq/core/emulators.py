@@ -167,10 +167,10 @@ class MogpEmulator(AbstractGaussianProcess):
         process model, or ``None`` if the model has not been fitted to data."""
 
         return self._fit_hyperparameters
-    
+
     @property
     def kinv(self) -> NDArray:
-        """(Read-only) The inverse of the covariance matrix of the training data, 
+        """(Read-only) The inverse of the covariance matrix of the training data,
         or an empty NumPy array if the model has not been fitted to data."""
 
         return self._kinv

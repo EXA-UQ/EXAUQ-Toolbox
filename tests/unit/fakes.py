@@ -101,10 +101,10 @@ class WhiteNoiseGP(AbstractGaussianProcess):
         scale parameters are irrelevant in this context."""
 
         return self._hyperparameter_bounds
-    
+
     @property
     def kinv(self) -> NDArray:
-        """The inverse of the covariance matrix, k, for the training data, or an empty NumPy array if 
+        """The inverse of the covariance matrix, k, for the training data, or an empty NumPy array if
         this emulator has not been fitted to data."""
 
         return self._kinv
@@ -149,7 +149,7 @@ class WhiteNoiseGP(AbstractGaussianProcess):
         self._training_data = tuple(training_data)
         if hyperparameters is not None:
             self._fit_hyperparameters = hyperparameters
-            
+
         elif hyperparameter_bounds is not None:
             lower, upper = hyperparameter_bounds[-1]
             if lower is not None and upper is not None and lower > upper:
@@ -167,13 +167,13 @@ class WhiteNoiseGP(AbstractGaussianProcess):
                 process_var=process_var
             )
             self._hyperparameter_bounds = tuple(hyperparameter_bounds)
-            
+
         else:
             self._fit_hyperparameters = WhiteNoiseGPHyperparameters(
                 process_var=self._noise_level
             )
             self._hyperparameter_bounds = None
-        
+
         self._kinv = self._compute_kinv()
         return None
 
@@ -309,13 +309,13 @@ class FakeGP(AbstractGaussianProcess):
         data, or ``None`` if none were."""
 
         return self._hyperparameter_bounds
-    
+
     @property
     def kinv(self) -> NDArray:
-        """(Read-only) The inverse of the covariance matrix of the training data, 
+        """(Read-only) The inverse of the covariance matrix of the training data,
         or an empty NumPy array if the model has not been fitted to data. Note
         in this test GP this is not used."""
-         
+
         return self._kinv
 
     def fit(
@@ -351,7 +351,7 @@ class FakeGP(AbstractGaussianProcess):
         self._hyperparameter_bounds = (
             tuple(hyperparameter_bounds) if hyperparameter_bounds is not None else None
         )
-        
+
         return None
 
     def correlation(

@@ -882,8 +882,8 @@ class AbstractEmulator(abc.ABC):
     can be trained with simulator outputs using an experimental design
     methodology.
 
-    NOTE: Classes derived from this abstract base class MUST implement required checks on 
-    duplicated Inputs. Only unique Inputs should be allowed within the training data. 
+    NOTE: Classes derived from this abstract base class MUST implement required checks on
+    duplicated Inputs. Only unique Inputs should be allowed within the training data.
     """
 
     @property
@@ -959,8 +959,8 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     `GaussianProcessHyperparameters` for methods and properties that use parameters, or
     return objects, of type `AbstractHyperparameters`.
 
-    NOTE: Classes derived from this abstract base class MUST implement required checks on 
-    duplicated Inputs. Only unique Inputs should be allowed within the training data. 
+    NOTE: Classes derived from this abstract base class MUST implement required checks on
+    duplicated Inputs. Only unique Inputs should be allowed within the training data.
 
     Notes
     -----
@@ -975,11 +975,11 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         """(Read-only) The hyperparameters of the fit for this Gaussian process emulator,
         or ``None`` if this emulator has not been fitted to data."""
         raise NotImplementedError
-    
+
     @property
     @abc.abstractmethod
     def kinv(self) -> NDArray:
-        """(Read-only) The inverse of the covariance matrix of the training data, 
+        """(Read-only) The inverse of the covariance matrix of the training data,
         or ``None`` if the model has not been fitted to data."""
         raise NotImplementedError
 
@@ -1070,17 +1070,17 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         return self.fit_hyperparameters.process_var * self.correlation(
             inputs, training_inputs
         )
-    
+
     def _validate_covariance_matrix(self, k: NDArray) -> None:
         """Validate that the covariance is a non-singular matrix before attempting to invert it"""
 
         try:
-            if cond(k) >= 1/sys.float_info.epsilon:
+            if cond(k) >= 1 / sys.float_info.epsilon:
                 raise ValueError("Covariance Matrix is, or too close to singular.")
 
         except LinAlgError as e:
             raise ValueError(f"Cannot calculate inverse of covariance matrix: {e}")
-        
+
         return None
 
     def _compute_kinv(self) -> NDArray:
@@ -1089,16 +1089,18 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         training_inputs = [datum.input for datum in self.training_data]
 
         if not training_inputs:
-            raise ValueError("Cannot compute covariance inverse: 'gp' hasn't been trained on any data.")
+            raise ValueError(
+                "Cannot compute covariance inverse: 'gp' hasn't been trained on any data."
+            )
 
-        try: 
+        try:
             k = self.covariance_matrix(training_inputs)
             _ = self._validate_covariance_matrix(k)
             kinv = np.linalg.inv(k)
-            
+
         except (ValueError, LinAlgError) as e:
             raise e.__class__(f"Cannot compute covariance inverse: {e}")
-        
+
         return kinv
 
     @abc.abstractmethod

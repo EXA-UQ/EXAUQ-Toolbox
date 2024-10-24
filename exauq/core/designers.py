@@ -1004,12 +1004,8 @@ def compute_zero_mean_prediction(
 
     try:
 
-        mean = float(
-            gp.covariance_matrix([x])
-            @ gp.kinv
-            @ training_outputs
-        )
-        
+        mean = float(gp.covariance_matrix([x]) @ gp.kinv @ training_outputs)
+
     except ValueError as e:
         if not training_inputs:
             raise ValueError(
