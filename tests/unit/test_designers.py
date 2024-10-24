@@ -1655,19 +1655,19 @@ class TestComputeMultiLevelLooErrorData(ExauqTestCase):
 
     def test_single_training_datum_error(self):
         """A ValueError is raised if there are any levels in the supplied multi-level GP
-        that have fewer than 2 training data."""
+        only have 1 item of training data."""
 
         training_data = MultiLevel(
             {
                 1: (TrainingDatum(Input(0.1), 1), TrainingDatum(Input(0.2), 1)),
                 2: (TrainingDatum(Input(0.3), 1),),
-                3: tuple(),
+                3: (TrainingDatum(Input(0.6), 1),),
             }
         )
         bad_levels = ", ".join(
             sorted({str(level) for level, data in training_data.items() if len(data) < 2})
         )
-        mlgp = MultiLevelGaussianProcess([fakes.FakeGP() for _ in training_data])
+        mlgp = MultiLevelGaussianProcess([fakes.WhiteNoiseGP() for _ in training_data])
         mlgp.fit(training_data)
 
         with self.assertRaisesRegex(
