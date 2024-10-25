@@ -1,6 +1,7 @@
 import itertools
 import math
 import unittest.mock
+from numbers import Real
 
 import mogp_emulator as mogp
 import numpy as np
@@ -741,6 +742,162 @@ class TestMogpEmulator(ExauqTestCase):
             ),
         ):
             emulator.fit(self.training_data, hyperparameters=hyperparameters)
+
+    def test_update_type_error_raises(self):
+        """Given a trained emulator, test that TypeErrors are raised when passing new design points
+        and outputs from simulator to refit the GP with."""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+
+        fail_design_pts = [Input(0.1, 0.2), Input(0.5, 0.6), 0.5]
+        pass_design_pts = [Input(0.1, 0.2), Input(0.5, 0.6), Input(0.8, 0.25)]
+
+        fail_outputs = [1, 2, "abc"]
+        pass_outputs = [1, 2, 3]
+
+        arg1 = 1
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'new_design_pts' to be of type collection of {Input.__name__}, "
+                f"but received {type(arg1)} instead."
+            ),
+        ):
+            _ = emulator.update(arg1, pass_outputs)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'new_outputs' to be of type collection of {Real.__name__}, "
+                f"but received {type(arg1)} instead."
+            ),
+        ):
+            _ = emulator.update(pass_design_pts, arg1)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected all elements of 'new_design_pts' to be of type {Input.__name__}, "
+                f"but one or more elements were of an unexpected type."
+            ),
+        ):
+            _ = emulator.update(fail_design_pts, pass_outputs)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected all elements of 'new_outputs' to be of type {Real.__name__}, "
+                f"but one or more elements were of an unexpected type."
+            ),
+        ):
+            _ = emulator.update(pass_design_pts, fail_outputs)
+
+    def test_update_none_type_arguments(self):
+        """Given a trained emulator, check that update() only takes in both design pts
+        and outputs, raising ValueError is one or the other is missing."""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+
+        design_pts = None
+        outputs = [1, 2, 3]
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
+                f"{design_pts} design points and {outputs} outputs."
+            ),
+        ):
+            _ = emulator.update(design_pts, outputs)
+
+        design_pts = self.inputs3
+        outputs = None
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
+                f"{design_pts} design points and {outputs} outputs."
+            ),
+        ):
+            _ = emulator.update(design_pts, outputs)
+
+    def test_update_design_output_different_lengths(self):
+        """Given a trained emulator, check that update() only takes in equal lengthed
+        design points and outputs."""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+
+        design_pts = [Input(0.1, 0.2), Input(0.5, 0.6), Input(0.8, 0.25)]
+        outputs = [1, 2]
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
+                f"{len(design_pts)} design points and {len(outputs)} outputs."
+            ),
+        ):
+            _ = emulator.update(design_pts, outputs)
+
+    def test_update_adds_new_data_to_training_data(self):
+        """Given a trained emulator, ensure that post update the new training_data is
+        added to the GP"""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+        train_data_length = len(self.training_data)
+
+        design_pts = [Input(0.1, 0.2), Input(0.5, 0.6), Input(0.8, 0.25)]
+        outputs = [1, 2, 3]
+        emulator.update(design_pts, outputs)
+
+        self.assertEqual(
+            (train_data_length + len(design_pts)), len(emulator.training_data)
+        )
+
+    def test_update_to_emulator_hyperparams(self):
+        """Given a trained emulator, ensure that post update the new hyperparameters are
+        implemented even with no training data
+        """
+        emulator = MogpEmulator()
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        emulator.fit(self.training_data, params)
+
+        new_params = MogpHyperparameters(
+            corr_length_scales=[2, 3], process_var=2, nugget=2
+        )
+        emulator.update(hyperparameters=new_params)
+
+        self.assertNotEqual(params, new_params)
+        self.assertEqual(new_params, emulator.fit_hyperparameters)
+
+    def test_update_points_on_non_fitted_gp(self):
+        """Given an untrained emulator the update method should just fit the new points
+        to the untrained emulator"""
+
+        emulator = MogpEmulator()
+        design_pts = [Input(0.1, 0.2), Input(0.5, 0.6), Input(0.8, 0.25)]
+        outputs = [1, 2, 3]
+        emulator.update(design_pts, outputs)
+
+        self.assertEqual(len(design_pts), len(emulator.training_data))
+
+    def test_update_no_points_on_non_fitted_gp(self):
+        """Given an untrained emulator, the update method should simply fit the empty gp
+        and pass through, but return a warning to the user that no changes were made."""
+
+        emulator = MogpEmulator()
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact("No arguments were passed to update and hence the GP remains as was."),
+        ):
+            _ = emulator.update()
 
     def test_predict_returns_prediction_object(self):
         """Given a trained emulator, check that predict() returns a
