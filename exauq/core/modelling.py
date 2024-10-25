@@ -1035,6 +1035,56 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
+    def update(
+        self,
+        new_design_pts: Collection[Input] = None,
+        new_outputs: Collection[Real] = None,
+        hyperparameters: Optional[GaussianProcessHyperparameters] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+    ) -> None:
+        """Update the current fitted gp to new conditions.
+
+        Allows the user a more friendly experience when implementing different hyperparameters
+        or hyperparam bounds or adding new training data to their GP without having to construct
+        the refit themselves.
+
+        Parameters
+        ----------
+        new_design_pts :
+            A collection of Inputs for newly calculated design points to be implemented
+            into the gp.
+        new_outputs:
+            The outputs from the simulator which the new design points generated, used
+            to retrain the gp alongside the design points.
+        hyperparameters :
+            Hyperparameters for a Gaussian process to use directly in
+            fitting the emulator. If ``None`` then the hyperparameters should be estimated
+            as part of fitting to data.
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
+            during estimation, of the form ``(lower_bound, upper_bound)``. All
+            but the last tuple should represent bounds for the correlation
+            length scale parameters, in the same order as the ordering of the
+            corresponding input coordinates, while the last tuple should
+            represent bounds for the process variance.
+        """
+
+        if not self.training_data:
+            training_data = []
+
+        else:
+            training_data = self.training_data
+
+        if new_design_pts is None:
+            self.fit(training_data, hyperparameters, hyperparameter_bounds)
+
+        else:
+            new_data = [TrainingDatum(x, y) for x, y in zip(new_design_pts, new_outputs)]
+            training_data = new_data + list(self.training_data)
+            self.fit(training_data, hyperparameters, hyperparameter_bounds)
+
+        return None
+
     def covariance_matrix(self, inputs: Sequence[Input]) -> NDArray:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
