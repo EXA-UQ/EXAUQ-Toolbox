@@ -17,12 +17,12 @@ our [support](support.md) page to see how you can help and how we can help you i
 
 Software developed by the RSE team at the University of Exeter, UK and funded by the EPRSC (2021-2025)
 as part of project ExCALIBUR.
-Many thanks to the code contributors of the toolbox:
+Many thanks to the code authors of the toolbox:
 
-  - Dr. Thomas Hawes
-  - Dr. Matt Johns
-  - Dr. Enrico Olivier
-  - Mr. Harrison White
+  - [Dr. Thomas Hawes](https://github.com/thawes-rse)
+  - [Dr. Matt Johns](https://github.com/mbjohns)
+  - [Dr. Enrico Olivier](https://github.com/ricky-lv426)
+  - [Mr. Harrison White](https://github.com/HarryWhiteRSE)
   
 ## Installing the latest development version
 
