@@ -1280,7 +1280,7 @@ to do this. This function requires two arguments:</p>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">new_design_pts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Input(np.float64(0.8783345963414011), np.float64(55.498549948538695))
+<div class="language-text highlight"><pre><span></span><code>Input(np.float64(-0.8903132178596723), np.float64(56.95543124022775))
 </code></pre></div>
 </div>
 <p>If instead we want to compute multiple new design points in one go, we can do this by
@@ -1289,11 +1289,11 @@ specifying a different batch size:</p>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">new_design_pts</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>(Input(np.float64(-0.2247465823952749), np.float64(55.63473740845275)),
- Input(np.float64(-0.1447258101445732), np.float64(53.90074076950241)),
- Input(np.float64(-0.8117435232490076), np.float64(50.89490986477788)),
- Input(np.float64(-0.4403510115974675), np.float64(57.80473368302009)),
- Input(np.float64(0.85023418663402), np.float64(48.665902278026444)))
+<div class="language-text highlight"><pre><span></span><code>(Input(np.float64(0.04121313436239893), np.float64(55.83123682248345)),
+ Input(np.float64(0.48552900522021325), np.float64(55.203417659460314)),
+ Input(np.float64(-0.5282139800802305), np.float64(54.2496846814451)),
+ Input(np.float64(-0.8210684279371037), np.float64(55.91611153857218)),
+ Input(np.float64(0.9181083455234644), np.float64(51.93910832230793)))
 </code></pre></div>
 </div>
 <p>Note how the new design points all lie within the simulator domain we defined earlier,
@@ -1309,16 +1309,23 @@ for the GP:</p>
 This first requires us to compute the simulator values at the design points (in our case,
 using the toy function defined earlier) in order to create new training data:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">new_outputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">new_design_pts</span><span class="p">]</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">new_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">TrainingDatum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">new_design_pts</span><span class="p">,</span> <span class="n">new_outputs</span><span class="p">)]</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">new_outputs</span>
 </span></code></pre></div>
-<p>To update the GP, we fit it with both the old and new training data combined:</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># gp.training_data is a tuple, so make a list to extend</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># with the new data</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">gp</span><span class="o">.</span><span class="n">training_data</span><span class="p">)</span> <span class="o">+</span> <span class="n">new_data</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">gp</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># Sense-check that the updated GP now has the combined data</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of training data:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">gp</span><span class="o">.</span><span class="n">training_data</span><span class="p">))</span>
+<div class="result">
+<div class="language-text highlight"><pre><span></span><code>[np.float64(3171.204086203924),
+ np.float64(3100.916582602217),
+ np.float64(2995.391397681657),
+ np.float64(3183.589188196358),
+ np.float64(2749.2693248878354)]
+</code></pre></div>
+</div>
+<p>Then to update the GP, we pass the new design points and outputs to the update method. </p>
+<p>(<strong>Aside</strong>: If you wished to update the hyperparameters at this stage, you can also pass new hyperparameters through the update method to replace those fit onto the GP.)</p>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">gp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_design_pts</span><span class="p">,</span> <span class="n">new_outputs</span><span class="p">)</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Sense-check that the updated GP now has the combined data</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of training data:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">gp</span><span class="o">.</span><span class="n">training_data</span><span class="p">))</span>
 </span></code></pre></div>
 <div class="result">
 <div class="language-text highlight"><pre><span></span><code>Number of training data: 25
@@ -1330,50 +1337,38 @@ the creation of each new point in the batch.</p>
 <h2 id="repeated-application">Repeated application</h2>
 <p>In general, we can perform multiple adaptive sampling iterations to further improve the
 fit of the GP with newly sampled design point(s). The following code goes through five
-more sampling iterations, producing a single new design point at each iteration. We have
-also introduced a helper function to assist in retraining the GP. (Once again, the
-messages from the <code>mogp_emulator</code> package can be ignored.)</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span> <span class="nf">update_gp</span><span class="p">(</span><span class="n">gp</span><span class="p">,</span> <span class="n">additional_data</span><span class="p">):</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Updates the fit of the supplied GP with additional training data.&quot;&quot;&quot;</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="c1"># gp.training_data is a tuple, so make a list to extend</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="c1"># with the new data</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">gp</span><span class="o">.</span><span class="n">training_data</span><span class="p">)</span> <span class="o">+</span> <span class="n">additional_data</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">gp</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="c1"># Find new design point adaptively (via batch of length 1)</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">compute_single_level_loo_samples</span><span class="p">(</span><span class="n">gp</span><span class="p">,</span> <span class="n">domain</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="c1"># Compute simulator output at new design point</span>
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="n">y</span> <span class="o">=</span> <span class="n">sim_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>
-</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>    <span class="c1"># Update GP fit</span>
-</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>    <span class="n">new_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">TrainingDatum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
-</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>    <span class="n">update_gp</span><span class="p">(</span><span class="n">gp</span><span class="p">,</span> <span class="n">new_data</span><span class="p">)</span>
-</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>
-</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>    <span class="c1"># Print design point found and level applied at</span>
-</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+more sampling iterations, producing a single new design point at each iteration.</p>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="c1"># Find new design point adaptively (via batch of length 1)</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">compute_single_level_loo_samples</span><span class="p">(</span><span class="n">gp</span><span class="p">,</span> <span class="n">domain</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="c1"># Compute simulator output at new design point</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">y</span> <span class="o">=</span> <span class="n">sim_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="c1"># Update GP fit (Note: Passing new points as a list)</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">gp</span><span class="o">.</span><span class="n">update</span><span class="p">([</span><span class="n">x</span><span class="p">],</span> <span class="p">[</span><span class="n">y</span><span class="p">])</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="c1"># Print design point found and level applied at</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.6968059435820717), np.float64(1.0000070688987677))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.6978486283987642), np.float64(1.0000069870637986))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.9999992691131184), np.float64(89.27647835513658))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.9999998937901827), np.float64(78.05680347541929))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.28237845912916737), np.float64(99.9999859883154))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.25395187077099457), np.float64(1.0000033832646125))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.24038102421826124), np.float64(1.0000008324063145))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.9999996909660922), np.float64(15.635058383784795))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.9999993192599338), np.float64(60.433032620134775))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.9999999915960341), np.float64(39.33497200843463))
 </code></pre></div>
 </div>
 

@@ -1408,10 +1408,10 @@ prediction:</p>
 </span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2547.8078405973465), variance=np.float64(0.7338942845990679), standard_deviation=0.8566763009439843)
-Point estimate: 2547.8078405973465
-Variance of estimate: 0.7338942845990679
-Standard deviation of estimate: 0.8566763009439843
+<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2547.8078405686583), variance=np.float64(0.73389459780916), standard_deviation=0.8566764837493557)
+Point estimate: 2547.8078405686583
+Variance of estimate: 0.73389459780916
+Standard deviation of estimate: 0.8566764837493557
 </code></pre></div>
 </div>
 <p>Let's see how well the prediction did against the true simulator value:</p>
@@ -1423,9 +1423,9 @@ Standard deviation of estimate: 0.8566763009439843
 </span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2547.8078405973465
+<div class="language-text highlight"><pre><span></span><code>Predicted value: 2547.8078405686583
 Actual simulator value: 2548.835786437627
-Percentage error: 0.04033001442267546
+Percentage error: 0.04033001554821645
 </code></pre></div>
 </div>
 <p>As in the non-levelled case, we can also calculate the normalised expected square error
@@ -1433,7 +1433,7 @@ for the prediction:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">prediction</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>0.8758844241180795
+<div class="language-text highlight"><pre><span></span><code>0.8758843529570822
 </code></pre></div>
 </div>
 
