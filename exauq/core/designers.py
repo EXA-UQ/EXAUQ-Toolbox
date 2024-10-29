@@ -1166,7 +1166,7 @@ def compute_multi_level_loo_samples(
     batch_size: int = 1,
     additional_repulsion_pts: Optional[MultiLevel[Collection[Input]]] = None,
     seeds: Optional[MultiLevel[int]] = None,
-) -> tuple[int, tuple[Input, ...]]:
+) -> tuple[tuple[int, Input], ...]:
     """Compute a batch of design points adaptively for a multi-level Gaussian process (GP).
 
     Implements the cross-validation-based adaptive sampling for multi-level Gaussian
@@ -1218,9 +1218,9 @@ def compute_multi_level_loo_samples(
 
     Returns
     -------
-    tuple[int, tuple[Input, ...]]
-        A pair ``(level, data)`` where ``data`` is the batch of design points and
-        ``level`` is the level of simulation at which the design point should be run.
+    tuple[tuple[int, Input], ...]
+        A tuple of pairs ``(level, data)`` where ``data`` is the design point and
+        ``level`` is the level of simulation at which that design point should be run.
 
     Raises
     ------
@@ -1326,26 +1326,29 @@ def compute_multi_level_loo_samples(
 
     # Find PEI argmax, with (weighted) PEI value, for each level
     delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
-    maximal_pei_values = ml_pei.map(
-        lambda level, pei: maximise(
-            lambda x: pei.compute(x) / delta_costs[level], domain, seed=seeds[level][0]
-        )
-    )
 
-    # Create batch at maximising level by iteratively adding new design points as
-    # repulsion points and re-maximising PEI
-    level, (x, _) = max(maximal_pei_values.items(), key=lambda item: item[1][1])
-    design_points = [x]
-    if batch_size > 1:
-        pei = ml_pei[level]
-        for i in range(batch_size - 1):
-            pei.add_repulsion_points([design_points[i]])
-            new_design_pt, _ = maximise(
-                lambda x: pei.compute(x), domain, seed=seeds[level][i + 1]
+    # Create empty list for level, design pt. pairs 
+    design_points = []
+
+    # Iterate through batch - recalculating levels and design points
+    for i in range(batch_size):
+
+        # Calculate new level by maximising PEI
+        maximal_pei_values = ml_pei.map(
+            lambda level, pei: maximise(
+                lambda x: pei.compute(x) / delta_costs[level], domain, seed=seeds[level][i]
             )
-            design_points.append(new_design_pt)
+        )
+        level, (new_design_pt, _) = max(maximal_pei_values.items(), key=lambda item: item[1][1])
 
-    return level, tuple(design_points)
+        # Reset PEI and add calculated design pt to repulsion points.
+        pei = ml_pei[level]
+        pei.add_repulsion_points([new_design_pt])
+
+        # Create new level, design pt. pairs
+        design_points.append((level, new_design_pt))
+
+    return tuple(design_points)
 
 
 def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:
