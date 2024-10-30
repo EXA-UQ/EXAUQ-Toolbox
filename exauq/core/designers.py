@@ -1326,9 +1326,6 @@ def compute_multi_level_loo_samples(
         )
     )
 
-    # Find PEI argmax, with (weighted) PEI value, for each level
-    delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
-
     # Create empty list for level, design pt. pairs
     design_points = []
 
@@ -1338,7 +1335,7 @@ def compute_multi_level_loo_samples(
         # Calculate new level by maximising PEI
         maximal_pei_values = ml_pei.map(
             lambda level, pei: maximise(
-                lambda x: pei.compute(x) / delta_costs[level],
+                lambda x: pei.compute(x) / costs[level],
                 domain,
                 seed=seeds[level][i],
             )
@@ -1356,11 +1353,3 @@ def compute_multi_level_loo_samples(
 
     return tuple(design_points)
 
-
-def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:
-    """Compute the cost of computing a successive difference of simulations at a level."""
-
-    if level == 1:
-        return costs[1]
-    else:
-        return costs[level - 1] + costs[level]
