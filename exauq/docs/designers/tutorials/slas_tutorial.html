@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.35f28582.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.0253249f.min.css">
       
       
 
@@ -1280,7 +1280,7 @@ to do this. This function requires two arguments:</p>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">new_design_pts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Input(np.float64(-0.8903132178596723), np.float64(56.95543124022775))
+<div class="language-text highlight"><pre><span></span><code>Input(np.float64(0.04634564632841309), np.float64(56.44301713018061))
 </code></pre></div>
 </div>
 <p>If instead we want to compute multiple new design points in one go, we can do this by
@@ -1289,11 +1289,11 @@ specifying a different batch size:</p>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">new_design_pts</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>(Input(np.float64(0.04121313436239893), np.float64(55.83123682248345)),
- Input(np.float64(0.48552900522021325), np.float64(55.203417659460314)),
- Input(np.float64(-0.5282139800802305), np.float64(54.2496846814451)),
- Input(np.float64(-0.8210684279371037), np.float64(55.91611153857218)),
- Input(np.float64(0.9181083455234644), np.float64(51.93910832230793)))
+<div class="language-text highlight"><pre><span></span><code>(Input(np.float64(-0.8911764982483527), np.float64(54.25229636426387)),
+ Input(np.float64(0.5319731734704134), np.float64(56.75271346724434)),
+ Input(np.float64(0.9509338847155868), np.float64(53.477410482301124)),
+ Input(np.float64(-0.8525003073872288), np.float64(57.146428701343105)),
+ Input(np.float64(-0.9485807307983514), np.float64(55.965993402509554)))
 </code></pre></div>
 </div>
 <p>Note how the new design points all lie within the simulator domain we defined earlier,
@@ -1313,11 +1313,11 @@ using the toy function defined earlier) in order to create new training data:</p
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">new_outputs</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>[np.float64(3171.204086203924),
- np.float64(3100.916582602217),
- np.float64(2995.391397681657),
- np.float64(3183.589188196358),
- np.float64(2749.2693248878354)]
+<div class="language-text highlight"><pre><span></span><code>[np.float64(2998.520183994661),
+ np.float64(3276.96850027812),
+ np.float64(2911.533810684346),
+ np.float64(3322.574068963651),
+ np.float64(3187.066170456597)]
 </code></pre></div>
 </div>
 <p>Then to update the GP, we pass the new design points and outputs to the update method. </p>
@@ -1352,23 +1352,23 @@ more sampling iterations, producing a single new design point at each iteration.
 </span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.6978486283987642), np.float64(1.0000069870637986))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.9999998133770662), np.float64(15.416473727864812))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.9999998937901827), np.float64(78.05680347541929))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.49110765244074295), np.float64(99.61255593528759))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.25395187077099457), np.float64(1.0000033832646125))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.6407096951889637), np.float64(99.55872989520225))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.9999996909660922), np.float64(15.635058383784795))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.8814531592450774), np.float64(89.29501563784852))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(-0.9999999915960341), np.float64(39.33497200843463))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.5771800890611709), np.float64(1.0000000200437995))
 </code></pre></div>
 </div>
 
@@ -1417,10 +1417,10 @@ more sampling iterations, producing a single new design point at each iteration.
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate", "contend.code.copy"], "search": "../../assets/javascripts/workers/search.07f07601.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate", "contend.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
         <script src="../../javascripts/katex.js"></script>
       

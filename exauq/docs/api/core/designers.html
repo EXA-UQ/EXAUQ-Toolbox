@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.35f28582.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.0253249f.min.css">
       
       
 
@@ -4645,11 +4645,11 @@ the maximisations will be seeded.</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code>tuple[int, tuple[<a class="autorefs autorefs-internal" title="exauq.core.modelling.Input" href="modelling.html#exauq.core.modelling.Input">Input</a>, ...]]</code>
+              <code>tuple[tuple[int, <a class="autorefs autorefs-internal" title="exauq.core.modelling.Input" href="modelling.html#exauq.core.modelling.Input">Input</a>], ...]</code>
           –
           <div class="doc-md-description">
-            <p>A pair <code>(level, data)</code> where <code>data</code> is the batch of design points and
-<code>level</code> is the level of simulation at which the design point should be run.</p>
+            <p>A tuple of pairs <code>(level, data)</code> where <code>data</code> is the design point and
+<code>level</code> is the level of simulation at which that design point should be run.</p>
           </div>
         </li>
     </ul>
@@ -4888,14 +4888,21 @@ utilities.optimisation.maximise :
 <span class="normal"><a href="#__codelineno-0-1345">1345</a></span>
 <span class="normal"><a href="#__codelineno-0-1346">1346</a></span>
 <span class="normal"><a href="#__codelineno-0-1347">1347</a></span>
-<span class="normal"><a href="#__codelineno-0-1348">1348</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1162"><a id="__codelineno-0-1162" name="__codelineno-0-1162"></a><span class="k">def</span> <span class="nf">compute_multi_level_loo_samples</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-1348">1348</a></span>
+<span class="normal"><a href="#__codelineno-0-1349">1349</a></span>
+<span class="normal"><a href="#__codelineno-0-1350">1350</a></span>
+<span class="normal"><a href="#__codelineno-0-1351">1351</a></span>
+<span class="normal"><a href="#__codelineno-0-1352">1352</a></span>
+<span class="normal"><a href="#__codelineno-0-1353">1353</a></span>
+<span class="normal"><a href="#__codelineno-0-1354">1354</a></span>
+<span class="normal"><a href="#__codelineno-0-1355">1355</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1162"><a id="__codelineno-0-1162" name="__codelineno-0-1162"></a><span class="k">def</span> <span class="nf">compute_multi_level_loo_samples</span><span class="p">(</span>
 </span><span id="__span-0-1163"><a id="__codelineno-0-1163" name="__codelineno-0-1163"></a>    <span class="n">mlgp</span><span class="p">:</span> <span class="n">MultiLevelGaussianProcess</span><span class="p">,</span>
 </span><span id="__span-0-1164"><a id="__codelineno-0-1164" name="__codelineno-0-1164"></a>    <span class="n">domain</span><span class="p">:</span> <span class="n">SimulatorDomain</span><span class="p">,</span>
 </span><span id="__span-0-1165"><a id="__codelineno-0-1165" name="__codelineno-0-1165"></a>    <span class="n">costs</span><span class="p">:</span> <span class="n">MultiLevel</span><span class="p">[</span><span class="n">Real</span><span class="p">],</span>
 </span><span id="__span-0-1166"><a id="__codelineno-0-1166" name="__codelineno-0-1166"></a>    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 </span><span id="__span-0-1167"><a id="__codelineno-0-1167" name="__codelineno-0-1167"></a>    <span class="n">additional_repulsion_pts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MultiLevel</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="n">Input</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-1168"><a id="__codelineno-0-1168" name="__codelineno-0-1168"></a>    <span class="n">seeds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MultiLevel</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-1169"><a id="__codelineno-0-1169" name="__codelineno-0-1169"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Input</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
+</span><span id="__span-0-1169"><a id="__codelineno-0-1169" name="__codelineno-0-1169"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Input</span><span class="p">],</span> <span class="o">...</span><span class="p">]:</span>
 </span><span id="__span-0-1170"><a id="__codelineno-0-1170" name="__codelineno-0-1170"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute a batch of design points adaptively for a multi-level Gaussian process (GP).</span>
 </span><span id="__span-0-1171"><a id="__codelineno-0-1171" name="__codelineno-0-1171"></a>
 </span><span id="__span-0-1172"><a id="__codelineno-0-1172" name="__codelineno-0-1172"></a><span class="sd">    Implements the cross-validation-based adaptive sampling for multi-level Gaussian</span>
@@ -4947,9 +4954,9 @@ utilities.optimisation.maximise :
 </span><span id="__span-0-1218"><a id="__codelineno-0-1218" name="__codelineno-0-1218"></a>
 </span><span id="__span-0-1219"><a id="__codelineno-0-1219" name="__codelineno-0-1219"></a><span class="sd">    Returns</span>
 </span><span id="__span-0-1220"><a id="__codelineno-0-1220" name="__codelineno-0-1220"></a><span class="sd">    -------</span>
-</span><span id="__span-0-1221"><a id="__codelineno-0-1221" name="__codelineno-0-1221"></a><span class="sd">    tuple[int, tuple[Input, ...]]</span>
-</span><span id="__span-0-1222"><a id="__codelineno-0-1222" name="__codelineno-0-1222"></a><span class="sd">        A pair ``(level, data)`` where ``data`` is the batch of design points and</span>
-</span><span id="__span-0-1223"><a id="__codelineno-0-1223" name="__codelineno-0-1223"></a><span class="sd">        ``level`` is the level of simulation at which the design point should be run.</span>
+</span><span id="__span-0-1221"><a id="__codelineno-0-1221" name="__codelineno-0-1221"></a><span class="sd">    tuple[tuple[int, Input], ...]</span>
+</span><span id="__span-0-1222"><a id="__codelineno-0-1222" name="__codelineno-0-1222"></a><span class="sd">        A tuple of pairs ``(level, data)`` where ``data`` is the design point and</span>
+</span><span id="__span-0-1223"><a id="__codelineno-0-1223" name="__codelineno-0-1223"></a><span class="sd">        ``level`` is the level of simulation at which that design point should be run.</span>
 </span><span id="__span-0-1224"><a id="__codelineno-0-1224" name="__codelineno-0-1224"></a>
 </span><span id="__span-0-1225"><a id="__codelineno-0-1225" name="__codelineno-0-1225"></a><span class="sd">    Raises</span>
 </span><span id="__span-0-1226"><a id="__codelineno-0-1226" name="__codelineno-0-1226"></a><span class="sd">    ------</span>
@@ -5055,26 +5062,33 @@ utilities.optimisation.maximise :
 </span><span id="__span-0-1326"><a id="__codelineno-0-1326" name="__codelineno-0-1326"></a>
 </span><span id="__span-0-1327"><a id="__codelineno-0-1327" name="__codelineno-0-1327"></a>    <span class="c1"># Find PEI argmax, with (weighted) PEI value, for each level</span>
 </span><span id="__span-0-1328"><a id="__codelineno-0-1328" name="__codelineno-0-1328"></a>    <span class="n">delta_costs</span> <span class="o">=</span> <span class="n">costs</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">level</span><span class="p">,</span> <span class="n">_</span><span class="p">:</span> <span class="n">_compute_delta_cost</span><span class="p">(</span><span class="n">costs</span><span class="p">,</span> <span class="n">level</span><span class="p">))</span>
-</span><span id="__span-0-1329"><a id="__codelineno-0-1329" name="__codelineno-0-1329"></a>    <span class="n">maximal_pei_values</span> <span class="o">=</span> <span class="n">ml_pei</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
-</span><span id="__span-0-1330"><a id="__codelineno-0-1330" name="__codelineno-0-1330"></a>        <span class="k">lambda</span> <span class="n">level</span><span class="p">,</span> <span class="n">pei</span><span class="p">:</span> <span class="n">maximise</span><span class="p">(</span>
-</span><span id="__span-0-1331"><a id="__codelineno-0-1331" name="__codelineno-0-1331"></a>            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">pei</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">delta_costs</span><span class="p">[</span><span class="n">level</span><span class="p">],</span> <span class="n">domain</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seeds</span><span class="p">[</span><span class="n">level</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-0-1332"><a id="__codelineno-0-1332" name="__codelineno-0-1332"></a>        <span class="p">)</span>
-</span><span id="__span-0-1333"><a id="__codelineno-0-1333" name="__codelineno-0-1333"></a>    <span class="p">)</span>
-</span><span id="__span-0-1334"><a id="__codelineno-0-1334" name="__codelineno-0-1334"></a>
-</span><span id="__span-0-1335"><a id="__codelineno-0-1335" name="__codelineno-0-1335"></a>    <span class="c1"># Create batch at maximising level by iteratively adding new design points as</span>
-</span><span id="__span-0-1336"><a id="__codelineno-0-1336" name="__codelineno-0-1336"></a>    <span class="c1"># repulsion points and re-maximising PEI</span>
-</span><span id="__span-0-1337"><a id="__codelineno-0-1337" name="__codelineno-0-1337"></a>    <span class="n">level</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">maximal_pei_values</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
-</span><span id="__span-0-1338"><a id="__codelineno-0-1338" name="__codelineno-0-1338"></a>    <span class="n">design_points</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">]</span>
-</span><span id="__span-0-1339"><a id="__codelineno-0-1339" name="__codelineno-0-1339"></a>    <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-</span><span id="__span-0-1340"><a id="__codelineno-0-1340" name="__codelineno-0-1340"></a>        <span class="n">pei</span> <span class="o">=</span> <span class="n">ml_pei</span><span class="p">[</span><span class="n">level</span><span class="p">]</span>
-</span><span id="__span-0-1341"><a id="__codelineno-0-1341" name="__codelineno-0-1341"></a>        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-</span><span id="__span-0-1342"><a id="__codelineno-0-1342" name="__codelineno-0-1342"></a>            <span class="n">pei</span><span class="o">.</span><span class="n">add_repulsion_points</span><span class="p">([</span><span class="n">design_points</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
-</span><span id="__span-0-1343"><a id="__codelineno-0-1343" name="__codelineno-0-1343"></a>            <span class="n">new_design_pt</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">maximise</span><span class="p">(</span>
-</span><span id="__span-0-1344"><a id="__codelineno-0-1344" name="__codelineno-0-1344"></a>                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">pei</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">domain</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seeds</span><span class="p">[</span><span class="n">level</span><span class="p">][</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-</span><span id="__span-0-1345"><a id="__codelineno-0-1345" name="__codelineno-0-1345"></a>            <span class="p">)</span>
-</span><span id="__span-0-1346"><a id="__codelineno-0-1346" name="__codelineno-0-1346"></a>            <span class="n">design_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_design_pt</span><span class="p">)</span>
+</span><span id="__span-0-1329"><a id="__codelineno-0-1329" name="__codelineno-0-1329"></a>
+</span><span id="__span-0-1330"><a id="__codelineno-0-1330" name="__codelineno-0-1330"></a>    <span class="c1"># Create empty list for level, design pt. pairs</span>
+</span><span id="__span-0-1331"><a id="__codelineno-0-1331" name="__codelineno-0-1331"></a>    <span class="n">design_points</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-1332"><a id="__codelineno-0-1332" name="__codelineno-0-1332"></a>
+</span><span id="__span-0-1333"><a id="__codelineno-0-1333" name="__codelineno-0-1333"></a>    <span class="c1"># Iterate through batch - recalculating levels and design points</span>
+</span><span id="__span-0-1334"><a id="__codelineno-0-1334" name="__codelineno-0-1334"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+</span><span id="__span-0-1335"><a id="__codelineno-0-1335" name="__codelineno-0-1335"></a>
+</span><span id="__span-0-1336"><a id="__codelineno-0-1336" name="__codelineno-0-1336"></a>        <span class="c1"># Calculate new level by maximising PEI</span>
+</span><span id="__span-0-1337"><a id="__codelineno-0-1337" name="__codelineno-0-1337"></a>        <span class="n">maximal_pei_values</span> <span class="o">=</span> <span class="n">ml_pei</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+</span><span id="__span-0-1338"><a id="__codelineno-0-1338" name="__codelineno-0-1338"></a>            <span class="k">lambda</span> <span class="n">level</span><span class="p">,</span> <span class="n">pei</span><span class="p">:</span> <span class="n">maximise</span><span class="p">(</span>
+</span><span id="__span-0-1339"><a id="__codelineno-0-1339" name="__codelineno-0-1339"></a>                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">pei</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">delta_costs</span><span class="p">[</span><span class="n">level</span><span class="p">],</span>
+</span><span id="__span-0-1340"><a id="__codelineno-0-1340" name="__codelineno-0-1340"></a>                <span class="n">domain</span><span class="p">,</span>
+</span><span id="__span-0-1341"><a id="__codelineno-0-1341" name="__codelineno-0-1341"></a>                <span class="n">seed</span><span class="o">=</span><span class="n">seeds</span><span class="p">[</span><span class="n">level</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+</span><span id="__span-0-1342"><a id="__codelineno-0-1342" name="__codelineno-0-1342"></a>            <span class="p">)</span>
+</span><span id="__span-0-1343"><a id="__codelineno-0-1343" name="__codelineno-0-1343"></a>        <span class="p">)</span>
+</span><span id="__span-0-1344"><a id="__codelineno-0-1344" name="__codelineno-0-1344"></a>        <span class="n">level</span><span class="p">,</span> <span class="p">(</span><span class="n">new_design_pt</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+</span><span id="__span-0-1345"><a id="__codelineno-0-1345" name="__codelineno-0-1345"></a>            <span class="n">maximal_pei_values</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+</span><span id="__span-0-1346"><a id="__codelineno-0-1346" name="__codelineno-0-1346"></a>        <span class="p">)</span>
 </span><span id="__span-0-1347"><a id="__codelineno-0-1347" name="__codelineno-0-1347"></a>
-</span><span id="__span-0-1348"><a id="__codelineno-0-1348" name="__codelineno-0-1348"></a>    <span class="k">return</span> <span class="n">level</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">design_points</span><span class="p">)</span>
+</span><span id="__span-0-1348"><a id="__codelineno-0-1348" name="__codelineno-0-1348"></a>        <span class="c1"># Reset PEI and add calculated design pt to repulsion points.</span>
+</span><span id="__span-0-1349"><a id="__codelineno-0-1349" name="__codelineno-0-1349"></a>        <span class="n">pei</span> <span class="o">=</span> <span class="n">ml_pei</span><span class="p">[</span><span class="n">level</span><span class="p">]</span>
+</span><span id="__span-0-1350"><a id="__codelineno-0-1350" name="__codelineno-0-1350"></a>        <span class="n">pei</span><span class="o">.</span><span class="n">add_repulsion_points</span><span class="p">([</span><span class="n">new_design_pt</span><span class="p">])</span>
+</span><span id="__span-0-1351"><a id="__codelineno-0-1351" name="__codelineno-0-1351"></a>
+</span><span id="__span-0-1352"><a id="__codelineno-0-1352" name="__codelineno-0-1352"></a>        <span class="c1"># Create new level, design pt. pairs</span>
+</span><span id="__span-0-1353"><a id="__codelineno-0-1353" name="__codelineno-0-1353"></a>        <span class="n">design_points</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">level</span><span class="p">,</span> <span class="n">new_design_pt</span><span class="p">))</span>
+</span><span id="__span-0-1354"><a id="__codelineno-0-1354" name="__codelineno-0-1354"></a>
+</span><span id="__span-0-1355"><a id="__codelineno-0-1355" name="__codelineno-0-1355"></a>    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">design_points</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5887,10 +5901,10 @@ https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.LatinHyperc
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate", "contend.code.copy"], "search": "../../assets/javascripts/workers/search.07f07601.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate", "contend.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
         <script src="../../javascripts/katex.js"></script>
       

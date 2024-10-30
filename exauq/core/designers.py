@@ -1327,7 +1327,7 @@ def compute_multi_level_loo_samples(
     # Find PEI argmax, with (weighted) PEI value, for each level
     delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
 
-    # Create empty list for level, design pt. pairs 
+    # Create empty list for level, design pt. pairs
     design_points = []
 
     # Iterate through batch - recalculating levels and design points
@@ -1336,10 +1336,14 @@ def compute_multi_level_loo_samples(
         # Calculate new level by maximising PEI
         maximal_pei_values = ml_pei.map(
             lambda level, pei: maximise(
-                lambda x: pei.compute(x) / delta_costs[level], domain, seed=seeds[level][i]
+                lambda x: pei.compute(x) / delta_costs[level],
+                domain,
+                seed=seeds[level][i],
             )
         )
-        level, (new_design_pt, _) = max(maximal_pei_values.items(), key=lambda item: item[1][1])
+        level, (new_design_pt, _) = max(
+            maximal_pei_values.items(), key=lambda item: item[1][1]
+        )
 
         # Reset PEI and add calculated design pt to repulsion points.
         pei = ml_pei[level]
