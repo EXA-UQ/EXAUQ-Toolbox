@@ -1977,14 +1977,14 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
         for batch_size in [1, 2, 3]:
             with self.subTest(batch_size=batch_size):
-                _, design_points = zip(*self.compute_multi_level_loo_samples(
-                    batch_size=batch_size
-                ))
+                _, design_points = zip(
+                    *self.compute_multi_level_loo_samples(batch_size=batch_size)
+                )
                 self.assertEqual(batch_size, len(design_points))
 
     def test_returns_design_points_from_domain(self):
-        """The return type is a tuple containing pair ``(level, Input)``, with ``level`` 
-        being one of the levels from the supplied multi-level GP and 
+        """The return type is a tuple containing pair ``(level, Input)``, with ``level``
+        being one of the levels from the supplied multi-level GP and
         each ``Input`` being an input belonging to the supplied simulator domain."""
 
         domains = [SimulatorDomain([(0, 1)]), SimulatorDomain([(2, 3)])]
@@ -2022,7 +2022,6 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
                 self.assertIsInstance(design_points, tuple)
                 for x in design_points:
                     self.assertIn(x, domain)
-            
 
     def test_single_batch_level_that_maximises_pei(self):
         """For a single batch output, the input and level returned are the ones that
@@ -2054,9 +2053,9 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         )
         mlgp.fit(training_data)
 
-        levels, design_points = zip(*self.compute_multi_level_loo_samples(
-            mlgp=mlgp, domain=domain, costs=costs
-        ))
+        levels, design_points = zip(
+            *self.compute_multi_level_loo_samples(mlgp=mlgp, domain=domain, costs=costs)
+        )
 
         self.assertEqual(1, len(design_points))
 
@@ -2096,12 +2095,14 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         """A batch of new design points consists of Input objects that are (likely)
         distinct from the training data inputs across the different levels."""
 
-        levels, design_pts = zip(*self.compute_multi_level_loo_samples(
-            mlgp=self.default_mlgp, batch_size=3
-        ))
+        levels, design_pts = zip(
+            *self.compute_multi_level_loo_samples(mlgp=self.default_mlgp, batch_size=3)
+        )
         training_inputs = []
         for level in levels:
-            training_inputs.extend(datum.input for datum in self.default_mlgp[level].training_data)
+            training_inputs.extend(
+                datum.input for datum in self.default_mlgp[level].training_data
+            )
 
         for training_x, x in itertools.product(training_inputs, design_pts):
             with self.subTest(training_input=training_x, design_pt=x):
@@ -2154,19 +2155,21 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
         # Re-run computation but now using the new design point as a repulsion point.
         # Should find different design points created.
-        level, design_pt2 = zip(*compute_multi_level_loo_samples(
-            mlgp,
-            domain,
-            costs,
-            additional_repulsion_pts=repulsion_pts,
-        ))
+        level, design_pt2 = zip(
+            *compute_multi_level_loo_samples(
+                mlgp,
+                domain,
+                costs,
+                additional_repulsion_pts=repulsion_pts,
+            )
+        )
 
         self.assertNotEqualWithinTolerance(
             design_pt2, design_pt, rel_tol=self.tolerance, abs_tol=self.tolerance
         )
 
     def test_multiple_levels_returned(self):
-        """Ensure that when given a large enough batch size, design points are created on 
+        """Ensure that when given a large enough batch size, design points are created on
         multiple levels and not just to 1 level."""
 
         costs = self.make_level_costs([1, 10, 100])
@@ -2195,9 +2198,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
         mlgp.fit(training_data)
 
-        levels, _ = zip(*compute_multi_level_loo_samples(
-            mlgp, domain, costs, batch_size
-        ))
+        levels, _ = zip(*compute_multi_level_loo_samples(mlgp, domain, costs, batch_size))
 
         self.assertTrue(len(set(levels)) != 1)
 
