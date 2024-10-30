@@ -5,7 +5,7 @@ name = "exauq"
 version = "0.1.0"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.13"
+python = ">=3.10,<3.14"
 scipy = ">=1.10.0"
 numpy = ">=1.24.0"
 mogp-emulator = ">=0.7.0"
