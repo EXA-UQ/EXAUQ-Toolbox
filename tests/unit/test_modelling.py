@@ -2336,6 +2336,218 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
 
         self.assertIsNone(mlgp.fit_hyperparameters[missing_level])
 
+    def test_update_argument_types(self):
+        """Ensure that correct TypeErrors are raised for update supplied arguments."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        test_design_pts = ((1, Input(0.5)), (2, Input(0.2)))
+        test_outputs = [0.1, 0.2]
+
+        arg1 = 42
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'new_design_pts' to be of type tuple of (int, {Input.__name__}) "
+                f"pairs, but received {type(arg1)} instead."
+            ),
+        ):
+            mlgp.update(arg1, test_outputs)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'new_outputs' to be of type collection of {Real.__name__}, but "
+                f"received {type(arg1)} instead."
+            ),
+        ):
+            mlgp.update(test_design_pts, arg1)
+
+        arg2 = ([1, Input(0.4)], [2, Input(0.3)])
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected all elements of 'new_design_pts' type tuple of (int, {Input.__name__}), "
+                "but one or more elements were of an unexpected type."
+            ),
+        ):
+            mlgp.update(arg2, test_outputs)
+
+        arg3 = [1.24, Input(323)]
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected all elements of 'new_outputs' to be of type {Real.__name__}, "
+                "but one or more elements were of an unexpected type."
+            ),
+        ):
+            mlgp.update(test_design_pts, arg3)
+
+        arg4 = ((Input(0.1), Input(0.4)), (2, Input(0.3)))
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "new_design_pts should be of type: tuple of tuple(int, Input) pairs. new_outputs "
+                "should be of type Collection of Real numbers. At least one of these is incorrect, " 
+                f"received: new_design_pts: {arg4} and new outputs: {test_outputs}"
+            ),
+        ):
+            mlgp.update(arg4, test_outputs)
+
+    def test_update_design_pts_outputs_arguments(self):
+        """Ensure that either both design_pts and outputs are passed or neither."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        test_design_pts = ((1, Input(0.5)), (2, Input(0.2)))
+        test_outputs = [0.1, 0.2]
+
+        none_design_pts = None
+        none_outputs = None
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
+                f"{none_design_pts} design points and {test_outputs} outputs."
+            ),
+        ):
+            mlgp.update(none_design_pts, test_outputs)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
+                f"{test_design_pts} design points and {none_outputs} outputs."
+            ),
+        ):
+            mlgp.update(test_design_pts, none_outputs)
+
+    def test_update_warning_for_null_arguments(self):
+        """Ensure that no arguments passed to update raises the appropriate warning."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        mlgp.fit(self.training_data)
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact("No arguments were passed to update and hence the GP remains as was."),
+        ):
+            mlgp.update()
+
+    def test_update_different_length_outputs_design_pts(self):
+        """Ensure a correct ValueError is raised for different length design_pts and outputs passed."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        test_design_pts = ((1, Input(0.5)), (2, Input(0.2)))
+        test_outputs = [1, 2, 3, 43, 4]
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
+                f"{len(test_design_pts)} design points and {len(test_outputs)} outputs."
+            ),
+        ):
+            mlgp.update(test_design_pts, test_outputs)
+
+    def test_update_passes_hyperparameters_only(self):
+        """Ensure that when no training data is passed, hyperparameters are still updated correctly."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        mlgp.fit(self.training_data)
+
+        new_params = WhiteNoiseGPHyperparameters(process_var=2)
+        mlgp.update(hyperparameters=new_params)
+
+        for level in self.training_data.levels:
+            self.assertEqual(new_params, mlgp[level].fit_hyperparameters)
+
+    def test_update_passes_hyperparameter_bounds_only(self):
+        """Ensure that when no training data is passed, hyperparameter bounds are still updated correctly."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        lower_bnd = 10
+        bounds = self.make_white_noise_gp_hyperparameter_bounds((lower_bnd, None))
+
+        mlgp.fit(self.training_data)
+
+        mlgp.update(hyperparameter_bounds=bounds)
+
+        # Expected hyperparams: lower bound on process var for each level
+        for level in mlgp.levels:
+            self.assertEqual(
+                WhiteNoiseGPHyperparameters(process_var=lower_bnd),
+                mlgp.fit_hyperparameters[level],
+            )
+
+    def test_update_for_training_data_on_single_level(self):
+        """Ensure that if data is passed for just one level it passes correctly and
+        leaves all other levels with the correct data."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        test_design_pts = ((1, Input(0.4)), (1, Input(0.5)))
+        test_outputs = (1, 2)
+
+        mlgp.fit(self.training_data)
+        original_train_data = {
+            level: len(mlgp[level].training_data) for level in mlgp.levels
+        }
+
+        mlgp.update(test_design_pts, test_outputs)
+        new_train_data = {level: len(mlgp[level].training_data) for level in mlgp.levels}
+
+        self.assertEqual(original_train_data[1] + len(test_design_pts), new_train_data[1])
+        self.assertEqual(mlgp[2].training_data, self.training_data[2])
+        self.assertEqual(mlgp[3].training_data, self.training_data[3])
+
+    def test_update_for_training_data_across_all_levels(self):
+        """Ensure that when training data is fitted, it is fitted across all levels."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        test_design_pts = (
+            (1, Input(0.2)),
+            (2, Input(0.3)),
+            (2, Input(0.86)),
+            (2, Input(1.3)),
+            (3, Input(2)),
+        )
+        test_outputs = (1, 2, 0.5, 0.6, 0.8)
+
+        mlgp.fit(self.training_data)
+        original_train_data = {
+            level: len(mlgp[level].training_data) for level in mlgp.levels
+        }
+
+        mlgp.update(test_design_pts, test_outputs)
+        new_train_data = {level: len(mlgp[level].training_data) for level in mlgp.levels}
+
+        self.assertEqual(original_train_data[1] + 1, new_train_data[1])
+        self.assertEqual(original_train_data[2] + 3, new_train_data[2])
+        self.assertEqual(original_train_data[3] + 1, new_train_data[3])
+
+    def test_update_trains_non_trained_gp(self):
+        """Ensures that if update is used on a non-trained GP it will simply train that GP."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        test_design_pts = (
+            (1, Input(0.4)),
+            (2, Input(0.1)),
+            (2, Input(0.86)),
+            (2, Input(0.3)),
+            (3, Input(0.1)),
+        )
+        test_outputs = (1, 2, 0.5, 0.6, 0.8)
+
+        mlgp.update(test_design_pts, test_outputs)
+        new_train_data = {level: len(mlgp[level].training_data) for level in mlgp.levels}
+
+        self.assertEqual(1, new_train_data[1])
+        self.assertEqual(3, new_train_data[2])
+        self.assertEqual(1, new_train_data[3])
+
     def test_predict_arg_error(self):
         """A TypeError is raised if the input is not an instance of Input."""
 
