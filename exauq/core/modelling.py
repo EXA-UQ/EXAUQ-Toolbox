@@ -8,6 +8,8 @@ import dataclasses
 import functools
 import math
 import sys
+import warnings
+from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from itertools import product
 from numbers import Real
@@ -1037,8 +1039,8 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
     def update(
         self,
-        new_design_pts: Collection[Input] = None,
-        new_outputs: Collection[Real] = None,
+        new_design_pts: Optional[Collection[Input]] = None,
+        new_outputs: Optional[Collection[Real]] = None,
         hyperparameters: Optional[GaussianProcessHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
@@ -1516,6 +1518,123 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
                 raise e.__class__(
                     f"Could not train Gaussian process at level {level}: {e}"
                 )
+
+        return None
+
+    def update(
+        self,
+        new_design_pts: Optional[tuple[tuple[int, Input], ...]] = None,
+        new_outputs: Optional[Collection[Real]] = None,
+        hyperparameters: Optional[
+            Union[
+                MultiLevel[GaussianProcessHyperparameters],
+                GaussianProcessHyperparameters,
+            ]
+        ] = None,
+        hyperparameter_bounds: Optional[
+            Union[MultiLevel[Sequence[OptionalFloatPairs]], Sequence[OptionalFloatPairs]]
+        ] = None,
+    ) -> None:
+        """Update the current fitted gp to new conditions.
+
+        Allows the user a more friendly experience when implementing different hyperparameters
+        or hyperparam bounds or adding new training data to their GP without having to construct
+        the refit themselves.
+
+        Parameters
+        ----------
+        new_design_pts :
+            A tuple of (level, Input) pairs for newly calculated design points to be implemented
+            into the correct level of the gp.
+        new_outputs:
+            The outputs from the simulator which the new design points generated, used
+            to retrain the gp alongside the design points.
+        hyperparameters :
+            Hyperparameters for a Gaussian process to use directly in
+            fitting the emulator. If ``None`` then the hyperparameters should be estimated
+            as part of fitting to data.
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
+            during estimation, of the form ``(lower_bound, upper_bound)``. All
+            but the last tuple should represent bounds for the correlation
+            length scale parameters, in the same order as the ordering of the
+            corresponding input coordinates, while the last tuple should
+            represent bounds for the process variance.
+        """
+
+        if (new_design_pts is None) ^ (new_outputs is None):
+            raise TypeError(
+                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
+                f"{new_design_pts} design points and {new_outputs} outputs."
+            )
+
+        if new_design_pts is not None:
+            if not isinstance(new_design_pts, tuple):
+                raise TypeError(
+                    f"Expected 'new_design_pts' to be of type tuple of (int, {Input.__name__}) "
+                    f"pairs, but received {type(new_design_pts)} instead."
+                )
+
+            if any(not isinstance(x, tuple) for x in new_design_pts):
+                raise TypeError(
+                    f"Expected all elements of 'new_design_pts' type tuple of (int, {Input.__name__}), "
+                    "but one or more elements were of an unexpected type."
+                )
+
+            if not isinstance(new_outputs, Collection):
+                raise TypeError(
+                    f"Expected 'new_outputs' to be of type collection of {Real.__name__}, but "
+                    f"received {type(new_outputs)} instead."
+                )
+
+            if any(not isinstance(x, Real) for x in new_outputs):
+                raise TypeError(
+                    f"Expected all elements of 'new_outputs' to be of type {Real.__name__}, "
+                    "but one or more elements were of an unexpected type."
+                )
+
+            if len(new_design_pts) != len(new_outputs):
+                raise ValueError(
+                    f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
+                    f"{len(new_design_pts)} design points and {len(new_outputs)} outputs."
+                )
+
+            try:
+                levels, new_inputs = zip(*new_design_pts)
+                new_data = [TrainingDatum(x, y) for x, y in zip(new_inputs, new_outputs)]
+                training_data_dict = defaultdict(
+                    list,
+                    {level: list(data) for level, data in self.training_data.items()},
+                )
+                for level, datum in zip(levels, new_data):
+                    training_data_dict[level].append(datum)
+
+                training_data = MultiLevel(training_data_dict)
+
+            except (ValueError, TypeError) as e:
+                raise e.__class__(
+                    "new_design_pts should be of type: tuple of tuple(int, Input) pairs. "
+                    "new_outputs should be of type Collection of Real numbers. At least one of these is incorrect, "
+                    f"received: new_design_pts: {new_design_pts} and new outputs: {new_outputs}"
+                )
+
+            self.fit(training_data, hyperparameters, hyperparameter_bounds)
+            return None
+
+        elif all(
+            value is None
+            for key, value in locals().items()
+            if key not in ["self", "__class__"]
+        ):
+            warnings.warn(
+                "No arguments were passed to update and hence the GP remains as was.",
+                UserWarning,
+            )
+            return None
+
+        else:
+            training_data = self.training_data
+            self.fit(training_data, hyperparameters, hyperparameter_bounds)
 
         return None
 
