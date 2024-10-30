@@ -1177,8 +1177,10 @@ def compute_multi_level_loo_samples(
     errors GP across levels, where the PEIs are weighted according to the costs of
     computing the design points on simulators at the levels.
 
-    The `costs` should represent the costs of running each level's simulator on a single
-    input.
+    The `costs` should represent the successive differences costs of running each level's 
+    simulator on a single input. For example, if the level costs were 1, 10, 100 for levels
+    1, 2, 3 respectively, then 1, 11, 110 would need to be supplied if successive differences 
+    was the chosen method for calculating costs.
 
     If `additional_repulsion_pts` is provided, then these points will be added into the
     calculations at the level they are allocated to in the PEI.

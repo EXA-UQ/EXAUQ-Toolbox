@@ -139,12 +139,13 @@ to do this. By default, a batch consisting of a single, new design point will be
 - The multi-level GP to find the new design point for.
 - The [`SimulatorDomain`][exauq.core.modelling.SimulatorDomain] describing the domain on
   which the simulator is defined.
-- The relative costs of running the simulator at each level. In our case, this should be
-  the costs of running the level 1 simulator $f_1$ and the full level 2 simulator
-  $f$ (not the difference $delta$).
+- The costs of running the simulator at each level. In our case, this should be
+  the cost of running the level 1 simulator $f_1$ and then the additional cost for the full level 2 simulator
+  $f$.
 
 Let's suppose for our toy example that the full simulator is 10-times more expensive to
-run than the level 1 version, so that we assign a cost of 1 to $f_1$ and 10 to $f$.
+run than the level 1 version. This gives relative costs of 1 and 10 to $f_1$ and $f$ respectively.
+Therefore, we assign a cost of 1 to $f_1$ and 11 to $f$ given the cost for our full simulator is $C^{(2)} = c^{(1)} + c^{(2)}$.
 
 In code, we perform the adaptive sampling as follows:
 
@@ -156,7 +157,7 @@ from exauq.core.designers import compute_multi_level_loo_samples
 import warnings
 warnings.filterwarnings("ignore")
 
-costs = MultiLevel([1, 10])
+costs = MultiLevel([1, 11])
 new_design_pts = compute_multi_level_loo_samples(mlgp, domain, costs)
 
 level, new_input = zip(*new_design_pts)

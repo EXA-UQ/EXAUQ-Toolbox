@@ -1314,12 +1314,13 @@ to do this. By default, a batch consisting of a single, new design point will be
 <li>The multi-level GP to find the new design point for.</li>
 <li>The <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.SimulatorDomain"><code>SimulatorDomain</code></a> describing the domain on
   which the simulator is defined.</li>
-<li>The relative costs of running the simulator at each level. In our case, this should be
-  the costs of running the level 1 simulator <span class="arithmatex">\(f_1\)</span> and the full level 2 simulator
-  <span class="arithmatex">\(f\)</span> (not the difference <span class="arithmatex">\(delta\)</span>).</li>
+<li>The costs of running the simulator at each level. In our case, this should be
+  the cost of running the level 1 simulator <span class="arithmatex">\(f_1\)</span> and then the additional cost for the full level 2 simulator
+  <span class="arithmatex">\(f\)</span>.</li>
 </ul>
 <p>Let's suppose for our toy example that the full simulator is 10-times more expensive to
-run than the level 1 version, so that we assign a cost of 1 to <span class="arithmatex">\(f_1\)</span> and 10 to <span class="arithmatex">\(f\)</span>.</p>
+run than the level 1 version. This gives relative costs of 1 and 10 to <span class="arithmatex">\(f_1\)</span> and <span class="arithmatex">\(f\)</span> respectively.
+Therefore, we assign a cost of 1 to <span class="arithmatex">\(f_1\)</span> and 11 to <span class="arithmatex">\(f\)</span> given the cost for our full simulator is <span class="arithmatex">\(C^{(2)} = c^{(1)} + c^{(2)}\)</span>.</p>
 <p>In code, we perform the adaptive sampling as follows:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span> <span class="nn">exauq.core.designers</span> <span class="kn">import</span> <span class="n">compute_multi_level_loo_samples</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
@@ -1327,8 +1328,13 @@ run than the level 1 version, so that we assign a cost of 1 to <span class="arit
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="kn">import</span> <span class="nn">warnings</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<<<<<<< HEAD
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">costs</span> <span class="o">=</span> <span class="n">MultiLevel</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">])</span>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">new_design_pts</span> <span class="o">=</span> <span class="n">compute_multi_level_loo_samples</span><span class="p">(</span><span class="n">mlgp</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">costs</span><span class="p">)</span>
+=======
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">costs</span> <span class="o">=</span> <span class="n">MultiLevel</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">11</span><span class="p">])</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">level</span><span class="p">,</span> <span class="n">new_design_pts</span> <span class="o">=</span> <span class="n">compute_multi_level_loo_samples</span><span class="p">(</span><span class="n">mlgp</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">costs</span><span class="p">)</span>
+>>>>>>> dev
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">level</span><span class="p">,</span> <span class="n">new_input</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">new_design_pts</span><span class="p">)</span>
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
@@ -1336,7 +1342,11 @@ run than the level 1 version, so that we assign a cost of 1 to <span class="arit
 </span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Level to run it at:&quot;</span><span class="p">,</span> <span class="n">level</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </span></code></pre></div>
 <div class="result">
+<<<<<<< HEAD
 <div class="language-text highlight"><pre><span></span><code>New design point: (np.float64(0.2781335899695724), np.float64(99.99999999834772))
+=======
+<div class="language-text highlight"><pre><span></span><code>New design point: (np.float64(0.27813400481879613), np.float64(99.99999999771047))
+>>>>>>> dev
 Level to run it at: 2
 </code></pre></div>
 </div>
@@ -1358,8 +1368,13 @@ specifying a different batch size:</p>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Level to update design point at:&quot;</span><span class="p">,</span> <span class="n">levels</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
+<<<<<<< HEAD
 <div class="language-text highlight"><pre><span></span><code>New design points: (Input(np.float64(0.27813343167546933), np.float64(99.99999999951245)), Input(np.float64(0.9999999998295255), np.float64(25.545439903430104)), Input(np.float64(-0.9999999999971123), np.float64(73.34223581560963)), Input(np.float64(-0.08218311957436952), np.float64(61.92470200312097)), Input(np.float64(0.6646886073768148), np.float64(99.9999999855637)))
 Level to update design point at: (2, 2, 2, 2, 2)
+=======
+<div class="language-text highlight"><pre><span></span><code>New design points: (Input(np.float64(0.27813206334199936), np.float64(99.99999999613105)), Input(np.float64(-0.9999999999815539), np.float64(73.30012555329199)), Input(np.float64(0.9999999999983142), np.float64(25.508185417458638)), Input(np.float64(-0.08211397941960812), np.float64(61.928616171234324)), Input(np.float64(0.6646954205164309), np.float64(99.9999999981419)))
+Level to run batch at: 2
+>>>>>>> dev
 </code></pre></div>
 </div>
 <h2 id="update-the-multi-level-gp">Update the multi-level GP</h2>
@@ -1410,6 +1425,7 @@ ignored.)</p>
 </span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated level </span><span class="si">{</span><span class="n">lvl</span><span class="si">}</span><span class="s2"> with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
+<<<<<<< HEAD
 <div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999998771356), np.float64(75.3371242912295))
 </code></pre></div>
 </div>
@@ -1427,6 +1443,25 @@ ignored.)</p>
 </div>
 <div class="result">
 <div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.9999999942302512), np.float64(85.40352046115663))
+=======
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999999892673), np.float64(75.2752485395042))
+</code></pre></div>
+</div>
+<div class="result">
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.5890439074453802), np.float64(99.99999999013096))
+</code></pre></div>
+</div>
+<div class="result">
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999971222091), np.float64(45.698125309273166))
+</code></pre></div>
+</div>
+<div class="result">
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.5525018292608445), np.float64(69.25914533608827))
+</code></pre></div>
+</div>
+<div class="result">
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.040664453102886355), np.float64(81.00456111371182))
+>>>>>>> dev
 </code></pre></div>
 </div>
 
