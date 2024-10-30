@@ -1348,17 +1348,10 @@ deviation, respectively).</p>
 </span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<<<<<<< HEAD
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2549.6067852624037), variance=np.float64(2.5214401185512543), standard_deviation=1.5879043165604325)
-Point estimate: 2549.6067852624037
-Variance of estimate: 2.5214401185512543
-Standard deviation of estimate: 1.5879043165604325
-=======
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2549.6068194932086), variance=np.float64(2.521401345729828), standard_deviation=1.587892107710668)
-Point estimate: 2549.6068194932086
-Variance of estimate: 2.521401345729828
-Standard deviation of estimate: 1.587892107710668
->>>>>>> dev
+<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2549.606791900027), variance=np.float64(2.5214434564113617), standard_deviation=1.5879053675869232)
+Point estimate: 2549.606791900027
+Variance of estimate: 2.5214434564113617
+Standard deviation of estimate: 1.5879053675869232
 </code></pre></div>
 </div>
 <p>Let's see how well the prediction did against the true simulator value:</p>
@@ -1370,15 +1363,9 @@ Standard deviation of estimate: 1.587892107710668
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<<<<<<< HEAD
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2549.6067852624037
+<div class="language-text highlight"><pre><span></span><code>Predicted value: 2549.606791900027
 Actual simulator value: 2548.835786437627
-Percentage error: 0.030249058369279335
-=======
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2549.6068194932086
-Actual simulator value: 2548.835786437627
-Percentage error: 0.03025040136693606
->>>>>>> dev
+Percentage error: 0.0302493187871272
 </code></pre></div>
 </div>
 <p>Finally, because the prediction comes from a GP, we can also calculate the normalised
@@ -1389,11 +1376,7 @@ prediction:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">prediction</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<<<<<<< HEAD
-<div class="language-text highlight"><pre><span></span><code>0.720336969181863
-=======
-<div class="language-text highlight"><pre><span></span><code>0.7203392629082389
->>>>>>> dev
+<div class="language-text highlight"><pre><span></span><code>0.7203373191331546
 </code></pre></div>
 </div>
 

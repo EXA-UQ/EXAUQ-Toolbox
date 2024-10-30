@@ -167,7 +167,7 @@ print("Level to run it at:", level[0])
 ```
 
 <div class="result" markdown>
-    New design point: (np.float64(0.2781335899695724), np.float64(99.99999999834772))
+    New design point: (np.float64(0.2781333041054517), np.float64(99.99999999820083))
     Level to run it at: 2
     
 </div>
@@ -196,7 +196,7 @@ print("Level to update design point at:", levels)
 ```
 
 <div class="result" markdown>
-    New design points: (Input(np.float64(0.27813343167546933), np.float64(99.99999999951245)), Input(np.float64(0.9999999998295255), np.float64(25.545439903430104)), Input(np.float64(-0.9999999999971123), np.float64(73.34223581560963)), Input(np.float64(-0.08218311957436952), np.float64(61.92470200312097)), Input(np.float64(0.6646886073768148), np.float64(99.9999999855637)))
+    New design points: (Input(np.float64(0.2781321887715705), np.float64(99.99999999519329)), Input(np.float64(0.9999999998264466), np.float64(25.545425136773837)), Input(np.float64(-0.9999999999852175), np.float64(73.34236246512296)), Input(np.float64(-0.08217212241945115), np.float64(61.92595124731959)), Input(np.float64(0.6646887676146034), np.float64(99.99999999446626)))
     Level to update design point at: (2, 2, 2, 2, 2)
     
 </div>
@@ -267,25 +267,25 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.9999999998771356), np.float64(75.3371242912295))
+    ==> Updated level 2 with new design point (np.float64(0.9999999998602995), np.float64(75.33810101810782))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.5885206051303612), np.float64(100.0))
+    ==> Updated level 2 with new design point (np.float64(-0.5885629470863974), np.float64(99.99999997945513))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.13267496113799582), np.float64(78.28376416054093))
+    ==> Updated level 2 with new design point (np.float64(0.9999999990514106), np.float64(45.68158032847367))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.9999999927732566), np.float64(45.292171039977845))
+    ==> Updated level 2 with new design point (np.float64(-0.5600362254720403), np.float64(68.22862804187392))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.9999999942302512), np.float64(85.40352046115663))
+    ==> Updated level 2 with new design point (np.float64(0.09637277656457255), np.float64(80.30463146928328))
     

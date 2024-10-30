@@ -109,7 +109,7 @@ new_design_pts[0]
 
 
 <div class="result" markdown>
-    Input(np.float64(0.04634564632841309), np.float64(56.44301713018061))
+    Input(np.float64(0.9935298338055198), np.float64(57.40943254109443))
 </div>
 
 
@@ -127,11 +127,11 @@ new_design_pts
 
 
 <div class="result" markdown>
-    (Input(np.float64(-0.8911764982483527), np.float64(54.25229636426387)),
-     Input(np.float64(0.5319731734704134), np.float64(56.75271346724434)),
-     Input(np.float64(0.9509338847155868), np.float64(53.477410482301124)),
-     Input(np.float64(-0.8525003073872288), np.float64(57.146428701343105)),
-     Input(np.float64(-0.9485807307983514), np.float64(55.965993402509554)))
+    (Input(np.float64(-0.2300198420561751), np.float64(54.375196966516405)),
+     Input(np.float64(0.5518770956882648), np.float64(55.111408150841214)),
+     Input(np.float64(0.9419131616947969), np.float64(57.90537574633263)),
+     Input(np.float64(-0.8378548323674495), np.float64(52.507585082335765)),
+     Input(np.float64(-0.979662076835578), np.float64(56.184513146099114)))
 </div>
 
 
@@ -166,11 +166,11 @@ new_outputs
 
 
 <div class="result" markdown>
-    [np.float64(2998.520183994661),
-     np.float64(3276.96850027812),
-     np.float64(2911.533810684346),
-     np.float64(3322.574068963651),
-     np.float64(3187.066170456597)]
+    [np.float64(3008.591272772082),
+     np.float64(3090.070886084185),
+     np.float64(3410.555818074453),
+     np.float64(2809.7719973906114),
+     np.float64(3212.055143514236)]
 </div>
 
 
@@ -220,25 +220,25 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.9999998133770662), np.float64(15.416473727864812))
+    ==> Updated with new design point (np.float64(0.999999109908932), np.float64(13.870450850605522))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.49110765244074295), np.float64(99.61255593528759))
+    ==> Updated with new design point (np.float64(-0.5360135659127457), np.float64(99.99999973580834))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.6407096951889637), np.float64(99.55872989520225))
+    ==> Updated with new design point (np.float64(0.8835052035775894), np.float64(49.326167059663675))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.8814531592450774), np.float64(89.29501563784852))
+    ==> Updated with new design point (np.float64(0.6419051977527168), np.float64(1.0000033424556918))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.5771800890611709), np.float64(1.0000000200437995))
+    ==> Updated with new design point (np.float64(-0.3056568162491451), np.float64(1.000031161218459))
     
