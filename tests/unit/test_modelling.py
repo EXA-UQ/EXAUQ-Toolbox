@@ -766,6 +766,61 @@ class TestAbstractGaussianProcess(ExauqTestCase):
 
         self.assertArraysEqual(np.linalg.inv(test_array), gp.kinv)
 
+    def test_update_adds_new_data_to_training_data(self):
+        """Given a trained emulator, ensure that post update the new training_data is
+        added to the GP"""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+        train_data_length = len(self.training_data)
+
+        new_training_data = [TrainingDatum(Input(0.74), 12)]
+        emulator.update(new_training_data)
+
+        self.assertEqual(
+            (train_data_length + len(new_training_data)), len(emulator.training_data)
+        )
+
+    def test_update_to_emulator_hyperparams(self):
+        """Given a trained emulator, ensure that post update the new hyperparameters are
+        implemented even with no training data
+        """
+        emulator = MogpEmulator()
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        training_data = (TrainingDatum(Input(0.1, 0.2), 3), TrainingDatum(Input(0.3, 0.4), 4))
+        emulator.fit(training_data, params)
+
+        new_params = MogpHyperparameters(
+            corr_length_scales=[2, 3], process_var=2, nugget=2
+        )
+        emulator.update(hyperparameters=new_params)
+
+        self.assertNotEqual(params, new_params)
+        self.assertEqual(new_params, emulator.fit_hyperparameters)
+
+    def test_update_points_on_non_fitted_gp(self):
+        """Given an untrained emulator the update method should just fit the new points
+        to the untrained emulator"""
+
+        emulator = MogpEmulator()
+        training_data = [TrainingDatum(Input(0.1, 0.2), 1), TrainingDatum(Input(0.5, 0.6), 2), TrainingDatum(Input(0.8, 0.25), 3)]
+
+        emulator.update(training_data)
+
+        self.assertEqual(len(training_data), len(emulator.training_data))
+
+    def test_update_no_points_on_non_fitted_gp(self):
+        """Given an untrained emulator, the update method should simply fit the empty gp
+        and pass through, but return a warning to the user that no changes were made."""
+
+        emulator = MogpEmulator()
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact("No arguments were passed to update and hence the GP remains as was."),
+        ):
+            _ = emulator.update()
+
 
 class TestGaussianProcessHyperparameters(ExauqTestCase):
     def setUp(self) -> None:
@@ -1944,6 +1999,56 @@ class TestMultiLevel(ExauqTestCase):
         d2 = MultiLevel(d_dict)
         self.assertEqual(d1, d2)
 
+    def test_add_levels(self):
+        """Two MultiLevel objects added together should concatenate the levels
+        or create new levels if objects don't exist in both."""
+
+        a = MultiLevel(
+            {
+                1: [1, 2, 3], 
+                2: ("a", "b", "c"),
+                3: [TrainingDatum(Input(0.5), 1)]
+            })
+        
+        b = MultiLevel(
+            {
+                1: [4, 5, 6], 
+                2: ("d", "e", "f"),
+                3: [TrainingDatum(Input(0.9), 1.5)],
+                4: ["Test"]
+            }) 
+        
+        correctly_added = MultiLevel({1: (1, 2, 3, 4, 5, 6), 
+                                    2: ('a', 'b', 'c', 'd', 'e', 'f'), 
+                                    3: (TrainingDatum(input=Input(0.5), output=1), 
+                                    TrainingDatum(input=Input(0.9), output=1.5)),
+                                    4: ('Test',)
+                                    })
+    
+
+        c = a + b
+        self.assertEqual(c, correctly_added)
+
+    def test_add_type_error(self):
+        """Ensure that a type error is raised if non-MultiLevel objects are passed"""
+
+        a = MultiLevel(
+            {
+                1: [1, 2, 3], 
+                2: ("a", "b", "c"),
+                3: [TrainingDatum(Input(0.5), 1)]
+            })
+        
+        b = 23
+
+        with self.assertRaisesRegex(
+            TypeError, 
+            exact(
+                "MultiLevel objects can only be added to other MultiLevel objects."
+            )
+        ):
+            a + b    
+
     def test_levels(self):
         """The levels attribute returns the levels as an ordered tuple of ints."""
 
@@ -2336,95 +2441,6 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
 
         self.assertIsNone(mlgp.fit_hyperparameters[missing_level])
 
-    def test_update_argument_types(self):
-        """Ensure that correct TypeErrors are raised for update supplied arguments."""
-
-        mlgp = self.make_multi_level_gp(self.gps)
-        test_design_pts = ((1, Input(0.5)), (2, Input(0.2)))
-        test_outputs = [0.1, 0.2]
-
-        arg1 = 42
-
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Expected 'new_design_pts' to be of type tuple of (int, {Input.__name__}) "
-                f"pairs, but received {type(arg1)} instead."
-            ),
-        ):
-            mlgp.update(arg1, test_outputs)
-
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Expected 'new_outputs' to be of type collection of {Real.__name__}, but "
-                f"received {type(arg1)} instead."
-            ),
-        ):
-            mlgp.update(test_design_pts, arg1)
-
-        arg2 = ([1, Input(0.4)], [2, Input(0.3)])
-
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Expected all elements of 'new_design_pts' type tuple of (int, {Input.__name__}), "
-                "but one or more elements were of an unexpected type."
-            ),
-        ):
-            mlgp.update(arg2, test_outputs)
-
-        arg3 = [1.24, Input(323)]
-
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Expected all elements of 'new_outputs' to be of type {Real.__name__}, "
-                "but one or more elements were of an unexpected type."
-            ),
-        ):
-            mlgp.update(test_design_pts, arg3)
-
-        arg4 = ((Input(0.1), Input(0.4)), (2, Input(0.3)))
-
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                "new_design_pts should be of type: tuple of tuple(int, Input) pairs. new_outputs "
-                "should be of type Collection of Real numbers. At least one of these is incorrect, " 
-                f"received: new_design_pts: {arg4} and new outputs: {test_outputs}"
-            ),
-        ):
-            mlgp.update(arg4, test_outputs)
-
-    def test_update_design_pts_outputs_arguments(self):
-        """Ensure that either both design_pts and outputs are passed or neither."""
-
-        mlgp = self.make_multi_level_gp(self.gps)
-        test_design_pts = ((1, Input(0.5)), (2, Input(0.2)))
-        test_outputs = [0.1, 0.2]
-
-        none_design_pts = None
-        none_outputs = None
-
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
-                f"{none_design_pts} design points and {test_outputs} outputs."
-            ),
-        ):
-            mlgp.update(none_design_pts, test_outputs)
-
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
-                f"{test_design_pts} design points and {none_outputs} outputs."
-            ),
-        ):
-            mlgp.update(test_design_pts, none_outputs)
-
     def test_update_warning_for_null_arguments(self):
         """Ensure that no arguments passed to update raises the appropriate warning."""
 
@@ -2436,22 +2452,6 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
             exact("No arguments were passed to update and hence the GP remains as was."),
         ):
             mlgp.update()
-
-    def test_update_different_length_outputs_design_pts(self):
-        """Ensure a correct ValueError is raised for different length design_pts and outputs passed."""
-
-        mlgp = self.make_multi_level_gp(self.gps)
-        test_design_pts = ((1, Input(0.5)), (2, Input(0.2)))
-        test_outputs = [1, 2, 3, 43, 4]
-
-        with self.assertRaisesRegex(
-            ValueError,
-            exact(
-                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
-                f"{len(test_design_pts)} design points and {len(test_outputs)} outputs."
-            ),
-        ):
-            mlgp.update(test_design_pts, test_outputs)
 
     def test_update_passes_hyperparameters_only(self):
         """Ensure that when no training data is passed, hyperparameters are still updated correctly."""
@@ -2488,65 +2488,61 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         leaves all other levels with the correct data."""
 
         mlgp = self.make_multi_level_gp(self.gps)
-        test_design_pts = ((1, Input(0.4)), (1, Input(0.5)))
-        test_outputs = (1, 2)
-
         mlgp.fit(self.training_data)
-        original_train_data = {
-            level: len(mlgp[level].training_data) for level in mlgp.levels
-        }
+        original_train_data = self.training_data
 
-        mlgp.update(test_design_pts, test_outputs)
-        new_train_data = {level: len(mlgp[level].training_data) for level in mlgp.levels}
+        new_train_data = MultiLevel(
+            {   
+                1: (TrainingDatum(Input(0.25), 2.5), TrainingDatum(Input(0.4), 1.2)),
+                2: (),
+                3: ()
+            }
+        )
 
-        self.assertEqual(original_train_data[1] + len(test_design_pts), new_train_data[1])
-        self.assertEqual(mlgp[2].training_data, self.training_data[2])
-        self.assertEqual(mlgp[3].training_data, self.training_data[3])
+        mlgp.update(new_train_data)
+        
+        # Check length of data in each level is correct
+        for level in mlgp.levels:
+            self.assertEqual(len(mlgp[level].training_data), len(original_train_data[level]) + len(new_train_data[level]))
+
+        # Check new data exists within mlgp.training_data
+        for level, values in new_train_data.items():
+            for value in values:
+                assert value in mlgp.training_data[level]
 
     def test_update_for_training_data_across_all_levels(self):
         """Ensure that when training data is fitted, it is fitted across all levels."""
 
         mlgp = self.make_multi_level_gp(self.gps)
-        test_design_pts = (
-            (1, Input(0.2)),
-            (2, Input(0.3)),
-            (2, Input(0.86)),
-            (2, Input(1.3)),
-            (3, Input(2)),
-        )
-        test_outputs = (1, 2, 0.5, 0.6, 0.8)
-
         mlgp.fit(self.training_data)
-        original_train_data = {
-            level: len(mlgp[level].training_data) for level in mlgp.levels
-        }
+        original_train_data = self.training_data
 
-        mlgp.update(test_design_pts, test_outputs)
-        new_train_data = {level: len(mlgp[level].training_data) for level in mlgp.levels}
+        new_train_data = MultiLevel({
+            1: (TrainingDatum(Input(0.2), 1),),
+            2: (TrainingDatum(Input(0.3), 2), TrainingDatum(Input(0.86), 0.5), TrainingDatum(Input(1.3), 0.6)),
+            3: (TrainingDatum(Input(2), 0.8),)
+        })
 
-        self.assertEqual(original_train_data[1] + 1, new_train_data[1])
-        self.assertEqual(original_train_data[2] + 3, new_train_data[2])
-        self.assertEqual(original_train_data[3] + 1, new_train_data[3])
+        mlgp.update(new_train_data)
+
+        # Check length of data in each level is correct
+        for level in mlgp.levels:
+            self.assertEqual(len(mlgp[level].training_data), len(original_train_data[level]) + len(new_train_data[level]))
+
+        # Check new data exists within mlgp.training_data
+        for level, values in new_train_data.items():
+            for value in values:
+                assert value in mlgp.training_data[level]
+
 
     def test_update_trains_non_trained_gp(self):
         """Ensures that if update is used on a non-trained GP it will simply train that GP."""
 
         mlgp = self.make_multi_level_gp(self.gps)
-        test_design_pts = (
-            (1, Input(0.4)),
-            (2, Input(0.1)),
-            (2, Input(0.86)),
-            (2, Input(0.3)),
-            (3, Input(0.1)),
-        )
-        test_outputs = (1, 2, 0.5, 0.6, 0.8)
+        mlgp.update(self.training_data)
 
-        mlgp.update(test_design_pts, test_outputs)
-        new_train_data = {level: len(mlgp[level].training_data) for level in mlgp.levels}
-
-        self.assertEqual(1, new_train_data[1])
-        self.assertEqual(3, new_train_data[2])
-        self.assertEqual(1, new_train_data[3])
+        # Check new data exists within mlgp.training_data
+        self.assertEqual(self.training_data.items(), mlgp.training_data.items())
 
     def test_predict_arg_error(self):
         """A TypeError is raised if the input is not an instance of Input."""

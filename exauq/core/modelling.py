@@ -1039,8 +1039,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
     def update(
         self,
-        new_design_pts: Optional[Collection[Input]] = None,
-        new_outputs: Optional[Collection[Real]] = None,
+        training_data: Optional[Collection[TrainingDatum]] = None,
         hyperparameters: Optional[GaussianProcessHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
@@ -1071,19 +1070,27 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             represent bounds for the process variance.
         """
 
+        if all(
+            value is None
+            for key, value in locals().items()
+            if key not in ["self", "__class__"]
+        ):
+            warnings.warn(
+                "No arguments were passed to update and hence the GP remains as was.",
+                UserWarning,
+            )
+            return None
+
         if not self.training_data:
+            prev_training_data = []
+        else:
+            prev_training_data = list(self.training_data)
+
+        if training_data is None: 
             training_data = []
-
-        else:
-            training_data = self.training_data
-
-        if new_design_pts is None:
-            self.fit(training_data, hyperparameters, hyperparameter_bounds)
-
-        else:
-            new_data = [TrainingDatum(x, y) for x, y in zip(new_design_pts, new_outputs)]
-            training_data = new_data + list(self.training_data)
-            self.fit(training_data, hyperparameters, hyperparameter_bounds)
+            
+        training_data = training_data + prev_training_data
+        self.fit(training_data, hyperparameters, hyperparameter_bounds)
 
         return None
 
@@ -1283,6 +1290,75 @@ class MultiLevel(dict[int, T]):
 
     def __ne__(self, other):
         return not self == other
+    
+    def __add__(self, other: MultiLevel[T] | None) -> MultiLevel[tuple[T]]:
+        """
+        Add two MultiLevel objects together. 
+
+        Creates a new MultiLevel object that per level contains a tuple of all of the items 
+        in both self and other. If other has any items that are on a separate level to any 
+        previously stored in self, then this will create a new level. 
+
+        NOTE: It concatenates elements of sequences on the same level into 1 combined tuple, not indvidually adding
+        the elements mathematically. See Examples.
+
+        Parameters
+        ----------
+        other : other: MultiLevel[T] | None
+            The MultiLevel object to add to self.
+
+        Returns
+        -------
+            A new multi-level collection, containing tuples of the new items stored at each level. 
+
+        Examples
+        --------
+
+        >>> a = MultiLevel(
+            {
+                1: [1, 2, 3], 
+                2: ("a", "b", "c"),
+                3: [TrainingDatum(Input(0.5), 1)]
+            })
+        
+        >>> b = MultiLevel(
+            {
+                1: [4, 5, 6], 
+                2: ("d", "e", "f"),
+                3: [TrainingDatum(Input(0.9), 1.5)],
+                4: ["Test"]
+            }) 
+
+        >>> c = a + b
+        >>> c
+        MultiLevel({1: (1, 2, 3, 4, 5, 6), 
+                    2: ('a', 'b', 'c', 'd', 'e', 'f'), 
+                    3: (TrainingDatum(input=Input(0.5), output=1), 
+                    TrainingDatum(input=Input(0.9), output=1.5)),
+                    4: ('Test',)})
+    
+        """
+
+        if other is None:
+            return self
+
+        if not isinstance(other, MultiLevel):
+            raise TypeError(
+                "MultiLevel objects can only be added to other MultiLevel objects."
+            )
+        
+        new_multilevel = {level: list(value) for level, value in self.items()}
+
+        for level, value in other.items():
+
+            if level in new_multilevel:
+                new_multilevel[level].extend(list(value))
+
+            else: 
+                new_multilevel[level] = list(value)
+        
+        # Return immutable state
+        return MultiLevel({level: tuple(value) for level, value in new_multilevel.items()})
 
     def map(self, f: Callable[[int, T], S]) -> MultiLevel[S]:
         """Apply a function level-wise.
@@ -1523,8 +1599,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
     def update(
         self,
-        new_design_pts: Optional[tuple[tuple[int, Input], ...]] = None,
-        new_outputs: Optional[Collection[Real]] = None,
+        training_data: MultiLevel[Collection[TrainingDatum]] = None,
         hyperparameters: Optional[
             Union[
                 MultiLevel[GaussianProcessHyperparameters],
@@ -1562,64 +1637,9 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
             represent bounds for the process variance.
         """
 
-        if (new_design_pts is None) ^ (new_outputs is None):
-            raise TypeError(
-                f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
-                f"{new_design_pts} design points and {new_outputs} outputs."
-            )
-
-        if new_design_pts is not None:
-            if not isinstance(new_design_pts, tuple):
-                raise TypeError(
-                    f"Expected 'new_design_pts' to be of type tuple of (int, {Input.__name__}) "
-                    f"pairs, but received {type(new_design_pts)} instead."
-                )
-
-            if any(not isinstance(x, tuple) for x in new_design_pts):
-                raise TypeError(
-                    f"Expected all elements of 'new_design_pts' type tuple of (int, {Input.__name__}), "
-                    "but one or more elements were of an unexpected type."
-                )
-
-            if not isinstance(new_outputs, Collection):
-                raise TypeError(
-                    f"Expected 'new_outputs' to be of type collection of {Real.__name__}, but "
-                    f"received {type(new_outputs)} instead."
-                )
-
-            if any(not isinstance(x, Real) for x in new_outputs):
-                raise TypeError(
-                    f"Expected all elements of 'new_outputs' to be of type {Real.__name__}, "
-                    "but one or more elements were of an unexpected type."
-                )
-
-            if len(new_design_pts) != len(new_outputs):
-                raise ValueError(
-                    f"Each 'new_design_pt' should have 1 corresponding 'new_output', but received "
-                    f"{len(new_design_pts)} design points and {len(new_outputs)} outputs."
-                )
-
-            try:
-                levels, new_inputs = zip(*new_design_pts)
-                new_data = [TrainingDatum(x, y) for x, y in zip(new_inputs, new_outputs)]
-                training_data_dict = defaultdict(
-                    list,
-                    {level: list(data) for level, data in self.training_data.items()},
-                )
-                for level, datum in zip(levels, new_data):
-                    training_data_dict[level].append(datum)
-
-                training_data = MultiLevel(training_data_dict)
-
-            except (ValueError, TypeError) as e:
-                raise e.__class__(
-                    "new_design_pts should be of type: tuple of tuple(int, Input) pairs. "
-                    "new_outputs should be of type Collection of Real numbers. At least one of these is incorrect, "
-                    f"received: new_design_pts: {new_design_pts} and new outputs: {new_outputs}"
-                )
-
+        if training_data is not None:
+            training_data = training_data + self.training_data
             self.fit(training_data, hyperparameters, hyperparameter_bounds)
-            return None
 
         elif all(
             value is None
