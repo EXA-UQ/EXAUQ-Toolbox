@@ -1827,7 +1827,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         batch_size: Optional[int] = 1,
         additional_repulsion_pts: Optional[MultiLevel[Collection[Input]]] = None,
         seeds: Optional[MultiLevel[int]] = None,
-    ) -> tuple[tuple[int, Input], ...]:
+    ) -> MultiLevel[tuple[Input]]:
         mlgp = self.default_mlgp if mlgp is None else mlgp
         domain = self.default_domain if domain is None else domain
         costs = self.default_costs if costs is None else costs
@@ -1977,10 +1977,10 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
         for batch_size in [1, 2, 3]:
             with self.subTest(batch_size=batch_size):
-                _, design_points = zip(
-                    *self.compute_multi_level_loo_samples(batch_size=batch_size)
+                design_points = self.compute_multi_level_loo_samples(
+                    batch_size=batch_size
                 )
-                self.assertEqual(batch_size, len(design_points))
+                self.assertEqual(batch_size, len(design_points.get(1, (1,))))
 
     def test_returns_design_points_from_domain(self):
         """The return type is a tuple containing pair ``(level, Input)``, with ``level``
@@ -2009,19 +2009,15 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         for domain, gp in zip(domains, gps):
             with self.subTest(domain=domain, gp=gp):
                 mlgp = MultiLevelGaussianProcess([gp])
-                design_point_pairs = self.compute_multi_level_loo_samples(
+                design_points = self.compute_multi_level_loo_samples(
                     mlgp=mlgp, domain=domain, costs=costs, batch_size=2
                 )
 
-                self.assertIsInstance(design_point_pairs, tuple)
-                levels, design_points = zip(*design_point_pairs)
-
-                self.assertIsInstance(levels, tuple),
-                for level in levels:
-                    self.assertIn(level, mlgp.levels)
-                self.assertIsInstance(design_points, tuple)
-                for x in design_points:
-                    self.assertIn(x, domain)
+                self.assertIsInstance(design_points, MultiLevel)
+                for _, values in design_points.items():
+                    for input in values:
+                        self.assertIsInstance(input, Input)
+                        self.assertIn(input, domain)
 
     def test_single_batch_level_that_maximises_pei(self):
         """For a single batch output, the input and level returned are the ones that
@@ -2029,7 +2025,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         across all simulator levels. The weightings are reciprocals of the associated
         costs for calculating differences of simulator outputs."""
 
-        costs = self.make_level_costs([1, 11, 110])
+        costs = self.make_level_costs([0.0001, 11, 110])
         domain = SimulatorDomain([(0, 1)])
         mlgp = MultiLevelGaussianProcess([MogpEmulator(), MogpEmulator(), MogpEmulator()])
         training_data = MultiLevel(
@@ -2053,11 +2049,11 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         )
         mlgp.fit(training_data)
 
-        levels, design_points = zip(
-            *self.compute_multi_level_loo_samples(mlgp=mlgp, domain=domain, costs=costs)
+        design_points_ml = self.compute_multi_level_loo_samples(
+            mlgp=mlgp, domain=domain, costs=costs
         )
 
-        self.assertEqual(1, len(design_points))
+        self.assertEqual(1, len(design_points_ml))
 
         ml_errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain)
         ml_pei = ml_errors_gp.map(lambda _, gp: PEICalculator(domain, gp))
@@ -2074,18 +2070,19 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             key=lambda tup: tup[1],
         )
 
-        level = levels[0]
+        level = list(design_points_ml.keys())[0]
         self.assertEqual(expected_level, level)
 
     def test_new_design_points_in_batch_distinct(self):
         """A batch of new design points consists of Input objects that are (likely)
         all distinct."""
 
-        _, design_pts = zip(*self.compute_multi_level_loo_samples(batch_size=2))
+        design_pts_ml = self.compute_multi_level_loo_samples(batch_size=2).get(1, (1, 2))
+
         self.assertFalse(
             equal_within_tolerance(
-                design_pts[0],
-                design_pts[1],
+                design_pts_ml[0],
+                design_pts_ml[1],
                 rel_tol=self.tolerance,
                 abs_tol=self.tolerance,
             )
@@ -2095,16 +2092,19 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         """A batch of new design points consists of Input objects that are (likely)
         distinct from the training data inputs across the different levels."""
 
-        levels, design_pts = zip(
-            *self.compute_multi_level_loo_samples(mlgp=self.default_mlgp, batch_size=3)
+        design_pts_ml = self.compute_multi_level_loo_samples(
+            mlgp=self.default_mlgp, batch_size=3
         )
         training_inputs = []
-        for level in levels:
+
+        for level in design_pts_ml.keys():
             training_inputs.extend(
                 datum.input for datum in self.default_mlgp[level].training_data
             )
 
-        for training_x, x in itertools.product(training_inputs, design_pts):
+        for training_x, x in itertools.product(
+            training_inputs, list(design_pts_ml.values())
+        ):
             with self.subTest(training_input=training_x, design_pt=x):
                 self.assertFalse(
                     equal_within_tolerance(
@@ -2146,23 +2146,27 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         mlgp.fit(training_data)
 
         # Compute a new design point
-        level, design_pt = zip(*compute_multi_level_loo_samples(mlgp, domain, costs))
+        design_pt_ml = compute_multi_level_loo_samples(mlgp, domain, costs)
+        design_pt = list(design_pt_ml.values())[0]
 
         # This creates a MultiLevel for the values to equal None which are not the level for the design point
         repulsion_pts = MultiLevel(
-            {lvl: (design_pt if lvl == level[0] else None) for lvl in mlgp.levels}
+            {
+                lvl: (design_pt if lvl in design_pt_ml.keys() else None)
+                for lvl in mlgp.levels
+            }
         )
 
         # Re-run computation but now using the new design point as a repulsion point.
         # Should find different design points created.
-        level, design_pt2 = zip(
-            *compute_multi_level_loo_samples(
+        design_pt2 = list(
+            compute_multi_level_loo_samples(
                 mlgp,
                 domain,
                 costs,
                 additional_repulsion_pts=repulsion_pts,
-            )
-        )
+            ).values()
+        )[0]
 
         self.assertNotEqualWithinTolerance(
             design_pt2, design_pt, rel_tol=self.tolerance, abs_tol=self.tolerance
@@ -2198,9 +2202,9 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
         mlgp.fit(training_data)
 
-        levels, _ = zip(*compute_multi_level_loo_samples(mlgp, domain, costs, batch_size))
+        design_pts_ml = compute_multi_level_loo_samples(mlgp, domain, costs, batch_size)
 
-        self.assertTrue(len(set(levels)) != 1)
+        self.assertTrue(len(design_pts_ml.keys()) > 1)
 
     def test_use_of_seed_across_batch(self):
         """Ensure that, if seeds are provided, a different seed is being used to create every
@@ -2226,7 +2230,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
             ]
 
         for result in results:
-            self.assertTupleEqual(results[0], result)
+            self.assertTupleEqual(list(results[0].values())[0], list(result.values())[0])
 
 
 # TODO: test that repulsion points are updated with previously calculated inputs in
