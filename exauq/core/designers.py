@@ -1,6 +1,7 @@
 import copy
 import itertools
 import math
+from collections import defaultdict
 from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Optional
@@ -1166,7 +1167,7 @@ def compute_multi_level_loo_samples(
     batch_size: int = 1,
     additional_repulsion_pts: Optional[MultiLevel[Collection[Input]]] = None,
     seeds: Optional[MultiLevel[int]] = None,
-) -> tuple[tuple[int, Input], ...]:
+) -> MultiLevel[tuple[Input]]:
     """Compute a batch of design points adaptively for a multi-level Gaussian process (GP).
 
     Implements the cross-validation-based adaptive sampling for multi-level Gaussian
@@ -1177,9 +1178,9 @@ def compute_multi_level_loo_samples(
     errors GP across levels, where the PEIs are weighted according to the costs of
     computing the design points on simulators at the levels.
 
-    The `costs` should represent the successive differences costs of running each level's 
+    The `costs` should represent the successive differences costs of running each level's
     simulator on a single input. For example, if the level costs were 1, 10, 100 for levels
-    1, 2, 3 respectively, then 1, 11, 110 would need to be supplied if successive differences 
+    1, 2, 3 respectively, then 1, 11, 110 would need to be supplied if successive differences
     was the chosen method for calculating costs.
 
     If `additional_repulsion_pts` is provided, then these points will be added into the
@@ -1220,9 +1221,8 @@ def compute_multi_level_loo_samples(
 
     Returns
     -------
-    tuple[tuple[int, Input], ...]
-        A tuple of pairs ``(level, data)`` where ``data`` is the design point and
-        ``level`` is the level of simulation at which that design point should be run.
+    MultiLevel[tuple[Input]]
+        A MultiLevel tuple of inputs containing all of the new design points at the correct level
 
     Raises
     ------
@@ -1326,8 +1326,8 @@ def compute_multi_level_loo_samples(
         )
     )
 
-    # Create empty list for level, design pt. pairs
-    design_points = []
+    # Create empty dictionary for levels and design points
+    design_points = defaultdict(list)
 
     # Iterate through batch - recalculating levels and design points
     for i in range(batch_size):
@@ -1348,8 +1348,7 @@ def compute_multi_level_loo_samples(
         pei = ml_pei[level]
         pei.add_repulsion_points([new_design_pt])
 
-        # Create new level, design pt. pairs
-        design_points.append((level, new_design_pt))
+        # Add design inputs to dictionary level
+        design_points[level].append(new_design_pt)
 
-    return tuple(design_points)
-
+    return MultiLevel({level: tuple(inputs) for level, inputs in design_points.items()})
