@@ -12,6 +12,7 @@ from itertools import product
 from numbers import Real
 from types import GenericAlias
 from typing import Any, Callable, Optional, TypeVar, Union
+from warnings import warn
 
 import numpy as np
 from numpy.typing import NDArray
@@ -666,6 +667,95 @@ class TrainingDatum(object):
                     )
 
         return tuple(training_data)
+    
+    @staticmethod
+    def tabulate(data: Sequence[TrainingDatum], rows: Optional[int] = None):
+        """Neatly output a tabulated version of the inputs and outputs for a sequence of TrainingDatum
+        
+        This static method of TrainingDatum will output a table for TrainingDatum Inputs and outputs so
+        that one can quickly scan down the table to see whether the data is correct or not. It contains the
+        optional argument rows which if left as None will print the entire table, otherwise it will print
+        up to the row inputted. It also rounds the inputs and outputs to 10 d.p. for viewing. 
+
+        Parameters
+        -----------
+        data :
+            This should be a sequence of TrainingDatum items to be displayed
+
+        rows :
+            Optional integer n, to output the first n rows of data. If None, will print
+            the entire data sequence. 
+
+        Raises
+        ------
+        UserWarning: 
+            Raises a UserWarning if the length of the sequence to be printed is >100
+            and will limit the length of rows printed to 100.  
+          
+        Examples
+        --------
+    
+        >>> data = [TrainingDatum(Input(i), i) for i in range(1, 10)]
+
+        >>> TrainingDatum.tabulate(data, rows = 4) 
+        
+        Inputs:             Output:             
+        ----------------------------------------
+        1.0000000000        1.0000000000        
+        2.0000000000        2.0000000000        
+        3.0000000000        3.0000000000        
+        4.0000000000        4.0000000000       
+
+        """
+
+        if not isinstance(data, Sequence):
+            raise TypeError(
+                "Expected 'data' to be of type Sequence of TrainingDatum, but received "
+                f"{type(data)} instead."
+            )
+        
+        if not all(isinstance(datum, TrainingDatum) for datum in data):
+            raise TypeError(
+                "Expected 'data' to be of type Sequence of TrainingDatum, but received "
+                "unexpected data types instead."
+            )
+        
+        if rows is not None:
+            if not isinstance(rows, int):
+                raise TypeError(
+                    f"Expected 'rows' to be of type int, but received {type(rows)} instead."
+                )
+        
+            if rows < 1:
+                raise ValueError(
+                    f"Expected rows to be a postitive integer >= 1 but recieved {rows} instead."
+                )
+
+        if rows is None or rows > len(data):
+            rows = len(data)
+
+        if len(data) > 100:
+
+            warn(
+                UserWarning("Length of data passed > 100, limiting output to 100 rows.")
+            )
+            rows = 100
+   
+        input_width = 20
+        input_dim_width = len(data[0].input) * input_width
+        
+        # Create header and separater
+        print("Inputs:".ljust(input_dim_width), end = "")
+        print("Output:".ljust(input_width))
+        print('-' * (input_dim_width + input_width))
+
+        # Create table rows
+        for i, datum in enumerate(data):
+            if i < rows:
+                for value in datum.input:
+                    print(f"{value:.10f}".ljust(input_width), end = "")
+
+                print(f"{datum.output:.10f}".ljust(input_width))
 
     @classmethod
     def _parse_csv_row(cls, row: Sequence[str]) -> list[float]:
