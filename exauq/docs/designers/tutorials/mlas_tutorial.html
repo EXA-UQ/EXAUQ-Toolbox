@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.43">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.35f28582.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.0253249f.min.css">
       
       
 
@@ -1198,7 +1198,8 @@ Gaussian process (GP), using an adaptive sampling technique. Similarly to the
 multi-level GP and find a new design point (or batch of points) that will best
 improve the fit of the multi-level GP. In contrast to the single level case, we also need
 to determine the particular GP level for the new design point (or points), which
-determines the simulator run(s) required.</p>
+determines the simulator run(s) required. To help us do this, the associated cost of running 
+each level weighs the sampling criterion. </p>
 <p>This tutorial will show you how to:</p>
 <ul>
 <li>Use the function
@@ -1225,10 +1226,10 @@ Multi-Level Gaussian Process Models". arXiv: <a href="https://arxiv.org/abs/2307
 <p>We'll work with the same toy simulator function found in the tutorial,
 <a href="training_multi_level_gp_tutorial.html">Training a Multi-Level Gaussian Process Emulator</a>. This is the function
 $$
-f(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
+f_2(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
 $$
 with simulator domain defined as the rectangle <span class="arithmatex">\(\mathcal{D}\)</span> consisting of points
-<span class="arithmatex">\((x_1, x_2)\)</span> where <span class="arithmatex">\(-1 \leq x_1 \leq 1\)</span> and <span class="arithmatex">\(1 \leq x_2 \leq 100\)</span>. We view this as the
+<span class="arithmatex">\((x_1, x_2)\)</span> where <span class="arithmatex">\(0 \leq x_1 \leq 1\)</span> and <span class="arithmatex">\(-0.5 \leq x_2 \leq 1.5\)</span>. We view this as the
 top level of a 2-level multi-level simulator, with level 1 being given by the simpler
 function
 $$
@@ -1236,10 +1237,10 @@ f_1(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2}
 $$
 and the difference function between the levels being
 $$
-\delta(x_1, x_2) = f(x_1, x_2) - f_1(x_1, x_2) = \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
+\delta(x_1, x_2) = f_2(x_1, x_2) - f_1(x_1, x_2) = \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
 $$
 As in the tutorial linked above, we will use a multi-level GP to emulate
-<span class="arithmatex">\(f = f_1 + \delta\)</span>.</p>
+<span class="arithmatex">\(f_2 = f_1 + \delta\)</span> by fitting independent GPs.</p>
 <p>We can express this in code as follows:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span> <span class="nn">exauq.core.modelling</span> <span class="kn">import</span> <span class="n">SimulatorDomain</span><span class="p">,</span> <span class="n">Input</span><span class="p">,</span> <span class="n">MultiLevel</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -1278,11 +1279,11 @@ to have Matern 5/2 kernel for each level. The full code for doing this is as fol
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span> <span class="nn">exauq.core.emulators</span> <span class="kn">import</span> <span class="n">MogpEmulator</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span> <span class="nn">exauq.core.modelling</span> <span class="kn">import</span> <span class="n">MultiLevelGaussianProcess</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># Create level 1 experimental design of 20 data points</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">lhs_inputs1</span> <span class="o">=</span> <span class="n">oneshot_lhs</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># Create level 1 experimental design of 8 data points</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">lhs_inputs1</span> <span class="o">=</span> <span class="n">oneshot_lhs</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># Create level 2 experimental design of 5 data points</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">lhs_inputs2</span> <span class="o">=</span> <span class="n">oneshot_lhs</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># Create level 2 experimental design of 4 data points</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">lhs_inputs2</span> <span class="o">=</span> <span class="n">oneshot_lhs</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="c1"># Put into a multi-level object</span>
 </span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">design</span> <span class="o">=</span> <span class="n">MultiLevel</span><span class="p">([</span><span class="n">lhs_inputs1</span><span class="p">,</span> <span class="n">lhs_inputs2</span><span class="p">])</span>
@@ -1319,8 +1320,8 @@ to do this. By default, a batch consisting of a single, new design point will be
   <span class="arithmatex">\(f\)</span>.</li>
 </ul>
 <p>Let's suppose for our toy example that the full simulator is 10-times more expensive to
-run than the level 1 version. This gives relative costs of 1 and 10 to <span class="arithmatex">\(f_1\)</span> and <span class="arithmatex">\(f\)</span> respectively.
-Therefore, we assign a cost of 1 to <span class="arithmatex">\(f_1\)</span> and 11 to <span class="arithmatex">\(f\)</span> given the cost for our full simulator is <span class="arithmatex">\(C^{(2)} = c^{(1)} + c^{(2)}\)</span>.</p>
+run than the level 1 version. This gives relative costs of 1 and 10 to <span class="arithmatex">\(f_1\)</span> and <span class="arithmatex">\(f_2\)</span> respectively.
+Therefore, we assign a cost of 1 to <span class="arithmatex">\(f_1\)</span> and 11 to <span class="arithmatex">\(f_2\)</span> given the cost for our full simulator is <span class="arithmatex">\(C_2 = c_1 + c_2\)</span>.</p>
 <p>In code, we perform the adaptive sampling as follows:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span> <span class="nn">exauq.core.designers</span> <span class="kn">import</span> <span class="n">compute_multi_level_loo_samples</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
@@ -1335,7 +1336,7 @@ Therefore, we assign a cost of 1 to <span class="arithmatex">\(f_1\)</span> and 
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Level to run it at:&quot;</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>New design point: (np.float64(0.27813400481879613), np.float64(99.99999999771047))
+<div class="language-text highlight"><pre><span></span><code>New design point: (np.float64(-0.9999999063578762), np.float64(63.29854077834834))
 Level to run it at: 2
 </code></pre></div>
 </div>
@@ -1354,7 +1355,7 @@ specifying a different batch size:</p>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Level to run batch at:&quot;</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>New design points: (Input(np.float64(0.27813206334199936), np.float64(99.99999999613105)), Input(np.float64(-0.9999999999815539), np.float64(73.30012555329199)), Input(np.float64(0.9999999999983142), np.float64(25.508185417458638)), Input(np.float64(-0.08211397941960812), np.float64(61.928616171234324)), Input(np.float64(0.6646954205164309), np.float64(99.9999999981419)))
+<div class="language-text highlight"><pre><span></span><code>New design points: (Input(np.float64(-0.9999999230121038), np.float64(63.30712000417938)), Input(np.float64(0.3477577844145807), np.float64(1.0000000498779116)), Input(np.float64(0.4736591264288359), np.float64(99.99999965329604)), Input(np.float64(-0.6755008530856692), np.float64(99.99999785459832)), Input(np.float64(0.9999999981402268), np.float64(76.11028927021705)))
 Level to run batch at: 2
 </code></pre></div>
 </div>
@@ -1380,7 +1381,7 @@ outputs at the design points:</p>
 </span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Number of training data at each level: {1: 20, 2: 10}
+<div class="language-text highlight"><pre><span></span><code>Number of training data at each level: {1: 8, 2: 9}
 </code></pre></div>
 </div>
 <p>This completes one adaptive sampling 'iteration'. It's important to note that, when
@@ -1419,23 +1420,23 @@ ignored.)</p>
 </span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated level </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2"> with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999999892673), np.float64(75.2752485395042))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 1 with new design point (np.float64(-0.4254247953273482), np.float64(99.99999862733546))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.5890439074453802), np.float64(99.99999999013096))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 1 with new design point (np.float64(-0.9999999907018524), np.float64(16.737546178525584))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999971222091), np.float64(45.698125309273166))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.31390630651231743), np.float64(99.9999765548551))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.5525018292608445), np.float64(69.25914533608827))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.09028058337966349), np.float64(99.99999879289362))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.040664453102886355), np.float64(81.00456111371182))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.4178938381871812), np.float64(37.668676026121055))
 </code></pre></div>
 </div>
 
@@ -1484,10 +1485,10 @@ ignored.)</p>
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate", "contend.code.copy"], "search": "../../assets/javascripts/workers/search.07f07601.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate", "contend.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
         <script src="../../javascripts/katex.js"></script>
       

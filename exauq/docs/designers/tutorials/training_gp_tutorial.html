@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.43">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.35f28582.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.0253249f.min.css">
       
       
 
@@ -1194,21 +1194,21 @@ this tutorial.</p>
 </div>
 <h2 id="simulator-domain-and-inputs">Simulator domain and inputs</h2>
 <p>From an abstract, mathematical point of view, we view a <strong>simulator</strong> as nothing more than
-a (computationally laborious) deterministic function that takes an input and returns a single
-real number. In general, the input consists of a point in a multi-dimensional space called
+a (computationally laborious) function that takes an input and returns a single
+real number. (Within this toolbox they must also be determinsitic.) In general, the input consists of a point in a multi-dimensional space called
 the <strong>simulator domain</strong> (or just <strong>domain</strong>).</p>
 <p>For this tutorial, we'll be using a normal Python function that will act as a toy
-simulator. Its domain will be the rectangle <span class="arithmatex">\(\mathcal{D}\)</span> consisting of points <span class="arithmatex">\((x_1, x_2)\)</span> where
-<span class="arithmatex">\(-1 \leq x_1 \leq 1\)</span> and <span class="arithmatex">\(1 \leq x_2 \leq 100\)</span>. (In practice, a real simulator would most
-likely run on a different computer with powerful performance capabilities â€” perhaps even
-exascale levels of computational power â€” and the domain will likely have quite a few more dimensions.)</p>
+simulator. Its domain will be a rectanglular input space <span class="arithmatex">\(\mathcal{D}\)</span> consisting of 2 input points <span class="arithmatex">\((x_1, x_2)\)</span> where
+<span class="arithmatex">\(0 \leq x_1 \leq 1\)</span> and <span class="arithmatex">\(-0.5 \leq x_2 \leq 1.5\)</span>. (In practice, a real simulator would most
+likely run on a different computer with powerful performance capabilities, perhaps even
+exascale levels of computational power, and the domain will likely have quite a few more dimensions.)</p>
 <p>We begin by creating the domain of the simulator to represent the above rectangle. We
 do this by using the <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.SimulatorDomain"><code>SimulatorDomain</code></a> class,
 like so:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span> <span class="nn">exauq.core.modelling</span> <span class="kn">import</span> <span class="n">SimulatorDomain</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># The bounds define the lower and upper bounds on each coordinate</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">bounds</span> <span class="o">=</span> <span class="p">[(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">)]</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">bounds</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)]</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">domain</span> <span class="o">=</span> <span class="n">SimulatorDomain</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span>
 </span></code></pre></div>
 <p>The dimension of the domain, i.e. the number of coordinates defining it, can be obtained
@@ -1224,26 +1224,26 @@ using the <a class="autorefs autorefs-internal" href="../../api/core/modelling.h
 We can create <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.Input"><code>Input</code></a> objects like so:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span> <span class="nn">exauq.core.modelling</span> <span class="kn">import</span> <span class="n">Input</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">x1</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">99</span><span class="p">)</span>  <span class="c1"># i.e. (0, 99)</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">x2</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># i.e. (1, 0)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">input_x1</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># i.e. (1, 0)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">input_x2</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">99</span><span class="p">)</span>  <span class="c1"># i.e. (0, 99)</span>
 </span></code></pre></div>
 <p><a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.Input"><code>Input</code></a>s behave like <code>tuple</code>s, in that we can get their
-length (i.e. the dimension of the input point) and access the individual coordinates using
+length (i.e. the dimension of the input) and access the individual coordinates using
 Python's (0-based) indexing.</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dimension of x1:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">x1</span><span class="p">))</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;First coordinate of x1:&quot;</span><span class="p">,</span> <span class="n">x1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Second coordinate of x1:&quot;</span><span class="p">,</span> <span class="n">x1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dimension of input_x1:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_x1</span><span class="p">))</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;First coordinate of input_x1:&quot;</span><span class="p">,</span> <span class="n">input_x1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Second coordinate of input_x1:&quot;</span><span class="p">,</span> <span class="n">input_x1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Dimension of x1: 2
-First coordinate of x1: 0
-Second coordinate of x1: 99
+<div class="language-text highlight"><pre><span></span><code>Dimension of input_x1: 2
+First coordinate of input_x1: 1
+Second coordinate of input_x1: 0
 </code></pre></div>
 </div>
 <p>We can also verify whether an <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.Input"><code>Input</code></a> belongs to a simulator
 domain using the <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.SimulatorDomain.__contains__"><code>in</code></a> operator:</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">print</span><span class="p">(</span><span class="n">x1</span> <span class="ow">in</span> <span class="n">domain</span><span class="p">)</span>  <span class="c1"># x1 is contained in the domain</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">x2</span> <span class="ow">in</span> <span class="n">domain</span><span class="p">)</span>  <span class="c1"># x2 is not contained in the domain</span>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">print</span><span class="p">(</span><span class="n">input_x1</span> <span class="ow">in</span> <span class="n">domain</span><span class="p">)</span>  <span class="c1"># input_x1 is contained in the domain</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">input_x2</span> <span class="ow">in</span> <span class="n">domain</span><span class="p">)</span>  <span class="c1"># input_x2 is not contained in the domain</span>
 </span></code></pre></div>
 <div class="result">
 <div class="language-text highlight"><pre><span></span><code>True
@@ -1264,7 +1264,7 @@ In code, this is given as follows:</p>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="p">)</span>
 </span></code></pre></div>
 <h2 id="creating-an-experimental-design">Creating an experimental design</h2>
-<p>We'll now go on to create a one-shot experimental design for this simulator, using the Latin hypercube method. The following wrapper function <a class="autorefs autorefs-internal" href="../../api/core/designers.html#exauq.core.designers.oneshot_lhs"><code>oneshot_lhs</code></a> uses functionality provided by <a href="https://scipy.org/">scipy</a> to create a Latin hypercube sample of 20 new input points.</p>
+<p>We'll now go on to create a one-shot experimental design for this simulator, using the Latin hypercube method. The following wrapper function <a class="autorefs autorefs-internal" href="../../api/core/designers.html#exauq.core.designers.oneshot_lhs"><code>oneshot_lhs</code></a> uses functionality provided by <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.LatinHypercube.html">SciPy's LatinHypercube</a> to create a Latin hypercube sample of 20 new input points.</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span> <span class="nn">exauq.core.designers</span> <span class="kn">import</span> <span class="n">oneshot_lhs</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Use the dimension of the domain in defining the Latin hypercube sampler.</span>
@@ -1310,11 +1310,17 @@ inputs, then creates a list of training data:</p>
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># Create the training data of input/output pairs</span>
 </span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">TrainingDatum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lhs_inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)]</span>
 </span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="c1"># Inspect the first datum in the list</span>
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="c1"># Inspect the first 5 rows of datum in the list</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>TrainingDatum(input=Input(np.float64(-0.45118216247002574), np.float64(75.49520470318662)), output=np.float64(5772.805093637131))
+<div class="language-text highlight"><pre><span></span><code>Inputs:                                 Output:             
+------------------------------------------------------------
+0.2744089188        1.0049536304        1.3460506974        
+0.5927920194        -0.3948649447       -2.0511268894       
+0.8344084274        0.9576673551        -0.2842618194       
+0.1586148703        0.0590800864        -0.3693644148       
+0.7225203156        0.1972440887        -0.6652784078
 </code></pre></div>
 </div>
 <p>To train our GP, we use the <a class="autorefs autorefs-internal" href="../../api/core/emulators.html#exauq.core.emulators.MogpEmulator.fit"><code>fit</code></a> method with the
@@ -1322,10 +1328,20 @@ training data:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">gp</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># Verify training by examining the training data</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">gp</span><span class="o">.</span><span class="n">training_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">20</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">gp</span><span class="o">.</span><span class="n">training_data</span><span class="p">,</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
 </span></code></pre></div>
+<div class="result">
+<div class="language-text highlight"><pre><span></span><code>Inputs:                                 Output:             
+------------------------------------------------------------
+0.2744089188        1.0049536304        1.3460506974        
+0.5927920194        -0.3948649447       -2.0511268894       
+0.8344084274        0.9576673551        -0.2842618194       
+0.1586148703        0.0590800864        -0.3693644148       
+0.7225203156        0.1972440887        -0.6652784078
+</code></pre></div>
+</div>
 <p>We have used our Latin hypercube design and the corresponding simulator outputs to train
-our GP, making it ready to emulate our simulator. We put this to work in the next section.</p>
+our GP, making it ready for prediction of our simulator. We put this to work in the next section.</p>
 <h2 id="making-predictions-with-the-gp">Making predictions with the GP</h2>
 <p>To finish off, let's use our newly-trained GP to estimate the output of our simulator at a
 new input. We make a prediction with the GP using the
@@ -1339,7 +1355,7 @@ property for the point estimate and the
 <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.Prediction.standard_deviation"><code>standard_deviation</code></a>
 properties for a measure of the uncertainty (as the predictive variance and standard
 deviation, respectively).</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">prediction</span> <span class="o">=</span> <span class="n">gp</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
 </span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
@@ -1348,10 +1364,10 @@ deviation, respectively).</p>
 </span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2549.6068194932086), variance=np.float64(2.521401345729828), standard_deviation=1.587892107710668)
-Point estimate: 2549.6068194932086
-Variance of estimate: 2.521401345729828
-Standard deviation of estimate: 1.587892107710668
+<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2.9826683624886554), variance=np.float64(0.325215115250463), standard_deviation=0.5702763498957878)
+Point estimate: 2.9826683624886554
+Variance of estimate: 0.325215115250463
+Standard deviation of estimate: 0.5702763498957878
 </code></pre></div>
 </div>
 <p>Let's see how well the prediction did against the true simulator value:</p>
@@ -1363,9 +1379,9 @@ Standard deviation of estimate: 1.587892107710668
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2549.6068194932086
-Actual simulator value: 2548.835786437627
-Percentage error: 0.03025040136693606
+<div class="language-text highlight"><pre><span></span><code>Predicted value: 2.9826683624886554
+Actual simulator value: 2.5857864376269055
+Percentage error: 15.348596430337324
 </code></pre></div>
 </div>
 <p>Finally, because the prediction comes from a GP, we can also calculate the normalised
@@ -1376,7 +1392,17 @@ prediction:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">prediction</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>0.7203392629082389
+<div class="language-text highlight"><pre><span></span><code>0.7480505652032704
+</code></pre></div>
+</div>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">TrainingDatum</span><span class="p">(</span><span class="n">Input</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">TrainingDatum</span><span class="p">(</span><span class="n">Input</span><span class="p">(</span><span class="o">-</span><span class="mf">1.1234567898765544</span><span class="p">),</span> <span class="mf">1.3283498234198763</span><span class="p">)]</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="result">
+<div class="language-text highlight"><pre><span></span><code>Inputs:             Output:             
+----------------------------------------
+1.0000000000        1.0000000000        
+-1.1234567899       1.3283498234
 </code></pre></div>
 </div>
 
@@ -1425,10 +1451,10 @@ prediction:</p>
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate", "contend.code.copy"], "search": "../../assets/javascripts/workers/search.07f07601.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate", "contend.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
         <script src="../../javascripts/katex.js"></script>
       

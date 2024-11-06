@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.43">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.35f28582.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.0253249f.min.css">
       
       
 
@@ -1217,35 +1217,40 @@ found in the tutorial,
 <a href="training_gp_tutorial.html">Training A Gaussian Process Emulator</a>.
 This is defined to be the mathematical function
 $$
-f(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) \
+f_2(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) \
 + \mathrm{sin}(4\pi x_1 x_2)
 $$
 defined on the rectangular domain <span class="arithmatex">\(\mathcal{D}\)</span> consisting of 2d points
-<span class="arithmatex">\((x_1, x_2)\)</span>, where <span class="arithmatex">\(-1 \leq x_1 \leq 1\)</span> and <span class="arithmatex">\(1 \leq x_2 \leq 100\)</span>.</p>
+<span class="arithmatex">\((x_1, x_2)\)</span>, where <span class="arithmatex">\(0 \leq x_1 \leq 1\)</span> and <span class="arithmatex">\(-0.5 \leq x_2 \leq 1.5\)</span>.</p>
 <p>We will consider this as the top level of a multi-level simulator of two levels. The level
-1 version is the simpler function
+1 version is a simpler function, which is typically cheaper to run than the top level simulator. 
 $$
-f_1(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2}
+f_1(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} \
 $$
-In the multi-level paradigm, the idea is to emulate the whole simulator <span class="arithmatex">\(f\)</span> with a
+In the multi-level paradigm, the idea is to emulate the top level simulator <span class="arithmatex">\(f_2\)</span> with a
 multi-level GP, in this case having two levels. The multi-level GP is
-itself essentially a sum of two GPs, one at each level. The GP at the first level emulates
+a sum of two GPs, one at each level. The GP at the first level emulates
 the level 1 function <span class="arithmatex">\(f_1\)</span>, while the second level GP emulates the <strong>difference</strong> between
 the second and first level simulators:
 $$
-\delta(x_1, x_2) = f(x_1, x_2) - f_1(x_1, x_2) = \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
+\delta(x_1, x_2) = f_2(x_1, x_2) - f_1(x_1, x_2) = \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
 $$
-The reason for taking the difference is so that the full simulator <span class="arithmatex">\(f\)</span> is the sum of <span class="arithmatex">\(f_1\)</span>
-and <span class="arithmatex">\(\delta\)</span>, which allows us to emulate each function separately via a multi-level GP.</p>
+We take this delta because the difference between the levels is often a simpler function than the top level itself.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The multi-level GP approach that we are taking is an autoregressive approach to decompose the top level into the sum of the lower level 
+plus the difference between the two levels as described in Kennedy, Marc &amp; O'Hagan, A. (1998) "Predicting the Output from a Complex Computer Code When Fast Approximations Are Available". 
+DOI:<a href="https://doi.org/10.1093/biomet/87.1.1">https://doi.org/10.1093/biomet/87.1.1</a></p>
+</div>
 <p>We express all this in code as follows:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span> <span class="nn">exauq.core.modelling</span> <span class="kn">import</span> <span class="n">SimulatorDomain</span><span class="p">,</span> <span class="n">Input</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># The bounds define the lower and upper bounds on each coordinate</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">domain</span> <span class="o">=</span> <span class="n">SimulatorDomain</span><span class="p">(</span><span class="n">bounds</span><span class="o">=</span><span class="p">[(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">)])</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">domain</span> <span class="o">=</span> <span class="n">SimulatorDomain</span><span class="p">(</span><span class="n">bounds</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)])</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># The full simulator (at level 2)</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">def</span> <span class="nf">sim_func</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Input</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">def</span> <span class="nf">sim_level2</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Input</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">return</span> <span class="p">(</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
@@ -1257,7 +1262,7 @@ and <span class="arithmatex">\(\delta\)</span>, which allows us to emulate each 
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
 </span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="c1"># The difference between levels 1 and 2</span>
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="k">def</span> <span class="nf">sim_delta</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Input</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="k">return</span> <span class="n">sim_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">sim_level1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="k">return</span> <span class="n">sim_level2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">sim_level1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="multi-level-objects">Multi-level objects</h2>
 <p>In order to help structure objects in the multi-level paradigm, the EXAUQ-Toolbox provides
@@ -1303,7 +1308,7 @@ multi-level objects. We need to construct some multi-level training data, utilis
 experimental designs for each level's simulator, then train a multi-level GP with this
 data.</p>
 <p>To create the training data, we'll use a Latin hypercube designer <a class="autorefs autorefs-internal" href="../../api/core/designers.html#exauq.core.designers.oneshot_lhs"><code>oneshot_lhs</code></a> (with the aid of
-<a href="https://scipy.org/">scipy</a>) at each level. (For more detailed explanation of creating an
+<a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.LatinHypercube.html">scipy</a>) at each level. (For more detailed explanation of creating an
 experimental design from a Latin hypercube sample, see the section,
 <strong>Creating an experimental design</strong> from the
 <a href="training_gp_tutorial.html">Training a Gaussian Process Emulator</a> tutorial.)</p>
@@ -1333,6 +1338,11 @@ created earlier.</p>
 </span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="c1"># Combine into a multi-level object</span>
 </span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="n">training_data</span> <span class="o">=</span> <span class="n">MultiLevel</span><span class="p">([</span><span class="n">data1</span><span class="p">,</span> <span class="n">data2</span><span class="p">])</span>
 </span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is worth noting here for clarity that delta is calculated by <code>lhs_inputs2</code> being run through both level 1 and level 2 (see <code>sim_delta</code> function) to  make a single training point for delta. 
+These points run through level 1 for calculating this delta are <strong>not</strong> automatically included in the training data for the level 1 GP.  </p>
+</div>
 <p>If we wish, we can verify that we have the correct data at each level by doing some
 manual inspections:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of level 1 training data:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
@@ -1340,24 +1350,26 @@ manual inspections:</p>
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Show the first couple of data points for each level:</span>
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level 1:&quot;</span><span class="p">)</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nb">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="nb">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]))</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level 2:&quot;</span><span class="p">)</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="nb">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="nb">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]))</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level 2:&quot;</span><span class="p">)</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
 <div class="language-text highlight"><pre><span></span><code>Number of level 1 training data: 20
 Number of level 2 training data: 5
 
 Level 1:
-TrainingDatum(input=Input(np.float64(-0.45118216247002574), np.float64(75.49520470318662)), output=np.float64(5773.8104896605955))
-TrainingDatum(input=Input(np.float64(0.18558403872803675), np.float64(6.204185236670643)), output=np.float64(43.31632756065012))
+Inputs:                                 Output:             
+------------------------------------------------------------
+0.2744089188        1.0049536304        0.6759721219        
+0.5927920194        -0.3948649447       -1.3017578043
 
 Level 2:
-TrainingDatum(input=Input(np.float64(-0.4047286498801027), np.float64(81.18081881274648)), output=np.float64(0.4087397591347326))
-TrainingDatum(input=Input(np.float64(0.5423361549121464), np.float64(61.416740946682566)), output=np.float64(-0.9337438172833572))
+Inputs:                                 Output:             
+------------------------------------------------------------
+0.2976356751        1.1198145215        0.0897465476        
+0.7711680775        0.7205402211        -0.3473985727
 </code></pre></div>
 </div>
 <h2 id="defining-and-fitting-a-multi-level-gp">Defining and fitting a multi-level GP</h2>
@@ -1374,7 +1386,7 @@ each level.</p>
 </span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
 </span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="n">mlgp</span> <span class="o">=</span> <span class="n">MultiLevelGaussianProcess</span><span class="p">([</span><span class="n">gp1</span><span class="p">,</span> <span class="n">gp2</span><span class="p">])</span>
 </span></code></pre></div>
-<p>As with ordinary GPs, we can verify that our multi-level GP hasn't yet been trained on
+<p>As with single-level GPs, we can verify that our multi-level GP hasn't yet been trained on
 data. Note that each level of the GP has its own training data, so the
 <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.MultiLevelGaussianProcess.training_data"><code>training_data</code></a>
 property of the multi-level GP is a <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.MultiLevel"><code>MultiLevel</code></a> object: </p>
@@ -1399,7 +1411,7 @@ top-level simulator at a new input. We make a prediction with the multi-level GP
 in the tutorial, <a href="training_gp_tutorial.html">Training a Gaussian Process Emulator</a>, the
 prediction consists of both the point estimate and a measure of the uncertainty of the
 prediction:</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">prediction</span> <span class="o">=</span> <span class="n">mlgp</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
 </span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
@@ -1408,14 +1420,14 @@ prediction:</p>
 </span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2547.807841233425), variance=np.float64(0.7338926645441834), standard_deviation=0.8566753553967708)
-Point estimate: 2547.807841233425
-Variance of estimate: 0.7338926645441834
-Standard deviation of estimate: 0.8566753553967708
+<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2.4280459289434475), variance=np.float64(0.4494867141727995), standard_deviation=0.6704377034242626)
+Point estimate: 2.4280459289434475
+Variance of estimate: 0.4494867141727995
+Standard deviation of estimate: 0.6704377034242626
 </code></pre></div>
 </div>
 <p>Let's see how well the prediction did against the true simulator value:</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">y</span> <span class="o">=</span> <span class="n">sim_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># the true value</span>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">y</span> <span class="o">=</span> <span class="n">sim_level2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># the true value</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">pct_error</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">((</span><span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">y</span><span class="p">)</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
 </span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Predicted value:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span><span class="p">)</span>
@@ -1423,9 +1435,9 @@ Standard deviation of estimate: 0.8566753553967708
 </span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2547.807841233425
-Actual simulator value: 2548.835786437627
-Percentage error: 0.04032998946703433
+<div class="language-text highlight"><pre><span></span><code>Predicted value: 2.4280459289434475
+Actual simulator value: 2.5857864376269055
+Percentage error: 6.10029143892578
 </code></pre></div>
 </div>
 <p>As in the non-levelled case, we can also calculate the normalised expected square error
@@ -1433,7 +1445,7 @@ for the prediction:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">prediction</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>0.8758846101740914
+<div class="language-text highlight"><pre><span></span><code>0.708081530743778
 </code></pre></div>
 </div>
 
@@ -1482,10 +1494,10 @@ for the prediction:</p>
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate", "contend.code.copy"], "search": "../../assets/javascripts/workers/search.07f07601.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.indexes", "content.code.annotate", "contend.code.copy"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
         <script src="../../javascripts/katex.js"></script>
       
