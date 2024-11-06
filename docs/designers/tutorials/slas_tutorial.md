@@ -2,7 +2,7 @@
 
 This tutorial will show you how to extend an initial experimental design for a Gaussian
 process (GP) emulator, using an adaptive sampling technique. The idea is to take our
-current GP and find a new design point (or batch of points) that will have 'the greatest
+current GP and sequentially find new design points (or batches of points) that will have 'the greatest
 impact' on improving the fit of the GP.
 
 This tutorial will show you how to:
@@ -32,8 +32,8 @@ We'll work with the same toy simulator function found in the tutorial,
 $$
 f(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
 $$
-with simulator domain defined as the rectangle $\mathcal{D}$ consisting of points
-$(x_1, x_2)$ where $-1 \leq x_1 \leq 1$ and $1 \leq x_2 \leq 100$. We can express this in
+with simulator domain defined as the rectanglular input space $\mathcal{D}$ consisting of points
+$(x_1, x_2)$ where $0 \leq x_1 \leq 1$ and $-0.5 \leq x_2 \leq 1.5$. We can express this in
 code as follows:
 
 
@@ -42,7 +42,7 @@ from exauq.core.modelling import SimulatorDomain, Input
 import numpy as np
 
 # The bounds define the lower and upper bounds on each coordinate
-domain = SimulatorDomain(bounds=[(-1, 1), (1, 100)])
+domain = SimulatorDomain(bounds=[(0, 1), (-0.5, 1.5)])
 
 def sim_func(x: Input) -> float:
     return (
@@ -65,7 +65,7 @@ from exauq.core.modelling import TrainingDatum
 from exauq.core.emulators import MogpEmulator
 
 # Create Latin hypercube sample, setting a seed to make the sampling repeatable.
-lhs_inputs = oneshot_lhs(domain, 20, seed=1)
+lhs_inputs = oneshot_lhs(domain, 8, seed=1)
 
 # Calculate simulator outputs, using our toy simulator function.
 outputs = [sim_func(x) for x in lhs_inputs]
@@ -109,7 +109,7 @@ new_design_pts[0]
 
 
 <div class="result" markdown>
-    Input(np.float64(-0.43989564186729824), np.float64(54.37636339342745))
+    Input(np.float64(0.30007640211188036), np.float64(1.4999999862795013))
 </div>
 
 
@@ -127,17 +127,17 @@ new_design_pts
 
 
 <div class="result" markdown>
-    (Input(np.float64(0.9275254983639893), np.float64(54.352557725224536)),
-     Input(np.float64(0.8984512829749669), np.float64(56.82592896833036)),
-     Input(np.float64(-0.5844408827181062), np.float64(55.596401337094605)),
-     Input(np.float64(-0.7114079471309867), np.float64(52.47291499783807)),
-     Input(np.float64(-0.9522073814993757), np.float64(56.481066242340106)))
+    (Input(np.float64(0.3000973111062418), np.float64(1.4999999663266008)),
+     Input(np.float64(0.9999999963281517), np.float64(0.6827426542564956)),
+     Input(np.float64(0.9999999912029516), np.float64(-0.17591079544032318)),
+     Input(np.float64(2.4334379733481626e-08), np.float64(-0.09229890650081729)),
+     Input(np.float64(1.6255335522075143e-08), np.float64(1.1989655466639983)))
 </div>
 
 
 
 Note how the new design points all lie within the simulator domain we defined earlier,
-i.e. they all lie in the rectangle $\mathcal{D}$.
+i.e. they all lie in the rectanglar input space $\mathcal{D}$.
 
 It's worth pointing out that these design points are not equal to any of the training inputs
 for the GP:
@@ -175,7 +175,7 @@ print("Number of training data:", len(gp.training_data))
 ```
 
 <div class="result" markdown>
-    Number of training data: 25
+    Number of training data: 13
     
 </div>
 
@@ -219,25 +219,25 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.9923852677110758), np.float64(6.594694917643089))
+    ==> Updated with new design point (np.float64(0.7497466279972856), np.float64(1.4697059369662921))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.6429895030986328), np.float64(99.99999922753946))
+    ==> Updated with new design point (np.float64(0.1157312460738138), np.float64(-0.3475394033707414))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.4242029263391056), np.float64(99.99999889419603))
+    ==> Updated with new design point (np.float64(0.5236521661973336), np.float64(1.399928492998442))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.020039987536748072), np.float64(57.80009523393657))
+    ==> Updated with new design point (np.float64(0.7092931215153352), np.float64(0.7742519356263287))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.9509138311294454), np.float64(27.756422827659573))
+    ==> Updated with new design point (np.float64(0.7890211417416498), np.float64(-0.49998726677696703))
     

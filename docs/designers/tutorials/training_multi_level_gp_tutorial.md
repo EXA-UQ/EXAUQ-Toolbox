@@ -27,27 +27,32 @@ found in the tutorial,
 [Training A Gaussian Process Emulator](./training_gp_tutorial.md).
 This is defined to be the mathematical function
 $$
-f(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) \
+f_2(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) \
 + \mathrm{sin}(4\pi x_1 x_2)
 $$
 defined on the rectangular domain $\mathcal{D}$ consisting of 2d points
-$(x_1, x_2)$, where $-1 \leq x_1 \leq 1$ and $1 \leq x_2 \leq 100$.
+$(x_1, x_2)$, where $0 \leq x_1 \leq 1$ and $-0.5 \leq x_2 \leq 1.5$.
 
 We will consider this as the top level of a multi-level simulator of two levels. The level
-1 version is the simpler function
+1 version is a simpler function, which is typically cheaper to run than the top level simulator. 
 $$
-f_1(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2}
+f_1(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} \\
 $$
-In the multi-level paradigm, the idea is to emulate the whole simulator $f$ with a
+In the multi-level paradigm, the idea is to emulate the top level simulator $f_2$ with a
 multi-level GP, in this case having two levels. The multi-level GP is
-itself essentially a sum of two GPs, one at each level. The GP at the first level emulates
+a sum of two GPs, one at each level. The GP at the first level emulates
 the level 1 function $f_1$, while the second level GP emulates the **difference** between
 the second and first level simulators:
 $$
-\delta(x_1, x_2) = f(x_1, x_2) - f_1(x_1, x_2) = \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
+\delta(x_1, x_2) = f_2(x_1, x_2) - f_1(x_1, x_2) = \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
 $$
-The reason for taking the difference is so that the full simulator $f$ is the sum of $f_1$
-and $\delta$, which allows us to emulate each function separately via a multi-level GP.
+We take this delta because the difference between the levels is often a simpler function than the top level itself.
+
+!!! note
+
+    The multi-level GP approach that we are taking is an autoregressive approach to decompose the top level into the sum of the lower level 
+    plus the difference between the two levels as described in Kennedy, Marc & O'Hagan, A. (1998) "Predicting the Output from a Complex Computer Code When Fast Approximations Are Available". 
+    DOI:<https://doi.org/10.1093/biomet/87.1.1>
 
 We express all this in code as follows:
 
@@ -57,10 +62,10 @@ from exauq.core.modelling import SimulatorDomain, Input
 import numpy as np
 
 # The bounds define the lower and upper bounds on each coordinate
-domain = SimulatorDomain(bounds=[(-1, 1), (1, 100)])
+domain = SimulatorDomain(bounds=[(0, 1), (-0.5, 1.5)])
 
 # The full simulator (at level 2)
-def sim_func(x: Input) -> float:
+def sim_level2(x: Input) -> float:
     return (
         x[1] + x[0]**2 + x[1]**2 - np.sqrt(2)
         + np.sin(2 * np.pi * x[0]) + np.sin(4 * np.pi * x[0] * x[1])
@@ -72,7 +77,7 @@ def sim_level1(x: Input) -> float:
 
 # The difference between levels 1 and 2
 def sim_delta(x: Input) -> float:
-    return sim_func(x) - sim_level1(x)
+    return sim_level2(x) - sim_level1(x)
 ```
 
 ## Multi-level objects
@@ -141,7 +146,7 @@ experimental designs for each level's simulator, then train a multi-level GP wit
 data.
 
 To create the training data, we'll use a Latin hypercube designer [`oneshot_lhs`][exauq.core.designers.oneshot_lhs] (with the aid of
-[scipy](https://scipy.org/)) at each level. (For more detailed explanation of creating an
+[scipy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.LatinHypercube.html)) at each level. (For more detailed explanation of creating an
 experimental design from a Latin hypercube sample, see the section,
 **Creating an experimental design** from the
 [Training a Gaussian Process Emulator](./training_gp_tutorial.md) tutorial.)
@@ -179,6 +184,12 @@ data2 = [TrainingDatum(x, y) for x, y in zip(design[2], outputs2)]
 training_data = MultiLevel([data1, data2])
 ```
 
+!!! note
+    
+    It is worth noting here for clarity that delta is calculated by `lhs_inputs2` being run through both level 1 and level 2 (see `sim_delta` function) to  make a single training point for delta. 
+    These points run through level 1 for calculating this delta are **not** automatically included in the training data for the level 1 GP.  
+
+
 If we wish, we can verify that we have the correct data at each level by doing some
 manual inspections:
 
@@ -189,12 +200,10 @@ print("Number of level 2 training data:", len(training_data[2]))
 
 # Show the first couple of data points for each level:
 print("\nLevel 1:")
-print(repr(training_data[1][0]))
-print(repr(training_data[1][1]))
+TrainingDatum.tabulate(training_data[1], rows = 2)
 
 print("\nLevel 2:")
-print(repr(training_data[2][0]))
-print(repr(training_data[2][1]))
+TrainingDatum.tabulate(training_data[2], rows = 2)
 ```
 
 <div class="result" markdown>
@@ -202,12 +211,16 @@ print(repr(training_data[2][1]))
     Number of level 2 training data: 5
     
     Level 1:
-    TrainingDatum(input=Input(np.float64(-0.45118216247002574), np.float64(75.49520470318662)), output=np.float64(5773.8104896605955))
-    TrainingDatum(input=Input(np.float64(0.18558403872803675), np.float64(6.204185236670643)), output=np.float64(43.31632756065012))
+    Inputs:                                 Output:             
+    ------------------------------------------------------------
+    0.2744089188        1.0049536304        0.6759721219        
+    0.5927920194        -0.3948649447       -1.3017578043       
     
     Level 2:
-    TrainingDatum(input=Input(np.float64(-0.4047286498801027), np.float64(81.18081881274648)), output=np.float64(0.4087397591347326))
-    TrainingDatum(input=Input(np.float64(0.5423361549121464), np.float64(61.416740946682566)), output=np.float64(-0.9337438172833572))
+    Inputs:                                 Output:             
+    ------------------------------------------------------------
+    0.2976356751        1.1198145215        0.0897465476        
+    0.7711680775        0.7205402211        -0.3473985727       
     
 </div>
 
@@ -230,7 +243,7 @@ gp2 = MogpEmulator(kernel="Matern52")
 mlgp = MultiLevelGaussianProcess([gp1, gp2])
 ```
 
-As with ordinary GPs, we can verify that our multi-level GP hasn't yet been trained on
+As with single-level GPs, we can verify that our multi-level GP hasn't yet been trained on
 data. Note that each level of the GP has its own training data, so the
 [`training_data`][exauq.core.modelling.MultiLevelGaussianProcess.training_data]
 property of the multi-level GP is a [`MultiLevel`][exauq.core.modelling.MultiLevel] object: 
@@ -272,7 +285,7 @@ prediction:
 
 
 ``` { .python .copy }
-x = Input(0.5, 50)
+x = Input(0.5, 1.5)
 prediction = mlgp.predict(x)
 
 print(prediction)
@@ -282,10 +295,10 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2547.807841233425), variance=np.float64(0.7338926645441834), standard_deviation=0.8566753553967708)
-    Point estimate: 2547.807841233425
-    Variance of estimate: 0.7338926645441834
-    Standard deviation of estimate: 0.8566753553967708
+    GaussianProcessPrediction(estimate=np.float64(2.4280459289434475), variance=np.float64(0.4494867141727995), standard_deviation=0.6704377034242626)
+    Point estimate: 2.4280459289434475
+    Variance of estimate: 0.4494867141727995
+    Standard deviation of estimate: 0.6704377034242626
     
 </div>
 
@@ -293,7 +306,7 @@ Let's see how well the prediction did against the true simulator value:
 
 
 ``` { .python .copy }
-y = sim_func(x)  # the true value
+y = sim_level2(x)  # the true value
 pct_error = 100 * abs((prediction.estimate - y) / y)
 
 print("Predicted value:", prediction.estimate)
@@ -302,9 +315,9 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2547.807841233425
-    Actual simulator value: 2548.835786437627
-    Percentage error: 0.04032998946703433
+    Predicted value: 2.4280459289434475
+    Actual simulator value: 2.5857864376269055
+    Percentage error: 6.10029143892578
     
 </div>
 
@@ -320,7 +333,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.8758846101740914
+    0.708081530743778
 </div>
 
 
