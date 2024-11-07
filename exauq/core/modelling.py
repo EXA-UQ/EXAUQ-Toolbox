@@ -1039,7 +1039,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
     def update(
         self,
-        training_data: Optional[Collection[TrainingDatum]] = None,
+        training_data: Optional[Sequence[TrainingDatum]] = None,
         hyperparameters: Optional[GaussianProcessHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
@@ -1089,7 +1089,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         if training_data is None: 
             training_data = []
             
-        training_data = training_data + prev_training_data
+        training_data = list(training_data) + prev_training_data
         self.fit(training_data, hyperparameters, hyperparameter_bounds)
 
         return None
