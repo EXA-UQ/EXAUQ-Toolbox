@@ -742,7 +742,7 @@ class TrainingDatum(object):
         input_width = 20
         input_dim_width = len(data[0].input) * input_width
 
-        # Create header and separater
+        # Create header and separator
         print("Inputs:".ljust(input_dim_width), end="")
         print("Output:".ljust(input_width))
         print("-" * (input_dim_width + input_width))
