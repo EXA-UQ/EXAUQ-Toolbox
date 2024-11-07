@@ -1086,9 +1086,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         else:
             prev_training_data = list(self.training_data)
 
-        if training_data is None: 
+        if training_data is None:
             training_data = []
-            
+
         training_data = list(training_data) + prev_training_data
         self.fit(training_data, hyperparameters, hyperparameter_bounds)
 
@@ -1290,14 +1290,14 @@ class MultiLevel(dict[int, T]):
 
     def __ne__(self, other):
         return not self == other
-    
+
     def __add__(self, other: MultiLevel[T] | None) -> MultiLevel[tuple[T]]:
         """
-        Add two MultiLevel objects together. 
+        Add two MultiLevel objects together.
 
-        Creates a new MultiLevel object that per level contains a tuple of all of the items 
-        in both self and other. If other has any items that are on a separate level to any 
-        previously stored in self, then this will create a new level. 
+        Creates a new MultiLevel object that per level contains a tuple of all of the items
+        in both self and other. If other has any items that are on a separate level to any
+        previously stored in self, then this will create a new level.
 
         NOTE: It concatenates elements of sequences on the same level into 1 combined tuple, not indvidually adding
         the elements mathematically. See Examples.
@@ -1309,34 +1309,34 @@ class MultiLevel(dict[int, T]):
 
         Returns
         -------
-            A new multi-level collection, containing tuples of the new items stored at each level. 
+            A new multi-level collection, containing tuples of the new items stored at each level.
 
         Examples
         --------
 
         >>> a = MultiLevel(
             {
-                1: [1, 2, 3], 
+                1: [1, 2, 3],
                 2: ("a", "b", "c"),
                 3: [TrainingDatum(Input(0.5), 1)]
             })
-        
+
         >>> b = MultiLevel(
             {
-                1: [4, 5, 6], 
+                1: [4, 5, 6],
                 2: ("d", "e", "f"),
                 3: [TrainingDatum(Input(0.9), 1.5)],
                 4: ["Test"]
-            }) 
+            })
 
         >>> c = a + b
         >>> c
-        MultiLevel({1: (1, 2, 3, 4, 5, 6), 
-                    2: ('a', 'b', 'c', 'd', 'e', 'f'), 
-                    3: (TrainingDatum(input=Input(0.5), output=1), 
+        MultiLevel({1: (1, 2, 3, 4, 5, 6),
+                    2: ('a', 'b', 'c', 'd', 'e', 'f'),
+                    3: (TrainingDatum(input=Input(0.5), output=1),
                     TrainingDatum(input=Input(0.9), output=1.5)),
                     4: ('Test',)})
-    
+
         """
 
         if other is None:
@@ -1346,7 +1346,7 @@ class MultiLevel(dict[int, T]):
             raise TypeError(
                 "MultiLevel objects can only be added to other MultiLevel objects."
             )
-        
+
         new_multilevel = {level: list(value) for level, value in self.items()}
 
         for level, value in other.items():
@@ -1354,11 +1354,13 @@ class MultiLevel(dict[int, T]):
             if level in new_multilevel:
                 new_multilevel[level].extend(list(value))
 
-            else: 
+            else:
                 new_multilevel[level] = list(value)
-        
+
         # Return immutable state
-        return MultiLevel({level: tuple(value) for level, value in new_multilevel.items()})
+        return MultiLevel(
+            {level: tuple(value) for level, value in new_multilevel.items()}
+        )
 
     def map(self, f: Callable[[int, T], S]) -> MultiLevel[S]:
         """Apply a function level-wise.

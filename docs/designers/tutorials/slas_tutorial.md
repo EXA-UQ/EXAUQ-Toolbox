@@ -109,7 +109,7 @@ new_design_pts[0]
 
 
 <div class="result" markdown>
-    Input(np.float64(0.9935298338055198), np.float64(57.40943254109443))
+    Input(np.float64(-0.9070564056392206), np.float64(56.097911204047094))
 </div>
 
 
@@ -127,11 +127,11 @@ new_design_pts
 
 
 <div class="result" markdown>
-    (Input(np.float64(-0.2300198420561751), np.float64(54.375196966516405)),
-     Input(np.float64(0.5518770956882648), np.float64(55.111408150841214)),
-     Input(np.float64(0.9419131616947969), np.float64(57.90537574633263)),
-     Input(np.float64(-0.8378548323674495), np.float64(52.507585082335765)),
-     Input(np.float64(-0.979662076835578), np.float64(56.184513146099114)))
+    (Input(np.float64(0.33459334625241466), np.float64(56.17510735165927)),
+     Input(np.float64(-0.8772275334816753), np.float64(53.03367771052997)),
+     Input(np.float64(0.968565362159975), np.float64(55.29203909018786)),
+     Input(np.float64(-0.8394519620225538), np.float64(54.96352908210561)),
+     Input(np.float64(0.8254180720895394), np.float64(49.12315716750645)))
 </div>
 
 
@@ -166,22 +166,21 @@ new_outputs
 
 
 <div class="result" markdown>
-    [np.float64(3008.591272772082),
-     np.float64(3090.070886084185),
-     np.float64(3410.555818074453),
-     np.float64(2809.7719973906114),
-     np.float64(3212.055143514236)]
+    [np.float64(3210.8331039120917),
+     np.float64(2865.376879732193),
+     np.float64(3112.456543078476),
+     np.float64(3075.105665477075),
+     np.float64(2461.1433713764063)]
 </div>
 
 
 
-Then to update the GP, we pass the new design points and outputs to the update method. 
-
-(**Aside**: If you wished to update the hyperparameters at this stage, you can also pass new hyperparameters through the update method to replace those fit onto the GP.)
+Then to update the GP, we create a list of TrainingDatum to pass into the [`update`][exauq.core.modelling.AbstractGaussianProcess] method. 
 
 
 ``` { .python .copy }
-gp.update(new_design_pts, new_outputs)
+training_data = [TrainingDatum(x, y) for x, y in zip(new_design_pts, new_outputs)]
+gp.update(training_data)
 
 # Sense-check that the updated GP now has the combined data
 print("Number of training data:", len(gp.training_data))
@@ -193,7 +192,7 @@ print("Number of training data:", len(gp.training_data))
 </div>
 
 This completes one adaptive sampling 'iteration'. It's important to note that, when
-creating multiple new design points in a batch, the fit of the GP is not updated between
+creating multiple new design points in a batch, the fit of the GP is **not** updated between
 the creation of each new point in the batch.
 
 ## Repeated application
@@ -211,8 +210,11 @@ for i in range(5):
     # Compute simulator output at new design point
     y = sim_func(x)
 
-    # Update GP fit (Note: Passing new points as a list)
-    gp.update([x], [y])
+    # Create TrainingDatum "list"
+    training_data = [TrainingDatum(x, y)]
+
+    # Update GP fit 
+    gp.update(training_data)
 
     # Print design point found and level applied at
     print(f"==> Updated with new design point {x}")
@@ -220,25 +222,9 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.999999109908932), np.float64(13.870450850605522))
-    
-</div>
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.5360135659127457), np.float64(99.99999973580834))
-    
-</div>
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.8835052035775894), np.float64(49.326167059663675))
-    
-</div>
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.6419051977527168), np.float64(1.0000033424556918))
-    
-</div>
-
-<div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.3056568162491451), np.float64(1.000031161218459))
+    ==> Updated with new design point (np.float64(0.9999999779045095), np.float64(13.781203408508816))
+    ==> Updated with new design point (np.float64(-0.9999998854242323), np.float64(40.70501357888884))
+    ==> Updated with new design point (np.float64(-0.6678599807802963), np.float64(99.99999946484502))
+    ==> Updated with new design point (np.float64(0.4308096723585759), np.float64(99.99999981433939))
+    ==> Updated with new design point (np.float64(0.6183988128087137), np.float64(1.0000004599063033))
     

@@ -787,7 +787,10 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         """
         emulator = MogpEmulator()
         params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
-        training_data = (TrainingDatum(Input(0.1, 0.2), 3), TrainingDatum(Input(0.3, 0.4), 4))
+        training_data = (
+            TrainingDatum(Input(0.1, 0.2), 3),
+            TrainingDatum(Input(0.3, 0.4), 4),
+        )
         emulator.fit(training_data, params)
 
         new_params = MogpHyperparameters(
@@ -803,7 +806,11 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         to the untrained emulator"""
 
         emulator = MogpEmulator()
-        training_data = [TrainingDatum(Input(0.1, 0.2), 1), TrainingDatum(Input(0.5, 0.6), 2), TrainingDatum(Input(0.8, 0.25), 3)]
+        training_data = [
+            TrainingDatum(Input(0.1, 0.2), 1),
+            TrainingDatum(Input(0.5, 0.6), 2),
+            TrainingDatum(Input(0.8, 0.25), 3),
+        ]
 
         emulator.update(training_data)
 
@@ -2004,27 +2011,29 @@ class TestMultiLevel(ExauqTestCase):
         or create new levels if objects don't exist in both."""
 
         a = MultiLevel(
-            {
-                1: [1, 2, 3], 
-                2: ("a", "b", "c"),
-                3: [TrainingDatum(Input(0.5), 1)]
-            })
-        
+            {1: [1, 2, 3], 2: ("a", "b", "c"), 3: [TrainingDatum(Input(0.5), 1)]}
+        )
+
         b = MultiLevel(
             {
-                1: [4, 5, 6], 
+                1: [4, 5, 6],
                 2: ("d", "e", "f"),
                 3: [TrainingDatum(Input(0.9), 1.5)],
-                4: ["Test"]
-            }) 
-        
-        correctly_added = MultiLevel({1: (1, 2, 3, 4, 5, 6), 
-                                    2: ('a', 'b', 'c', 'd', 'e', 'f'), 
-                                    3: (TrainingDatum(input=Input(0.5), output=1), 
-                                    TrainingDatum(input=Input(0.9), output=1.5)),
-                                    4: ('Test',)
-                                    })
-    
+                4: ["Test"],
+            }
+        )
+
+        correctly_added = MultiLevel(
+            {
+                1: (1, 2, 3, 4, 5, 6),
+                2: ("a", "b", "c", "d", "e", "f"),
+                3: (
+                    TrainingDatum(input=Input(0.5), output=1),
+                    TrainingDatum(input=Input(0.9), output=1.5),
+                ),
+                4: ("Test",),
+            }
+        )
 
         c = a + b
         self.assertEqual(c, correctly_added)
@@ -2033,21 +2042,16 @@ class TestMultiLevel(ExauqTestCase):
         """Ensure that a type error is raised if non-MultiLevel objects are passed"""
 
         a = MultiLevel(
-            {
-                1: [1, 2, 3], 
-                2: ("a", "b", "c"),
-                3: [TrainingDatum(Input(0.5), 1)]
-            })
-        
+            {1: [1, 2, 3], 2: ("a", "b", "c"), 3: [TrainingDatum(Input(0.5), 1)]}
+        )
+
         b = 23
 
         with self.assertRaisesRegex(
-            TypeError, 
-            exact(
-                "MultiLevel objects can only be added to other MultiLevel objects."
-            )
+            TypeError,
+            exact("MultiLevel objects can only be added to other MultiLevel objects."),
         ):
-            a + b    
+            a + b
 
     def test_levels(self):
         """The levels attribute returns the levels as an ordered tuple of ints."""
@@ -2492,18 +2496,21 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         original_train_data = self.training_data
 
         new_train_data = MultiLevel(
-            {   
+            {
                 1: (TrainingDatum(Input(0.25), 2.5), TrainingDatum(Input(0.4), 1.2)),
                 2: (),
-                3: ()
+                3: (),
             }
         )
 
         mlgp.update(new_train_data)
-        
+
         # Check length of data in each level is correct
         for level in mlgp.levels:
-            self.assertEqual(len(mlgp[level].training_data), len(original_train_data[level]) + len(new_train_data[level]))
+            self.assertEqual(
+                len(mlgp[level].training_data),
+                len(original_train_data[level]) + len(new_train_data[level]),
+            )
 
         # Check new data exists within mlgp.training_data
         for level, values in new_train_data.items():
@@ -2517,23 +2524,31 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         mlgp.fit(self.training_data)
         original_train_data = self.training_data
 
-        new_train_data = MultiLevel({
-            1: (TrainingDatum(Input(0.2), 1),),
-            2: (TrainingDatum(Input(0.3), 2), TrainingDatum(Input(0.86), 0.5), TrainingDatum(Input(1.3), 0.6)),
-            3: (TrainingDatum(Input(2), 0.8),)
-        })
+        new_train_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.2), 1),),
+                2: (
+                    TrainingDatum(Input(0.3), 2),
+                    TrainingDatum(Input(0.86), 0.5),
+                    TrainingDatum(Input(1.3), 0.6),
+                ),
+                3: (TrainingDatum(Input(2), 0.8),),
+            }
+        )
 
         mlgp.update(new_train_data)
 
         # Check length of data in each level is correct
         for level in mlgp.levels:
-            self.assertEqual(len(mlgp[level].training_data), len(original_train_data[level]) + len(new_train_data[level]))
+            self.assertEqual(
+                len(mlgp[level].training_data),
+                len(original_train_data[level]) + len(new_train_data[level]),
+            )
 
         # Check new data exists within mlgp.training_data
         for level, values in new_train_data.items():
             for value in values:
                 assert value in mlgp.training_data[level]
-
 
     def test_update_trains_non_trained_gp(self):
         """Ensures that if update is used on a non-trained GP it will simply train that GP."""

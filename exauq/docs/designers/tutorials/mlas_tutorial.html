@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.43">
     
     
       
@@ -1309,7 +1309,7 @@ to have Matern 5/2 kernel for each level. The full code for doing this is as fol
 <p>Let's now find a new design point using the leave-one-out adaptive design methodology for
 multi-level simulators / GPs. We use the function
 <a class="autorefs autorefs-internal" href="../../api/core/designers.html#exauq.core.designers.compute_multi_level_loo_samples"><code>compute_multi_level_loo_samples</code></a>
-to do this. By default, a batch consisting of a single, new design point will be calculated. This function requires three arguments:</p>
+to do this. By default, a batch consisting of a single, new design point will be calculated within a MultiLevel object. This function requires three arguments:</p>
 <ul>
 <li>The multi-level GP to find the new design point for.</li>
 <li>The <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.SimulatorDomain"><code>SimulatorDomain</code></a> describing the domain on
@@ -1329,49 +1329,68 @@ Therefore, we assign a cost of 1 to <span class="arithmatex">\(f_1\)</span> and 
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">costs</span> <span class="o">=</span> <span class="n">MultiLevel</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">11</span><span class="p">])</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">new_design_pts</span> <span class="o">=</span> <span class="n">compute_multi_level_loo_samples</span><span class="p">(</span><span class="n">mlgp</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">costs</span><span class="p">)</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">new_design_pt</span> <span class="o">=</span> <span class="n">compute_multi_level_loo_samples</span><span class="p">(</span><span class="n">mlgp</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">costs</span><span class="p">)</span>
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">level</span><span class="p">,</span> <span class="n">new_input</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">new_design_pts</span><span class="p">)</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;New design point:&quot;</span><span class="p">,</span> <span class="n">new_input</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Level to run it at:&quot;</span><span class="p">,</span> <span class="n">level</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">level</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">new_design_pt</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">new_input</span> <span class="o">=</span> <span class="n">new_design_pt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;New design point:&quot;</span><span class="p">,</span> <span class="n">new_input</span><span class="p">)</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Level to run it at:&quot;</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>New design point: (np.float64(0.2781333041054517), np.float64(99.99999999820083))
+<div class="language-text highlight"><pre><span></span><code>New design point: (Input(np.float64(0.27813517398498244), np.float64(99.99999999374049)),)
 Level to run it at: 2
 </code></pre></div>
 </div>
 <p>In order to update the fit of the multi-level GP, we need to know which level's GP needs
 training and the new input point which will be placed on that level. We get this from
 <a class="autorefs autorefs-internal" href="../../api/core/designers.html#exauq.core.designers.compute_multi_level_loo_samples"><code>compute_multi_level_loo_samples</code></a>, 
-which returns a tuple of (level, Input) pairs.</p>
+which returns a MultiLevel object of new inputs. </p>
 <p>We then need to update that level GP with the appropriate training datum. In our case,
 a level of 1 means we'd need to run the level 1 simulator <span class="arithmatex">\(f_1\)</span> on the new design point,
 while a level of 2 means we need to run the <strong>difference</strong> <span class="arithmatex">\(\delta\)</span> of the full level 2
 simulator and the level 1 simulator.</p>
 <p>If instead we want to compute multiple new design points in one go, we can do this by
 specifying a different batch size:</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">new_design_pts</span> <span class="o">=</span> <span class="n">compute_multi_level_loo_samples</span><span class="p">(</span><span class="n">mlgp</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">costs</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">new_design_pts</span> <span class="o">=</span> <span class="n">compute_multi_level_loo_samples</span><span class="p">(</span><span class="n">mlgp</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">costs</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">levels</span><span class="p">,</span> <span class="n">new_inputs</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">new_design_pts</span><span class="p">)</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;New design points:&quot;</span><span class="p">,</span> <span class="n">new_inputs</span><span class="p">)</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Level to update design point at:&quot;</span><span class="p">,</span> <span class="n">levels</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">new_design_pts</span><span class="o">.</span><span class="n">levels</span><span class="p">:</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level: </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">new_inputs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">new_design_pts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">level</span><span class="p">))</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;New design points:&quot;</span><span class="p">,</span> <span class="n">new_inputs</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>New design points: (Input(np.float64(0.2781321887715705), np.float64(99.99999999519329)), Input(np.float64(0.9999999998264466), np.float64(25.545425136773837)), Input(np.float64(-0.9999999999852175), np.float64(73.34236246512296)), Input(np.float64(-0.08217212241945115), np.float64(61.92595124731959)), Input(np.float64(0.6646887676146034), np.float64(99.99999999446626)))
-Level to update design point at: (2, 2, 2, 2, 2)
+<div class="language-text highlight"><pre><span></span><code>Level: 2
+New design points: [Input(np.float64(0.2781341944804427), np.float64(99.99999999964089)), Input(np.float64(-0.9999999999910276), np.float64(73.29987499637845)), Input(np.float64(0.9999999997972688), np.float64(25.50797843783147)), Input(np.float64(-0.08211108419576918), np.float64(61.928824366583214)), Input(np.float64(0.6647012087314514), np.float64(99.99999988370061))]
 </code></pre></div>
 </div>
 <h2 id="update-the-multi-level-gp">Update the multi-level GP</h2>
 <p>The final step is to update the fit of the multi-level GP using the newly-calculated
-design points and the given level. This first requires us to compute the correct simulator
-outputs at the design points:</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">new_outputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">ml_simulator</span><span class="p">[</span><span class="n">level</span><span class="p">](</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">level</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">new_design_pts</span><span class="p">]</span>
+MultiLevel design points from <a class="autorefs autorefs-internal" href="../../api/core/designers.html#exauq.core.designers.compute_multi_level_loo_samples"><code>compute_multi_level_loo_samples</code></a>. For each level therefore we must:</p>
+<ol>
+<li>Compute the correct simulator outputs at the new design points.</li>
+<li>Create a list of TrainingDatum combining the inputs and outputs.</li>
+<li>Add these into our new training data MultiLevel object. </li>
+</ol>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Package the training data into a multi level object</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">new_training_data</span> <span class="o">=</span> <span class="n">MultiLevel</span><span class="p">({})</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">new_design_pts</span><span class="o">.</span><span class="n">levels</span><span class="p">:</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="c1"># Take level inputs</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">level_inputs</span> <span class="o">=</span> <span class="n">new_design_pts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="c1"># Run simulator for level outputs </span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">level_outputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">ml_simulator</span><span class="p">[</span><span class="n">level</span><span class="p">](</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">level_inputs</span><span class="p">]</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="c1"># Create TrainingDatum for each level</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="n">level_training_datum</span> <span class="o">=</span> <span class="p">[</span><span class="n">TrainingDatum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">level_inputs</span><span class="p">,</span> <span class="n">level_outputs</span><span class="p">)]</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="c1"># Concatenate into full MultiLevel training data</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="n">new_training_data</span> <span class="o">=</span> <span class="n">new_training_data</span> <span class="o">+</span> <span class="n">MultiLevel</span><span class="p">({</span><span class="n">level</span><span class="p">:</span> <span class="n">level_training_datum</span><span class="p">})</span>
 </span></code></pre></div>
-<p>To update the multi-level GP, we can then use the update method of mlgp by passing new design points generated from <a class="autorefs autorefs-internal" href="../../api/core/designers.html#exauq.core.designers.compute_multi_level_loo_samples"><code>compute_multi_level_loo_samples</code></a> and the relevant outputs.</p>
-<p>Note: You <strong>must</strong> pass the design points from <a class="autorefs autorefs-internal" href="../../api/core/designers.html#exauq.core.designers.compute_multi_level_loo_samples"><code>compute_multi_level_loo_samples</code></a>, because each design point has the corresponding level of GP attached.</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">mlgp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_design_pts</span><span class="p">,</span> <span class="n">new_outputs</span><span class="p">)</span>
+<p>To update the multi-level GP, we can then use the <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.AbstractGaussianProcess.update"><code>update</code></a> method of mlgp by passing the newly created training data. </p>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">mlgp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_training_data</span><span class="p">)</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1"># Sense-check that the GP at the level has been updated</span>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nb">print</span><span class="p">(</span>
@@ -1391,43 +1410,33 @@ the creation of each new point in the batch.</p>
 fit of the multi-level GP with newly sampled design point(s). The following code goes
 through five more sampling iterations, producing a single new design point at each
 iteration. We have also introduced a helper function to assist in retraining the
-multi-level GP. (Once again, the messages from the <code>mogp_emulator</code> package can be
-ignored.)</p>
+multi-level GP.</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="c1"># Find new design point adaptively (via batch of length 1)</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">new_design_pts</span> <span class="o">=</span> <span class="n">compute_multi_level_loo_samples</span><span class="p">(</span><span class="n">mlgp</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">costs</span><span class="p">)</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">level</span><span class="p">,</span> <span class="n">new_input</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">new_design_pts</span><span class="p">)</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">new_input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">lvl</span> <span class="o">=</span> <span class="n">level</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">new_design_pt</span> <span class="o">=</span> <span class="n">compute_multi_level_loo_samples</span><span class="p">(</span><span class="n">mlgp</span><span class="p">,</span> <span class="n">domain</span><span class="p">,</span> <span class="n">costs</span><span class="p">)</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="c1"># Get level and input</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">level</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">new_design_pt</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">new_design_pt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">level</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 </span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
 </span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="c1"># Compute simulator output at new design point</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">new_output</span> <span class="o">=</span> <span class="n">ml_simulator</span><span class="p">[</span><span class="n">lvl</span><span class="p">](</span><span class="n">x</span><span class="p">)</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">y</span> <span class="o">=</span> <span class="n">ml_simulator</span><span class="p">[</span><span class="n">level</span><span class="p">](</span><span class="n">x</span><span class="p">)</span>
 </span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="c1"># Update GP fit (Note passing output as a list)</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="n">mlgp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_design_pts</span><span class="p">,</span> <span class="p">[</span><span class="n">new_output</span><span class="p">])</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="c1"># Create MultiLevel TrainingDatum object</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="n">training_data</span> <span class="o">=</span> <span class="n">MultiLevel</span><span class="p">({</span><span class="n">level</span><span class="p">:</span> <span class="p">[</span><span class="n">TrainingDatum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]})</span>
 </span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="c1"># Print design point found and level applied at</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated level </span><span class="si">{</span><span class="n">lvl</span><span class="si">}</span><span class="s2"> with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="c1"># Update GP fit (Note passing output as a list)</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="n">mlgp</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">training_data</span><span class="p">)</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="c1"># Print design point found and level applied at</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated level </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2"> with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999998602995), np.float64(75.33810101810782))
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.5885629470863974), np.float64(99.99999997945513))
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999990514106), np.float64(45.68158032847367))
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.5600362254720403), np.float64(68.22862804187392))
-</code></pre></div>
-</div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.09637277656457255), np.float64(80.30463146928328))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.20195056284511737), np.float64(87.73162579683596))
+==&gt; Updated level 2 with new design point (np.float64(0.28218591000621496), np.float64(34.80677705341396))
+==&gt; Updated level 2 with new design point (np.float64(0.5172274905106851), np.float64(1.0000000158254565))
+==&gt; Updated level 2 with new design point (np.float64(-0.21467879556242297), np.float64(99.99999998962576))
+==&gt; Updated level 2 with new design point (np.float64(-0.7659740624881849), np.float64(99.99999892608088))
 </code></pre></div>
 </div>
 
