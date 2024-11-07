@@ -728,7 +728,7 @@ class TrainingDatum(object):
 
             if rows < 1:
                 raise ValueError(
-                    f"Expected rows to be a postitive integer >= 1 but recieved {rows} instead."
+                    f"Expected rows to be a positive integer >= 1 but received {rows} instead."
                 )
 
         if rows is None or rows > len(data):
@@ -736,7 +736,7 @@ class TrainingDatum(object):
 
         if len(data) > 100:
 
-            warn(UserWarning("Length of data passed > 100, limiting output to 100 rows."))
+            warn("Length of data passed > 100, limiting output to 100 rows.")
             rows = 100
 
         input_width = 20

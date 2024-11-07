@@ -550,7 +550,7 @@ class TestTrainingDatum(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError,
             exact(
-                f"Expected rows to be a postitive integer >= 1 but recieved {arg1} instead."
+                f"Expected rows to be a positive integer >= 1 but received {arg1} instead."
             ),
         ):
             TrainingDatum.tabulate(data, arg1)
