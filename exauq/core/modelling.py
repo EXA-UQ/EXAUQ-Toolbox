@@ -1051,12 +1051,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        new_design_pts :
-            A collection of Inputs for newly calculated design points to be implemented
-            into the gp.
-        new_outputs:
-            The outputs from the simulator which the new design points generated, used
-            to retrain the gp alongside the design points.
+        training_data :
+            The pairs of inputs and simulator outputs on which the Gaussian process
+            should be trained.
         hyperparameters :
             Hyperparameters for a Gaussian process to use directly in
             fitting the emulator. If ``None`` then the hyperparameters should be estimated
