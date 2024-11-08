@@ -781,6 +781,16 @@ class TestAbstractGaussianProcess(ExauqTestCase):
             (train_data_length + len(new_training_data)), len(emulator.training_data)
         )
 
+        for datum in new_training_data:
+            self.assertTrue(
+                any(
+                    datum.input == existing_datum.input and datum.output == existing_datum.output
+                    for existing_datum in emulator.training_data
+                ),
+                f"New training datum with input {datum.input} and output {datum.output} "
+                f"was not found in the emulator's training data.",
+            )
+
     def test_update_to_emulator_hyperparams(self):
         """Given a trained emulator, ensure that post update the new hyperparameters are
         implemented even with no training data
