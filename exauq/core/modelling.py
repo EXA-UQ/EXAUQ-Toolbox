@@ -1126,8 +1126,8 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         return self.fit_hyperparameters.process_var * self.correlation(
             inputs, training_inputs
         )
-
-    def _validate_covariance_matrix(self, k: NDArray) -> None:
+    @staticmethod
+    def _validate_covariance_matrix(k: NDArray) -> None:
         """Validate that the covariance is a non-singular matrix before attempting to invert it"""
 
         try:
