@@ -68,6 +68,9 @@ class MogpEmulator(AbstractGaussianProcess):
     fit_hyperparameters : MogpHyperparameters or None
         (Read-only) The hyperparameters of the underlying fitted Gaussian
         process model, or ``None`` if the model has not been fit to data.
+    kinv : numpy.ndarray
+        (Read-only) The inverse of the covariance matrix of the training data,
+        or an empty NumPy array if the model has not been fitted to data.
 
     Raises
     ------
