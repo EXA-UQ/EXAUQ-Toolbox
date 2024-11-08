@@ -1051,17 +1051,14 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        new_design_pts :
-            A collection of Inputs for newly calculated design points to be implemented
-            into the gp.
-        new_outputs:
-            The outputs from the simulator which the new design points generated, used
-            to retrain the gp alongside the design points.
-        hyperparameters :
+        training_data : collection of TrainingDatum, optional
+            The pairs of inputs and simulator outputs on which the Gaussian process
+            should be trained.
+        hyperparameters : GaussianProcessHyperparameters, optional
             Hyperparameters for a Gaussian process to use directly in
             fitting the emulator. If ``None`` then the hyperparameters should be estimated
             as part of fitting to data.
-        hyperparameter_bounds :
+        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
             A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
