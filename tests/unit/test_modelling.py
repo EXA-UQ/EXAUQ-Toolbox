@@ -836,7 +836,7 @@ class TestAbstractGaussianProcess(ExauqTestCase):
             UserWarning,
             exact("No arguments were passed to update and hence the GP remains as was."),
         ):
-            _ = emulator.update()
+            emulator.update()
 
 
 class TestGaussianProcessHyperparameters(ExauqTestCase):
