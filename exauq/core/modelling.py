@@ -1151,7 +1151,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         try:
             k = self.covariance_matrix(training_inputs)
-            _ = self._validate_covariance_matrix(k)
+            self._validate_covariance_matrix(k)
             kinv = np.linalg.inv(k)
 
         except (ValueError, LinAlgError) as e:
