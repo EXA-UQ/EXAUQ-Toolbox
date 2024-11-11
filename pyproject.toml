@@ -13,7 +13,6 @@ fabric = ">=3.2.0"
 cmd2 = ">=2.4.0"
 
 [tool.poetry.group.dev.dependencies]
-black = ">=22.0.0"
 mkdocs = "^1.5.3"
 mkdocs-material = "^9.5.18"
 pygments = "^2.17.2"
@@ -23,6 +22,9 @@ mkdocs-gen-files = "^0.5.0"
 mkdocs-literate-nav = "^0.6.1"
 mkdocs-section-index = "^0.3.9"
 notebook = "^7.2.2"
+isort = "^5.13.2"
+black = "^24.10.0"
+pre-commit = "^4.0.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -30,3 +32,11 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 exauq = "exauq.__main__:main"
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
