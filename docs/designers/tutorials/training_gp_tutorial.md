@@ -217,7 +217,11 @@ TrainingDatum.tabulate(gp.training_data, rows = 5)
 ```
 
 <div class="result" markdown>
-    Inputs:                                 Output:             
+    Inputs:                                 
+</div>
+
+<div class="result" markdown>
+    Output:             
     ------------------------------------------------------------
     0.2744089188        1.0049536304        1.3460506974        
     0.5927920194        -0.3948649447       -2.0511268894       
@@ -257,10 +261,10 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2.9826684067060256), variance=np.float64(0.32521525457807776), standard_deviation=0.5702764720537555)
-    Point estimate: 2.9826684067060256
-    Variance of estimate: 0.32521525457807776
-    Standard deviation of estimate: 0.5702764720537555
+    GaussianProcessPrediction(estimate=np.float64(2.9826684070574254), variance=np.float64(0.3252151528831815), standard_deviation=0.5702763828909465)
+    Point estimate: 2.9826684070574254
+    Variance of estimate: 0.3252151528831815
+    Standard deviation of estimate: 0.5702763828909465
     
 </div>
 
@@ -277,9 +281,9 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2.9826684067060256
+    Predicted value: 2.9826684070574254
     Actual simulator value: 2.5857864376269055
-    Percentage error: 15.34859814035365
+    Percentage error: 15.34859815394332
     
 </div>
 
@@ -298,20 +302,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.748050552857078
+    0.7480505717415877
 </div>
 
 
-
-
-``` { .python .copy }
-data = [TrainingDatum(Input(1), 1), TrainingDatum(Input(-1.1234567898765544), 1.3283498234198763)]
-TrainingDatum.tabulate(data)
-```
-
-<div class="result" markdown>
-    Inputs:             Output:             
-    ----------------------------------------
-    1.0000000000        1.0000000000        
-    -1.1234567899       1.3283498234        
-    

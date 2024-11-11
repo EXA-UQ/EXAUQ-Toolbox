@@ -63,7 +63,7 @@ from exauq.core.modelling import SimulatorDomain, Input, MultiLevel
 import numpy as np
 
 # The bounds define the lower and upper bounds on each coordinate
-domain = SimulatorDomain(bounds=[(-1, 1), (1, 100)])
+domain = SimulatorDomain(bounds=[(0, 1), (-0.5, 1.5)])
 
 # The full simulator (at level 2)
 def sim_func(x: Input) -> float:
@@ -169,7 +169,7 @@ print("Level to run it at:", level)
 ```
 
 <div class="result" markdown>
-    New design point: (Input(np.float64(-0.99999959132886), np.float64(63.30777655421669)),)
+    New design point: (Input(np.float64(0.6270400033134383), np.float64(-0.49999991631366314)),)
     Level to run it at: 2
     
 </div>
@@ -200,10 +200,10 @@ for level in new_design_pts.levels:
 <div class="result" markdown>
     
     Level: 1
-    New design points: [Input(np.float64(0.9999999529517327), np.float64(60.30191266964135)), Input(np.float64(-0.4431057511688774), np.float64(99.99999831981881))]
+    New design points: [Input(np.float64(0.9999999920400343), np.float64(0.7164005232013257)), Input(np.float64(0.29922507169599954), np.float64(1.4999999692411503))]
     
     Level: 2
-    New design points: [Input(np.float64(-0.9999999580156729), np.float64(63.31048199239925)), Input(np.float64(0.3477102541492165), np.float64(1.0000014551521161)), Input(np.float64(0.47336850801792996), np.float64(99.99999608324342))]
+    New design points: [Input(np.float64(0.62704813103636), np.float64(-0.49999998709295235)), Input(np.float64(0.7503483968103353), np.float64(1.49999971385431)), Input(np.float64(1.240898417353975e-08), np.float64(0.5896787106006196))]
     
 </div>
 
@@ -291,25 +291,25 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.4571354210550862), np.float64(99.99999774060194))
+    ==> Updated level 2 with new design point (np.float64(0.9999999998444683), np.float64(1.029486469852898))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.9999999717831191), np.float64(29.973733429457244))
+    ==> Updated level 2 with new design point (np.float64(0.40034634254571105), np.float64(0.10283192638997185))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.7536919941567507), np.float64(99.99999997690348))
+    ==> Updated level 1 with new design point (np.float64(2.267211696715954e-07), np.float64(-0.12426956121217159))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.2245432598199002), np.float64(99.9999999954828))
+    ==> Updated level 2 with new design point (np.float64(0.5844424873969744), np.float64(0.15651205489982245))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.11433834585452296), np.float64(32.92075037083332))
+    ==> Updated level 2 with new design point (np.float64(0.2363445312147051), np.float64(0.18121248417802738))
     
