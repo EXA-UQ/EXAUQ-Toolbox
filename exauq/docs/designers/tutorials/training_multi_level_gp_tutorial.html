@@ -1359,29 +1359,15 @@ These points run through level 1 for calculating this delta are <strong>not</str
 </div>
 <p>If we wish, we can verify that we have the correct data at each level by doing some
 manual inspections:</p>
-<<<<<<< HEAD
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of level 1 training data:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of level 2 training data:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Show the first couple of data points for each level:</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level 1:&quot;</span><span class="p">)</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level 2:&quot;</span><span class="p">)</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
-=======
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of level 1 training data:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of level 2 training data:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
 </span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Show the first couple of data points for each level:</span>
 </span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level 1:&quot;</span><span class="p">)</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="nb">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="nb">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]))</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level 2:&quot;</span><span class="p">)</span>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="nb">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="nb">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]))</span>
->>>>>>> dev
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level 2:&quot;</span><span class="p">)</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">training_data</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
 <div class="language-text highlight"><pre><span></span><code>Number of level 1 training data: 20
@@ -1439,36 +1425,7 @@ top-level simulator at a new input. We make a prediction with the multi-level GP
 in the tutorial, <a href="training_gp_tutorial.html">Training a Gaussian Process Emulator</a>, the
 prediction consists of both the point estimate and a measure of the uncertainty of the
 prediction:</p>
-<<<<<<< HEAD
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">prediction</span> <span class="o">=</span> <span class="n">mlgp</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Point estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span><span class="p">)</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Variance of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">variance</span><span class="p">)</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
-</span></code></pre></div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2.4280459289434475), variance=np.float64(0.4494867141727995), standard_deviation=0.6704377034242626)
-Point estimate: 2.4280459289434475
-Variance of estimate: 0.4494867141727995
-Standard deviation of estimate: 0.6704377034242626
-</code></pre></div>
-</div>
-<p>Let's see how well the prediction did against the true simulator value:</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">y</span> <span class="o">=</span> <span class="n">sim_level2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># the true value</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">pct_error</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">((</span><span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">y</span><span class="p">)</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Predicted value:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span><span class="p">)</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Actual simulator value:&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
-</span></code></pre></div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2.4280459289434475
-Actual simulator value: 2.5857864376269055
-Percentage error: 6.10029143892578
-=======
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">prediction</span> <span class="o">=</span> <span class="n">mlgp</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
 </span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
@@ -1477,14 +1434,14 @@ Percentage error: 6.10029143892578
 </span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2547.807841375715), variance=np.float64(0.7338944271372969), standard_deviation=0.8566763841365636)
-Point estimate: 2547.807841375715
-Variance of estimate: 0.7338944271372969
-Standard deviation of estimate: 0.8566763841365636
+<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2.428045955707379), variance=np.float64(0.4494866869482408), standard_deviation=0.6704376831206915)
+Point estimate: 2.428045955707379
+Variance of estimate: 0.4494866869482408
+Standard deviation of estimate: 0.6704376831206915
 </code></pre></div>
 </div>
 <p>Let's see how well the prediction did against the true simulator value:</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">y</span> <span class="o">=</span> <span class="n">sim_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># the true value</span>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">y</span> <span class="o">=</span> <span class="n">sim_level2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># the true value</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">pct_error</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">((</span><span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">y</span><span class="p">)</span>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Predicted value:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span><span class="p">)</span>
@@ -1492,10 +1449,9 @@ Standard deviation of estimate: 0.8566763841365636
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2547.807841375715
-Actual simulator value: 2548.835786437627
-Percentage error: 0.040329983884485936
->>>>>>> dev
+<div class="language-text highlight"><pre><span></span><code>Predicted value: 2.428045955707379
+Actual simulator value: 2.5857864376269055
+Percentage error: 6.100290403885487
 </code></pre></div>
 </div>
 <p>As in the non-levelled case, we can also calculate the normalised expected square error
@@ -1503,11 +1459,7 @@ for the prediction:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">prediction</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<<<<<<< HEAD
-<div class="language-text highlight"><pre><span></span><code>0.708081530743778
-=======
-<div class="language-text highlight"><pre><span></span><code>0.8758840963529717
->>>>>>> dev
+<div class="language-text highlight"><pre><span></span><code>0.7080815302277513
 </code></pre></div>
 </div>
 

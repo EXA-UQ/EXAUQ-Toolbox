@@ -1331,7 +1331,11 @@ training data:</p>
 </span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">gp</span><span class="o">.</span><span class="n">training_data</span><span class="p">,</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Inputs:                                 Output:             
+<div class="language-text highlight"><pre><span></span><code>Inputs:
+</code></pre></div>
+</div>
+<div class="result">
+<div class="language-text highlight"><pre><span></span><code>Output:             
 ------------------------------------------------------------
 0.2744089188        1.0049536304        1.3460506974        
 0.5927920194        -0.3948649447       -2.0511268894       
@@ -1364,17 +1368,10 @@ deviation, respectively).</p>
 </span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<<<<<<< HEAD
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2.9826683624886554), variance=np.float64(0.325215115250463), standard_deviation=0.5702763498957878)
-Point estimate: 2.9826683624886554
-Variance of estimate: 0.325215115250463
-Standard deviation of estimate: 0.5702763498957878
-=======
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2549.6067956627085), variance=np.float64(2.5214405357837677), standard_deviation=1.5879044479387818)
-Point estimate: 2549.6067956627085
-Variance of estimate: 2.5214405357837677
-Standard deviation of estimate: 1.5879044479387818
->>>>>>> dev
+<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2.9826684070574254), variance=np.float64(0.3252151528831815), standard_deviation=0.5702763828909465)
+Point estimate: 2.9826684070574254
+Variance of estimate: 0.3252151528831815
+Standard deviation of estimate: 0.5702763828909465
 </code></pre></div>
 </div>
 <p>Let's see how well the prediction did against the true simulator value:</p>
@@ -1386,15 +1383,9 @@ Standard deviation of estimate: 1.5879044479387818
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<<<<<<< HEAD
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2.9826683624886554
+<div class="language-text highlight"><pre><span></span><code>Predicted value: 2.9826684070574254
 Actual simulator value: 2.5857864376269055
-Percentage error: 15.348596430337324
-=======
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2549.6067956627085
-Actual simulator value: 2548.835786437627
-Percentage error: 0.03024946641066045
->>>>>>> dev
+Percentage error: 15.34859815394332
 </code></pre></div>
 </div>
 <p>Finally, because the prediction comes from a GP, we can also calculate the normalised
@@ -1405,21 +1396,7 @@ prediction:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">prediction</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<<<<<<< HEAD
-<div class="language-text highlight"><pre><span></span><code>0.7480505652032704
-</code></pre></div>
-</div>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">TrainingDatum</span><span class="p">(</span><span class="n">Input</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">TrainingDatum</span><span class="p">(</span><span class="n">Input</span><span class="p">(</span><span class="o">-</span><span class="mf">1.1234567898765544</span><span class="p">),</span> <span class="mf">1.3283498234198763</span><span class="p">)]</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-</span></code></pre></div>
-<div class="result">
-<div class="language-text highlight"><pre><span></span><code>Inputs:             Output:             
-----------------------------------------
-1.0000000000        1.0000000000        
--1.1234567899       1.3283498234
-=======
-<div class="language-text highlight"><pre><span></span><code>0.7203375595393211
->>>>>>> dev
+<div class="language-text highlight"><pre><span></span><code>0.7480505717415877
 </code></pre></div>
 </div>
 

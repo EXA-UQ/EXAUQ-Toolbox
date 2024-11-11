@@ -1246,7 +1246,7 @@ As in the tutorial linked above, we will use a multi-level GP to emulate
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># The bounds define the lower and upper bounds on each coordinate</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">domain</span> <span class="o">=</span> <span class="n">SimulatorDomain</span><span class="p">(</span><span class="n">bounds</span><span class="o">=</span><span class="p">[(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">)])</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">domain</span> <span class="o">=</span> <span class="n">SimulatorDomain</span><span class="p">(</span><span class="n">bounds</span><span class="o">=</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)])</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># The full simulator (at level 2)</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">def</span> <span class="nf">sim_func</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Input</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
@@ -1339,11 +1339,7 @@ Therefore, we assign a cost of 1 to <span class="arithmatex">\(f_1\)</span> and 
 </span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Level to run it at:&quot;</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<<<<<<< HEAD
-<div class="language-text highlight"><pre><span></span><code>New design point: (np.float64(-0.9999999063578762), np.float64(63.29854077834834))
-=======
-<div class="language-text highlight"><pre><span></span><code>New design point: (Input(np.float64(0.27813517398498244), np.float64(99.99999999374049)),)
->>>>>>> dev
+<div class="language-text highlight"><pre><span></span><code>New design point: (Input(np.float64(0.6270400033134383), np.float64(-0.49999991631366314)),)
 Level to run it at: 2
 </code></pre></div>
 </div>
@@ -1365,13 +1361,11 @@ specifying a different batch size:</p>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;New design points:&quot;</span><span class="p">,</span> <span class="n">new_inputs</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<<<<<<< HEAD
-<div class="language-text highlight"><pre><span></span><code>New design points: (Input(np.float64(-0.9999999230121038), np.float64(63.30712000417938)), Input(np.float64(0.3477577844145807), np.float64(1.0000000498779116)), Input(np.float64(0.4736591264288359), np.float64(99.99999965329604)), Input(np.float64(-0.6755008530856692), np.float64(99.99999785459832)), Input(np.float64(0.9999999981402268), np.float64(76.11028927021705)))
-Level to run batch at: 2
-=======
-<div class="language-text highlight"><pre><span></span><code>Level: 2
-New design points: [Input(np.float64(0.2781341944804427), np.float64(99.99999999964089)), Input(np.float64(-0.9999999999910276), np.float64(73.29987499637845)), Input(np.float64(0.9999999997972688), np.float64(25.50797843783147)), Input(np.float64(-0.08211108419576918), np.float64(61.928824366583214)), Input(np.float64(0.6647012087314514), np.float64(99.99999988370061))]
->>>>>>> dev
+<div class="language-text highlight"><pre><span></span><code>Level: 1
+New design points: [Input(np.float64(0.9999999920400343), np.float64(0.7164005232013257)), Input(np.float64(0.29922507169599954), np.float64(1.4999999692411503))]
+
+Level: 2
+New design points: [Input(np.float64(0.62704813103636), np.float64(-0.49999998709295235)), Input(np.float64(0.7503483968103353), np.float64(1.49999971385431)), Input(np.float64(1.240898417353975e-08), np.float64(0.5896787106006196))]
 </code></pre></div>
 </div>
 <h2 id="update-the-multi-level-gp">Update the multi-level GP</h2>
@@ -1409,7 +1403,7 @@ MultiLevel design points from <a class="autorefs autorefs-internal" href="../../
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Number of training data at each level: {1: 8, 2: 9}
+<div class="language-text highlight"><pre><span></span><code>Number of training data at each level: {1: 10, 2: 7}
 </code></pre></div>
 </div>
 <p>This completes one adaptive sampling 'iteration'. It's important to note that, when
@@ -1442,31 +1436,23 @@ multi-level GP.</p>
 </span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated level </span><span class="si">{</span><span class="n">level</span><span class="si">}</span><span class="s2"> with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<<<<<<< HEAD
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 1 with new design point (np.float64(-0.4254247953273482), np.float64(99.99999862733546))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.9999999998444683), np.float64(1.029486469852898))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 1 with new design point (np.float64(-0.9999999907018524), np.float64(16.737546178525584))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.40034634254571105), np.float64(0.10283192638997185))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.31390630651231743), np.float64(99.9999765548551))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 1 with new design point (np.float64(2.267211696715954e-07), np.float64(-0.12426956121217159))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.09028058337966349), np.float64(99.99999879289362))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.5844424873969744), np.float64(0.15651205489982245))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(-0.4178938381871812), np.float64(37.668676026121055))
-=======
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.20195056284511737), np.float64(87.73162579683596))
-==&gt; Updated level 2 with new design point (np.float64(0.28218591000621496), np.float64(34.80677705341396))
-==&gt; Updated level 2 with new design point (np.float64(0.5172274905106851), np.float64(1.0000000158254565))
-==&gt; Updated level 2 with new design point (np.float64(-0.21467879556242297), np.float64(99.99999998962576))
-==&gt; Updated level 2 with new design point (np.float64(-0.7659740624881849), np.float64(99.99999892608088))
->>>>>>> dev
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated level 2 with new design point (np.float64(0.2363445312147051), np.float64(0.18121248417802738))
 </code></pre></div>
 </div>
 
