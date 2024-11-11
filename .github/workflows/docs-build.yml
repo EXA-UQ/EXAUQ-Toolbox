@@ -1,0 +1,47 @@
+# Rebuild the notebooks (if necessary) and mkdocs before merging to dev/main
+# This will also be updated for github pages when hosted there. 
+
+name: Rebuild docs
+run-name: "Rebuild docs upon ${{ github.event_name }} from ${{ github.ref_name }}"
+on:
+  push:
+    branches: [ "dev", "main", "release/*" ]
+  repository_dispatch:
+  workflow_dispatch:
+  workflow_call:
+
+jobs: 
+    Rebuild_docs:
+        name: build-mkdocs
+        runs-on: ubuntu-latest
+        strategy: 
+            fail-fast: True
+        steps:
+        - uses: actions/checkout@v3
+          with:
+            ref: dev
+        - uses: actions/setup-python@v4
+          with:
+            python-version: '3.10'
+        - name: Install Poetry
+          uses: abatilo/actions-poetry@v2
+        - name: Install dependencies
+          run: rm -r poetry.lock && poetry install --with=dev
+        - name: Create Pull Request
+          uses: peter-evans/create-pull-request@v4
+          with:
+            commit-message: 'Rebuild mkdocs'
+            branch: Update-API-Documentation
+            title: 'Update-API-Documentation'
+            body: |
+              Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action.
+              
+              Updates and rebuild mkdocs to ensure API documentation is up to date with codebase.  
+          # Prevents errors if there are no changes to commit
+          continue-on-error: true
+        
+    
+
+
+
+
