@@ -6,7 +6,8 @@ Gaussian process (GP), using an adaptive sampling technique. Similarly to the
 multi-level GP and find a new design point (or batch of points) that will best
 improve the fit of the multi-level GP. In contrast to the single level case, we also need
 to determine the particular GP level for the new design point (or points), which
-determines the simulator run(s) required.
+determines the simulator run(s) required. To help us do this, the associated cost of running 
+each level weighs the sampling criterion. 
 
 This tutorial will show you how to:
 
@@ -37,10 +38,10 @@ with adaptive sampling in the non-levelled case.
 We'll work with the same toy simulator function found in the tutorial,
 [Training a Multi-Level Gaussian Process Emulator](./training_multi_level_gp_tutorial.md). This is the function
 $$
-f(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
+f_2(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
 $$
 with simulator domain defined as the rectangle $\mathcal{D}$ consisting of points
-$(x_1, x_2)$ where $-1 \leq x_1 \leq 1$ and $1 \leq x_2 \leq 100$. We view this as the
+$(x_1, x_2)$ where $0 \leq x_1 \leq 1$ and $-0.5 \leq x_2 \leq 1.5$. We view this as the
 top level of a 2-level multi-level simulator, with level 1 being given by the simpler
 function
 $$
@@ -48,10 +49,10 @@ f_1(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2}
 $$
 and the difference function between the levels being
 $$
-\delta(x_1, x_2) = f(x_1, x_2) - f_1(x_1, x_2) = \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
+\delta(x_1, x_2) = f_2(x_1, x_2) - f_1(x_1, x_2) = \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
 $$
 As in the tutorial linked above, we will use a multi-level GP to emulate
-$f = f_1 + \delta$.
+$f_2 = f_1 + \delta$ by fitting independent GPs.
 
 
 We can express this in code as follows:
@@ -62,7 +63,7 @@ from exauq.core.modelling import SimulatorDomain, Input, MultiLevel
 import numpy as np
 
 # The bounds define the lower and upper bounds on each coordinate
-domain = SimulatorDomain(bounds=[(-1, 1), (1, 100)])
+domain = SimulatorDomain(bounds=[(0, 1), (-0.5, 1.5)])
 
 # The full simulator (at level 2)
 def sim_func(x: Input) -> float:
@@ -101,11 +102,11 @@ from exauq.core.modelling import MultiLevel, TrainingDatum
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import MultiLevelGaussianProcess
 
-# Create level 1 experimental design of 20 data points
-lhs_inputs1 = oneshot_lhs(domain, 20, seed=1)
+# Create level 1 experimental design of 8 data points
+lhs_inputs1 = oneshot_lhs(domain, 8, seed=1)
 
-# Create level 2 experimental design of 5 data points
-lhs_inputs2 = oneshot_lhs(domain, 5, seed=1)
+# Create level 2 experimental design of 4 data points
+lhs_inputs2 = oneshot_lhs(domain, 4, seed=1)
 
 # Put into a multi-level object
 design = MultiLevel([lhs_inputs1, lhs_inputs2])
@@ -144,8 +145,8 @@ to do this. By default, a batch consisting of a single, new design point will be
   $f$.
 
 Let's suppose for our toy example that the full simulator is 10-times more expensive to
-run than the level 1 version. This gives relative costs of 1 and 10 to $f_1$ and $f$ respectively.
-Therefore, we assign a cost of 1 to $f_1$ and 11 to $f$ given the cost for our full simulator is $C^{(2)} = c^{(1)} + c^{(2)}$.
+run than the level 1 version. This gives relative costs of 1 and 10 to $f_1$ and $f_2$ respectively.
+Therefore, we assign a cost of 1 to $f_1$ and 11 to $f_2$ given the cost for our full simulator is $C_2 = c_1 + c_2$.
 
 In code, we perform the adaptive sampling as follows:
 
@@ -168,7 +169,7 @@ print("Level to run it at:", level)
 ```
 
 <div class="result" markdown>
-    New design point: (Input(np.float64(0.27813517398498244), np.float64(99.99999999374049)),)
+    New design point: (Input(np.float64(0.6270400033134383), np.float64(-0.49999991631366314)),)
     Level to run it at: 2
     
 </div>
@@ -198,8 +199,11 @@ for level in new_design_pts.levels:
 
 <div class="result" markdown>
     
+    Level: 1
+    New design points: [Input(np.float64(0.9999999920400343), np.float64(0.7164005232013257)), Input(np.float64(0.29922507169599954), np.float64(1.4999999692411503))]
+    
     Level: 2
-    New design points: [Input(np.float64(0.2781341944804427), np.float64(99.99999999964089)), Input(np.float64(-0.9999999999910276), np.float64(73.29987499637845)), Input(np.float64(0.9999999997972688), np.float64(25.50797843783147)), Input(np.float64(-0.08211108419576918), np.float64(61.928824366583214)), Input(np.float64(0.6647012087314514), np.float64(99.99999988370061))]
+    New design points: [Input(np.float64(0.62704813103636), np.float64(-0.49999998709295235)), Input(np.float64(0.7503483968103353), np.float64(1.49999971385431)), Input(np.float64(1.240898417353975e-08), np.float64(0.5896787106006196))]
     
 </div>
 
@@ -246,7 +250,7 @@ print(
 ```
 
 <div class="result" markdown>
-    Number of training data at each level: {1: 20, 2: 10}
+    Number of training data at each level: {1: 10, 2: 7}
     
 </div>
 
@@ -287,9 +291,25 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.20195056284511737), np.float64(87.73162579683596))
-    ==> Updated level 2 with new design point (np.float64(0.28218591000621496), np.float64(34.80677705341396))
-    ==> Updated level 2 with new design point (np.float64(0.5172274905106851), np.float64(1.0000000158254565))
-    ==> Updated level 2 with new design point (np.float64(-0.21467879556242297), np.float64(99.99999998962576))
-    ==> Updated level 2 with new design point (np.float64(-0.7659740624881849), np.float64(99.99999892608088))
+    ==> Updated level 2 with new design point (np.float64(0.9999999998444683), np.float64(1.029486469852898))
+    
+</div>
+
+<div class="result" markdown>
+    ==> Updated level 2 with new design point (np.float64(0.40034634254571105), np.float64(0.10283192638997185))
+    
+</div>
+
+<div class="result" markdown>
+    ==> Updated level 1 with new design point (np.float64(2.267211696715954e-07), np.float64(-0.12426956121217159))
+    
+</div>
+
+<div class="result" markdown>
+    ==> Updated level 2 with new design point (np.float64(0.5844424873969744), np.float64(0.15651205489982245))
+    
+</div>
+
+<div class="result" markdown>
+    ==> Updated level 2 with new design point (np.float64(0.2363445312147051), np.float64(0.18121248417802738))
     
