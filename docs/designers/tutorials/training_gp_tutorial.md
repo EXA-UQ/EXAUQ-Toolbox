@@ -244,10 +244,10 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2549.6068194932086), variance=np.float64(2.521401345729828), standard_deviation=1.587892107710668)
-    Point estimate: 2549.6068194932086
-    Variance of estimate: 2.521401345729828
-    Standard deviation of estimate: 1.587892107710668
+    GaussianProcessPrediction(estimate=np.float64(2549.6067956627085), variance=np.float64(2.5214405357837677), standard_deviation=1.5879044479387818)
+    Point estimate: 2549.6067956627085
+    Variance of estimate: 2.5214405357837677
+    Standard deviation of estimate: 1.5879044479387818
     
 </div>
 
@@ -264,9 +264,9 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2549.6068194932086
+    Predicted value: 2549.6067956627085
     Actual simulator value: 2548.835786437627
-    Percentage error: 0.03025040136693606
+    Percentage error: 0.03024946641066045
     
 </div>
 
@@ -285,7 +285,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.7203392629082389
+    0.7203375595393211
 </div>
 
 

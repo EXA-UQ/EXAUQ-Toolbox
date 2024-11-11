@@ -184,9 +184,7 @@ class TestInput(unittest.TestCase):
 
         x = Input(2)
         i = 1
-        with self.assertRaisesRegex(
-            IndexError, exact(f"Input index {i} out of range.")
-        ):
+        with self.assertRaisesRegex(IndexError, exact(f"Input index {i} out of range.")):
             x[i]
 
     def test_sequence_implementation(self):
@@ -462,9 +460,7 @@ class TestTrainingDatum(unittest.TestCase):
         self.write_csv_data(self.path, [[1, 2, 3], [10, "inf", 30]])
         with self.assertRaisesRegex(
             AssertionError,
-            exact(
-                f"Could not read data from {self.path}: infinite or NaN values found."
-            ),
+            exact(f"Could not read data from {self.path}: infinite or NaN values found."),
         ):
             _ = TrainingDatum.read_from_csv(self.path)
 
@@ -472,9 +468,7 @@ class TestTrainingDatum(unittest.TestCase):
         self.write_csv_data(self.path, [[1, 2, 3], [10, "NaN", 30]], mode="w")
         with self.assertRaisesRegex(
             AssertionError,
-            exact(
-                f"Could not read data from {self.path}: infinite or NaN values found."
-            ),
+            exact(f"Could not read data from {self.path}: infinite or NaN values found."),
         ):
             _ = TrainingDatum.read_from_csv(self.path)
 
@@ -555,9 +549,7 @@ class TestPrediction(ExauqTestCase):
         var = -0.1
         with self.assertRaisesRegex(
             ValueError,
-            exact(
-                f"'variance' must be a non-negative real number, but received {var}."
-            ),
+            exact(f"'variance' must be a non-negative real number, but received {var}."),
         ):
             Prediction(estimate=1, variance=var)
 
@@ -600,9 +592,7 @@ class TestPrediction(ExauqTestCase):
         estimate = 0
         for var1 in [0.1 * n for n in range(101)]:
             p1 = Prediction(estimate, var1)
-            for var2 in filter(
-                lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)
-            ):
+            for var2 in filter(lambda x: x >= 0, make_window(var1, tol=FLOAT_TOLERANCE)):
                 p2 = Prediction(estimate, var2)
                 self.assertIs(p1 == p2, equal_within_tolerance(var1, var2))
                 self.assertIs(p2 == p1, p1 == p2)
@@ -749,6 +739,104 @@ class TestAbstractGaussianProcess(ExauqTestCase):
             emulator.correlation(inputs, training_inputs),
             emulator.covariance_matrix(inputs),
         )
+
+    def test_validate_covariance_matrix_with_singular_matrix(self):
+        """Ensuring the error for a singular covariance matrix is caught."""
+
+        gp = MogpEmulator()
+        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 1)]
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "Cannot compute covariance inverse: Covariance Matrix is, or too close to singular."
+            ),
+        ):
+            gp.fit(training_data)
+
+    def test_kinv_property_correctly_calculates_and_stores_inverse(self):
+        """Ensuring that the inverse of the covariance matrix within the gp is being
+        calculated correctly."""
+
+        gp = MogpEmulator()
+        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 2)]
+        gp.fit(training_data)
+
+        test_array = gp.covariance_matrix([datum.input for datum in training_data])
+
+        self.assertArraysEqual(np.linalg.inv(test_array), gp.kinv)
+
+    def test_update_adds_new_data_to_training_data(self):
+        """Given a trained emulator, ensure that post update the new training_data is
+        added to the GP"""
+
+        emulator = MogpEmulator()
+        emulator.fit(self.training_data)
+        train_data_length = len(self.training_data)
+
+        new_training_data = [TrainingDatum(Input(0.74), 12)]
+        emulator.update(new_training_data)
+
+        self.assertEqual(
+            (train_data_length + len(new_training_data)), len(emulator.training_data)
+        )
+
+        for datum in new_training_data:
+            self.assertTrue(
+                any(
+                    datum.input == existing_datum.input and datum.output == existing_datum.output
+                    for existing_datum in emulator.training_data
+                ),
+                f"New training datum with input {datum.input} and output {datum.output} "
+                f"was not found in the emulator's training data.",
+            )
+
+    def test_update_to_emulator_hyperparams(self):
+        """Given a trained emulator, ensure that post update the new hyperparameters are
+        implemented even with no training data
+        """
+        emulator = MogpEmulator()
+        params = MogpHyperparameters(corr_length_scales=[1, 2], process_var=1, nugget=1)
+        training_data = (
+            TrainingDatum(Input(0.1, 0.2), 3),
+            TrainingDatum(Input(0.3, 0.4), 4),
+        )
+        emulator.fit(training_data, params)
+
+        new_params = MogpHyperparameters(
+            corr_length_scales=[2, 3], process_var=2, nugget=2
+        )
+        emulator.update(hyperparameters=new_params)
+
+        self.assertNotEqual(params, new_params)
+        self.assertEqual(new_params, emulator.fit_hyperparameters)
+
+    def test_update_points_on_non_fitted_gp(self):
+        """Given an untrained emulator the update method should just fit the new points
+        to the untrained emulator"""
+
+        emulator = MogpEmulator()
+        training_data = [
+            TrainingDatum(Input(0.1, 0.2), 1),
+            TrainingDatum(Input(0.5, 0.6), 2),
+            TrainingDatum(Input(0.8, 0.25), 3),
+        ]
+
+        emulator.update(training_data)
+
+        self.assertEqual(len(training_data), len(emulator.training_data))
+
+    def test_update_no_points_on_non_fitted_gp(self):
+        """Given an untrained emulator, the update method should simply fit the empty gp
+        and pass through, but return a warning to the user that no changes were made."""
+
+        emulator = MogpEmulator()
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact("No arguments were passed to update and hence the GP remains as was."),
+        ):
+            emulator.update()
 
 
 class TestGaussianProcessHyperparameters(ExauqTestCase):
@@ -983,9 +1071,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         ):
             arg = self.hyperparameters[hyperparameter]["arg"]
             transformation_func = self.hyperparameters[hyperparameter]["func"]
-            with self.subTest(
-                hyperparameter=hyperparameter, x=x
-            ), self.assertRaisesRegex(
+            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
                 TypeError,
                 exact(f"Expected '{arg}' to be a real number, but received {type(x)}."),
             ):
@@ -999,9 +1085,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
         ):
             arg = self.hyperparameters[hyperparameter]["arg"]
             transformation_func = self.hyperparameters[hyperparameter]["func"]
-            with self.subTest(
-                hyperparameter=hyperparameter, x=x
-            ), self.assertRaisesRegex(
+            with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
                 ValueError,
                 exact(f"'{arg}' cannot be < 0, but received {x}."),
             ):
@@ -1010,9 +1094,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
 
 class TestSimulatorDomain(unittest.TestCase):
     def setUp(self) -> None:
-        self.epsilon = (
-            FLOAT_TOLERANCE / 2
-        )  # Useful for testing equality up to tolerance
+        self.epsilon = FLOAT_TOLERANCE / 2  # Useful for testing equality up to tolerance
         self.bounds = [(0, 2), (0, 1)]
         self.domain = SimulatorDomain(self.bounds)
 
@@ -1054,7 +1136,7 @@ class TestSimulatorDomain(unittest.TestCase):
         """Test that an Input with a coordinate that lies on the domain's bounds
         still belongs within the domain if on the tolerance level tolerance."""
 
-        # Check with changing tolerance 
+        # Check with changing tolerance
         tol = 1e-7
         set_tolerance(tol)
 
@@ -1063,13 +1145,13 @@ class TestSimulatorDomain(unittest.TestCase):
         x2 = Input(tol, 0.5)
         self.assertTrue(x1 in self.domain)
         self.assertTrue(x2 in self.domain)
-        
+
     def test_input_close_to_domain_bound_outside_tolerance(self):
         """Test that an Input with a coordinate that lies very close to the domain's bounds
         but outside tolerance still flags failure."""
 
         # Test just outside of boundary
-        x1 = Input(0, 1+1e-5)
+        x1 = Input(0, 1 + 1e-5)
         x2 = Input(-1e-5, 0.5)
         self.assertFalse(x1 in self.domain)
         self.assertFalse(x2 in self.domain)
@@ -1079,7 +1161,7 @@ class TestSimulatorDomain(unittest.TestCase):
         still belongs within the domain if within tolerance."""
 
         # Test just inside boundary of tolerance
-        x1 = Input(0, 1+1e-12)
+        x1 = Input(0, 1 + 1e-12)
         x2 = Input(-1e-12, 0.5)
         self.assertTrue(x1 in self.domain)
         self.assertTrue(x2 in self.domain)
@@ -1506,9 +1588,7 @@ class TestSimulatorDomain(unittest.TestCase):
             with self.subTest(coord=coord, limit=limit):
                 self.assertEqual(
                     1,
-                    len(
-                        [x for x in boundary_points if is_on_boundary(x, coord, limit)]
-                    ),
+                    len([x for x in boundary_points if is_on_boundary(x, coord, limit)]),
                 )
 
     def test_closest_boundary_points_does_not_return_boundary_corners(self):
@@ -1936,6 +2016,53 @@ class TestMultiLevel(ExauqTestCase):
         d2 = MultiLevel(d_dict)
         self.assertEqual(d1, d2)
 
+    def test_add_levels(self):
+        """Two MultiLevel objects added together should concatenate the levels
+        or create new levels if objects don't exist in both."""
+
+        a = MultiLevel(
+            {1: [1, 2, 3], 2: ("a", "b", "c"), 3: [TrainingDatum(Input(0.5), 1)]}
+        )
+
+        b = MultiLevel(
+            {
+                1: [4, 5, 6],
+                2: ("d", "e", "f"),
+                3: [TrainingDatum(Input(0.9), 1.5)],
+                4: ["Test"],
+            }
+        )
+
+        correctly_added = MultiLevel(
+            {
+                1: (1, 2, 3, 4, 5, 6),
+                2: ("a", "b", "c", "d", "e", "f"),
+                3: (
+                    TrainingDatum(input=Input(0.5), output=1),
+                    TrainingDatum(input=Input(0.9), output=1.5),
+                ),
+                4: ("Test",),
+            }
+        )
+
+        c = a + b
+        self.assertEqual(c, correctly_added)
+
+    def test_add_type_error(self):
+        """Ensure that a type error is raised if non-MultiLevel objects are passed"""
+
+        a = MultiLevel(
+            {1: [1, 2, 3], 2: ("a", "b", "c"), 3: [TrainingDatum(Input(0.5), 1)]}
+        )
+
+        b = 23
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact("MultiLevel objects can only be added to other MultiLevel objects."),
+        ):
+            a + b
+
     def test_levels(self):
         """The levels attribute returns the levels as an ordered tuple of ints."""
 
@@ -1977,9 +2104,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         )
         self.hyperparameter_bounds = MultiLevel(
             {
-                level: self.make_white_noise_gp_hyperparameter_bounds(
-                    (level + 10, None)
-                )
+                level: self.make_white_noise_gp_hyperparameter_bounds((level + 10, None))
                 for level in self.training_data
             }
         )
@@ -2012,9 +2137,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         some_bad_coeffs = [{1: 1, 2: "a"}, [1, [1]], "a"]
         for bad_coeffs in some_bad_coeffs:
             with self.assertRaises(TypeError):
-                _ = self.make_multi_level_gp(
-                    [WhiteNoiseGP(), WhiteNoiseGP()], bad_coeffs
-                )
+                _ = self.make_multi_level_gp([WhiteNoiseGP(), WhiteNoiseGP()], bad_coeffs)
 
     def test_coefficients_single_value_used_at_each_level(self):
         """If a single float is given for the coefficients, then this value is used at
@@ -2207,9 +2330,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         self.assertEqual(self.hyperparameters, mlgp.fit_hyperparameters)
 
         for level in self.training_data.levels:
-            self.assertEqual(
-                self.hyperparameters[level], mlgp[level].fit_hyperparameters
-            )
+            self.assertEqual(self.hyperparameters[level], mlgp[level].fit_hyperparameters)
 
     def test_fit_single_level_hyperparameters_applied_to_all_levels(self):
         """If a non-levelled set of hyperparameters is supplied, then these are applied to
@@ -2333,6 +2454,120 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         mlgp.fit(self.training_data, hyperparameter_bounds=self.hyperparameter_bounds)
 
         self.assertIsNone(mlgp.fit_hyperparameters[missing_level])
+
+    def test_update_warning_for_null_arguments(self):
+        """Ensure that no arguments passed to update raises the appropriate warning."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        mlgp.fit(self.training_data)
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact("No arguments were passed to update and hence the GP remains as was."),
+        ):
+            mlgp.update()
+
+    def test_update_passes_hyperparameters_only(self):
+        """Ensure that when no training data is passed, hyperparameters are still updated correctly."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        mlgp.fit(self.training_data)
+
+        new_params = WhiteNoiseGPHyperparameters(process_var=2)
+        mlgp.update(hyperparameters=new_params)
+
+        for level in self.training_data.levels:
+            self.assertEqual(new_params, mlgp[level].fit_hyperparameters)
+
+    def test_update_passes_hyperparameter_bounds_only(self):
+        """Ensure that when no training data is passed, hyperparameter bounds are still updated correctly."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        lower_bnd = 10
+        bounds = self.make_white_noise_gp_hyperparameter_bounds((lower_bnd, None))
+
+        mlgp.fit(self.training_data)
+
+        mlgp.update(hyperparameter_bounds=bounds)
+
+        # Expected hyperparams: lower bound on process var for each level
+        for level in mlgp.levels:
+            self.assertEqual(
+                WhiteNoiseGPHyperparameters(process_var=lower_bnd),
+                mlgp.fit_hyperparameters[level],
+            )
+
+    def test_update_for_training_data_on_single_level(self):
+        """Ensure that if data is passed for just one level it passes correctly and
+        leaves all other levels with the correct data."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        mlgp.fit(self.training_data)
+        original_train_data = self.training_data
+
+        new_train_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.25), 2.5), TrainingDatum(Input(0.4), 1.2)),
+                2: (),
+                3: (),
+            }
+        )
+
+        mlgp.update(new_train_data)
+
+        # Check length of data in each level is correct
+        for level in mlgp.levels:
+            self.assertEqual(
+                len(mlgp[level].training_data),
+                len(original_train_data[level]) + len(new_train_data[level]),
+            )
+
+        # Check new data exists within mlgp.training_data
+        for level, values in new_train_data.items():
+            for value in values:
+                assert value in mlgp.training_data[level]
+
+    def test_update_for_training_data_across_all_levels(self):
+        """Ensure that when training data is fitted, it is fitted across all levels."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        mlgp.fit(self.training_data)
+        original_train_data = self.training_data
+
+        new_train_data = MultiLevel(
+            {
+                1: (TrainingDatum(Input(0.2), 1),),
+                2: (
+                    TrainingDatum(Input(0.3), 2),
+                    TrainingDatum(Input(0.86), 0.5),
+                    TrainingDatum(Input(1.3), 0.6),
+                ),
+                3: (TrainingDatum(Input(2), 0.8),),
+            }
+        )
+
+        mlgp.update(new_train_data)
+
+        # Check length of data in each level is correct
+        for level in mlgp.levels:
+            self.assertEqual(
+                len(mlgp[level].training_data),
+                len(original_train_data[level]) + len(new_train_data[level]),
+            )
+
+        # Check new data exists within mlgp.training_data
+        for level, values in new_train_data.items():
+            for value in values:
+                assert value in mlgp.training_data[level]
+
+    def test_update_trains_non_trained_gp(self):
+        """Ensures that if update is used on a non-trained GP it will simply train that GP."""
+
+        mlgp = self.make_multi_level_gp(self.gps)
+        mlgp.update(self.training_data)
+
+        # Check new data exists within mlgp.training_data
+        self.assertEqual(self.training_data.items(), mlgp.training_data.items())
 
     def test_predict_arg_error(self):
         """A TypeError is raised if the input is not an instance of Input."""

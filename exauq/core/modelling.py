@@ -7,6 +7,9 @@ import csv
 import dataclasses
 import functools
 import math
+import sys
+import warnings
+from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from itertools import product
 from numbers import Real
@@ -14,6 +17,7 @@ from types import GenericAlias
 from typing import Any, Callable, Optional, TypeVar, Union
 
 import numpy as np
+from numpy.linalg import cond, LinAlgError
 from numpy.typing import NDArray
 
 import exauq.utilities.validation as validation
@@ -880,8 +884,8 @@ class AbstractEmulator(abc.ABC):
     can be trained with simulator outputs using an experimental design
     methodology.
 
-    NOTE: Classes derived from this abstract base class MUST implement required checks on 
-    duplicated Inputs. Only unique Inputs should be allowed within the training data. 
+    NOTE: Classes derived from this abstract base class MUST implement required checks on
+    duplicated Inputs. Only unique Inputs should be allowed within the training data.
     """
 
     @property
@@ -957,8 +961,8 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     `GaussianProcessHyperparameters` for methods and properties that use parameters, or
     return objects, of type `AbstractHyperparameters`.
 
-    NOTE: Classes derived from this abstract base class MUST implement required checks on 
-    duplicated Inputs. Only unique Inputs should be allowed within the training data. 
+    NOTE: Classes derived from this abstract base class MUST implement required checks on
+    duplicated Inputs. Only unique Inputs should be allowed within the training data.
 
     Notes
     -----
@@ -972,6 +976,13 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     def fit_hyperparameters(self) -> Optional[GaussianProcessHyperparameters]:
         """(Read-only) The hyperparameters of the fit for this Gaussian process emulator,
         or ``None`` if this emulator has not been fitted to data."""
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def kinv(self) -> NDArray:
+        """(Read-only) The inverse of the covariance matrix of the training data,
+        or ``None`` if the model has not been fitted to data."""
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -1026,6 +1037,60 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
+    def update(
+        self,
+        training_data: Optional[Sequence[TrainingDatum]] = None,
+        hyperparameters: Optional[GaussianProcessHyperparameters] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+    ) -> None:
+        """Update the current fitted gp to new conditions.
+
+        Allows the user a more friendly experience when implementing different hyperparameters
+        or hyperparam bounds or adding new training data to their GP without having to construct
+        the refit themselves.
+
+        Parameters
+        ----------
+        training_data :
+            The pairs of inputs and simulator outputs on which the Gaussian process
+            should be trained.
+        hyperparameters :
+            Hyperparameters for a Gaussian process to use directly in
+            fitting the emulator. If ``None`` then the hyperparameters should be estimated
+            as part of fitting to data.
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
+            during estimation, of the form ``(lower_bound, upper_bound)``. All
+            but the last tuple should represent bounds for the correlation
+            length scale parameters, in the same order as the ordering of the
+            corresponding input coordinates, while the last tuple should
+            represent bounds for the process variance.
+        """
+
+        if all(
+            value is None
+            for key, value in locals().items()
+            if key not in ["self", "__class__"]
+        ):
+            warnings.warn(
+                "No arguments were passed to update and hence the GP remains as was.",
+                UserWarning,
+            )
+            return None
+
+        if not self.training_data:
+            prev_training_data = []
+        else:
+            prev_training_data = list(self.training_data)
+
+        if training_data is None:
+            training_data = []
+
+        training_data = list(training_data) + prev_training_data
+        self.fit(training_data, hyperparameters, hyperparameter_bounds)
+
+        return None
+
     def covariance_matrix(self, inputs: Sequence[Input]) -> NDArray:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
@@ -1061,6 +1126,38 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         return self.fit_hyperparameters.process_var * self.correlation(
             inputs, training_inputs
         )
+    @staticmethod
+    def _validate_covariance_matrix(k: NDArray) -> None:
+        """Validate that the covariance is a non-singular matrix before attempting to invert it"""
+
+        try:
+            if cond(k) >= 1 / sys.float_info.epsilon:
+                raise ValueError("Covariance Matrix is, or too close to singular.")
+
+        except LinAlgError as e:
+            raise ValueError(f"Cannot calculate inverse of covariance matrix: {e}")
+
+        return None
+
+    def _compute_kinv(self) -> NDArray:
+        """Compute the inversion of the covariance matrix of the training data"""
+
+        training_inputs = [datum.input for datum in self.training_data]
+
+        if not training_inputs:
+            raise ValueError(
+                "Cannot compute covariance inverse: 'gp' hasn't been trained on any data."
+            )
+
+        try:
+            k = self.covariance_matrix(training_inputs)
+            self._validate_covariance_matrix(k)
+            kinv = np.linalg.inv(k)
+
+        except (ValueError, LinAlgError) as e:
+            raise e.__class__(f"Cannot compute covariance inverse: {e}")
+
+        return kinv
 
     @abc.abstractmethod
     def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
@@ -1190,6 +1287,77 @@ class MultiLevel(dict[int, T]):
 
     def __ne__(self, other):
         return not self == other
+
+    def __add__(self, other: MultiLevel[T] | None) -> MultiLevel[tuple[T]]:
+        """
+        Add two MultiLevel objects together.
+
+        Creates a new MultiLevel object that per level contains a tuple of all of the items
+        in both self and other. If other has any items that are on a separate level to any
+        previously stored in self, then this will create a new level.
+
+        NOTE: It concatenates elements of sequences on the same level into 1 combined tuple, not indvidually adding
+        the elements mathematically. See Examples.
+
+        Parameters
+        ----------
+        other : other: MultiLevel[T] | None
+            The MultiLevel object to add to self.
+
+        Returns
+        -------
+            A new multi-level collection, containing tuples of the new items stored at each level.
+
+        Examples
+        --------
+
+        >>> a = MultiLevel(
+            {
+                1: [1, 2, 3],
+                2: ("a", "b", "c"),
+                3: [TrainingDatum(Input(0.5), 1)]
+            })
+
+        >>> b = MultiLevel(
+            {
+                1: [4, 5, 6],
+                2: ("d", "e", "f"),
+                3: [TrainingDatum(Input(0.9), 1.5)],
+                4: ["Test"]
+            })
+
+        >>> c = a + b
+        >>> c
+        MultiLevel({1: (1, 2, 3, 4, 5, 6),
+                    2: ('a', 'b', 'c', 'd', 'e', 'f'),
+                    3: (TrainingDatum(input=Input(0.5), output=1),
+                    TrainingDatum(input=Input(0.9), output=1.5)),
+                    4: ('Test',)})
+
+        """
+
+        if other is None:
+            return self
+
+        if not isinstance(other, MultiLevel):
+            raise TypeError(
+                "MultiLevel objects can only be added to other MultiLevel objects."
+            )
+
+        new_multilevel = {level: list(value) for level, value in self.items()}
+
+        for level, value in other.items():
+
+            if level in new_multilevel:
+                new_multilevel[level].extend(list(value))
+
+            else:
+                new_multilevel[level] = list(value)
+
+        # Return immutable state
+        return MultiLevel(
+            {level: tuple(value) for level, value in new_multilevel.items()}
+        )
 
     def map(self, f: Callable[[int, T], S]) -> MultiLevel[S]:
         """Apply a function level-wise.
@@ -1425,6 +1593,67 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
                 raise e.__class__(
                     f"Could not train Gaussian process at level {level}: {e}"
                 )
+
+        return None
+
+    def update(
+        self,
+        training_data: MultiLevel[Collection[TrainingDatum]] = None,
+        hyperparameters: Optional[
+            Union[
+                MultiLevel[GaussianProcessHyperparameters],
+                GaussianProcessHyperparameters,
+            ]
+        ] = None,
+        hyperparameter_bounds: Optional[
+            Union[MultiLevel[Sequence[OptionalFloatPairs]], Sequence[OptionalFloatPairs]]
+        ] = None,
+    ) -> None:
+        """Update the current fitted gp to new conditions.
+
+        Allows the user a more friendly experience when implementing different hyperparameters
+        or hyperparam bounds or adding new training data to their GP without having to construct
+        the refit themselves.
+
+        Parameters
+        ----------
+        new_design_pts :
+            A tuple of (level, Input) pairs for newly calculated design points to be implemented
+            into the correct level of the gp.
+        new_outputs:
+            The outputs from the simulator which the new design points generated, used
+            to retrain the gp alongside the design points.
+        hyperparameters :
+            Hyperparameters for a Gaussian process to use directly in
+            fitting the emulator. If ``None`` then the hyperparameters should be estimated
+            as part of fitting to data.
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
+            during estimation, of the form ``(lower_bound, upper_bound)``. All
+            but the last tuple should represent bounds for the correlation
+            length scale parameters, in the same order as the ordering of the
+            corresponding input coordinates, while the last tuple should
+            represent bounds for the process variance.
+        """
+
+        if training_data is not None:
+            training_data = training_data + self.training_data
+            self.fit(training_data, hyperparameters, hyperparameter_bounds)
+
+        elif all(
+            value is None
+            for key, value in locals().items()
+            if key not in ["self", "__class__"]
+        ):
+            warnings.warn(
+                "No arguments were passed to update and hence the GP remains as was.",
+                UserWarning,
+            )
+            return None
+
+        else:
+            training_data = self.training_data
+            self.fit(training_data, hyperparameters, hyperparameter_bounds)
 
         return None
 

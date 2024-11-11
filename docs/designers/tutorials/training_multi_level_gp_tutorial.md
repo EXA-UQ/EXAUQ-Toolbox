@@ -123,6 +123,29 @@ ml_numbers.levels
 
 
 
+One other useful function of [MultiLevel][exauq.core.modelling.MultiLevel] is the ability to concatenate different MultiLevel objects together into one single MultiLevel object using the [+][exauq.core.modelling.MultiLevel.__add__] operator.
+
+
+``` { .python .copy }
+# Create Multilevels by passing dictionaries with singular list values
+mlevel1 = MultiLevel({1: [1, 2, 3]})
+mlevel2 = MultiLevel({1: [4, 5], 2: [1, 2, 3]})
+
+# Concatenate the MultiLevel objects together 
+mlevel3 = mlevel1 + mlevel2
+
+mlevel3
+```
+
+
+
+
+<div class="result" markdown>
+    MultiLevel({1: (1, 2, 3, 4, 5), 2: (1, 2, 3)})
+</div>
+
+
+
 As an application, let's use the [`MultiLevel`][exauq.core.modelling.MultiLevel] class to
 encapsulate the different levels of our simulator, which will make our code a little
 neater later:
@@ -282,10 +305,10 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2547.807841233425), variance=np.float64(0.7338926645441834), standard_deviation=0.8566753553967708)
-    Point estimate: 2547.807841233425
-    Variance of estimate: 0.7338926645441834
-    Standard deviation of estimate: 0.8566753553967708
+    GaussianProcessPrediction(estimate=np.float64(2547.807841375715), variance=np.float64(0.7338944271372969), standard_deviation=0.8566763841365636)
+    Point estimate: 2547.807841375715
+    Variance of estimate: 0.7338944271372969
+    Standard deviation of estimate: 0.8566763841365636
     
 </div>
 
@@ -302,9 +325,9 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2547.807841233425
+    Predicted value: 2547.807841375715
     Actual simulator value: 2548.835786437627
-    Percentage error: 0.04032998946703433
+    Percentage error: 0.040329983884485936
     
 </div>
 
@@ -320,7 +343,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.8758846101740914
+    0.8758840963529717
 </div>
 
 
