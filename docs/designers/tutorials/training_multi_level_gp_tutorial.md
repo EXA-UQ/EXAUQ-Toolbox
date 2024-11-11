@@ -128,6 +128,29 @@ ml_numbers.levels
 
 
 
+One other useful function of [MultiLevel][exauq.core.modelling.MultiLevel] is the ability to concatenate different MultiLevel objects together into one single MultiLevel object using the [+][exauq.core.modelling.MultiLevel.__add__] operator.
+
+
+``` { .python .copy }
+# Create Multilevels by passing dictionaries with singular list values
+mlevel1 = MultiLevel({1: [1, 2, 3]})
+mlevel2 = MultiLevel({1: [4, 5], 2: [1, 2, 3]})
+
+# Concatenate the MultiLevel objects together 
+mlevel3 = mlevel1 + mlevel2
+
+mlevel3
+```
+
+
+
+
+<div class="result" markdown>
+    MultiLevel({1: (1, 2, 3, 4, 5), 2: (1, 2, 3)})
+</div>
+
+
+
 As an application, let's use the [`MultiLevel`][exauq.core.modelling.MultiLevel] class to
 encapsulate the different levels of our simulator, which will make our code a little
 neater later:
@@ -295,10 +318,10 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2.4280459289434475), variance=np.float64(0.4494867141727995), standard_deviation=0.6704377034242626)
-    Point estimate: 2.4280459289434475
-    Variance of estimate: 0.4494867141727995
-    Standard deviation of estimate: 0.6704377034242626
+    GaussianProcessPrediction(estimate=np.float64(2.428045966540852), variance=np.float64(0.4494867879424077), standard_deviation=0.6704377584402654)
+    Point estimate: 2.428045966540852
+    Variance of estimate: 0.4494867879424077
+    Standard deviation of estimate: 0.6704377584402654
     
 </div>
 
@@ -315,9 +338,9 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2.4280459289434475
+    Predicted value: 2.428045966540852
     Actual simulator value: 2.5857864376269055
-    Percentage error: 6.10029143892578
+    Percentage error: 6.1002899849230925
     
 </div>
 
@@ -333,7 +356,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.708081530743778
+    0.708081529557582
 </div>
 
 
