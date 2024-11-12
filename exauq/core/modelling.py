@@ -1214,6 +1214,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         return self.fit_hyperparameters.process_var * self.correlation(
             inputs, training_inputs
         )
+
     @staticmethod
     def _validate_covariance_matrix(k: NDArray) -> None:
         """Validate that the covariance is a non-singular matrix before attempting to invert it"""
@@ -1763,13 +1764,21 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         else:
             return MultiLevel({level: base for level in levels})
 
-    def predict(self, x: Input) -> GaussianProcessPrediction:
+    def predict(
+        self, x: Input, level_predict: Optional[int] = None
+    ) -> GaussianProcessPrediction:
         """Predict a simulator output for a given input.
+
+        If the optional level_predict argument is passed then this will set the level
+        at which the prediction occurs.
 
         Parameters
         ----------
-        x : Input
+        x :
             A simulator input.
+
+        level_predict :
+            The chosen level of the mlgp prediction.
 
         Returns
         -------
@@ -1793,14 +1802,34 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
                 f"Expected 'x' to be of type {Input.__name__}, but received {type(x)}."
             )
 
+        if level_predict is None:
+            level_predict = max(self.levels)
+
+        if level_predict is not None:
+
+            if not isinstance(level_predict, int):
+                raise TypeError(
+                    f"Expected 'level_predict' to be of type int, but "
+                    f"received {type(level_predict)} instead."
+                )
+
+            if level_predict not in self.levels:
+                raise ValueError(
+                    "'level_predict' not a valid level within the mlgp, valid levels are "
+                    f"between 1 and {max(self.levels)} but received {level_predict}."
+                )
+
         level_predictions = self.map(lambda level, gp: gp.predict(x))
+
         estimate = sum(
             p.estimate * self._coefficients[level]
             for level, p in level_predictions.items()
+            if level <= level_predict
         )
         variance = sum(
             p.variance * (self._coefficients[level] ** 2)
             for level, p in level_predictions.items()
+            if level <= level_predict
         )
         return GaussianProcessPrediction(estimate, variance)
 
