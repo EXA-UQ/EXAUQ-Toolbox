@@ -6,7 +6,7 @@ opening issues/creating PRs. This will help us review issues / answer your quest
 efficiently and hence help you have quicker responses!
 
 To download for a developer please do check out the [README](README.md) instructions and ensure you're running 
-`Python >= 3.11`. 
+`Python >= 3.10`. 
 
 ## Workflow
 
@@ -21,20 +21,20 @@ but stick to one singular thing in an issue. It should be structured as follows:
 
 1) **Motivation:** Why am I raising this as an issue? It could be a question, bug or feature request, but please let us know why you
 are raising it and how it well help either the toolbox or a user of the toolbox.
-2) **Example:** How can I show this? In the case of a bug or feature request, please give a basic example that we can either, reproduce in the case of a bug or use
-as the basis for a test case if it is feature based. 
+2) **Example:** How can I show this? In the case of a bug or feature request, please give a basic example that we can either: reproduce, in the case of a bug; use
+as the basis for a test case if it is for a feature request.
 3) **Acceptance Criteria:** How will we know that this issue is now closed? You could do this via bullet points/tasks or simply an explanation that gives
 clear criteria as what your expectations are at implementation.
 
  
-**Note discussion:** It may be that one of the maintenance team wish to clarify/discuss your issue further, please do keep an eye once the issue is
+**Discussions:** It may be that one of the maintenance team wish to clarify/discuss your issue further, please do keep an eye once the issue is
 open to answer any questions promptly. 
 
 Poorly written issues will likely not be resolved without further clarification and if none received
 will likely be removed. However, this process takes time so please do ensure your issues conform to our requests. 
 
-As it stands there is only 1 person maintaining the toolbox, therefore please do give some time for the issue to be resolved. If
-you wish to follow up on your own issue please feel free to open a branch and then PR (see below). 
+As it stands there is only a very small team maintaining the toolbox, therefore please do give some time for the issue to be resolved. If
+you wish to follow up on your own issue please feel free to create a branch and pull request (PR) (see below). 
 
 ### Labels
 
@@ -52,39 +52,46 @@ the branches locally and then pushing through to the remote branch when you wish
 finished and ready to submit your PR. Draft/WIP PRs are fully encouraged so that the maintaners of the 
 toolbox can see what you are working on, please just label the title of your PR **"[WIP]{Name_of_branch}"**. 
 
-Every PR should close at least 1 issue. Please link the issue(s) at the top of your PR using the following: **"Closes #issueNo."** to 
+Every PR should close at least 1 issue. Please link the issue(s) at the top of your PR using the following: **"Closes #{number_of_issue}."** to 
 attach the issue to the PR. There should then be a good description of how this issue has been closed by your PR (or how far you have 
 got and where you are going if it is a draft!). A well written issue will make this a lot easier!
 
 When you think you have finished the PR please, **before requesting a review**, remember to:
 1) **Documentation:** Double check you have updated all of the relevent documentation including API, user guides / tutorials (see below).
 2) **Test:** Run all of the unittests.
-3) There are (will be) github workflows such as linting and documents rebuilding that will occur before merging. (However, a quick
-test of this yourself is also appreciated!). See below for the standards we use.
+3) **Lint**: There are github workflows such as linting checks and documents rebuilding that will occur. See below for the standards we use and
+how to use the pre-commit hook if necessary.
 
 ### Test Driven Development
 
 Within every PR, we expect test coverage built in for any adaptations of functions or features. These should be automated unit tests which 
-will fail before you write your new code and pass once you have implemented a bug fix/feature etc. These are created using python's unittest module and
-can be run simply using `python -m unittest discover tests` from within the poetry shell. The best examples can be found in the codebase already 
-to give ideas for exception raises, edge cases and mocking etc. 
+will fail before you write your new code and pass once you have implemented a bug fix/feature etc. In this toolbox these are created using python's unittest module and
+can be run simply using `python -m unittest discover tests` from within the poetry shell. Within the code base there are already many unit tests
+to give ideas for exception raises, edge cases and mocking etc. It should also prove fairly logical where to put tests as they should lie in a file called test_filename
+and then be placed within the testcase for the class the method sits within. If it is a standalone function then it should have its own test class created in the appropriate location.  
 
-**Please take the time to test your code!**
+**Please take the time to test your code!** 
 
 ### Reviewing
 
 Finally when your PR is ready, change the name of the PR to **"[ReadyforReview]{branch_name}"** and request a review from one of the team. Currently, 
 we are still finalising how long reviews will take (and this will depend on the number of PRs). However, 2 weeks is probably a reasonable request currently. 
+It is worth noting that PRs with unpassed checks will **not** be reviewed (unless for a **very** good reason). 
 
-### Github Workflows
+### Pre-commit and Github Actions
 
-We have set up some initial workflows which help our team maintain the code more easily - these include: 
+Pre-commit hooks are built into this Toolbox which include [iSort](https://pycqa.github.io/isort/) and [black](https://github.com/psf/black). Each time
+you commit to a branch these hooks **should** be run automatically unless you are editing non-python files. Please do not skip them, this will only cause 
+your PR to fail the check later on and it is your responsibility, not the reviewer, to run the pre-commit locally. To do so, you can always run
+```pre-commit run --all-files``` and granted the checks are all working correctly this should only affect only code you have edited. 
 
-- **iSort and black:** Before your code is merged into dev it will undergo [iSort](https://pycqa.github.io/isort/) (for import sorting)
-and linted using [black](https://github.com/psf/black) - more specifically `Black --line-length 90`.
+We also have initial GtiHub Actions in place which help our team maintain the code more easily - these include: 
+
+- **iSort and black:** Before your code is merged into dev it will undergo checks for [iSort](https://pycqa.github.io/isort/) (for import sorting)
+and linted using [black](https://github.com/psf/black) - more specifically `Black --line-length 90`. See pre-commit notes!
 - **mkdocs build:** The docs will be rebuilt ensuring that your API documentation is the latest version, is fully up to date and builds with
-no warnings or errors.
-- **Test:** Unit tests will be run on the current determined versions of Python `3.11, 3.12` and `3.13` to ensure compatibility. 
+no warnings or errors. On release these will also be pushed up to the relative GitHub pages. 
+- **Test:** Unit tests will be run on the current determined versions of Python `3.10, 3.11, 3.12` and `3.13` to ensure compatibility. 
 
 ## Developing Documentation
 
