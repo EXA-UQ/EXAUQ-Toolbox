@@ -4,6 +4,7 @@ import math
 import pathlib
 import tempfile
 import unittest
+from itertools import combinations
 from io import StringIO
 from numbers import Real
 from textwrap import dedent
@@ -888,7 +889,8 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         for datum in new_training_data:
             self.assertTrue(
                 any(
-                    datum.input == existing_datum.input and datum.output == existing_datum.output
+                    datum.input == existing_datum.input
+                    and datum.output == existing_datum.output
                     for existing_datum in emulator.training_data
                 ),
                 f"New training datum with input {datum.input} and output {datum.output} "
@@ -2734,6 +2736,64 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
                 sum(level_variances.values()),
                 mlgp.predict(x).variance,
             )
+
+    def test_predict_level_predict_arg_errors(self):
+        """Ensure that the correct errors are raised for the optional
+        predict_level argument."""
+
+        coefficients = MultiLevel([1, 10, 100])
+        gps = {level: WhiteNoiseGP(prior_mean=-1, noise_level=2) for level in [1, 2, 3]}
+        mlgp = self.make_multi_level_gp(gps, coefficients=coefficients)
+        mlgp.fit(self.training_data)
+
+        arg1 = "abc"
+        x = Input(42)
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'level_predict' to be of type int, but received "
+                f"{type(arg1)} instead."
+            ),
+        ):
+            mlgp.predict(x, level_predict=arg1)
+
+        arg2 = 5
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                "'level_predict' not a valid level within the mlgp, valid levels are "
+                f"between 1 and {max(mlgp.levels)} but received {arg2}."
+            ),
+        ):
+            mlgp.predict(x, level_predict=arg2)
+
+    def test_predict_level_length(self):
+        """Ensure that the correct number of predictions occur with no index errors."""
+
+        coefficients = MultiLevel([1, 10, 100])
+        gps = {level: WhiteNoiseGP(prior_mean=-1, noise_level=2) for level in [1, 2, 3]}
+        mlgp = self.make_multi_level_gp(gps, coefficients=coefficients)
+        mlgp.fit(self.training_data)
+
+        x = Input(0.42)
+        predictions = [mlgp.predict(x, level) for level in mlgp.levels]
+
+        self.assertEqual(len(predictions), max(mlgp.levels))
+
+    def test_predict_level_predict_different_levels(self):
+        """Ensure that the predictions made are different for different levels."""
+
+        coefficients = MultiLevel([1, 10, 100])
+        gps = {level: WhiteNoiseGP(prior_mean=-1, noise_level=2) for level in [1, 2, 3]}
+        mlgp = self.make_multi_level_gp(gps, coefficients=coefficients)
+        mlgp.fit(self.training_data)
+
+        x = Input(0.42)
+        predictions = [mlgp.predict(x, level_predict=level) for level in mlgp.levels]
+
+        self.assertTrue(
+            all(pred1 != pred2 for pred1, pred2 in combinations(predictions, 2))
+        )
 
 
 if __name__ == "__main__":
