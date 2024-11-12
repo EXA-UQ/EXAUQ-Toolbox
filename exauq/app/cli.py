@@ -44,6 +44,12 @@ class Cli(cmd2.Cmd):
         Path to the workspace directory to use for the app's session.
     """
 
+    INTERFACE_FACTORIES = {
+        "1": ("Unix Server Script Interface", UnixServerScriptInterfaceFactory),
+        # "2": ("Windows Server Script Interface", WindowsServerScriptInterfaceFactory),
+        # Add more factories if needed
+    }
+
     submit_parser = cmd2.Cmd2ArgumentParser()
     submit_parser.add_argument(
         "inputs",
@@ -234,7 +240,6 @@ class Cli(cmd2.Cmd):
             self._RESULT_HEADER: lambda x: format_float(x, sig_figs=None),
         }
         self.register_preloop_hook(self.initialise_app)
-        self.factories = {}
         self._hardware_params_prefix = "hw_params_"
 
     def initialise_app(self) -> None:
@@ -261,13 +266,6 @@ class Cli(cmd2.Cmd):
 
         # TODO: add option to dispatch on plugin
 
-        # move to init or separate method
-        self.factories = {
-            "1": ("Unix Server Script Interface", UnixServerScriptInterfaceFactory),
-            # "2": ("Windows Server Script Interface", WindowsServerScriptInterfaceFactory),
-            # Add more factories here as needed
-        }
-
         if not general_settings_file.exists():
             # Gather settings from UI
             self.poutput(f"A new workspace '{self._workspace_dir}' will be set up.")
@@ -279,11 +277,11 @@ class Cli(cmd2.Cmd):
             while True:
                 # Display factory options
                 self.poutput("Select the hardware interface type you wish to use:")
-                for option, (display_name, _) in self.factories.items():
+                for option, (display_name, _) in Cli.INTERFACE_FACTORIES.items():
                     self.poutput(f"  {option}: {display_name}")
 
                 factory_choice = input("Enter the number corresponding to your choice: ")
-                selected_factory = self.factories.get(factory_choice)
+                selected_factory = Cli.INTERFACE_FACTORIES.get(factory_choice)
 
                 if not selected_factory:
                     self.poutput("Invalid choice, please try again.")
@@ -646,11 +644,11 @@ class Cli(cmd2.Cmd):
         #ToDo: refactor to separate method - pick hardware interface
         while True:
             self.poutput("Select the hardware interface type of this interface:")
-            for option, (display_name, _) in self.factories.items():
+            for option, (display_name, _) in Cli.INTERFACE_FACTORIES.items():
                 self.poutput(f"  {option}: {display_name}")
 
             factory_choice = input("Enter the number corresponding to your choice: ")
-            selected_factory = self.factories.get(factory_choice)
+            selected_factory = Cli.INTERFACE_FACTORIES.get(factory_choice)
 
             if not selected_factory:
                 self.poutput("Invalid choice, please try again.")
