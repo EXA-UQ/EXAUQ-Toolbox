@@ -234,6 +234,8 @@ class Cli(cmd2.Cmd):
             self._RESULT_HEADER: lambda x: format_float(x, sig_figs=None),
         }
         self.register_preloop_hook(self.initialise_app)
+        self.factories = {}
+        self._hardware_params_prefix = "hw_params_"
 
     def initialise_app(self) -> None:
         """Initialise the application with workspace settings.
@@ -252,7 +254,6 @@ class Cli(cmd2.Cmd):
         """
 
         general_settings_file = self._workspace_dir / "settings.json"
-        hardware_params_prefix = "hw_params_"
         workspace_log_file = self._workspace_dir / "simulations.csv"
 
         hardware_interfaces = []
@@ -260,8 +261,8 @@ class Cli(cmd2.Cmd):
 
         # TODO: add option to dispatch on plugin
 
-        # List of available factories with display names
-        factories = {
+        # move to init or separate method
+        self.factories = {
             "1": ("Unix Server Script Interface", UnixServerScriptInterfaceFactory),
             # "2": ("Windows Server Script Interface", WindowsServerScriptInterfaceFactory),
             # Add more factories here as needed
@@ -278,11 +279,11 @@ class Cli(cmd2.Cmd):
             while True:
                 # Display factory options
                 self.poutput("Select the hardware interface type you wish to use:")
-                for option, (display_name, _) in factories.items():
+                for option, (display_name, _) in self.factories.items():
                     self.poutput(f"  {option}: {display_name}")
 
                 factory_choice = input("Enter the number corresponding to your choice: ")
-                selected_factory = factories.get(factory_choice)
+                selected_factory = self.factories.get(factory_choice)
 
                 if not selected_factory:
                     self.poutput("Invalid choice, please try again.")
@@ -310,7 +311,7 @@ class Cli(cmd2.Cmd):
                 self._workspace_dir.mkdir(exist_ok=True)
                 interface_name = hardware_interfaces[-1].name
                 hardware_params_filename = (
-                    hardware_params_prefix + interface_name + ".json"
+                    self._hardware_params_prefix + interface_name + ".json"
                 )
                 hardware_params_file = self._workspace_dir / hardware_params_filename
                 factory.serialise_hardware_parameters(hardware_params_file)
