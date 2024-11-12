@@ -25,7 +25,7 @@ class App:
 
     Parameters
     ----------
-    interface : HardwareInterface
+    interfaces : list[HardwareInterface]
         The hardware interface through which simulation jobs will be executed.
     input_dim : int
         The dimensionality of the input data for simulations.
