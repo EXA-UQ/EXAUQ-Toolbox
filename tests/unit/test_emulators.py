@@ -1,7 +1,7 @@
 import itertools
 import math
-import unittest
 import unittest.mock
+from numbers import Real
 
 import mogp_emulator as mogp
 import numpy as np
@@ -13,6 +13,7 @@ from exauq.core.modelling import (
     Input,
     TrainingDatum,
 )
+from exauq.core.numerics import set_tolerance
 from tests.utilities.utilities import ExauqTestCase, exact
 
 
@@ -140,6 +141,32 @@ class TestMogpEmulator(ExauqTestCase):
         self.assertEqual(0, emulator.gp.inputs.size)
         self.assertEqual(0, emulator.gp.targets.size)
         self.assertEqual(tuple(), emulator.training_data)
+
+    def test_unique_training_data(self):
+        """Test that a ValueError is raised if non-unique training data is passed
+        to the emulator."""
+
+        params = MogpHyperparameters(corr_length_scales=[2], process_var=1, nugget=1)
+        emulator = MogpEmulator()
+
+        # Ensure tolerance is set to default for test
+        set_tolerance(1e-9)
+
+        training_data = [
+            TrainingDatum(Input(0), 1),
+            TrainingDatum(Input(0.2), 1),
+            # Set identical (within default tolerance) TrainingDatum inputs to fail
+            TrainingDatum(Input(0.4), 1),
+            TrainingDatum(Input(0.4 + 1e-10), 1),
+        ]
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Points {np.round(Input(0.4), 9)} and {np.round(Input(0.4 + 1e-10), 9)}"
+                " in 'TrainingDatum' are not unique within tolerance."
+            ),
+        ):
+            emulator.fit(training_data, hyperparameters=params)
 
     def test_correlation_arg_validation(self):
         """A TypeError is raised if one of the args is not a sequence of Input objects."""
@@ -447,7 +474,7 @@ class TestMogpEmulator(ExauqTestCase):
         """The emulator can be fit on (finite) collections of training data."""
 
         emulator = MogpEmulator()
-        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 1)]
+        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 2)]
         for data in [training_data, tuple(training_data)]:
             try:
                 _ = emulator.fit(data)

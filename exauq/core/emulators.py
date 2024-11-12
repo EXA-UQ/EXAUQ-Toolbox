@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import dataclasses
 import itertools
+import warnings
 from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Literal, Optional
@@ -50,6 +51,8 @@ from exauq.core.modelling import (
     OptionalFloatPairs,
     TrainingDatum,
 )
+
+from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 from exauq.utilities.decorators import suppress_print
 
@@ -93,6 +96,9 @@ class MogpEmulator(AbstractGaussianProcess):
     fit_hyperparameters : MogpHyperparameters or None
         (Read-only) The hyperparameters of the underlying fitted Gaussian
         process model, or ``None`` if the model has not been fit to data.
+    kinv : numpy.ndarray
+        (Read-only) The inverse of the covariance matrix of the training data,
+        or an empty NumPy array if the model has not been fitted to data.
 
     Raises
     ------
@@ -132,6 +138,9 @@ class MogpEmulator(AbstractGaussianProcess):
 
         # Correlation length scale parameters on a negative log scale
         self._corr_transformed = None
+
+        # Inverse of covariance matrix
+        self._kinv = np.array([])
 
     @staticmethod
     def _remove_entries(_dict: dict, *args) -> dict:
@@ -191,6 +200,13 @@ class MogpEmulator(AbstractGaussianProcess):
 
         return self._fit_hyperparameters
 
+    @property
+    def kinv(self) -> NDArray:
+        """(Read-only) The inverse of the covariance matrix of the training data,
+        or an empty NumPy array if the model has not been fitted to data."""
+
+        return self._kinv
+
     @suppress_print
     def fit(
         self,
@@ -234,6 +250,8 @@ class MogpEmulator(AbstractGaussianProcess):
         Raises
         ------
         ValueError
+            If `training_data` is provided with duplicate inputs: all inputs must be unique.
+
             If `hyperparameters` is provided with nugget being ``None`` but `self.gp`
             was created with nugget fitting method 'fit'.
         """
@@ -241,6 +259,8 @@ class MogpEmulator(AbstractGaussianProcess):
         training_data = self._parse_training_data(training_data)
         if not training_data:
             return None
+
+        self._validate_training_data_unique(training_data)
 
         if not (
             hyperparameters is None or isinstance(hyperparameters, MogpHyperparameters)
@@ -270,10 +290,26 @@ class MogpEmulator(AbstractGaussianProcess):
         self._fit_hyperparameters = MogpHyperparameters.from_mogp_gp_params(
             self._gp.theta
         )
+
         self._corr_transformed = self._gp.theta.corr_raw
         self._training_data = training_data
+        self._kinv = self._compute_kinv()
 
         return None
+
+    @staticmethod
+    def _validate_training_data_unique(training_data: tuple[TrainingDatum]):
+        """Check whether the given collection of TrainingDatum are unique,
+        raising a ValueError if not."""
+
+        inputs = [data_point.input for data_point in training_data]
+
+        for input1, input2 in itertools.combinations(inputs, 2):
+            if equal_within_tolerance(input1, input2):
+                raise ValueError(
+                    f"Points {np.round(input1, 9)} and {np.round(input2, 9)}"
+                    " in 'TrainingDatum' are not unique within tolerance."
+                )
 
     @staticmethod
     def _parse_training_data(training_data: Any) -> tuple[TrainingDatum]:

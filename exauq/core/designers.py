@@ -51,6 +51,7 @@ TO BE IMPLEMENTED\n
 import copy
 import itertools
 import math
+from collections import defaultdict
 from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Optional
@@ -70,7 +71,7 @@ from exauq.core.modelling import (
     TrainingDatum,
 )
 from exauq.core.numerics import equal_within_tolerance
-from exauq.utilities.optimisation import maximise
+from exauq.utilities.optimisation import generate_seeds, maximise
 from exauq.utilities.validation import check_int
 
 
@@ -343,13 +344,6 @@ def compute_loo_gp(
             "Cannot compute leave one out error with 'gp' because it has not been trained "
             "on at least 2 data points."
         )
-
-    for dat1, dat2 in itertools.combinations(gp.training_data, 2):
-        if dat1.input == dat2.input:
-            raise ValueError(
-                "Cannot compute leave one out error with 'gp' because simulator input "
-                f"{dat1.input} is repeated in the training data."
-            )
 
     if not 0 <= leave_out_idx < len(gp.training_data):
         raise ValueError(
@@ -730,7 +724,7 @@ def compute_single_level_loo_samples(
     use of different Gaussian process settings (e.g. a different kernel function).
 
     If `seed` is provided, then this will be used when maximising the pseudo-expected
-    improvement of the LOO errors GP (the same seed will be used to find each new
+    improvement of the LOO errors GP (a sequence of seeds will be generated to find each new
     simulator input in the batch). Providing a seed does not necessarily mean calculation
     of the output design points is deterministic, as this also depends on computation of
     the LOO errors GP being deterministic.
@@ -819,9 +813,13 @@ def compute_single_level_loo_samples(
 
     pei = PEICalculator(domain, gp_e, additional_repulsion_pts=additional_repulsion_pts)
 
+    seeds = generate_seeds(seed, batch_size)
+
     design_points = []
-    for _ in range(batch_size):
-        new_design_point, _ = maximise(lambda x: pei.compute(x), domain, seed=seed)
+    for design_pt_seed in seeds:
+        new_design_point, _ = maximise(
+            lambda x: pei.compute(x), domain, seed=design_pt_seed
+        )
         design_points.append(new_design_point)
         pei.add_repulsion_points([new_design_point])
 
@@ -1016,16 +1014,16 @@ def compute_zero_mean_prediction(
     training_outputs = np.array([[datum.output] for datum in gp.training_data])
 
     try:
-        mean = float(
-            gp.covariance_matrix([x])
-            @ np.linalg.inv(gp.covariance_matrix(training_inputs))
-            @ training_outputs
-        )
-    except ValueError:
+
+        mean = float(gp.covariance_matrix([x]) @ gp.kinv @ training_outputs)
+
+    except ValueError as e:
         if not training_inputs:
             raise ValueError(
                 "Cannot calculate zero-mean prediction: 'gp' hasn't been trained on any data."
             )
+        else:
+            raise ValueError(f"Cannot calculate zero-mean prediction: {e}")
     except np.linalg.LinAlgError as e:
         raise ValueError(f"Cannot calculate zero-mean prediction: {e}")
 
@@ -1179,7 +1177,7 @@ def compute_multi_level_loo_samples(
     batch_size: int = 1,
     additional_repulsion_pts: Optional[MultiLevel[Collection[Input]]] = None,
     seeds: Optional[MultiLevel[int]] = None,
-) -> tuple[int, tuple[Input, ...]]:
+) -> MultiLevel[tuple[Input]]:
     """Compute a batch of design points adaptively for a multi-level Gaussian process (GP).
 
     Implements the cross-validation-based adaptive sampling for multi-level Gaussian
@@ -1190,17 +1188,19 @@ def compute_multi_level_loo_samples(
     errors GP across levels, where the PEIs are weighted according to the costs of
     computing the design points on simulators at the levels.
 
-    The `costs` should represent the costs of running each level's simulator on a single
-    input.
+    The `costs` should represent the successive differences costs of running each level's
+    simulator on a single input. For example, if the level costs were 1, 10, 100 for levels
+    1, 2, 3 respectively, then 1, 11, 110 would need to be supplied if successive differences
+    was the chosen method for calculating costs.
 
     If `additional_repulsion_pts` is provided, then these points will be added into the
     calculations at the level they are allocated to in the PEI.
 
     If `seeds` is provided, then the seeds provided for the levels will be used when
-    maximising the pseudo-expected improvement of the LOO errors GP for each level (the
-    same seeds will be used level-wise to find each new simulator input in the batch).
-    Note that ``None`` can be provided for a level, which means the maximisation at that
-    level won't be seeded. Providing seeds does not necessarily mean calculation of the
+    maximising the pseudo-expected improvement of the LOO errors GP for each level (a
+    sequence of seeds will be generated level-wise to find each new simulator input
+    in the batch). Note that ``None`` can be provided for a level, which means the maximisation
+    at that level won't be seeded. Providing seeds does not necessarily mean calculation of the
     output design points is deterministic, as this also depends on computation of the LOO
     errors GP being deterministic.
 
@@ -1231,9 +1231,8 @@ def compute_multi_level_loo_samples(
 
     Returns
     -------
-    tuple[int, tuple[Input, ...]]
-        A pair ``(level, data)`` where ``data`` is the batch of design points and
-        ``level`` is the level of simulation at which the design point should be run.
+    MultiLevel[tuple[Input]]
+        A MultiLevel tuple of inputs containing all of the new design points at the correct level
 
     Raises
     ------
@@ -1325,6 +1324,11 @@ def compute_multi_level_loo_samples(
             f"Expected batch size to be a positive integer, but received {batch_size} instead."
         )
 
+    # Generate seed sequences
+    seeds = MultiLevel(
+        {level: generate_seeds(seeds[level], batch_size) for level in mlgp.levels}
+    )
+
     # Create LOO errors GP for each level
     ml_errors_gp = compute_multi_level_loo_errors_gp(mlgp, domain, output_mlgp=None)
 
@@ -1335,34 +1339,29 @@ def compute_multi_level_loo_samples(
         )
     )
 
-    # Find PEI argmax, with (weighted) PEI value, for each level
-    delta_costs = costs.map(lambda level, _: _compute_delta_cost(costs, level))
-    maximal_pei_values = ml_pei.map(
-        lambda level, pei: maximise(
-            lambda x: pei.compute(x) / delta_costs[level], domain, seed=seeds[level]
-        )
-    )
+    # Create empty dictionary for levels and design points
+    design_points = defaultdict(list)
 
-    # Create batch at maximising level by iteratively adding new design points as
-    # repulsion points and re-maximising PEI
-    level, (x, _) = max(maximal_pei_values.items(), key=lambda item: item[1][1])
-    design_points = [x]
-    if batch_size > 1:
-        pei = ml_pei[level]
-        for i in range(batch_size - 1):
-            pei.add_repulsion_points([design_points[i]])
-            new_design_pt, _ = maximise(
-                lambda x: pei.compute(x), domain, seed=seeds[level]
+    # Iterate through batch - recalculating levels and design points
+    for i in range(batch_size):
+
+        # Calculate new level by maximising PEI
+        maximal_pei_values = ml_pei.map(
+            lambda level, pei: maximise(
+                lambda x: pei.compute(x) / costs[level],
+                domain,
+                seed=seeds[level][i],
             )
-            design_points.append(new_design_pt)
+        )
+        level, (new_design_pt, _) = max(
+            maximal_pei_values.items(), key=lambda item: item[1][1]
+        )
 
-    return level, tuple(design_points)
+        # Reset PEI and add calculated design pt to repulsion points.
+        pei = ml_pei[level]
+        pei.add_repulsion_points([new_design_pt])
 
+        # Add design inputs to dictionary level
+        design_points[level].append(new_design_pt)
 
-def _compute_delta_cost(costs: MultiLevel[Real], level: int) -> Real:
-    """Compute the cost of computing a successive difference of simulations at a level."""
-
-    if level == 1:
-        return costs[1]
-    else:
-        return costs[level - 1] + costs[level]
+    return MultiLevel({level: tuple(inputs) for level, inputs in design_points.items()})
