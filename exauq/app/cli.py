@@ -216,6 +216,7 @@ class Cli(cmd2.Cmd):
     add_interface_parser.add_argument(
         "file",
         type=argparse.FileType(mode="r"),
+        nargs="?",
         help="Path to the JSON file for the hardware interface to add to the workspace.",
     )
 
@@ -633,48 +634,48 @@ class Cli(cmd2.Cmd):
     @cmd2.with_argparser(add_interface_parser)
     def do_add_interface(self, args) -> None:
         """Add a hardware interface to the workspace."""
+        if args.file is not None:
+            try:
+                interface_settings = json.load(args.file)
+                interface_name = interface_settings["name"]
+            except json.JSONDecodeError as e:
+                self._render_error(f"Error reading interface settings: {e}")
+                return None
 
-        try:
-            interface_settings = json.load(args.file)
-            interface_name = interface_settings["name"]
-        except json.JSONDecodeError as e:
-            self._render_error(f"Error reading interface settings: {e}")
-            return None
+            display_name, factory_cls = self._select_hardware_interface_prompt()
+            factory = factory_cls()
 
-        display_name, factory_cls = self._select_hardware_interface_prompt()
-        factory = factory_cls()
+            self.poutput("Setting up hardware...")
+            factory.load_hardware_parameters(args.file.name)
+            hardware_interface = factory.create_hardware()
 
-        self.poutput("Setting up hardware...")
-        factory.load_hardware_parameters(args.file.name)
-        hardware_interface = factory.create_hardware()
+            hardware_params_filename = (
+                    self._hardware_params_prefix + hardware_interface.name + ".json"
+            )
+            hardware_params_file = self._workspace_dir / hardware_params_filename
+            factory.serialise_hardware_parameters(hardware_params_file)
 
-        hardware_params_filename = (
-                self._hardware_params_prefix + hardware_interface.name + ".json"
-        )
-        hardware_params_file = self._workspace_dir / hardware_params_filename
-        factory.serialise_hardware_parameters(hardware_params_file)
+            general_settings_file = self._workspace_dir / "settings.json"
+            general_settings = read_settings_json(general_settings_file)
 
-        general_settings_file = self._workspace_dir / "settings.json"
-        general_settings = read_settings_json(general_settings_file)
+            interface_details = general_settings["interfaces"]
 
-        interface_details = general_settings["interfaces"]
+            interface_details[interface_name] = {
+                "factory": factory_cls.__name__,
+                "params": hardware_params_filename,
+            }
 
-        interface_details[interface_name] = {
-            "factory": factory_cls.__name__,
-            "params": hardware_params_filename,
-        }
+            write_settings_json(
+                {
+                    "interfaces": interface_details,
+                    "input_dim": general_settings["input_dim"],
+                },
+                general_settings_file,
+            )
 
-        write_settings_json(
-            {
-                "interfaces": interface_details,
-                "input_dim": general_settings["input_dim"],
-            },
-            general_settings_file,
-        )
+            self._app.add_interface(hardware_interface)
 
-        self._app.add_interface(hardware_interface)
-
-        self.poutput(f"Thanks -- new hardware interface '{interface_name}' added to workspace '{self._workspace_dir}'.")
+            self.poutput(f"Thanks -- new hardware interface '{interface_name}' added to workspace '{self._workspace_dir}'.")
 
 
 def clean_input_string(string: str) -> str:
