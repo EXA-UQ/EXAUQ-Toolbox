@@ -4,7 +4,9 @@ import math
 import pathlib
 import tempfile
 import unittest
+from io import StringIO
 from numbers import Real
+from textwrap import dedent
 from typing import Literal, Sequence
 
 import numpy as np
@@ -29,6 +31,7 @@ from exauq.core.modelling import (
 )
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance, set_tolerance
 from exauq.utilities.csv_db import Path
+from exauq.utilities.decorators import suppress_print
 from tests.unit.fakes import FakeGP, WhiteNoiseGP, WhiteNoiseGPHyperparameters
 from tests.utilities.utilities import (
     ExauqTestCase,
@@ -503,6 +506,107 @@ class TestTrainingDatum(unittest.TestCase):
             ),
         ):
             _ = TrainingDatum.read_from_csv(self.path, output_col=output_col)
+
+    def test_tabulate_type_errors(self):
+        """Ensure a TypeError is raised for incorrect argument types to tabulate."""
+
+        arg1 = 3.2
+        data = [TrainingDatum(Input(1), 1)]
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'data' to be of type Sequence of TrainingDatum, but received "
+                f"{type(arg1)} instead."
+            ),
+        ):
+            TrainingDatum.tabulate(arg1)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'rows' to be of type int, but received {type(arg1)} instead."
+            ),
+        ):
+            TrainingDatum.tabulate(data, arg1)
+
+        arg2 = [TrainingDatum(Input(1), 1), 1.2]
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'data' to be of type Sequence of TrainingDatum, but received "
+                "unexpected data types instead."
+            ),
+        ):
+            TrainingDatum.tabulate(arg2)
+
+    def test_tabulate_value_error(self):
+        """Ensure a value error is raised for optional argument rows."""
+
+        arg1 = 0
+        data = [TrainingDatum(Input(1), 1)]
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"Expected rows to be a positive integer >= 1 but received {arg1} instead."
+            ),
+        ):
+            TrainingDatum.tabulate(data, arg1)
+
+    @suppress_print
+    def test_tabulate_large_size_warning(self):
+        """Ensure that a warning is raised if the size of the data sequence is too large."""
+
+        data = [TrainingDatum(Input(i), i) for i in range(1, 130)]
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact("Length of data passed > 100, limiting output to 100 rows."),
+        ):
+            TrainingDatum.tabulate(data)
+
+    @unittest.mock.patch("sys.stdout", new_callable=StringIO)
+    def test_tabulate_stdout(self, mock_stdout):
+        """Ensure that tabulate produces the correct and expected output."""
+
+        # Try a good mix of data length to check formmatting is correct
+        data = [
+            TrainingDatum(Input(1), 1),
+            TrainingDatum(Input(-1.1234567898765544), 1.3283498234198763),
+        ]
+
+        expected_output = dedent(
+            """
+        Inputs:             Output:             
+        ----------------------------------------
+        1.0000000000        1.0000000000        
+        -1.1234567899       1.3283498234        """
+        ).strip()
+
+        TrainingDatum.tabulate(data)
+        self.assertEqual(mock_stdout.getvalue().strip(), expected_output)
+
+    @unittest.mock.patch("sys.stdout", new_callable=StringIO)
+    def test_tabulate_stdout_with_row(self, mock_stdout):
+        """Ensure that when the row optional argument is passed the correct number
+        of rows are output."""
+
+        data = [TrainingDatum(Input(i), i) for i in range(1, 10)]
+
+        expected_output = dedent(
+            """
+        Inputs:             Output:             
+        ----------------------------------------
+        1.0000000000        1.0000000000        
+        2.0000000000        2.0000000000        
+        3.0000000000        3.0000000000        
+        4.0000000000        4.0000000000        """
+        ).strip()
+
+        TrainingDatum.tabulate(data, rows=4)
+        self.assertEqual(mock_stdout.getvalue().strip(), expected_output)
 
 
 class TestPrediction(ExauqTestCase):
