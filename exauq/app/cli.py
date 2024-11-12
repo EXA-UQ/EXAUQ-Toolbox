@@ -629,6 +629,81 @@ class Cli(cmd2.Cmd):
         writer.writeheader()
         writer.writerows(jobs)
 
+    @cmd2.with_argparser(add_interface_parser)
+    def do_add_interface(self, args) -> None:
+        """Add a hardware interface to the workspace."""
+
+        try:
+            interface_settings = json.load(args.file)
+
+            # Check if interface is already in workspace
+            interface_name = interface_settings["name"]
+        except json.JSONDecodeError as e:
+            self._render_error(f"Error reading interface settings: {e}")
+            return None
+
+        # Ask for interface type
+        #ToDo: refactor to separate method - pick hardware interface
+        while True:
+            self.poutput("Select the hardware interface type of this interface:")
+            for option, (display_name, _) in self.factories.items():
+                self.poutput(f"  {option}: {display_name}")
+
+            factory_choice = input("Enter the number corresponding to your choice: ")
+            selected_factory = self.factories.get(factory_choice)
+
+            if not selected_factory:
+                self.poutput("Invalid choice, please try again.")
+                continue
+
+            else:
+                break
+
+        display_name, factory_cls = selected_factory
+        factory = factory_cls()
+
+        # load hardware interface
+        self.poutput("Setting up hardware...")
+        factory.load_hardware_parameters(args.file.name)
+        hardware_interface = factory.create_hardware()
+
+
+        hardware_params_filename = (
+                self._hardware_params_prefix + hardware_interface.name + ".json"
+        )
+        hardware_params_file = self._workspace_dir / hardware_params_filename
+        factory.serialise_hardware_parameters(hardware_params_file)
+
+        general_settings_file = self._workspace_dir / "settings.json"
+
+        # Read in general settings from file
+        general_settings = read_settings_json(general_settings_file)
+
+        # Get interface details from settings
+        interface_details = general_settings["interfaces"]
+
+        # Add new interface to interface details
+        interface_details[interface_name] = {
+            "factory": factory_cls.__name__,
+            "params": hardware_params_filename,
+        }
+
+        # Write updated settings to file
+        write_settings_json(
+            {
+                "interfaces": interface_details,
+                "input_dim": general_settings["input_dim"],
+            },
+            general_settings_file,
+        )
+
+        self.poutput(f"Thanks -- new hardware interface '{interface_name}' added to workspace '{self._workspace_dir}'.")
+
+        self.poutput("Adding interface to job manager...")
+        self._app.add_interface(hardware_interface)
+        self.poutput("Interface added.")
+
+
 
 def clean_input_string(string: str) -> str:
     """Remove leading and trailing whitespace and quotes from a string.
