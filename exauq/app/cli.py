@@ -206,6 +206,13 @@ class Cli(cmd2.Cmd):
         help="A path to a csv file to write job details to.",
     )
 
+    add_interface_parser = cmd2.Cmd2ArgumentParser()
+    add_interface_parser.add_argument(
+        "file",
+        type=argparse.FileType(mode="r"),
+        help="Path to the JSON file for the hardware interface to add to the workspace.",
+    )
+
     def __init__(self, workspace_dir: FilePath):
         super().__init__(allow_cli_args=False)
         self._workspace_dir = pathlib.Path(workspace_dir)
