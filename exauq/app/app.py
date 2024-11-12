@@ -249,3 +249,37 @@ class App:
         Demonstrates initiating a shutdown of the application's job management and monitoring systems.
         """
         self._job_manager.shutdown()
+
+    def add_interface(self, interface: HardwareInterface):
+        """
+        Registers a new hardware interface with the application.
+
+        This method registers a hardware interface for use within the application,
+        updating the job manager to incorporate the new interface for managing and
+        submitting simulation jobs. It appends the interface to the application's
+        list of interfaces, reinitializes the job manager, and adjusts its configuration
+        to include all registered interfaces.
+
+        Parameters
+        ----------
+        interface : HardwareInterface
+            The hardware interface to be added to the application.
+
+        Examples
+        --------
+        >>> app.add_interface(interface)
+
+        Demonstrates the addition of a hardware interface to enable simulation job
+        submissions within the application.
+        """
+        self._interfaces.append(interface)
+        self._job_manager.shutdown()
+        del self._job_manager
+        self._job_manager = JobManager(
+            simulations_log=self._sim_log,
+            interfaces=self._interfaces,
+            polling_interval=10,
+            wait_for_pending=False,
+        )
+
+
