@@ -9,7 +9,7 @@ from threading import Event, Lock, Thread
 from time import sleep
 from typing import Any, Optional, Sequence, Union
 
-from exauq.core.modelling import AbstractSimulator, Input, MultiLevel, SimulatorDomain
+from exauq.core.modelling import Input, MultiLevel
 from exauq.sim_management.hardware import (
     PENDING_STATUSES,
     TERMINAL_STATUSES,
@@ -23,126 +23,6 @@ from exauq.utilities.validation import check_file_path
 
 Simulation = tuple[Input, Optional[Real]]
 """A type to represent a simulator input, possibly with corresponding simulator output."""
-
-
-class Simulator(AbstractSimulator):
-    """
-    Represents a simulation code that can be run with inputs.
-
-    This class provides a way of working with some simulation code as a black box,
-    abstracting away details of how to submit simulator inputs for computation and
-    retrieve the results. The set of valid simulator inputs is represented by the
-    `domain` supplied at initialisation, while the `interface` provided at initialisation
-    encapsulates the details of how to actually run the simulation code with a
-    collection of inputs and retrieve outputs.
-
-    A simulations log file records inputs that have been submitted for computation, as
-    well as any simulation outputs. These can be retrieved using the
-    ``previous_simulations` property of this class.
-
-    Parameters
-    ----------
-    domain : SimulatorDomain
-        The domain of the simulator, representing the set of valid inputs for the
-        simulator.
-    interface : HardwareInterface
-        An implementation of the ``HardwareInterface`` base class, providing the interface
-        to a computer that the simulation code runs on.
-    simulations_log_file : exauq.sim_management.types.FilePath, optional
-        (Default: ``simulations.csv``) A path to the simulation log file. The default
-        will work with a file called ``simulations.csv`` in the current working directory
-        for the calling Python process.
-
-    Attributes
-    ----------
-    previous_simulations : tuple[Input, Optional[Real]]
-        (Read-only) Simulations that have been previously submitted for evaluation.
-        In the case where an `Input` has been submitted for evaluation but no output from
-        the simulator has been retrieved, the output is recorded as ``None``.
-    """
-
-    def __init__(
-        self,
-        domain: SimulatorDomain,
-        interface: HardwareInterface,
-        simulations_log_file: FilePath = "simulations.csv",
-    ):
-        self._check_arg_types(domain, interface)
-        self._simulations_log = self._make_simulations_log(
-            simulations_log_file, domain.dim
-        )
-        self._manager = JobManager(self._simulations_log, [interface])
-
-    @staticmethod
-    def _check_arg_types(domain: Any, interface: Any):
-        if not isinstance(domain, SimulatorDomain):
-            raise TypeError(
-                "Argument 'domain' must define a SimulatorDomain, but received object "
-                f"of type {type(domain)} instead."
-            )
-
-        if not isinstance(interface, HardwareInterface):
-            raise TypeError(
-                "Argument 'interface' must inherit from HardwareInterface, but received "
-                f"object of type {type(interface)} instead."
-            )
-
-    @staticmethod
-    def _make_simulations_log(simulations_log: FilePath, input_dim: int):
-        check_file_path(
-            simulations_log,
-            TypeError(
-                "Argument 'simulations_log' must define a file path, but received "
-                f"object of type {type(simulations_log)} instead."
-            ),
-        )
-
-        return SimulationsLog(simulations_log, input_dim)
-
-    @property
-    def previous_simulations(self) -> tuple[Simulation]:
-        """
-        (Read-only) A tuple of simulations that have been previously submitted for
-        computation. In the case where an `Input` has been submitted for evaluation but
-        no output from the simulator has been retrieved, the output is recorded as
-        ``None``.
-        """
-        return tuple(self._simulations_log.get_simulations())
-
-    def compute(self, x: Input) -> Optional[Real]:
-        """
-        Submit a simulation input for computation.
-
-        In the case where a never-before seen input is supplied, this will be submitted
-        for computation and ``None`` will be returned. If the input has been seen before
-        (that is, features in an entry in the simulations log file for this simulator),
-        then the corresponding simulator output will be returned, or ``None`` if this is
-        not yet available.
-
-        Parameters
-        ----------
-        x : Input
-            An input for the simulator.
-
-        Returns
-        -------
-        Optional[Real]
-            ``None`` if a new input has been provided, or else the corresponding simulator
-            output, if this has previously been computed.
-        """
-
-        if not isinstance(x, Input):
-            raise TypeError(
-                f"Argument 'x' must be of type Input, but received {type(x)}."
-            )
-
-        for _input, output in self.previous_simulations:
-            if _input == x:
-                return output
-
-        self._manager.submit(x)
-        return None
-
 
 class SimulationsLog(object):
     """

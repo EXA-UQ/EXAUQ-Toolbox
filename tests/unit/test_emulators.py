@@ -1,7 +1,6 @@
 import itertools
 import math
 import unittest.mock
-from numbers import Real
 
 import mogp_emulator as mogp
 import numpy as np

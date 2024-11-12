@@ -35,7 +35,7 @@ from exauq.core.modelling import (
     SimulatorDomain,
     TrainingDatum,
 )
-from exauq.core.numerics import equal_within_tolerance, set_tolerance
+from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
 from tests.utilities.utilities import ExauqTestCase, exact
 

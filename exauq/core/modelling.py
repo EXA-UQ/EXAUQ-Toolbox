@@ -11,9 +11,6 @@ Abstraction (Classes)
 
 `AbstractHyperParameters`               A base class for hyperparameters used to train an emulator.
 
-`AbstractSimulator`                     Represents an abstract simulator.
-
-
 Gaussian Processes (Classes)
 -------------------------------------------------------------------------------------------
 `GaussianProcessHyperparameters`        Represents the hyperparameters for use in fitting Gaussian processes.
@@ -2271,28 +2268,3 @@ class SimulatorDomain(object):
         mesh_points = tuple(Input(*point) for point in masked_points)
         return mesh_points
 
-
-class AbstractSimulator(abc.ABC):
-    """Represents an abstract simulator.
-
-    Classes that inherit from this abstract base class define simulators, which
-    typically represent programs for calculating the outputs of complex models
-    for given inputs.
-    """
-
-    @abc.abstractmethod
-    def compute(self, x: Input) -> Real:
-        """Compute the value of this simulator at an input.
-
-        Parameters
-        ----------
-        x :
-            An input to evaluate the simulator at.
-
-        Returns
-        -------
-        numbers.Real
-            The output of the simulator at the input `x`.
-        """
-
-        raise NotImplementedError
