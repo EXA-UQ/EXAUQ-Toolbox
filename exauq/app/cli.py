@@ -636,8 +636,6 @@ class Cli(cmd2.Cmd):
 
         try:
             interface_settings = json.load(args.file)
-
-            # Check if interface is already in workspace
             interface_name = interface_settings["name"]
         except json.JSONDecodeError as e:
             self._render_error(f"Error reading interface settings: {e}")
@@ -646,11 +644,9 @@ class Cli(cmd2.Cmd):
         display_name, factory_cls = self._select_hardware_interface_prompt()
         factory = factory_cls()
 
-        # load hardware interface
         self.poutput("Setting up hardware...")
         factory.load_hardware_parameters(args.file.name)
         hardware_interface = factory.create_hardware()
-
 
         hardware_params_filename = (
                 self._hardware_params_prefix + hardware_interface.name + ".json"
@@ -659,20 +655,15 @@ class Cli(cmd2.Cmd):
         factory.serialise_hardware_parameters(hardware_params_file)
 
         general_settings_file = self._workspace_dir / "settings.json"
-
-        # Read in general settings from file
         general_settings = read_settings_json(general_settings_file)
 
-        # Get interface details from settings
         interface_details = general_settings["interfaces"]
 
-        # Add new interface to interface details
         interface_details[interface_name] = {
             "factory": factory_cls.__name__,
             "params": hardware_params_filename,
         }
 
-        # Write updated settings to file
         write_settings_json(
             {
                 "interfaces": interface_details,
@@ -681,12 +672,9 @@ class Cli(cmd2.Cmd):
             general_settings_file,
         )
 
-        self.poutput(f"Thanks -- new hardware interface '{interface_name}' added to workspace '{self._workspace_dir}'.")
-
-        self.poutput("Adding interface to job manager...")
         self._app.add_interface(hardware_interface)
-        self.poutput("Interface added.")
 
+        self.poutput(f"Thanks -- new hardware interface '{interface_name}' added to workspace '{self._workspace_dir}'.")
 
 
 def clean_input_string(string: str) -> str:
