@@ -212,12 +212,20 @@ class Cli(cmd2.Cmd):
         help="A path to a csv file to write job details to.",
     )
 
-    add_interface_parser = cmd2.Cmd2ArgumentParser()
+    add_interface_parser = cmd2.Cmd2ArgumentParser(
+        description=(
+            "Adds a hardware interface to the workspace.\n\n"
+            "Usage:\n"
+            "- Provide a JSON file with interface details as an argument to automatically add that interface.\n"
+            "- If no file is provided, an interactive prompt will guide you to manually input interface details."
+        )
+    )
+
     add_interface_parser.add_argument(
         "file",
         type=argparse.FileType(mode="r"),
         nargs="?",
-        help="Path to the JSON file for the hardware interface to add to the workspace.",
+        help="JSON file defining the hardware interface to add (optional)."
     )
 
     def __init__(self, workspace_dir: FilePath):
