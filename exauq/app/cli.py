@@ -3,6 +3,7 @@ import csv
 import json
 import pathlib
 import re
+import os
 from collections import OrderedDict
 from collections.abc import Sequence
 from io import TextIOWrapper
@@ -346,6 +347,42 @@ class Cli(cmd2.Cmd):
 
             if input("  Add another hardware interface? (y/n): ").lower() != "y":
                 return input_dim, hardware_interfaces, interface_details
+
+    def _select_interface_entry_method_prompt(self) -> str | None:
+        """Prompt the user to select an interface entry method and return a valid file path or None."""
+        self.poutput("Select how you would like to provide your interface details:")
+        self.poutput("  1: Enter details interactively")
+        self.poutput("  2: Load details from file")
+
+        choice = input("Enter the number corresponding to your choice: ")
+        if choice == "2":
+            while True:
+                file_path = input("Enter the path to the file containing your interface details: ")
+
+                if not os.path.isfile(file_path):
+                    self._render_error(f"File not found: '{file_path}'. Please provide a valid file path.")
+                else:
+                    try:
+                        with open(file_path, "r") as file:
+                            json.load(file)
+                            self.poutput("File loaded successfully.")
+                            return file_path
+                    except json.JSONDecodeError as e:
+                        self._render_error(
+                            f"Error reading interface settings: The file does not appear to be valid JSON. "
+                            f"Please ensure it contains properly formatted JSON data.\nDetails: {e}"
+                        )
+                    except Exception as e:
+                        self._render_error(f"Unexpected error reading interface settings: {e}")
+
+                # Ask if the user wants to try again or cancel
+                retry = input("Would you like to try entering the file path again? (y/n): ").strip().lower()
+                if retry != "y":
+                    self.poutput("Exiting file entry process.")
+                    return None
+        else:
+            self.poutput("Entering interactive mode.")
+            return None
 
     def _hardware_interface_configuration_prompt(self, factory: HardwareInterfaceFactory) -> None:
         """Prompt the user to configure a hardware interface."""
