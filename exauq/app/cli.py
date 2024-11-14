@@ -324,12 +324,18 @@ class Cli(cmd2.Cmd):
         input_dim = int(input("  Dimension of simulator input space: "))
 
         while True:
-            display_name, factory_cls = self._select_hardware_interface_prompt()
-            factory = factory_cls()
+            interface_settings_file_path = self._select_interface_entry_method_prompt()
 
-            self._hardware_interface_configuration_prompt(factory)
+            if interface_settings_file_path is None:
+                    display_name, factory_cls = self._select_hardware_interface_prompt()
+                    factory = factory_cls()
+                    self._hardware_interface_configuration_prompt(factory)
 
-            self.poutput("Setting up hardware...")
+            else:
+                display_name, factory_cls = self._select_hardware_interface_prompt()
+                factory = factory_cls()
+                factory.load_hardware_parameters(interface_settings_file_path)
+
             hardware_interfaces.append(factory.create_hardware())
 
             self._workspace_dir.mkdir(exist_ok=True)
