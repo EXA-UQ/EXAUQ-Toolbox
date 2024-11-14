@@ -638,48 +638,65 @@ class Cli(cmd2.Cmd):
     @cmd2.with_argparser(add_interface_parser)
     def do_add_interface(self, args) -> None:
         """Add a hardware interface to the workspace."""
+
         if args.file is not None:
             try:
-                interface_settings = json.load(args.file)
-                interface_name = interface_settings["name"]
+                json.load(args.file)
             except json.JSONDecodeError as e:
-                self._render_error(f"Error reading interface settings: {e}")
+                self._render_error(
+                    f"Error reading interface settings: The file provided does not appear to be valid JSON. "
+                    f"Please ensure the file contains properly formatted JSON data. Details: {e}"
+                )
+                return None
+            except Exception as e:
+                self._render_error(f"Unexpected error reading interface settings: {e}")
                 return None
 
             display_name, factory_cls = self._select_hardware_interface_prompt()
             factory = factory_cls()
-
-            self.poutput("Setting up hardware...")
             factory.load_hardware_parameters(args.file.name)
-            hardware_interface = factory.create_hardware()
+            self._finalise_hardware_setup(factory, factory_cls)
 
-            hardware_params_filename = (
-                    self._hardware_params_prefix + hardware_interface.name + ".json"
-            )
-            hardware_params_file = self._workspace_dir / hardware_params_filename
-            factory.serialise_hardware_parameters(hardware_params_file)
+        else:
+            display_name, factory_cls = self._select_hardware_interface_prompt()
+            factory = factory_cls()
+            self._hardware_interface_configuration_prompt(factory)
+            self._finalise_hardware_setup(factory, factory_cls)
 
-            general_settings_file = self._workspace_dir / "settings.json"
-            general_settings = read_settings_json(general_settings_file)
+    def _finalise_hardware_setup(self, factory: HardwareInterfaceFactory, factory_cls: type) -> None:
+        """Finalise the setup of a hardware interface."""
 
-            interface_details = general_settings["interfaces"]
+        self.poutput("Setting up hardware...")
+        hardware_interface = factory.create_hardware()
 
-            interface_details[interface_name] = {
-                "factory": factory_cls.__name__,
-                "params": hardware_params_filename,
-            }
+        hardware_params_filename = (
+                self._hardware_params_prefix + hardware_interface.name + ".json"
+        )
+        hardware_params_file = self._workspace_dir / hardware_params_filename
+        factory.serialise_hardware_parameters(hardware_params_file)
 
-            write_settings_json(
-                {
-                    "interfaces": interface_details,
-                    "input_dim": general_settings["input_dim"],
-                },
-                general_settings_file,
-            )
+        general_settings_file = self._workspace_dir / "settings.json"
+        general_settings = read_settings_json(general_settings_file)
 
-            self._app.add_interface(hardware_interface)
+        interface_details = general_settings["interfaces"]
 
-            self.poutput(f"Thanks -- new hardware interface '{interface_name}' added to workspace '{self._workspace_dir}'.")
+        interface_details[hardware_interface.name] = {
+            "factory": factory_cls.__name__,
+            "params": hardware_params_filename,
+        }
+
+        write_settings_json(
+            {
+                "interfaces": interface_details,
+                "input_dim": general_settings["input_dim"],
+            },
+            general_settings_file,
+        )
+
+        self._app.add_interface(hardware_interface)
+
+        self.poutput(
+            f"Thanks -- new hardware interface '{hardware_interface.name}' added to workspace '{self._workspace_dir}'.")
 
 
 def clean_input_string(string: str) -> str:
