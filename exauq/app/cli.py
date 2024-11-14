@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional, Union
 import cmd2
 
 from exauq.app.app import App
-from exauq.app.startup import UnixServerScriptInterfaceFactory
+from exauq.app.startup import HardwareInterfaceFactory, UnixServerScriptInterfaceFactory
 from exauq.sim_management.hardware import HardwareInterface, JobStatus
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
@@ -318,16 +318,7 @@ class Cli(cmd2.Cmd):
             display_name, factory_cls = self._select_hardware_interface_prompt()
             factory = factory_cls()
 
-            self.poutput(
-                "Please provide the following details for your hardware "
-                "interface..."
-            )
-            for param, prompt in factory.interactive_prompts.items():
-                value_str = input(f"  {prompt}: ")
-                try:
-                    factory.set_param_from_str(param, value_str)
-                except ValueError as e:
-                    self._render_error(f"Invalid value -- {e}")
+            self._hardware_interface_configuration_prompt(factory)
 
             self.poutput("Setting up hardware...")
             hardware_interfaces.append(factory.create_hardware())
@@ -347,6 +338,19 @@ class Cli(cmd2.Cmd):
 
             if input("  Add another hardware interface? (y/n): ").lower() != "y":
                 return input_dim, hardware_interfaces, interface_details
+
+    def _hardware_interface_configuration_prompt(self, factory: HardwareInterfaceFactory) -> None:
+        """Prompt the user to configure a hardware interface."""
+        self.poutput(
+            "Please provide the following details for your hardware "
+            "interface..."
+        )
+        for param, prompt in factory.interactive_prompts.items():
+            value_str = input(f"  {prompt}: ")
+            try:
+                factory.set_param_from_str(param, value_str)
+            except ValueError as e:
+                self._render_error(f"Invalid value -- {e}")
 
     def _select_hardware_interface_prompt(self) -> tuple[str, type]:
         """Prompt the user to select a hardware interface type."""
