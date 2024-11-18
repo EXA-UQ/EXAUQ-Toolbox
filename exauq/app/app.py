@@ -289,4 +289,26 @@ class App:
             wait_for_pending=False,
         )
 
+    def get_interface_job_count(self, interface_name: str) -> Optional[int]:
+        """
+        Get the job count for a specific interface.
+
+        Parameters
+        ----------
+        interface_name : str
+            The name of the interface to retrieve the job count for.
+
+        Returns
+        -------
+        Optional[int]
+            The number of jobs assigned to the specified interface, or None if the
+            interface does not exist.
+        """
+        interface_job_counts = self._job_manager.interface_job_counts
+        return interface_job_counts.get(interface_name)
+
+
+
+
+
 
