@@ -69,6 +69,13 @@ class App:
 
         return self._input_dim
 
+    @property
+    def interfaces(self) -> list[HardwareInterface]:
+        """
+        (Read-only) The hardware interfaces registered with the application.
+        """
+        return self._interfaces
+
     def submit(self, inputs: Sequence[Sequence[Real]]) -> tuple[Job]:
         """
         Submits a batch of simulation jobs to the job manager based on the provided input sequences.
