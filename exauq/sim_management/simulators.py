@@ -846,7 +846,7 @@ class JobManager:
 
         return strategies
 
-    def monitor(self, jobs: list[Job]):
+    def monitor(self, jobs: Sequence[Job]):
         """
         Initiates or resumes monitoring of the specified jobs for status updates.
 
@@ -856,7 +856,7 @@ class JobManager:
 
         Parameters
         ----------
-        jobs : list[Job]
+        jobs : Sequence[Job]
             A list of Job objects to be monitored.
 
         Notes
