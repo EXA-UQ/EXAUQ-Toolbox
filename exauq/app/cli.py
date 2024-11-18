@@ -13,7 +13,7 @@ import cmd2
 
 from exauq.app.app import App
 from exauq.app.startup import HardwareInterfaceFactory, UnixServerScriptInterfaceFactory
-from exauq.sim_management.hardware import HardwareInterface, JobStatus
+from exauq.sim_management.hardware import HardwareInterface, JobStatus, SSHInterface
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
 
@@ -227,6 +227,10 @@ class Cli(cmd2.Cmd):
         type=argparse.FileType(mode="r"),
         nargs="?",
         help="JSON file defining the hardware interface to add (optional)."
+    )
+
+    list_interfaces_parser = cmd2.Cmd2ArgumentParser(
+        description="List all hardware interfaces with their details."
     )
 
     def __init__(self, workspace_dir: FilePath):
@@ -748,6 +752,37 @@ class Cli(cmd2.Cmd):
 
         self.poutput(
             f"Thanks -- new hardware interface '{hardware_interface.name}' added to workspace '{self._workspace_dir}'.")
+
+    @cmd2.with_argparser(list_interfaces_parser)
+    def do_list_interfaces(self, args) -> None:
+        """List all hardware interfaces with details and current job counts."""
+
+        # Include an additional header for job count
+        headers = ["Name", "Level", "Host", "User", "Active Jobs"]
+        data = []
+
+        for interface in self._app.interfaces:
+            name = interface.name
+            level = interface.level
+
+            if isinstance(interface, SSHInterface):
+                host = interface.host
+                user = interface.user
+            else:
+                host = "N/A"
+                user = "N/A"
+
+            # Get the current job count for the interface
+            job_count = self._app.get_interface_job_count(name)
+
+            # Append to table data
+            data.append([name, level, host, user, job_count if job_count is not None else "N/A"])
+
+        # Format and print the table
+        table = make_table(
+            OrderedDict((header, [row[i] for row in data]) for i, header in enumerate(headers))
+        )
+        self.poutput(table)
 
 
 def clean_input_string(string: str) -> str:
