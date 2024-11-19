@@ -2,7 +2,7 @@
 
 This tutorial will show you how to extend an initial experimental design for a Gaussian
 process (GP) emulator, using an adaptive sampling technique. The idea is to take our
-current GP and find a new design point (or batch of points) that will have 'the greatest
+current GP and sequentially find new design points (or batches of points) that will have 'the greatest
 impact' on improving the fit of the GP.
 
 This tutorial will show you how to:
@@ -32,8 +32,8 @@ We'll work with the same toy simulator function found in the tutorial,
 $$
 f(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
 $$
-with simulator domain defined as the rectangle $\mathcal{D}$ consisting of points
-$(x_1, x_2)$ where $-1 \leq x_1 \leq 1$ and $1 \leq x_2 \leq 100$. We can express this in
+with simulator domain defined as the rectanglular input space $\mathcal{D}$ consisting of points
+$(x_1, x_2)$ where $0 \leq x_1 \leq 1$ and $-0.5 \leq x_2 \leq 1.5$. We can express this in
 code as follows:
 
 
@@ -42,7 +42,7 @@ from exauq.core.modelling import SimulatorDomain, Input
 import numpy as np
 
 # The bounds define the lower and upper bounds on each coordinate
-domain = SimulatorDomain(bounds=[(-1, 1), (1, 100)])
+domain = SimulatorDomain(bounds=[(0, 1), (-0.5, 1.5)])
 
 def sim_func(x: Input) -> float:
     return (
@@ -65,7 +65,7 @@ from exauq.core.modelling import TrainingDatum
 from exauq.core.emulators import MogpEmulator
 
 # Create Latin hypercube sample, setting a seed to make the sampling repeatable.
-lhs_inputs = oneshot_lhs(domain, 20, seed=1)
+lhs_inputs = oneshot_lhs(domain, 8, seed=1)
 
 # Calculate simulator outputs, using our toy simulator function.
 outputs = [sim_func(x) for x in lhs_inputs]
@@ -109,7 +109,7 @@ new_design_pts[0]
 
 
 <div class="result" markdown>
-    Input(np.float64(-0.43989564186729824), np.float64(54.37636339342745))
+    Input(np.float64(0.30003694810169895), np.float64(1.4999999588436697))
 </div>
 
 
@@ -127,17 +127,17 @@ new_design_pts
 
 
 <div class="result" markdown>
-    (Input(np.float64(0.9275254983639893), np.float64(54.352557725224536)),
-     Input(np.float64(0.8984512829749669), np.float64(56.82592896833036)),
-     Input(np.float64(-0.5844408827181062), np.float64(55.596401337094605)),
-     Input(np.float64(-0.7114079471309867), np.float64(52.47291499783807)),
-     Input(np.float64(-0.9522073814993757), np.float64(56.481066242340106)))
+    (Input(np.float64(0.3000480464067843), np.float64(1.4999999932559243)),
+     Input(np.float64(0.9999999804620712), np.float64(0.6827074261347208)),
+     Input(np.float64(0.9999999990973233), np.float64(-0.1758838118281294)),
+     Input(np.float64(1.2872063859248328e-08), np.float64(-0.09238127096747573)),
+     Input(np.float64(5.3212137030023143e-08), np.float64(1.1988652190999287)))
 </div>
 
 
 
 Note how the new design points all lie within the simulator domain we defined earlier,
-i.e. they all lie in the rectangle $\mathcal{D}$.
+i.e. they all lie in the rectanglar input space $\mathcal{D}$.
 
 It's worth pointing out that these design points are not equal to any of the training inputs
 for the GP:
@@ -158,50 +158,51 @@ using the toy function defined earlier) in order to create new training data:
 
 ``` { .python .copy }
 new_outputs = [sim_func(x) for x in new_design_pts]
-new_data = [TrainingDatum(x, y) for x, y in zip(new_design_pts, new_outputs)]
+
+new_outputs
 ```
 
-To update the GP, we fit it with both the old and new training data combined:
+
+
+
+<div class="result" markdown>
+    [np.float64(2.789726083420864),
+     np.float64(1.4829679948018182),
+     np.float64(-1.361601377101126),
+     np.float64(-1.4980604681805862),
+     np.float64(1.221930606297387)]
+</div>
+
+
+
+Then to update the GP, we create a list of TrainingDatum to pass into the [`update`][exauq.core.modelling.AbstractGaussianProcess] method. 
 
 
 ``` { .python .copy }
-# gp.training_data is a tuple, so make a list to extend
-# with the new data
-data = list(gp.training_data) + new_data
-gp.fit(data)
+training_data = [TrainingDatum(x, y) for x, y in zip(new_design_pts, new_outputs)]
+gp.update(training_data)
 
 # Sense-check that the updated GP now has the combined data
 print("Number of training data:", len(gp.training_data))
 ```
 
 <div class="result" markdown>
-    Number of training data: 25
+    Number of training data: 13
     
 </div>
 
 This completes one adaptive sampling 'iteration'. It's important to note that, when
-creating multiple new design points in a batch, the fit of the GP is not updated between
+creating multiple new design points in a batch, the fit of the GP is **not** updated between
 the creation of each new point in the batch.
 
 ## Repeated application
 
 In general, we can perform multiple adaptive sampling iterations to further improve the
 fit of the GP with newly sampled design point(s). The following code goes through five
-more sampling iterations, producing a single new design point at each iteration. We have
-also introduced a helper function to assist in retraining the GP. (Once again, the
-messages from the `mogp_emulator` package can be ignored.)
+more sampling iterations, producing a single new design point at each iteration.
 
 
 ``` { .python .copy }
-def update_gp(gp, additional_data):
-    """Updates the fit of the supplied GP with additional training data."""
-
-    # gp.training_data is a tuple, so make a list to extend
-    # with the new data
-    data = list(gp.training_data) + additional_data
-    gp.fit(data)
-
-
 for i in range(5):
     # Find new design point adaptively (via batch of length 1)
     x = compute_single_level_loo_samples(gp, domain)[0]
@@ -209,9 +210,11 @@ for i in range(5):
     # Compute simulator output at new design point
     y = sim_func(x)
 
-    # Update GP fit
-    new_data = [TrainingDatum(x, y)]
-    update_gp(gp, new_data)
+    # Create TrainingDatum "list"
+    training_data = [TrainingDatum(x, y)]
+
+    # Update GP fit 
+    gp.update(training_data)
 
     # Print design point found and level applied at
     print(f"==> Updated with new design point {x}")
@@ -219,25 +222,25 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.9923852677110758), np.float64(6.594694917643089))
+    ==> Updated with new design point (np.float64(0.8192548685049027), np.float64(1.4999699991184825))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.6429895030986328), np.float64(99.99999922753946))
+    ==> Updated with new design point (np.float64(0.7347128665916683), np.float64(-0.49484061470978025))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.4242029263391056), np.float64(99.99999889419603))
+    ==> Updated with new design point (np.float64(0.45335019777302), np.float64(1.3596893028975168))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(-0.020039987536748072), np.float64(57.80009523393657))
+    ==> Updated with new design point (np.float64(0.5160119205036989), np.float64(1.1758384623523344))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated with new design point (np.float64(0.9509138311294454), np.float64(27.756422827659573))
+    ==> Updated with new design point (np.float64(0.17759259523877136), np.float64(-0.49966069014008574))
     

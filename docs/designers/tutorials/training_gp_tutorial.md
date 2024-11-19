@@ -21,15 +21,15 @@ to:
 ## Simulator domain and inputs
 
 From an abstract, mathematical point of view, we view a **simulator** as nothing more than
-a (computationally laborious) deterministic function that takes an input and returns a single
-real number. In general, the input consists of a point in a multi-dimensional space called
+a (computationally laborious) function that takes an input and returns a single
+real number. (Within this toolbox they must also be determinsitic.) In general, the input consists of a point in a multi-dimensional space called
 the **simulator domain** (or just **domain**).
 
 For this tutorial, we'll be using a normal Python function that will act as a toy
-simulator. Its domain will be the rectangle $\mathcal{D}$ consisting of points $(x_1, x_2)$ where
-$-1 \leq x_1 \leq 1$ and $1 \leq x_2 \leq 100$. (In practice, a real simulator would most
-likely run on a different computer with powerful performance capabilities â€” perhaps even
-exascale levels of computational power â€” and the domain will likely have quite a few more dimensions.)
+simulator. Its domain will be a rectanglular input space $\mathcal{D}$ consisting of 2 input points $(x_1, x_2)$ where
+$0 \leq x_1 \leq 1$ and $-0.5 \leq x_2 \leq 1.5$. (In practice, a real simulator would most
+likely run on a different computer with powerful performance capabilities, perhaps even
+exascale levels of computational power, and the domain will likely have quite a few more dimensions.)
 
 We begin by creating the domain of the simulator to represent the above rectangle. We
 do this by using the [`SimulatorDomain`][exauq.core.modelling.SimulatorDomain] class,
@@ -40,7 +40,7 @@ like so:
 from exauq.core.modelling import SimulatorDomain
 
 # The bounds define the lower and upper bounds on each coordinate
-bounds = [(-1, 1), (1, 100)]
+bounds = [(0, 1), (-0.5, 1.5)]
 domain = SimulatorDomain(bounds)
 ```
 
@@ -65,25 +65,25 @@ We can create [`Input`][exauq.core.modelling.Input] objects like so:
 ``` { .python .copy }
 from exauq.core.modelling import Input
 
-x1 = Input(0, 99)  # i.e. (0, 99)
-x2 = Input(1, 0)  # i.e. (1, 0)
+input_x1 = Input(1, 0)  # i.e. (1, 0)
+input_x2 = Input(0, 99)  # i.e. (0, 99)
 ```
 
 [`Input`][exauq.core.modelling.Input]s behave like `tuple`s, in that we can get their
-length (i.e. the dimension of the input point) and access the individual coordinates using
+length (i.e. the dimension of the input) and access the individual coordinates using
 Python's (0-based) indexing.
 
 
 ``` { .python .copy }
-print("Dimension of x1:", len(x1))
-print("First coordinate of x1:", x1[0])
-print("Second coordinate of x1:", x1[1])
+print("Dimension of input_x1:", len(input_x1))
+print("First coordinate of input_x1:", input_x1[0])
+print("Second coordinate of input_x1:", input_x1[1])
 ```
 
 <div class="result" markdown>
-    Dimension of x1: 2
-    First coordinate of x1: 0
-    Second coordinate of x1: 99
+    Dimension of input_x1: 2
+    First coordinate of input_x1: 1
+    Second coordinate of input_x1: 0
     
 </div>
 
@@ -92,8 +92,8 @@ domain using the [`in`][exauq.core.modelling.SimulatorDomain.__contains__] opera
 
 
 ``` { .python .copy }
-print(x1 in domain)  # x1 is contained in the domain
-print(x2 in domain)  # x2 is not contained in the domain
+print(input_x1 in domain)  # input_x1 is contained in the domain
+print(input_x2 in domain)  # input_x2 is not contained in the domain
 ```
 
 <div class="result" markdown>
@@ -121,7 +121,7 @@ def sim_func(x: Input) -> float:
 
 ## Creating an experimental design
 
-We'll now go on to create a one-shot experimental design for this simulator, using the Latin hypercube method. The following wrapper function [`oneshot_lhs`][exauq.core.designers.oneshot_lhs] uses functionality provided by [scipy](https://scipy.org/) to create a Latin hypercube sample of 20 new input points.
+We'll now go on to create a one-shot experimental design for this simulator, using the Latin hypercube method. The following wrapper function [`oneshot_lhs`][exauq.core.designers.oneshot_lhs] uses functionality provided by [SciPy's LatinHypercube](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.qmc.LatinHypercube.html) to create a Latin hypercube sample of 20 new input points.
 
 
 ``` { .python .copy }
@@ -190,18 +190,20 @@ outputs = [sim_func(x) for x in lhs_inputs]
 # Create the training data of input/output pairs
 data = [TrainingDatum(x, y) for x, y in zip(lhs_inputs, outputs)]
 
-# Inspect the first datum in the list
-data[0]
+# Inspect the first 5 rows of datum in the list
+TrainingDatum.tabulate(data, rows = 5)
 ```
 
-
-
-
 <div class="result" markdown>
-    TrainingDatum(input=Input(np.float64(-0.45118216247002574), np.float64(75.49520470318662)), output=np.float64(5772.805093637131))
+    Inputs:                                 Output:             
+    ------------------------------------------------------------
+    0.2744089188        1.0049536304        1.3460506974        
+    0.5927920194        -0.3948649447       -2.0511268894       
+    0.8344084274        0.9576673551        -0.2842618194       
+    0.1586148703        0.0590800864        -0.3693644148       
+    0.7225203156        0.1972440887        -0.6652784078       
+    
 </div>
-
-
 
 To train our GP, we use the [`fit`][exauq.core.emulators.MogpEmulator.fit] method with the
 training data:
@@ -211,11 +213,26 @@ training data:
 gp.fit(data)
 
 # Verify training by examining the training data
-assert len(gp.training_data) == 20
+TrainingDatum.tabulate(gp.training_data, rows = 5)
 ```
 
+<div class="result" markdown>
+    Inputs:                                 
+</div>
+
+<div class="result" markdown>
+    Output:             
+    ------------------------------------------------------------
+    0.2744089188        1.0049536304        1.3460506974        
+    0.5927920194        -0.3948649447       -2.0511268894       
+    0.8344084274        0.9576673551        -0.2842618194       
+    0.1586148703        0.0590800864        -0.3693644148       
+    0.7225203156        0.1972440887        -0.6652784078       
+    
+</div>
+
 We have used our Latin hypercube design and the corresponding simulator outputs to train
-our GP, making it ready to emulate our simulator. We put this to work in the next section.
+our GP, making it ready for prediction of our simulator. We put this to work in the next section.
 
 ## Making predictions with the GP
 
@@ -234,7 +251,7 @@ deviation, respectively).
 
 
 ``` { .python .copy }
-x = Input(0.5, 50)
+x = Input(0.5, 1.5)
 prediction = gp.predict(x)
 
 print(prediction)
@@ -244,10 +261,10 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2549.6068194932086), variance=np.float64(2.521401345729828), standard_deviation=1.587892107710668)
-    Point estimate: 2549.6068194932086
-    Variance of estimate: 2.521401345729828
-    Standard deviation of estimate: 1.587892107710668
+    GaussianProcessPrediction(estimate=np.float64(2.9826684070574254), variance=np.float64(0.3252151528831815), standard_deviation=0.5702763828909465)
+    Point estimate: 2.9826684070574254
+    Variance of estimate: 0.3252151528831815
+    Standard deviation of estimate: 0.5702763828909465
     
 </div>
 
@@ -264,9 +281,9 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2549.6068194932086
-    Actual simulator value: 2548.835786437627
-    Percentage error: 0.03025040136693606
+    Predicted value: 2.9826684070574254
+    Actual simulator value: 2.5857864376269055
+    Percentage error: 15.34859815394332
     
 </div>
 
@@ -285,7 +302,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.7203392629082389
+    0.7480505717415877
 </div>
 
 
