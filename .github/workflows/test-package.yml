@@ -5,8 +5,10 @@
 name: Test python package
 run-name: "Test Python package upon ${{ github.event_name }} from ${{ github.ref_name }}"
 on:
-  push:
+  pull_request:
     branches: [ "dev", "main", "release/*" ]
+    types: ["review_requested", "ready_for_review"]
+
   repository_dispatch:
   workflow_dispatch:
   workflow_call:
@@ -20,6 +22,13 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
+    - name: Check PR approval status
+      id: check-approval
+      run: |
+        if [[ "${{ github.event.review.state }}" != "approved" ]]; then
+          echo "PR is not approved. Skipping tests."
+          exit 0
+        fi
     - uses: actions/checkout@v3
     - name: Install Poetry
       run: pipx install poetry
