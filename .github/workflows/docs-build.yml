@@ -5,7 +5,7 @@ name: Rebuild docs
 run-name: "Rebuild docs upon ${{ github.event_name }} from ${{ github.ref_name }}"
 on:
   push:
-    branches: [ "dev", "main", "release/*" ]
+    branches: [ "dev", "main", "releases/*" ]
   repository_dispatch:
   workflow_dispatch:
   workflow_call:
