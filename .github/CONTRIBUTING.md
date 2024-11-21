@@ -14,9 +14,15 @@ Within the EXAUQ-Toolbox we champion reproducible research, which as part of tha
 test driven development lie at the heart of our ideals. Whilst this may seem a little tedious at times, this
 ensures the integrity and credibility of the toolbox which, currently, has a very small team so please do follow along!
 
+If you wish to contribute but are not used to (or want a refresher) to git version control, we highly recommend following 
+the [introduction to version control](https://coding-for-reproducible-research.github.io/CfRR_Courses/individual_modules/section_landing_pages/introduction_to_version_control.html)
+guide which gives good clear explanations for how to use GitHub most effectively and with best practices. Take particular note of the section for [keeping your email private](https://coding-for-reproducible-research.github.io/CfRR_Courses/individual_modules/introduction_to_version_control/configuring_git.html#keeping-your-email-private) when setting up GitHub as this is a public repository. 
+
 ### Issues
 
-The key rule here is **1 question/bug/feature = 1 issue**. Please feel free to raise multiple issues (within reason), 
+The key rule here is **1 question/bug/feature = 1 issue**.
+
+Please feel free to raise multiple issues (within reason), 
 but stick to one singular thing in an issue. It should be structured as follows:
 
 1) **Motivation:** Why am I raising this as an issue? It could be a question, bug or feature request, but please let us know why you
@@ -26,6 +32,8 @@ as the basis for a test case if it is for a feature request.
 3) **Acceptance Criteria:** How will we know that this issue is now closed? You could do this via bullet points/tasks or simply an explanation that gives
 clear criteria as what your expectations are at implementation.
 
+**Note:** How do I? questions are also valid issues but please do refer to the documentation first and if it is missing then we will likely add
+this into the documentation somewhere or ensure it is clearer. 
  
 **Discussions:** It may be that one of the maintenance team wish to clarify/discuss your issue further, please do keep an eye once the issue is
 open to answer any questions promptly. 
@@ -50,17 +58,26 @@ do take a look at these first as our team realise these are good issues to get y
 If you wish to resolve an issue please create a new branch and label the branch **"iss{number}-{issue_title}"**. We suggest opening 
 the branches locally and then pushing through to the remote branch when you wish. **NOTE:** This does not have to be when you are 
 finished and ready to submit your PR. Draft/WIP PRs are fully encouraged so that the maintaners of the 
-toolbox can see what you are working on, please just label the title of your PR **"[WIP]{Name_of_branch}"**. 
+toolbox can see what you are working on, please just label the title of your PR **"[WiP]{Name_of_branch}"**. 
+
+**Most importantly: Your new branch should base (or at least have the root base if you are branching off a branch) into `dev` and not `main`.** `dev` is the development branch, `main` is
+for when we release and only an admin will be merging dev into main upon a new release. 
 
 Every PR should close at least 1 issue. Please link the issue(s) at the top of your PR using the following: **"Closes #{number_of_issue}."** to 
 attach the issue to the PR. There should then be a good description of how this issue has been closed by your PR (or how far you have 
-got and where you are going if it is a draft!). A well written issue will make this a lot easier!
+got and where you are going if it is a draft). A well written issue will make this a lot easier! You should also assign yourself to that PR in order
+to make everyone aware that is being worked on. If you realise you won't finish your PR and want to leave it in a WiP state then unassign yourself from it
+and drop a note into the discussion. Someone else may well pick it up from where you left off. 
+
+Please do not begin work on a branch someone else is working on without their prior consent, it will likely just cause merge issues and slow down progress. 
+If you wish to help on an already open PR, please first enter the discussion and seek permission from whoever is assigned to that PR. If there is no one assigned 
 
 When you think you have finished the PR please, **before requesting a review**, remember to:
 1) **Documentation:** Double check you have updated all of the relevent documentation including API, user guides / tutorials (see below).
 2) **Test:** Run all of the unittests.
 3) **Lint**: There are github workflows such as linting checks and documents rebuilding that will occur. See below for the standards we use and
 how to use the pre-commit hook if necessary.
+
 
 ### Test Driven Development
 
@@ -76,7 +93,8 @@ and then be placed within the testcase for the class the method sits within. If 
 
 Finally when your PR is ready, change the name of the PR to **"[ReadyforReview]{branch_name}"** and request a review from one of the team. Currently, 
 we are still finalising how long reviews will take (and this will depend on the number of PRs). However, 2 weeks is probably a reasonable request currently. 
-It is worth noting that PRs with unpassed checks will **not** be reviewed (unless for a **very** good reason). 
+It is worth noting that the first thing our reviewers will do is run the tests and linting pre-commit hook. PRs which fail either of these checks will be sent 
+straight back without further review until these pass. 
 
 ### Pre-commit and Github Actions
 
@@ -91,7 +109,13 @@ We also have initial GtiHub Actions in place which help our team maintain the co
 and linted using [black](https://github.com/psf/black) - more specifically `Black --line-length 90`. See pre-commit notes!
 - **mkdocs build:** The docs will be rebuilt ensuring that your API documentation is the latest version, is fully up to date and builds with
 no warnings or errors. On release these will also be pushed up to the relative GitHub pages. 
-- **Test:** Unit tests will be run on the current determined versions of Python `3.10, 3.11, 3.12` and `3.13` to ensure compatibility. 
+- **Test:** Unit tests will be run on the current determined versions of Python `3.10, 3.11, 3.12` and `3.13` to ensure compatibility.
+
+### Branch Protection Rules
+
+We have branch protection rules in place to protect the `main` and `dev` branches. These require all checks to pass alongside approved reiviews from 
+approved maintainers of the toolbox. Currently there are no other protections in place, however, it is possible that some will be in place on specific branches 
+from time to time in special circumstances of development. 
 
 ## Developing Documentation
 
