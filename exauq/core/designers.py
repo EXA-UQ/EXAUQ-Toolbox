@@ -4,7 +4,7 @@ import math
 from collections import defaultdict
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import numpy as np
 from scipy.stats import norm
@@ -1403,11 +1403,6 @@ def create_data_for_multi_level_loo_sampling(
         else:
             delta_data[level] = []
 
-    # Compute output costs
-    delta_costs = MultiLevel(
-        {level: _compute_delta_cost(costs, level) for level in costs.levels}
-    )
-
     # Compute output coefficients
     delta_coefficients = costs.map(
         lambda level, _: math.prod(
@@ -1423,5 +1418,5 @@ def create_data_for_multi_level_loo_sampling(
         )
     )
 
-    return delta_data, delta_costs, delta_coefficients
+    return delta_data, costs, delta_coefficients
 
