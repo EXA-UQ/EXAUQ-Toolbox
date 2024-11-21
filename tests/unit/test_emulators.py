@@ -1,6 +1,7 @@
 import itertools
 import math
 import unittest.mock
+from numbers import Real
 
 import mogp_emulator as mogp
 import numpy as np
@@ -469,7 +470,7 @@ class TestMogpEmulator(ExauqTestCase):
         """The emulator can be fit on (finite) collections of training data."""
 
         emulator = MogpEmulator()
-        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 1)]
+        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.5), 2)]
         for data in [training_data, tuple(training_data)]:
             try:
                 _ = emulator.fit(data)

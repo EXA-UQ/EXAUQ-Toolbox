@@ -6,7 +6,8 @@ Gaussian process (GP), using an adaptive sampling technique. Similarly to the
 multi-level GP and find a new design point (or batch of points) that will best
 improve the fit of the multi-level GP. In contrast to the single level case, we also need
 to determine the particular GP level for the new design point (or points), which
-determines the simulator run(s) required.
+determines the simulator run(s) required. To help us do this, the associated cost of running 
+each level weighs the sampling criterion. 
 
 This tutorial will show you how to:
 
@@ -37,10 +38,10 @@ with adaptive sampling in the non-levelled case.
 We'll work with the same toy simulator function found in the tutorial,
 [Training a Multi-Level Gaussian Process Emulator](./training_multi_level_gp_tutorial.md). This is the function
 $$
-f(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
+f_2(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2} + \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
 $$
 with simulator domain defined as the rectangle $\mathcal{D}$ consisting of points
-$(x_1, x_2)$ where $-1 \leq x_1 \leq 1$ and $1 \leq x_2 \leq 100$. We view this as the
+$(x_1, x_2)$ where $0 \leq x_1 \leq 1$ and $-0.5 \leq x_2 \leq 1.5$. We view this as the
 top level of a 2-level multi-level simulator, with level 1 being given by the simpler
 function
 $$
@@ -48,10 +49,10 @@ f_1(x_1, x_2) = x_2 + x_1^2 + x_2^2 - \sqrt{2}
 $$
 and the difference function between the levels being
 $$
-\delta(x_1, x_2) = f(x_1, x_2) - f_1(x_1, x_2) = \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
+\delta(x_1, x_2) = f_2(x_1, x_2) - f_1(x_1, x_2) = \mathrm{sin}(2\pi x_1) + \mathrm{sin}(4\pi x_1 x_2)
 $$
 As in the tutorial linked above, we will use a multi-level GP to emulate
-$f = f_1 + \delta$.
+$f_2 = f_1 + \delta$ by fitting independent GPs.
 
 
 We can express this in code as follows:
@@ -62,7 +63,7 @@ from exauq.core.modelling import SimulatorDomain, Input, MultiLevel
 import numpy as np
 
 # The bounds define the lower and upper bounds on each coordinate
-domain = SimulatorDomain(bounds=[(-1, 1), (1, 100)])
+domain = SimulatorDomain(bounds=[(0, 1), (-0.5, 1.5)])
 
 # The full simulator (at level 2)
 def sim_func(x: Input) -> float:
@@ -101,11 +102,11 @@ from exauq.core.modelling import MultiLevel, TrainingDatum
 from exauq.core.emulators import MogpEmulator
 from exauq.core.modelling import MultiLevelGaussianProcess
 
-# Create level 1 experimental design of 20 data points
-lhs_inputs1 = oneshot_lhs(domain, 20, seed=1)
+# Create level 1 experimental design of 8 data points
+lhs_inputs1 = oneshot_lhs(domain, 8, seed=1)
 
-# Create level 2 experimental design of 5 data points
-lhs_inputs2 = oneshot_lhs(domain, 5, seed=1)
+# Create level 2 experimental design of 4 data points
+lhs_inputs2 = oneshot_lhs(domain, 4, seed=1)
 
 # Put into a multi-level object
 design = MultiLevel([lhs_inputs1, lhs_inputs2])
@@ -134,17 +135,18 @@ mlgp.fit(initial_data)
 Let's now find a new design point using the leave-one-out adaptive design methodology for
 multi-level simulators / GPs. We use the function
 [`compute_multi_level_loo_samples`][exauq.core.designers.compute_multi_level_loo_samples]
-to do this. By default, a batch consisting of a single, new design point will be calculated. This function requires three arguments:
+to do this. By default, a batch consisting of a single, new design point will be calculated within a MultiLevel object. This function requires three arguments:
 
 - The multi-level GP to find the new design point for.
 - The [`SimulatorDomain`][exauq.core.modelling.SimulatorDomain] describing the domain on
   which the simulator is defined.
-- The relative costs of running the simulator at each level. In our case, this should be
-  the costs of running the level 1 simulator $f_1$ and the full level 2 simulator
-  $f$ (not the difference $delta$).
+- The costs of running the simulator at each level. In our case, this should be
+  the cost of running the level 1 simulator $f_1$ and then the additional cost for the full level 2 simulator
+  $f$.
 
 Let's suppose for our toy example that the full simulator is 10-times more expensive to
-run than the level 1 version, so that we assign a cost of 1 to $f_1$ and 10 to $f$.
+run than the level 1 version. This gives relative costs of 1 and 10 to $f_1$ and $f_2$ respectively.
+Therefore, we assign a cost of 1 to $f_1$ and 11 to $f_2$ given the cost for our full simulator is $C_2 = c_1 + c_2$.
 
 In code, we perform the adaptive sampling as follows:
 
@@ -156,22 +158,27 @@ from exauq.core.designers import compute_multi_level_loo_samples
 import warnings
 warnings.filterwarnings("ignore")
 
-costs = MultiLevel([1, 10])
-level, new_design_pts = compute_multi_level_loo_samples(mlgp, domain, costs)
+costs = MultiLevel([1, 11])
+new_design_pt = compute_multi_level_loo_samples(mlgp, domain, costs)
 
-print("New design point:", new_design_pts[0])
+level = list(new_design_pt.keys())[0]
+new_input = new_design_pt.get(level)
+
+print("New design point:", new_input)
 print("Level to run it at:", level)
 ```
 
 <div class="result" markdown>
-    New design point: (np.float64(0.2781313511078019), np.float64(99.99999999510578))
+    New design point: (Input(np.float64(0.6270400033134383), np.float64(-0.49999991631366314)),)
     Level to run it at: 2
     
 </div>
 
 In order to update the fit of the multi-level GP, we need to know which level's GP needs
-training, which we get from the `level` output by
-[`compute_multi_level_loo_samples`][exauq.core.designers.compute_multi_level_loo_samples].
+training and the new input point which will be placed on that level. We get this from
+[`compute_multi_level_loo_samples`][exauq.core.designers.compute_multi_level_loo_samples], 
+which returns a MultiLevel object of new inputs. 
+
 We then need to update that level GP with the appropriate training datum. In our case,
 a level of 1 means we'd need to run the level 1 simulator $f_1$ on the new design point,
 while a level of 2 means we need to run the **difference** $\delta$ of the full level 2
@@ -182,41 +189,58 @@ specifying a different batch size:
 
 
 ``` { .python .copy }
-level, new_design_pts = compute_multi_level_loo_samples(mlgp, domain, costs, batch_size=5)
+new_design_pts = compute_multi_level_loo_samples(mlgp, domain, costs, batch_size = 5)
 
-print("New design points:", new_design_pts)
-print("Level to run batch at:", level)
+for level in new_design_pts.levels:
+    print(f"\nLevel: {level}")
+    new_inputs = list(new_design_pts.get(level))
+    print("New design points:", new_inputs)
 ```
 
 <div class="result" markdown>
-    New design points: (Input(np.float64(0.27813208278780244), np.float64(99.9999999978098)), Input(np.float64(0.9999999999981752), np.float64(25.545461710647455)), Input(np.float64(-0.9999999999809875), np.float64(73.34244860693056)), Input(np.float64(-0.08218028958237618), np.float64(61.9250284586637)), Input(np.float64(0.664691813031915), np.float64(99.99999999756037)))
-    Level to run batch at: 2
+    
+    Level: 1
+    New design points: [Input(np.float64(0.9999999920400343), np.float64(0.7164005232013257)), Input(np.float64(0.29922507169599954), np.float64(1.4999999692411503))]
+    
+    Level: 2
+    New design points: [Input(np.float64(0.62704813103636), np.float64(-0.49999998709295235)), Input(np.float64(0.7503483968103353), np.float64(1.49999971385431)), Input(np.float64(1.240898417353975e-08), np.float64(0.5896787106006196))]
     
 </div>
-
-Note that a single level is returned for the whole batch, i.e. all the new design points
-should go into updating the GP at that level.
 
 ## Update the multi-level GP
 
 The final step is to update the fit of the multi-level GP using the newly-calculated
-design points and the given level. This first requires us to compute the correct simulator
-outputs at the design points:
+MultiLevel design points from [`compute_multi_level_loo_samples`][exauq.core.designers.compute_multi_level_loo_samples]. For each level therefore we must:
+
+1. Compute the correct simulator outputs at the new design points.
+2. Create a list of TrainingDatum combining the inputs and outputs.
+3. Add these into our new training data MultiLevel object. 
 
 
 ``` { .python .copy }
-new_outputs = [ml_simulator[level](x) for x in new_design_pts]
-new_data = [TrainingDatum(x, y) for x, y in zip(new_design_pts, new_outputs)]
+# Package the training data into a multi level object
+new_training_data = MultiLevel({})
+
+for level in new_design_pts.levels:
+
+    # Take level inputs
+    level_inputs = new_design_pts.get(level)
+
+    # Run simulator for level outputs 
+    level_outputs = [ml_simulator[level](x) for x in level_inputs]
+
+    # Create TrainingDatum for each level
+    level_training_datum = [TrainingDatum(x, y) for x, y in zip(level_inputs, level_outputs)]
+
+    # Concatenate into full MultiLevel training data
+    new_training_data = new_training_data + MultiLevel({level: level_training_datum})
 ```
 
-To update the multi-level GP, we can fit the appropriate level GP with both the old and new training data for that level combined:
+To update the multi-level GP, we can then use the [`update`][exauq.core.modelling.AbstractGaussianProcess.update] method of mlgp by passing the newly created training data. 
 
 
 ``` { .python .copy }
-# mlgp[level].training_data is a tuple, so make a list to extend
-# with the new data
-data = list(mlgp[level].training_data) + new_data
-mlgp[level].fit(data)
+mlgp.update(new_training_data)
 
 # Sense-check that the GP at the level has been updated
 print(
@@ -226,7 +250,7 @@ print(
 ```
 
 <div class="result" markdown>
-    Number of training data at each level: {1: 20, 2: 10}
+    Number of training data at each level: {1: 10, 2: 7}
     
 </div>
 
@@ -240,32 +264,26 @@ In general, we can perform multiple adaptive sampling iterations to further impr
 fit of the multi-level GP with newly sampled design point(s). The following code goes
 through five more sampling iterations, producing a single new design point at each
 iteration. We have also introduced a helper function to assist in retraining the
-multi-level GP. (Once again, the messages from the `mogp_emulator` package can be
-ignored.)
+multi-level GP.
 
 
 ``` { .python .copy }
-def update_mlgp(mlgp, level, additional_data):
-    """Updates the fit of the supplied multi-level GP with additional
-    training data at a given level."""
-
-    # mlgp[level].training_data is a tuple, so make a list to extend
-    # with the new data
-    data = list(mlgp[level].training_data) + additional_data
-    mlgp[level].fit(data)
-
-
 for i in range(5):
     # Find new design point adaptively (via batch of length 1)
-    level, new_design_pts = compute_multi_level_loo_samples(mlgp, domain, costs)
-    x = new_design_pts[0]
+    new_design_pt = compute_multi_level_loo_samples(mlgp, domain, costs)
+
+    # Get level and input
+    level = list(new_design_pt.keys())[0]
+    x = new_design_pt.get(level)[0]
 
     # Compute simulator output at new design point
     y = ml_simulator[level](x)
 
-    # Update GP fit
-    new_data = [TrainingDatum(x, y)]
-    update_mlgp(mlgp, level, new_data)
+    # Create MultiLevel TrainingDatum object
+    training_data = MultiLevel({level: [TrainingDatum(x, y)]})
+    
+    # Update GP fit (Note passing output as a list)
+    mlgp.update(training_data)
 
     # Print design point found and level applied at
     print(f"==> Updated level {level} with new design point {x}")
@@ -273,25 +291,25 @@ for i in range(5):
 ```
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.9999999999365581), np.float64(75.33587116834858))
+    ==> Updated level 2 with new design point (np.float64(0.9999999998444683), np.float64(1.029486469852898))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.5884058622884303), np.float64(99.99999999770225))
+    ==> Updated level 2 with new design point (np.float64(0.40034634254571105), np.float64(0.10283192638997185))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.9999999978921346), np.float64(45.679752252165585))
+    ==> Updated level 1 with new design point (np.float64(2.267211696715954e-07), np.float64(-0.12426956121217159))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(-0.5597256705171263), np.float64(68.23532068976994))
+    ==> Updated level 2 with new design point (np.float64(0.5844424873969744), np.float64(0.15651205489982245))
     
 </div>
 
 <div class="result" markdown>
-    ==> Updated level 2 with new design point (np.float64(0.11578722629488825), np.float64(80.26503647005399))
+    ==> Updated level 2 with new design point (np.float64(0.2363445312147051), np.float64(0.18121248417802738))
     

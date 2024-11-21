@@ -65,6 +65,7 @@ class WhiteNoiseGP(AbstractGaussianProcess):
         self._noise_level = noise_level
         self._fit_hyperparameters = None
         self._hyperparameter_bounds = None
+        self._kinv = np.array([])
 
     @property
     def prior_mean(self) -> float:
@@ -100,6 +101,13 @@ class WhiteNoiseGP(AbstractGaussianProcess):
         scale parameters are irrelevant in this context."""
 
         return self._hyperparameter_bounds
+
+    @property
+    def kinv(self) -> NDArray:
+        """The inverse of the covariance matrix, k, for the training data, or an empty NumPy array if
+        this emulator has not been fitted to data."""
+
+        return self._kinv
 
     def fit(
         self,
@@ -141,7 +149,7 @@ class WhiteNoiseGP(AbstractGaussianProcess):
         self._training_data = tuple(training_data)
         if hyperparameters is not None:
             self._fit_hyperparameters = hyperparameters
-            return None
+
         elif hyperparameter_bounds is not None:
             lower, upper = hyperparameter_bounds[-1]
             if lower is not None and upper is not None and lower > upper:
@@ -159,13 +167,15 @@ class WhiteNoiseGP(AbstractGaussianProcess):
                 process_var=process_var
             )
             self._hyperparameter_bounds = tuple(hyperparameter_bounds)
-            return None
+
         else:
             self._fit_hyperparameters = WhiteNoiseGPHyperparameters(
                 process_var=self._noise_level
             )
             self._hyperparameter_bounds = None
-            return None
+
+        self._kinv = self._compute_kinv()
+        return None
 
     def _indicator_fn(self, x1: Input, x2: Input) -> int:
         """Returns 1 if the two inputs are equal and zero otherwise."""
@@ -272,6 +282,7 @@ class FakeGP(AbstractGaussianProcess):
         self._predictive_variance = 1
         self._fit_hyperparameters = None
         self._hyperparameter_bounds = None
+        self._kinv = np.array([])
 
     @property
     def predictive_mean(self) -> float:
@@ -298,6 +309,14 @@ class FakeGP(AbstractGaussianProcess):
         data, or ``None`` if none were."""
 
         return self._hyperparameter_bounds
+
+    @property
+    def kinv(self) -> NDArray:
+        """(Read-only) The inverse of the covariance matrix of the training data,
+        or an empty NumPy array if the model has not been fitted to data. Note
+        in this test GP this is not used."""
+
+        return self._kinv
 
     def fit(
         self,
@@ -332,6 +351,8 @@ class FakeGP(AbstractGaussianProcess):
         self._hyperparameter_bounds = (
             tuple(hyperparameter_bounds) if hyperparameter_bounds is not None else None
         )
+
+        return None
 
     def correlation(
         self, inputs1: Sequence[Input], inputs2: Sequence[Input]
