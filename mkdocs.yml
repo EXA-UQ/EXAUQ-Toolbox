@@ -4,8 +4,9 @@ site_name: EXAUQ-Toolbox
 site_url: ""
 site_dir: exauq/docs
 use_directory_urls: false
+exclude_docs: "**/notebooks"
 plugins:
-  - offline
+  - offline  # remove this when we go online
   - gen-files:
       scripts:
       - "scripts/gen_ref_pages.py"
@@ -21,9 +22,15 @@ plugins:
 
 nav:
   - Home: "index.md"
-  - "Experimental Designers":
+  - "Experimental Design":
     - "designers/index.md"
-    - "A Typical Multi-Level Adaptive Design Workflow": "designers/typical-multi-level-adaptive-design.md"
+    - "Tutorials":
+      - "designers/tutorials/index.md"
+      - "Training a Gaussian Process Emulator": "designers/tutorials/training_gp_tutorial.md"
+      - "Training a Multi-Level Gaussian Process Emulator": "designers/tutorials/training_multi_level_gp_tutorial.md"
+      - "Single Level Adaptive Sampling": "designers/tutorials/slas_tutorial.md"
+      - "Multi-Level Adaptive Sampling": "designers/tutorials/mlas_tutorial.md"
+      - "A Typical Multi-Level Adaptive Design Workflow": "designers/typical-multi-level-adaptive-design.md"
   - "Command Line App":
     - "cli/index.md"
     - "A First Walkthrough": "cli/first-walkthrough.md"
@@ -42,12 +49,14 @@ theme:
     - navigation.sections  # navigation pane, see https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#navigation-sections
     - navigation.indexes
     - content.code.annotate  # code annotations, see https://squidfunk.github.io/mkdocs-material/reference/code-blocks/#adding-annotations
+    - contend.code.copy  # code copy button, see https://squidfunk.github.io/mkdocs-material/reference/code-blocks/#code-copy-button
 
 # See:
 # - https://squidfunk.github.io/mkdocs-material/reference/admonitions/
 # - https://squidfunk.github.io/mkdocs-material/reference/code-blocks/
 # - https://squidfunk.github.io/mkdocs-material/reference/grids/
 # - https://squidfunk.github.io/mkdocs-material/reference/icons-emojis/
+# - https://squidfunk.github.io/mkdocs-material/reference/math/#katex
 markdown_extensions:
   - admonition
   - pymdownx.highlight:
@@ -63,3 +72,15 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.arithmatex:
+      generic: true
+
+# For KaTeX to render maths, see
+# https://squidfunk.github.io/mkdocs-material/reference/math/#katex
+extra_javascript: 
+  - javascripts/katex.js
+  - https://unpkg.com/katex@0/dist/katex.min.js
+  - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
+
+extra_css:
+  - https://unpkg.com/katex@0/dist/katex.min.css

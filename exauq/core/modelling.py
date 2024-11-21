@@ -7,18 +7,24 @@ import csv
 import dataclasses
 import functools
 import math
+import sys
+import warnings
+from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from itertools import product
 from numbers import Real
 from types import GenericAlias
 from typing import Any, Callable, Optional, TypeVar, Union
+from warnings import warn
 
 import numpy as np
+from numpy.linalg import cond, LinAlgError
 from numpy.typing import NDArray
 
 import exauq.utilities.validation as validation
 from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.csv_db import Path
+from exauq.utilities.validation import check_int
 
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 T = TypeVar("T")
@@ -520,7 +526,10 @@ class TrainingDatum(object):
     """
 
     input: Input
+    """(Read-only) An input to a simulator."""
+
     output: Real
+    """(Read-only) The output of the simulator at the input."""
 
     def __post_init__(self):
         self._validate_input(self.input)
@@ -663,6 +672,93 @@ class TrainingDatum(object):
 
         return tuple(training_data)
 
+    @staticmethod
+    def tabulate(data: Sequence[TrainingDatum], rows: Optional[int] = None):
+        """Neatly output a tabulated version of the inputs and outputs for a sequence of TrainingDatum
+
+        This static method of TrainingDatum will output a table for TrainingDatum Inputs and outputs so
+        that one can quickly scan down the table to see whether the data is correct or not. It contains the
+        optional argument rows which if left as None will print the entire table, otherwise it will print
+        up to the row inputted. It also rounds the inputs and outputs to 10 d.p. for viewing.
+
+        Parameters
+        -----------
+        data :
+            This should be a sequence of TrainingDatum items to be displayed
+
+        rows :
+            Optional integer n, to output the first n rows of data. If None, will print
+            the entire data sequence.
+
+        Raises
+        ------
+        UserWarning:
+            Raises a UserWarning if the length of the sequence to be printed is >100
+            and will limit the length of rows printed to 100.
+
+        Examples
+        --------
+
+        >>> data = [TrainingDatum(Input(i), i) for i in range(1, 10)]
+
+        >>> TrainingDatum.tabulate(data, rows = 4)
+
+        Inputs:             Output:
+        ----------------------------------------
+        1.0000000000        1.0000000000
+        2.0000000000        2.0000000000
+        3.0000000000        3.0000000000
+        4.0000000000        4.0000000000
+
+        """
+
+        if not isinstance(data, Sequence):
+            raise TypeError(
+                "Expected 'data' to be of type Sequence of TrainingDatum, but received "
+                f"{type(data)} instead."
+            )
+
+        if not all(isinstance(datum, TrainingDatum) for datum in data):
+            raise TypeError(
+                "Expected 'data' to be of type Sequence of TrainingDatum, but received "
+                "unexpected data types instead."
+            )
+
+        if rows is not None:
+            if not isinstance(rows, int):
+                raise TypeError(
+                    f"Expected 'rows' to be of type int, but received {type(rows)} instead."
+                )
+
+            if rows < 1:
+                raise ValueError(
+                    f"Expected rows to be a positive integer >= 1 but received {rows} instead."
+                )
+
+        if rows is None or rows > len(data):
+            rows = len(data)
+
+        if len(data) > 100:
+
+            warn("Length of data passed > 100, limiting output to 100 rows.")
+            rows = 100
+
+        input_width = 20
+        input_dim_width = len(data[0].input) * input_width
+
+        # Create header and separator
+        print("Inputs:".ljust(input_dim_width), end="")
+        print("Output:".ljust(input_width))
+        print("-" * (input_dim_width + input_width))
+
+        # Create table rows
+        for i, datum in enumerate(data):
+            if i < rows:
+                for value in datum.input:
+                    print(f"{value:.10f}".ljust(input_width), end="")
+
+                print(f"{datum.output:.10f}".ljust(input_width))
+
     @classmethod
     def _parse_csv_row(cls, row: Sequence[str]) -> list[float]:
         try:
@@ -721,8 +817,14 @@ class Prediction:
     """
 
     estimate: Real
+    """(Read-only) The estimated value of the prediction."""
+
     variance: Real
+    """(Read-only) The variance of the prediction."""
+
     standard_deviation: Real = dataclasses.field(default=None, init=False)
+    """(Read-only) The standard deviation of the prediction, calculated as the square
+    root of the variance."""
 
     def __post_init__(self):
         self._validate_estimate(self.estimate)
@@ -869,6 +971,9 @@ class AbstractEmulator(abc.ABC):
     Classes that inherit from this abstract base class define emulators which
     can be trained with simulator outputs using an experimental design
     methodology.
+
+    NOTE: Classes derived from this abstract base class MUST implement required checks on
+    duplicated Inputs. Only unique Inputs should be allowed within the training data.
     """
 
     @property
@@ -944,6 +1049,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     `GaussianProcessHyperparameters` for methods and properties that use parameters, or
     return objects, of type `AbstractHyperparameters`.
 
+    NOTE: Classes derived from this abstract base class MUST implement required checks on
+    duplicated Inputs. Only unique Inputs should be allowed within the training data.
+
     Notes
     -----
     The mathematical assumption of being a Gaussian process gives computational benefits,
@@ -956,6 +1064,13 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     def fit_hyperparameters(self) -> Optional[GaussianProcessHyperparameters]:
         """(Read-only) The hyperparameters of the fit for this Gaussian process emulator,
         or ``None`` if this emulator has not been fitted to data."""
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def kinv(self) -> NDArray:
+        """(Read-only) The inverse of the covariance matrix of the training data,
+        or ``None`` if the model has not been fitted to data."""
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -1010,6 +1125,60 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
+    def update(
+        self,
+        training_data: Optional[Sequence[TrainingDatum]] = None,
+        hyperparameters: Optional[GaussianProcessHyperparameters] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+    ) -> None:
+        """Update the current fitted gp to new conditions.
+
+        Allows the user a more friendly experience when implementing different hyperparameters
+        or hyperparam bounds or adding new training data to their GP without having to construct
+        the refit themselves.
+
+        Parameters
+        ----------
+        training_data :
+            The pairs of inputs and simulator outputs on which the Gaussian process
+            should be trained.
+        hyperparameters :
+            Hyperparameters for a Gaussian process to use directly in
+            fitting the emulator. If ``None`` then the hyperparameters should be estimated
+            as part of fitting to data.
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
+            during estimation, of the form ``(lower_bound, upper_bound)``. All
+            but the last tuple should represent bounds for the correlation
+            length scale parameters, in the same order as the ordering of the
+            corresponding input coordinates, while the last tuple should
+            represent bounds for the process variance.
+        """
+
+        if all(
+            value is None
+            for key, value in locals().items()
+            if key not in ["self", "__class__"]
+        ):
+            warnings.warn(
+                "No arguments were passed to update and hence the GP remains as was.",
+                UserWarning,
+            )
+            return None
+
+        if not self.training_data:
+            prev_training_data = []
+        else:
+            prev_training_data = list(self.training_data)
+
+        if training_data is None:
+            training_data = []
+
+        training_data = list(training_data) + prev_training_data
+        self.fit(training_data, hyperparameters, hyperparameter_bounds)
+
+        return None
+
     def covariance_matrix(self, inputs: Sequence[Input]) -> NDArray:
         """Compute the covariance matrix for a sequence of simulator inputs.
 
@@ -1045,6 +1214,38 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         return self.fit_hyperparameters.process_var * self.correlation(
             inputs, training_inputs
         )
+    @staticmethod
+    def _validate_covariance_matrix(k: NDArray) -> None:
+        """Validate that the covariance is a non-singular matrix before attempting to invert it"""
+
+        try:
+            if cond(k) >= 1 / sys.float_info.epsilon:
+                raise ValueError("Covariance Matrix is, or too close to singular.")
+
+        except LinAlgError as e:
+            raise ValueError(f"Cannot calculate inverse of covariance matrix: {e}")
+
+        return None
+
+    def _compute_kinv(self) -> NDArray:
+        """Compute the inversion of the covariance matrix of the training data"""
+
+        training_inputs = [datum.input for datum in self.training_data]
+
+        if not training_inputs:
+            raise ValueError(
+                "Cannot compute covariance inverse: 'gp' hasn't been trained on any data."
+            )
+
+        try:
+            k = self.covariance_matrix(training_inputs)
+            self._validate_covariance_matrix(k)
+            kinv = np.linalg.inv(k)
+
+        except (ValueError, LinAlgError) as e:
+            raise e.__class__(f"Cannot compute covariance inverse: {e}")
+
+        return kinv
 
     @abc.abstractmethod
     def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
@@ -1174,6 +1375,77 @@ class MultiLevel(dict[int, T]):
 
     def __ne__(self, other):
         return not self == other
+
+    def __add__(self, other: MultiLevel[T] | None) -> MultiLevel[tuple[T]]:
+        """
+        Add two MultiLevel objects together.
+
+        Creates a new MultiLevel object that per level contains a tuple of all of the items
+        in both self and other. If other has any items that are on a separate level to any
+        previously stored in self, then this will create a new level.
+
+        NOTE: It concatenates elements of sequences on the same level into 1 combined tuple, not indvidually adding
+        the elements mathematically. See Examples.
+
+        Parameters
+        ----------
+        other : other: MultiLevel[T] | None
+            The MultiLevel object to add to self.
+
+        Returns
+        -------
+            A new multi-level collection, containing tuples of the new items stored at each level.
+
+        Examples
+        --------
+
+        >>> a = MultiLevel(
+            {
+                1: [1, 2, 3],
+                2: ("a", "b", "c"),
+                3: [TrainingDatum(Input(0.5), 1)]
+            })
+
+        >>> b = MultiLevel(
+            {
+                1: [4, 5, 6],
+                2: ("d", "e", "f"),
+                3: [TrainingDatum(Input(0.9), 1.5)],
+                4: ["Test"]
+            })
+
+        >>> c = a + b
+        >>> c
+        MultiLevel({1: (1, 2, 3, 4, 5, 6),
+                    2: ('a', 'b', 'c', 'd', 'e', 'f'),
+                    3: (TrainingDatum(input=Input(0.5), output=1),
+                    TrainingDatum(input=Input(0.9), output=1.5)),
+                    4: ('Test',)})
+
+        """
+
+        if other is None:
+            return self
+
+        if not isinstance(other, MultiLevel):
+            raise TypeError(
+                "MultiLevel objects can only be added to other MultiLevel objects."
+            )
+
+        new_multilevel = {level: list(value) for level, value in self.items()}
+
+        for level, value in other.items():
+
+            if level in new_multilevel:
+                new_multilevel[level].extend(list(value))
+
+            else:
+                new_multilevel[level] = list(value)
+
+        # Return immutable state
+        return MultiLevel(
+            {level: tuple(value) for level, value in new_multilevel.items()}
+        )
 
     def map(self, f: Callable[[int, T], S]) -> MultiLevel[S]:
         """Apply a function level-wise.
@@ -1331,7 +1603,8 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         training_data: MultiLevel[Collection[TrainingDatum]],
         hyperparameters: Optional[
             Union[
-                MultiLevel[GaussianProcessHyperparameters], GaussianProcessHyperparameters
+                MultiLevel[GaussianProcessHyperparameters],
+                GaussianProcessHyperparameters,
             ]
         ] = None,
         hyperparameter_bounds: Optional[
@@ -1411,6 +1684,67 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         return None
 
+    def update(
+        self,
+        training_data: MultiLevel[Collection[TrainingDatum]] = None,
+        hyperparameters: Optional[
+            Union[
+                MultiLevel[GaussianProcessHyperparameters],
+                GaussianProcessHyperparameters,
+            ]
+        ] = None,
+        hyperparameter_bounds: Optional[
+            Union[MultiLevel[Sequence[OptionalFloatPairs]], Sequence[OptionalFloatPairs]]
+        ] = None,
+    ) -> None:
+        """Update the current fitted gp to new conditions.
+
+        Allows the user a more friendly experience when implementing different hyperparameters
+        or hyperparam bounds or adding new training data to their GP without having to construct
+        the refit themselves.
+
+        Parameters
+        ----------
+        new_design_pts :
+            A tuple of (level, Input) pairs for newly calculated design points to be implemented
+            into the correct level of the gp.
+        new_outputs:
+            The outputs from the simulator which the new design points generated, used
+            to retrain the gp alongside the design points.
+        hyperparameters :
+            Hyperparameters for a Gaussian process to use directly in
+            fitting the emulator. If ``None`` then the hyperparameters should be estimated
+            as part of fitting to data.
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
+            during estimation, of the form ``(lower_bound, upper_bound)``. All
+            but the last tuple should represent bounds for the correlation
+            length scale parameters, in the same order as the ordering of the
+            corresponding input coordinates, while the last tuple should
+            represent bounds for the process variance.
+        """
+
+        if training_data is not None:
+            training_data = training_data + self.training_data
+            self.fit(training_data, hyperparameters, hyperparameter_bounds)
+
+        elif all(
+            value is None
+            for key, value in locals().items()
+            if key not in ["self", "__class__"]
+        ):
+            warnings.warn(
+                "No arguments were passed to update and hence the GP remains as was.",
+                UserWarning,
+            )
+            return None
+
+        else:
+            training_data = self.training_data
+            self.fit(training_data, hyperparameters, hyperparameter_bounds)
+
+        return None
+
     @staticmethod
     def _fill_out(
         base: Union[T, MultiLevel[T]], levels: Sequence[int], fill: Optional[T] = None
@@ -1485,7 +1819,8 @@ class AbstractHyperparameters(abc.ABC):
 
 def _validate_nonnegative_real_domain(arg_name: str):
     """A decorator to be applied to functions with a single real-valued argument called
-    `arg_name`. The decorator adds validation that the argument is a real number >= 0."""
+    `arg_name`. The decorator adds validation that the argument is a real number >= 0.
+    """
 
     def decorator(func):
         @functools.wraps(func)
@@ -1542,8 +1877,13 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
     """
 
     corr_length_scales: Union[Sequence[Real], np.ndarray[Real]]
+    """(Read-only) The correlation length scale parameters."""
+
     process_var: Real
+    """(Read-only) The process variance."""
+
     nugget: Optional[Real] = None
+    """(Read only, default: None) The nugget, or ``None`` if not supplied."""
 
     def __post_init__(self):
         if not isinstance(self.corr_length_scales, (Sequence, np.ndarray)):
@@ -1651,14 +1991,17 @@ class SimulatorDomain(object):
 
     Attributes
     ----------
-    dim : int
-        (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
-        from this domain have.
     bounds : tuple[tuple[Real, Real], ...]
         (Read-only) The bounds defining this domain, as a tuple of pairs of
         real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each pair ``(a_i, b_i)``
         representing the lower and upper bounds for the corresponding coordinate in the
         domain.
+    dim : int
+        (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
+        from this domain have.
+    corners: tuple[Input, ...]
+        (Read-only) The corner points of the domain, where each coordinate is at its
+        respective lower or upper bound.
 
     Parameters
     ----------
@@ -1752,20 +2095,17 @@ class SimulatorDomain(object):
 
     def __contains__(self, item: Any):
         """Returns ``True`` when `item` is an `Input` of the correct dimension and
-        whose coordinates lie within the bounds defined by this domain."""
+        whose coordinates lie within, or within tolerance, of the bounds defined by this domain.
+        """
         return (
             isinstance(item, Input)
             and len(item) == self._dim
             and all(
-                bound[0] <= item[i] <= bound[1] for i, bound in enumerate(self._bounds)
+                (equal_within_tolerance(bound[0], item[i]) or bound[0] < item[i])
+                and (equal_within_tolerance(bound[1], item[i]) or item[i] < bound[1])
+                for i, bound in enumerate(self._bounds)
             )
         )
-
-    @property
-    def dim(self) -> int:
-        """(Read-only) The dimension of this domain, i.e. the number of coordinates
-        inputs from this domain have."""
-        return self._dim
 
     @property
     def bounds(self) -> tuple[tuple[Real, Real], ...]:
@@ -1774,6 +2114,18 @@ class SimulatorDomain(object):
         representing the lower and upper bounds for the corresponding coordinate in the
         domain."""
         return self._bounds
+
+    @property
+    def dim(self) -> int:
+        """(Read-only) The dimension of this domain, i.e. the number of coordinates
+        inputs from this domain have."""
+        return self._dim
+
+    @property
+    def corners(self) -> tuple[Input]:
+        """(Read-only) The corner points of the domain, where each coordinate is at its
+        respective lower or upper bound."""
+        return self._corners
 
     def scale(self, coordinates: Sequence[Real]) -> Input:
         """Scale coordinates from the unit hypercube into coordinates for this domain.
@@ -1837,24 +2189,6 @@ class SimulatorDomain(object):
             )
         )
 
-    def _within_bounds(self, point: Input) -> bool:
-        """
-        Check if a single point is within the bounds of the domain.
-
-        Parameters
-        ----------
-        point : Input
-            The point to check.
-
-        Returns
-        -------
-        bool
-            True if the point is within the bounds, False otherwise.
-        """
-        return all(
-            self._bounds[i][0] <= point[i] <= self._bounds[i][1] for i in range(self._dim)
-        )
-
     def _validate_points_dim(self, collection: Collection[Input]) -> None:
         """
         Validates that all points in a collection have the same dimensionality as the domain.
@@ -1905,33 +2239,7 @@ class SimulatorDomain(object):
     def _calculate_distance(point_01: Sequence, point_02: Sequence):
         return sum((c1 - c2) ** 2 for c1, c2 in zip(point_01, point_02)) ** 0.5
 
-    @property
-    def get_corners(self) -> tuple[Input]:
-        """
-        Returns all the corner points of the domain.
-
-        A corner point of a domain is defined as a point where each coordinate
-        is equal to either the lower or upper bound of its respective dimension.
-        This method calculates all possible combinations of lower and upper bounds
-        for each dimension to find all the corner points of the domain.
-
-        Returns
-        -------
-        tuple[Input]
-            A tuple containing all the corner points of the domain. The number of corner
-            points is ``2 ** dim``, where dim is the number of dimensions of the domain.
-
-        Examples
-        --------
-        >>> bounds = [(0, 1), (0, 1)]
-        >>> domain = SimulatorDomain(bounds)
-        >>> domain.get_corners
-        (Input(0, 0), Input(0, 1), Input(1, 0), Input(1, 1))
-        """
-
-        return self._corners
-
-    def closest_boundary_points(self, inputs: Collection[Input]) -> tuple[Input]:
+    def closest_boundary_points(self, inputs: Collection[Input]) -> tuple[Input, ...]:
         """
         Finds the closest point on the boundary for each point in the input collection.
         Distance is calculated using the Euclidean distance.
@@ -1945,7 +2253,7 @@ class SimulatorDomain(object):
 
         Returns
         -------
-        tuple[Input]
+        tuple[Input, ...]
             The boundary points closest to a point in the given `inputs`.
 
         Raises
@@ -1977,7 +2285,7 @@ class SimulatorDomain(object):
         self._validate_points_dim(inputs)
 
         # Check all points are within domain bounds
-        if not all(self._within_bounds(point) for point in inputs):
+        if not all(point in self for point in inputs):
             raise ValueError(
                 "All points in the collection must be within the domain bounds."
             )
@@ -2006,13 +2314,13 @@ class SimulatorDomain(object):
 
         return tuple(closest_boundary_points)
 
-    def calculate_pseudopoints(self, inputs: Collection[Input]) -> tuple[Input]:
+    def calculate_pseudopoints(self, inputs: Collection[Input]) -> tuple[Input, ...]:
         """
         Calculates and returns a tuple of pseudopoints for a given collection of input points.
 
         A pseudopoint in this context is defined as a point on the boundary of the domain,
         or a corner of the domain. This method computes two types of pseudopoints: Boundary
-        pseudopoints and Corner pseudopoints, using the `closest_boundary_points` and `get_corners`
+        pseudopoints and Corner pseudopoints, using the `closest_boundary_points` and `corners`
         methods respectively.
 
         Parameters
@@ -2023,7 +2331,7 @@ class SimulatorDomain(object):
 
         Returns
         -------
-        tuple[Input]
+        tuple[Input, ...]
             A tuple containing all the calculated pseudopoints.
 
         Raises
@@ -2049,7 +2357,73 @@ class SimulatorDomain(object):
         for point in pseudopoints:
             if point not in unique_pseudopoints:
                 unique_pseudopoints.append(point)
+
         return tuple(unique_pseudopoints)
+
+    def get_boundary_mesh(self, n: int) -> tuple[Input, ...]:
+        """
+        Calculates and returns a tuple of inputs for an equally spaced boundary mesh of the domain.
+
+        The mesh calculated could also be referred to as mesh of equally spaced psuedopoints
+        which all lie on the boundary of the domain of dimensions D. In 2D this would refer to
+        simply as points spaced equally round the edge of an (x, y) rectangle. However,
+        higher dimensions would also consider bounding faces, surfaces etc.
+
+        The particularly handy usage of this method is for boundary repulsion points. These can
+        easily be calculated in order to force the simulation away from the edge of the domain. For each
+        boundary there will be n^(d-1) points where d is the dimension of the domain.
+
+        Parameters
+        ----------
+        n: integer
+            The number of evenly-spaced points for each boundary face of the domain. n >= 2 as n = 2 will simply
+            return the bounds of the domain.
+
+        Returns
+        -------
+        tuple[Input, ...]
+            A tuple containing all the calculated equally spaced pseudopoints along the domain's boundary.
+
+        Raises
+        ------
+        TypeError
+            If n is not of type integer.
+
+        ValueError
+            If n < 2.
+
+        Examples
+        --------
+        >>> bounds = [(0, 2), (0, 4)]
+        >>> domain = SimulatorDomain(bounds)
+        >>> n = 3
+        >>> mesh_points = domain.get_boundary_mesh(n)
+        >>> mesh_points # mesh_points equally spaced along the boundary of the domain
+        >>> Input(0, 0), Input(0, 2), Input(0, 4), Input(1, 0), Input(1, 4), Input(2, 0), Input(2, 2), Input(2, 4)
+        """
+
+        check_int(
+            n,
+            TypeError(f"Expected 'n' to be of type int, but received {type(n)}."),
+        )
+        if n < 2:
+            raise ValueError(
+                f"Expected 'n' to be a positive integer >=2 but is equal to {n}."
+            )
+
+        # Create boundaries and mesh of domain
+        boundaries = [np.linspace(*self.bounds[i], n) for i in range(self.dim)]
+        points = np.stack(np.meshgrid(*boundaries), -1).reshape(-1, self.dim)
+
+        # Check points lie on bounds
+        upper_bound = np.array([self.bounds[i][1] for i in range(self.dim)])
+        lower_bound = np.array([self.bounds[i][0] for i in range(self.dim)])
+        on_upper_bound = np.isclose(points, upper_bound)
+        on_lower_bound = np.isclose(points, lower_bound)
+        mask = np.any(on_upper_bound | on_lower_bound, axis=1)
+        masked_points = points[mask]
+        mesh_points = tuple(Input(*point) for point in masked_points)
+        return mesh_points
 
 
 class AbstractSimulator(abc.ABC):

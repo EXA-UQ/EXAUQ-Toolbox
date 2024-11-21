@@ -17,13 +17,13 @@ TODO: add link to designers guides etc.
 
 <div class="grid cards" markdown>
 
--   :material-cogs:{ .lg .middle } **API Reference**
+-   :octicons-beaker-24:{ .lg .middle } **Experimental Design**
 
     ---
-    Details of the objects, functions etc. provided by the exauq package.
+    Tutorials and user guides for using the EXAUQ-Toolbox for experimental design
+    in your own analyses.
 
-    <!-- Following is a link to fake markdown doc but it will get converted to correct html page link -->
-    [:octicons-arrow-right-24: Go to API reference](./api/__init__.md)
+    [:octicons-arrow-right-24: Go to experimental design guides](./designers/index.md)
 
 -   :simple-gnubash:{ .lg .middle } **Command Line Application**
 
@@ -32,5 +32,13 @@ TODO: add link to designers guides etc.
     Manage simulation jobs from the comfort of your own laptop.
 
     [:octicons-arrow-right-24: Go to CLA reference](./cli/index.md)
+
+-   :material-cogs:{ .lg .middle } **API Reference**
+
+    ---
+    Details of the objects, functions etc. provided by the exauq package.
+
+    <!-- Following is a link to fake markdown doc but it will get converted to correct html page link -->
+    [:octicons-arrow-right-24: Go to API reference](./api/__init__.md)
 
 </div>
