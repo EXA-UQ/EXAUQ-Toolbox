@@ -13,7 +13,7 @@ be run on an exascale computer, whereas a lower-fidelity, but cheaper, simulatio
 run on a more conventional HPC, or a departmental server).
 
 The EXAUQ-Toolbox welcomes contributors and users to raise issues/ideas. Please do take a look through 
-our [support](support.md) page to see how you can help and how we can help you in the most efficient way!
+our [support](SUPPORT.md) page to see how you can help and how we can help you in the most efficient way!
 
 Software developed by the RSE team at the University of Exeter, UK and funded by the EPRSC (2021-2025)
 as part of project ExCALIBUR.
