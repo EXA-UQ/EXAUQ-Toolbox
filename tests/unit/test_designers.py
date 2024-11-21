@@ -2259,18 +2259,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 ],
             }
         )
-        self.costs = MultiLevel([1, 10, 100])
-
-    def test_returns_delta_costs(self):
-        """The costs for computing successive, inter-level differences of simulator
-        outputs are returned."""
-
-        costs = MultiLevel([1.1, 10.1, 100.1])
-
-        _, delta_costs, _ = create_data_for_multi_level_loo_sampling(self.data, costs)
-
-        expected = MultiLevel([costs[1], costs[1] + costs[2], costs[2] + costs[3]])
-        self.assertEqual(expected, delta_costs)
+        self.costs = MultiLevel([1, 11, 110])
 
     def test_returns_delta_coefficients(self):
         """The coefficients for creating the multi-level GP for LOO adaptive sampling
@@ -2293,7 +2282,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 ],
             }
         )
-        costs = MultiLevel([1, 10, 100, 1000])
+        costs = MultiLevel([1, 11, 110, 1100])
 
         # Case of 2 levels
         data2 = MultiLevel({1: data[1], 2: data[2]})
