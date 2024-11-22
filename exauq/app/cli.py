@@ -524,13 +524,33 @@ class Cli(cmd2.Cmd):
 
         return super().do_quit(args)
 
-    def _render_stdout(self, text: str, trailing_newline: bool = True) -> None:
-        """Write text to standard output, with an optional trailing newline character."""
+    def _render_stdout(
+        self,
+        text: str,
+        trailing_newline: bool = True,
+        text_color: Optional[str] = None,
+    ) -> None:
+        """Write text to standard output, with optional trailing newline and text color.
 
+        Parameters
+        ----------
+        text : str
+            The text to output.
+        trailing_newline : bool, optional
+            Whether to add a trailing newline character. Defaults to True.
+        text_color : str, optional
+            ANSI color code for the text color. If None, no color formatting is applied.
+        """
+        # Add a newline if required
         if trailing_newline:
-            self.poutput(text + "\n")
-        else:
-            self.poutput(text)
+            text += "\n"
+
+        # Format the text with color if provided
+        if text_color:
+            text = f"{text_color}{text}\033[0m"  # Add reset after colored text
+
+        # Output the text
+        self.poutput(text)
 
     def _render_error(self, text: str) -> None:
         """Write text as an error message to standard error."""
