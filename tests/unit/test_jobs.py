@@ -1,7 +1,7 @@
 import unittest
 
-from exauq.sim_management.jobs import Job, JobId
 from exauq.core.modelling import Input
+from exauq.sim_management.jobs import Job, JobId
 from tests.utilities.utilities import ExauqTestCase, exact
 
 

@@ -1,5 +1,4 @@
 import random
-
 from numbers import Real
 from typing import Callable, Optional
 
@@ -110,8 +109,8 @@ def generate_seeds(seed: int | None, batch_size: int) -> tuple:
     Generate a tuple of unique seeds from an initial seed equal to the length of the batch_size
     passed by `compute_single_level_loo_samples` or `compute_multilevel_loo_samples`
 
-    MAX_SEED is set as the seed cap due to the scipy seeding system within `scipy.optimize` 
-    using legacy 32 bit integers. Crucially however, the seeds are there for reproducibility rather 
+    MAX_SEED is set as the seed cap due to the scipy seeding system within `scipy.optimize`
+    using legacy 32 bit integers. Crucially however, the seeds are there for reproducibility rather
     than being used as part of the generation of LOO samples.
 
     Parameters

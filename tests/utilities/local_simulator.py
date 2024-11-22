@@ -9,8 +9,8 @@ import time
 from numbers import Real
 from typing import Optional, Union
 
-from exauq.sim_management.hardware import HardwareInterface
 from exauq.core.modelling import Input
+from exauq.sim_management.hardware import HardwareInterface
 
 WORKSPACE = pathlib.Path("./simulator_workspace")
 """Default workspace directory for the simulator to use. The application
