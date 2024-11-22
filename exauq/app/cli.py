@@ -428,11 +428,8 @@ class Cli(cmd2.Cmd):
 
     def _select_interface_entry_method_prompt(self) -> str | None:
         """Prompt the user to select an interface entry method and return a valid file path or None."""
-        self.poutput("Select how you would like to provide your interface details:")
-        self.poutput("  1: Enter details interactively")
-        self.poutput("  2: Load details from file")
 
-        choice = input("Enter the number corresponding to your choice: ")
+        choice = self._interface_entry_method_prompt()
         if choice == "2":
             while True:
                 file_path = input(
@@ -471,6 +468,22 @@ class Cli(cmd2.Cmd):
         else:
             self.poutput("Entering interactive mode.")
             return None
+
+    def _interface_entry_method_prompt(self) -> Optional[str]:
+        """Prompt the user to select an interface entry method."""
+
+        self.poutput()
+        self._generate_bordered_header(
+            title="Interface details input method", border_char="-"
+        )
+
+        # Format the menu options
+        self.poutput("  \033[1;33m1\033[0m: Interactive mode")
+        self.poutput("  \033[1;33m2\033[0m: Load from file\n")
+
+        # Add the input prompt
+        choice = input("Enter the number corresponding to your choice: ")
+        return choice
 
     def _hardware_interface_configuration_prompt(
         self, factory: HardwareInterfaceFactory
