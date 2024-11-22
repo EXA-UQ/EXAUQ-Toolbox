@@ -1,9 +1,9 @@
 import argparse
 import csv
 import json
+import os
 import pathlib
 import re
-import os
 from collections import OrderedDict
 from collections.abc import Sequence
 from io import TextIOWrapper
@@ -63,6 +63,13 @@ class Cli(cmd2.Cmd):
         "--file",
         type=argparse.FileType(mode="r", encoding="utf-8-sig"),
         help="A path to a csv file containing inputs to submit to the simulator.",
+    )
+    submit_parser.add_argument(
+        "-l",
+        "--level",
+        type=int,
+        default=1,
+        help="The level of the hardware interface to use for the simulation.",
     )
 
     resubmit_parser = cmd2.Cmd2ArgumentParser()
@@ -226,7 +233,7 @@ class Cli(cmd2.Cmd):
         "file",
         type=argparse.FileType(mode="r"),
         nargs="?",
-        help="JSON file defining the hardware interface to add (optional)."
+        help="JSON file defining the hardware interface to add (optional).",
     )
 
     list_interfaces_parser = cmd2.Cmd2ArgumentParser(
@@ -276,7 +283,9 @@ class Cli(cmd2.Cmd):
         workspace_log_file = self._workspace_dir / "simulations.csv"
 
         if not general_settings_file.exists():
-            input_dim, hardware_interfaces, interface_details = self._init_workspace_prompt()
+            input_dim, hardware_interfaces, interface_details = (
+                self._init_workspace_prompt()
+            )
 
             write_settings_json(
                 {
@@ -315,7 +324,9 @@ class Cli(cmd2.Cmd):
             )
         return None
 
-    def _init_workspace_prompt(self) -> tuple[int, list[HardwareInterface], dict[str, dict[str, str]]]:
+    def _init_workspace_prompt(
+        self,
+    ) -> tuple[int, list[HardwareInterface], dict[str, dict[str, str]]]:
         """Initialise the application with workspace settings."""
 
         hardware_interfaces = []
@@ -331,9 +342,9 @@ class Cli(cmd2.Cmd):
             interface_settings_file_path = self._select_interface_entry_method_prompt()
 
             if interface_settings_file_path is None:
-                    display_name, factory_cls = self._select_hardware_interface_prompt()
-                    factory = factory_cls()
-                    self._hardware_interface_configuration_prompt(factory)
+                display_name, factory_cls = self._select_hardware_interface_prompt()
+                factory = factory_cls()
+                self._hardware_interface_configuration_prompt(factory)
 
             else:
                 display_name, factory_cls = self._select_hardware_interface_prompt()
@@ -345,7 +356,7 @@ class Cli(cmd2.Cmd):
             self._workspace_dir.mkdir(exist_ok=True)
             interface_name = hardware_interfaces[-1].name
             hardware_params_filename = (
-                    self._hardware_params_prefix + interface_name + ".json"
+                self._hardware_params_prefix + interface_name + ".json"
             )
             hardware_params_file = self._workspace_dir / hardware_params_filename
             factory.serialise_hardware_parameters(hardware_params_file)
@@ -367,10 +378,14 @@ class Cli(cmd2.Cmd):
         choice = input("Enter the number corresponding to your choice: ")
         if choice == "2":
             while True:
-                file_path = input("Enter the path to the file containing your interface details: ")
+                file_path = input(
+                    "Enter the path to the file containing your interface details: "
+                )
 
                 if not os.path.isfile(file_path):
-                    self._render_error(f"File not found: '{file_path}'. Please provide a valid file path.")
+                    self._render_error(
+                        f"File not found: '{file_path}'. Please provide a valid file path."
+                    )
                 else:
                     try:
                         with open(file_path, "r") as file:
@@ -383,10 +398,16 @@ class Cli(cmd2.Cmd):
                             f"Please ensure it contains properly formatted JSON data.\nDetails: {e}"
                         )
                     except Exception as e:
-                        self._render_error(f"Unexpected error reading interface settings: {e}")
+                        self._render_error(
+                            f"Unexpected error reading interface settings: {e}"
+                        )
 
                 # Ask if the user wants to try again or cancel
-                retry = input("Would you like to try entering the file path again? (y/n): ").strip().lower()
+                retry = (
+                    input("Would you like to try entering the file path again? (y/n): ")
+                    .strip()
+                    .lower()
+                )
                 if retry != "y":
                     self.poutput("Exiting file entry process.")
                     return None
@@ -394,11 +415,12 @@ class Cli(cmd2.Cmd):
             self.poutput("Entering interactive mode.")
             return None
 
-    def _hardware_interface_configuration_prompt(self, factory: HardwareInterfaceFactory) -> None:
+    def _hardware_interface_configuration_prompt(
+        self, factory: HardwareInterfaceFactory
+    ) -> None:
         """Prompt the user to configure a hardware interface."""
         self.poutput(
-            "Please provide the following details for your hardware "
-            "interface..."
+            "Please provide the following details for your hardware " "interface..."
         )
         for param, prompt in factory.interactive_prompts.items():
             value_str = input(f"  {prompt}: ")
@@ -469,7 +491,8 @@ class Cli(cmd2.Cmd):
 
         try:
             inputs = parse_inputs(args.inputs) + parse_inputs(args.file)
-            submitted_jobs = self._app.submit(inputs)
+            level = args.level
+            submitted_jobs = self._app.submit(inputs, level=level)
             self._render_stdout(self._make_submissions_table(submitted_jobs))
         except ParsingError as e:
             self._render_error(str(e))
@@ -718,14 +741,16 @@ class Cli(cmd2.Cmd):
             self._hardware_interface_configuration_prompt(factory)
             self._finalise_hardware_setup(factory, factory_cls)
 
-    def _finalise_hardware_setup(self, factory: HardwareInterfaceFactory, factory_cls: type) -> None:
+    def _finalise_hardware_setup(
+        self, factory: HardwareInterfaceFactory, factory_cls: type
+    ) -> None:
         """Finalise the setup of a hardware interface."""
 
         self.poutput("Setting up hardware...")
         hardware_interface = factory.create_hardware()
 
         hardware_params_filename = (
-                self._hardware_params_prefix + hardware_interface.name + ".json"
+            self._hardware_params_prefix + hardware_interface.name + ".json"
         )
         hardware_params_file = self._workspace_dir / hardware_params_filename
         factory.serialise_hardware_parameters(hardware_params_file)
@@ -751,7 +776,8 @@ class Cli(cmd2.Cmd):
         self._app.add_interface(hardware_interface)
 
         self.poutput(
-            f"Thanks -- new hardware interface '{hardware_interface.name}' added to workspace '{self._workspace_dir}'.")
+            f"Thanks -- new hardware interface '{hardware_interface.name}' added to workspace '{self._workspace_dir}'."
+        )
 
     @cmd2.with_argparser(list_interfaces_parser)
     def do_list_interfaces(self, args) -> None:
@@ -776,11 +802,15 @@ class Cli(cmd2.Cmd):
             job_count = self._app.get_interface_job_count(name)
 
             # Append to table data
-            data.append([name, level, host, user, job_count if job_count is not None else "N/A"])
+            data.append(
+                [name, level, host, user, job_count if job_count is not None else "N/A"]
+            )
 
         # Format and print the table
         table = make_table(
-            OrderedDict((header, [row[i] for row in data]) for i, header in enumerate(headers))
+            OrderedDict(
+                (header, [row[i] for row in data]) for i, header in enumerate(headers)
+            )
         )
         self.poutput(table)
 
