@@ -263,6 +263,59 @@ class Cli(cmd2.Cmd):
         self.register_preloop_hook(self.initialise_app)
         self._hardware_params_prefix = "hw_params_"
 
+        self._generate_bordered_header(
+            "EXAUQ Command Line Interface",
+            "Version 0.1.0",
+            width=70,
+            title_color="\033[1;34m",
+        )
+
+    def _generate_bordered_header(
+        self,
+        title: str,
+        subtitle: Optional[str] = None,
+        width: Optional[int] = None,
+        title_color: Optional[str] = None,
+        subtitle_color: Optional[str] = None,
+        border_char: str = "=",
+    ) -> None:
+        """Generate and print a bordered header with a title and optional subtitle.
+
+        Parameters
+        ----------
+        title : str
+            The main title to display within the border.
+        subtitle : str, optional
+            An optional subtitle displayed below the title.
+        width : int, optional
+            The total width of the border. Defaults to the length of the longest text (title or subtitle) plus padding.
+        title_color : str, optional
+            ANSI color code for the title. Defaults to white bold.
+        subtitle_color : str, optional
+            ANSI color code for the subtitle. Defaults to white bold.
+        border_char : str, optional
+            Character(s) used to draw the border. Defaults to '='.
+        """
+        # Calculate width
+        text_width = max(len(title), len(subtitle) if subtitle else 0) + 4  # Add padding
+        width = max(
+            width or 0, text_width
+        )  # Use provided width if larger than text width
+
+        # Build the border
+        border = (border_char * (width // len(border_char) + 1))[:width]
+        centered_title = f"{title_color}{title.center(width)}\033[0m"  # Reset color
+        centered_subtitle = (
+            f"{subtitle_color}{subtitle.center(width)}\033[0m" if subtitle else ""
+        )
+
+        # Print the header
+        self.poutput(border)
+        self.poutput(centered_title)
+        if subtitle:
+            self.poutput(centered_subtitle)
+        self.poutput(border)
+
     def initialise_app(self) -> None:
         """Initialise the application with workspace settings.
 
