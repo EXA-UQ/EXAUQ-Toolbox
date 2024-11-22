@@ -15,8 +15,6 @@ jobs:
   setup:
     name: Linting Setup
     runs-on: ubuntu-latest
-    if: ${{ github.event.review.state == 'approved' && (github.event.pull_request.base.ref == 'main' || github.event.pull_request.base.ref == 'dev' || startsWith(github.event.pull_request.base.ref, 'releases/')) 
-      }}
     outputs:
       workspace: ${{ steps.cache.outputs.cache-hit }}
     steps:
