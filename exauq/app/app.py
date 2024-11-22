@@ -76,13 +76,13 @@ class App:
         """
         return self._interfaces
 
-    def submit(self, inputs: Sequence[Sequence[Real]]) -> tuple[Job]:
+    def submit(self, inputs: Sequence[Sequence[Real]], level: int = 1) -> tuple[Job, ...]:
         """
-        Submits a batch of simulation jobs to the job manager based on the provided input sequences.
+        Submits a batch of simulation jobs to the job manager based on the provided input sequences and level.
 
-        Each input sequence is converted into an Input object and then submitted as a new simulation
-        job through the JobManager. This method is ideal for bulk submission of jobs to utilize
-        hardware resources efficiently.
+        Each input sequence is converted into an ``Input`` object and submitted to the job manager with the
+        specified level. The method returns a tuple of the ``Job`` objects created for each submitted job,
+        allowing for further interaction or status checking.
 
         Parameters
         ----------
@@ -90,9 +90,12 @@ class App:
             A sequence of input sequences, where each inner sequence represents the input parameters
             for a single simulation job.
 
+        level : int
+            The level of the submitted jobs. Defaults to 1.
+
         Returns
         -------
-        tuple[Job]
+        tuple[Job, ...]
             A tuple of the Job objects created for each submitted job, allowing for further interaction
             or status checking.
 
@@ -107,7 +110,7 @@ class App:
 
         submitted_jobs = []
         for inp in inputs:
-            submitted_jobs.append(self._job_manager.submit(Input(*inp)))
+            submitted_jobs.append(self._job_manager.submit(Input(*inp), level=level))
 
         return tuple(submitted_jobs)
 
@@ -306,9 +309,3 @@ class App:
         """
         interface_job_counts = self._job_manager.interface_job_counts
         return interface_job_counts.get(interface_name)
-
-
-
-
-
-
