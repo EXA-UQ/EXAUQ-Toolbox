@@ -385,11 +385,15 @@ class Cli(cmd2.Cmd):
         hardware_interfaces = []
         interface_details = {}
 
-        self.poutput(f"A new workspace '{self._workspace_dir}' will be set up.")
-        self.poutput(
-            "Please provide the following details to initialise the workspace..."
+        self._generate_bordered_header(
+            "Workspace Initialisation",
+            f"A new workspace '{self._workspace_dir}' will be set up.",
+            width=70,
+            title_color="\033[1;34m",
+            border_char="-",
         )
-        input_dim = int(input("  Dimension of simulator input space: "))
+
+        input_dim = int(input("Dimension of simulator input space: "))
 
         while True:
             interface_settings_file_path = self._select_interface_entry_method_prompt()
