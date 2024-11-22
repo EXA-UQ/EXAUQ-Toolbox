@@ -6,14 +6,13 @@
   language: python
   minimum_pre_commit_version: 2.9.2
   require_serial: true
-  types_or: [python, pyi, jupyter]
-  additional_dependencies: [".[jupyter]"]
+  types_or: [python]
 
 - id: isort
   name: isort
   description: "Run 'isort' for proper import formatting"
   entry: isort
   language: python
-  types_or: [python, pyi, jupyter]
+  types_or: [python]
   profile: 'black'
 
