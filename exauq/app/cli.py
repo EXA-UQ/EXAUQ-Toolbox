@@ -244,7 +244,7 @@ class Cli(cmd2.Cmd):
         super().__init__(allow_cli_args=False)
         self._workspace_dir = pathlib.Path(workspace_dir)
         self._app = None
-        self.prompt = "(exauq)> "
+        self.prompt = self.prompt = "\033[1;34m(exauq)>\033[0m "
         self._JOBID_HEADER = "JOBID"
         self._INPUT_HEADER = "INPUT"
         self._STATUS_HEADER = "STATUS"
