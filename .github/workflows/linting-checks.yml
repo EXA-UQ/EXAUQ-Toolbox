@@ -16,6 +16,11 @@ jobs:
   black:
     name: black Formatting Check
     runs-on: ubuntu-latest
+    if: ${{ github.event.review.state == 'approved' && 
+      (github.event.pull_request.base.ref == 'main' || 
+      github.event.pull_request.base.ref == 'dev' || 
+      startsWith(github.event.pull_request.base.ref, 'releases/')) 
+      }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -37,6 +42,11 @@ jobs:
   isort:
     name: isort Import Check
     runs-on: ubuntu-latest
+    if: ${{ github.event.review.state == 'approved' && 
+      (github.event.pull_request.base.ref == 'main' || 
+      github.event.pull_request.base.ref == 'dev' || 
+      startsWith(github.event.pull_request.base.ref, 'releases/')) 
+      }
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
