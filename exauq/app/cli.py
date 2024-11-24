@@ -532,7 +532,6 @@ class Cli(cmd2.Cmd):
                     self.poutput("Exiting file entry process.")
                     return None
         else:
-            self.poutput("Entering interactive mode.")
             return None
 
     def _generate_workspace_summary(
