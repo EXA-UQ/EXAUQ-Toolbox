@@ -268,7 +268,7 @@ class Cli(cmd2.Cmd):
 
         self._generate_bordered_header(
             "EXAUQ Command Line Interface",
-            "Version 0.1.0",
+            f"Version {self._package_version}",
             width=70,
             title_color="\033[1;34m",
         )
@@ -572,6 +572,22 @@ class Cli(cmd2.Cmd):
         """Write text as a warning message to standard error."""
 
         self.pwarning("Warning: " + text)
+
+    def _clear_screen(self) -> None:
+        """Clear the terminal screen and display the EXAUQ header."""
+        # Clear screen based on the operating system
+        if os.name == "nt":  # For Windows
+            os.system("cls")
+        else:  # For macOS and Linux
+            os.system("clear")
+
+        # Display the EXAUQ header after clearing
+        self._generate_bordered_header(
+            title="EXAUQ Command Line Interface",
+            subtitle=f"Version {self._package_version}",
+            width=70,
+            title_color="\033[1;34m",
+        )
 
     def _make_table(self, data: OrderedDict[str, Sequence[Any]]) -> str:
         """Make a textual table from data."""
