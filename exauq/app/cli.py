@@ -305,7 +305,12 @@ class Cli(cmd2.Cmd):
             width or 0, text_width
         )  # Use provided width if larger than text width
 
-        # Build the border
+        if title_color is None:
+            title_color = ""
+        if subtitle_color is None:
+            subtitle_color = ""
+
+        # Build the border, centered title, and centered subtitle
         border = (border_char * (width // len(border_char) + 1))[:width]
         centered_title = f"{title_color}{title.center(width)}\033[0m"  # Reset color
         centered_subtitle = (
