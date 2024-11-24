@@ -273,6 +273,17 @@ class Cli(cmd2.Cmd):
             title_color="\033[1;34m",
         )
 
+    def postloop(self) -> None:
+        """Perform cleanup after the command loop ends."""
+        if self._app is not None:
+            self._render_stdout(
+                "Shutting down… Even kernels need a break sometimes.",
+                text_color="\033[1;32m",
+            )
+            self._app.shutdown()
+
+        super().postloop()
+
     def _generate_bordered_header(
         self,
         title: str,
@@ -616,15 +627,9 @@ class Cli(cmd2.Cmd):
                 self.poutput(f"Selected: {selected_factory[0]}")
                 return selected_factory
             else:
-                self.poutput("Invalid choice, please try again.")
-
-    def do_quit(self, args) -> Optional[bool]:
-        """Exit the application."""
-
-        if self._app is not None:
-            self._app.shutdown()
-
-        return super().do_quit(args)
+                self._render_stdout(
+                    "Invalid choice, please try again.", text_color="\033[1;31m"
+                )  # Error message in red
 
     def _render_stdout(
         self,
