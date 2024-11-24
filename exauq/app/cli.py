@@ -6,6 +6,7 @@ import pathlib
 import re
 from collections import OrderedDict
 from collections.abc import Sequence
+from importlib.metadata import PackageNotFoundError, version
 from io import TextIOWrapper
 from typing import Any, Callable, Optional, Union
 
@@ -263,6 +264,8 @@ class Cli(cmd2.Cmd):
         self.register_preloop_hook(self.initialise_app)
         self._hardware_params_prefix = "hw_params_"
 
+        self._package_version = self._get_package_version("exauq")
+
         self._generate_bordered_header(
             "EXAUQ Command Line Interface",
             "Version 0.1.0",
@@ -315,6 +318,14 @@ class Cli(cmd2.Cmd):
         if subtitle:
             self.poutput(centered_subtitle)
         self.poutput(border)
+
+    @staticmethod
+    def _get_package_version(package_name: str) -> str:
+        """Fetch the current version of the given package."""
+        try:
+            return version(package_name)
+        except PackageNotFoundError:
+            return "Unknown"
 
     def initialise_app(self) -> None:
         """Initialise the application with workspace settings.
