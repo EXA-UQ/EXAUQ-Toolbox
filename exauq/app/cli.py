@@ -643,15 +643,23 @@ class Cli(cmd2.Cmd):
         """Prompt the user to select a hardware interface type."""
 
         while True:
-            self.poutput("Select the hardware interface type of this interface:")
+            self._generate_bordered_header(
+                title="Choose the type of hardware interface to configure",
+                border_char="-",
+            )
+            # Display hardware interface options
             for option, (display_name, _) in Cli.INTERFACE_FACTORIES.items():
-                self.poutput(f"  {option}: {display_name}")
+                self._render_stdout(f"  \033[1;33m{option}\033[0m: {display_name}")
 
+            # Prompt user for input
             factory_choice = input("Enter the number corresponding to your choice: ")
             selected_factory = Cli.INTERFACE_FACTORIES.get(factory_choice)
 
+            # Handle valid and invalid input
             if selected_factory:
-                self.poutput(f"Selected: {selected_factory[0]}")
+                self._render_stdout(
+                    f"Selected: \033[1;32m{selected_factory[0]}\033[0m"
+                )  # Success message in green
                 return selected_factory
             else:
                 self._render_stdout(
