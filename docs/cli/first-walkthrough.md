@@ -273,7 +273,7 @@ generated integer used by exauq to keep track of the job status. (The ID you rec
 avoid overly long output lines.
 
 !!! note
-Although the coordinates are rounded in the INPUT table heading, the full-precision values are submitted to the simulator.
+    Although the coordinates are rounded in the INPUT table heading, the full-precision values are submitted to the simulator.
 
 #### Handling Negative Inputs
 
@@ -503,8 +503,8 @@ including their name, level, host, user, and the number of active jobs. For exam
 ```
 (exauq)> list_interfaces 
 Name             Level  Host                 User    Active Jobs
-ExampleServer     1      server.example.com  joe     1
-AnotherServer     2      server2.example.com joe     3
+ExampleServer    1      server.example.com   joe     1
+AnotherServer    2      server2.example.com  joe     3
 
 (exauq)>
 ```
