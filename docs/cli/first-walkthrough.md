@@ -107,7 +107,7 @@ Enter the number corresponding to your choice: 1  # (2)
 Enter the number corresponding to your choice: 1  # (3)
 Selected: Unix Server Script Interface
 ```
-3. Interface Type: Select the type of hardware interface you want to configure. In this example, a Unix Server Script Interface is chosen.
+3. **Interface Type**: Select the type of hardware interface you want to configure. In this example, a Unix Server Script Interface is chosen.
 
 ```
 --------------------------------------------
@@ -135,6 +135,8 @@ Add another hardware interface? (y/n): n  # (12)
 	- (11) If not using an SSH agent, input your server password to establish a connection.
 	- (12) Decide whether to add additional hardware interfaces.
 
+!!! note
+    You can add multiple hardware interfaces to run simulations on different servers or with different programs. In this example, only one interface is added.
 ```
 ======================================================================
                      EXAUQ Command Line Interface                     
@@ -179,11 +181,10 @@ $ ls -a
 .  ..  .exauq-ws
 
 $ ls .exauq-ws/
-hardware_params  settings.json
+hw_params_ExampleServer.json  settings.json
 ```
 
 !!! warning
-
     Don't go modifying the files in the workspace directory, as this will likely make the
     `exauq` application behave incorrectly. In general, we recommend leaving the
     workspace directory alone.
@@ -224,8 +225,9 @@ To view all available commands within the application, run the `help` command:
 
 Documented commands (use 'help -v' for verbose/'help <topic>' for details):
 ===========================================================================
-alias  help     macro  run_pyscript  set    shortcuts  submit
-edit   history  quit   run_script    shell  show     
+add_interface  edit     list_interfaces  resubmit      set        show  
+alias          help     macro            run_pyscript  shell      submit
+cancel         history  quit             run_script    shortcuts  write     
 
 (exauq)>
 ```
@@ -235,27 +237,28 @@ for a particular command, run `help COMMAND`, for example:
 
 ```
 (exauq)> help submit
-Usage: submit [-h] [-f FILE] [inputs [...]]
+Usage: submit [-h] [-f FILE] [-l LEVEL] [inputs [...]]
 
-Submit a job to the simulator.
+Submit jobs to the simulator.
 
 positional arguments:
-  inputs           The inputs to submit to the simulator.
+  inputs             The inputs to submit to the simulator.
 
 optional arguments:
-  -h, --help       show this help message and exit
-  -f, --file FILE  A path to a csv file containing inputs to submit to the simulator.
+  -h, --help         show this help message and exit
+  -f, --file FILE    A path to a csv file containing inputs to submit to the simulator.
+  -l, --level LEVEL  The level of the hardware interface to use for the simulation.
 
 (exauq)>
 ```
 
-### Submitting jobs
+### Submitting Jobs
 
-A _job_ consists of sending a single _input_ to the simulator. (Note that an _input_ will
-in general consist of multiple coordinates.) In our example, we specified that the
-simulator takes in 3-dimensional inputs when creating the workspace. We can submit an
-input to the simulator with the `submit` command, as a comma-separated list of numbers. For example, to
-submit the input `(1.111, 2.222, 9.999)`, we enter the following into the application:
+A _job_ consists of sending a single _input_ to the simulator. (Note that an _input_ will generally 
+consist of multiple coordinates.) In our example, we specified that the simulator takes in 3-dimensional 
+inputs when creating the workspace. We can submit an input to the simulator with the `submit` command, 
+providing a comma-separated list of numbers. For example, to submit the input `(1.111, 2.222, 9.999)`, 
+we enter the following into the application:
 
 ```
 (exauq)> submit 1.111,2.222,9.999
@@ -264,43 +267,50 @@ JOBID              INPUT
 
 (exauq)>
 ```
-
-Notice that an ID has been returned for the submitted job. This is a uniquely-generated
-integer for the job and is used by the `exauq` application to keep track of the status of
-the job. (The ID you receive will likely differ.) The input for the job is also printed,
-with coordinates rounded to avoid long lines of output.
+1. **Unique Job ID**: Notice that an ID has been returned for the submitted job. This is a uniquely 
+generated integer used by exauq to keep track of the job status. (The ID you receive will differ.)
+2. **Rounded Input Display**: The input for the job is also displayed, with coordinates rounded to 
+avoid overly long output lines.
 
 !!! note
-    Although the coordinates are rounded in the `INPUT` table heading, the full precision
-    numbers are submitted to the simulator.
+Although the coordinates are rounded in the INPUT table heading, the full-precision values are submitted to the simulator.
 
-!!! info
-    If you try submitting an input that starts with a negative number with the approach
-    given above, you will encounter an error:
+#### Handling Negative Inputs
 
-    ```
-    (exauq)> submit -1,2,3
-    Usage: submit [-h] [-f FILE] [inputs [...]]
-    Error: unrecognized arguments: -1,2,3
+If you try submitting an input starting with a negative number, you’ll encounter an error due to argument parsing:
 
-    (exauq)>
-    ```
-    
-    This is because the `-1` is being interpreted as an optional argument to `submit`,
-    which is not what we want. To get around this, place the list of inputs after `--`,
-    like so:
+```
+(exauq)> submit -1,2,3
+Usage: submit [-h] [-f FILE] [-l LEVEL] [inputs [...]]
+Error: unrecognized arguments: -1,2,3
 
-    ```
-    (exauq)> submit -- -1,2,3
-    ``` 
+(exauq)>
+```
+To resolve this, place the input list after a --, like so:
 
-    This will now submit the input `(-1.0, 2.0, 3.0)` as desired.
+```
+(exauq)> submit -- -1,2,3
+```
 
+This will submit the input (-1.0, 2.0, 3.0) as expected.
 
-Instead of submitting inputs manually at the prompt, there is the option to submit a
-collection of inputs as read from a csv file, using the `--file` (or `-f`) option. For
-example, supposing we had a csv file `design.csv` in our working directory, we could run
-the command
+#### Using the --level Option
+
+The --level (or -l) option allows you to specify which hardware interface level to use for the submission. For example, to submit the input (4.444, 5.555, 6.666) using hardware level 2:
+
+```
+(exauq)> submit -l 2 4.444,5.555,6.666
+JOBID              INPUT             
+20240420183710123  (4.44, 5.56, 6.67)
+
+(exauq)>
+```
+
+The default level is 1 if the --level argument is not specified.
+
+#### Submitting Inputs from a CSV File
+
+Instead of submitting inputs manually, you can use the --file (or -f) option to submit multiple inputs from a CSV file. For example, if you have a file named design.csv in your working directory:
 
 ```
 (exauq)> submit --file design.csv
@@ -312,6 +322,9 @@ JOBID              INPUT
 
 (exauq)>
 ```
+
+Each row in the file corresponds to a simulator input, and the system generates a unique job ID for each submission.
+
 
 ### Showing the status of jobs
 
@@ -482,3 +495,18 @@ $ ls -a
 .  ..  .exauq-ws  jobs.csv
 
 ```
+### Viewing Interfaces
+
+The _list_interfaces_ command displays an overview of all hardware interfaces configured in the workspace, 
+including their name, level, host, user, and the number of active jobs. For example:
+
+```
+(exauq)> list_interfaces 
+Name             Level  Host                 User    Active Jobs
+ExampleServer     1      server.example.com  joe     1
+AnotherServer     2      server2.example.com joe     3
+
+(exauq)>
+```
+
+This command is useful for quickly reviewing the available interfaces and monitoring job distribution.
