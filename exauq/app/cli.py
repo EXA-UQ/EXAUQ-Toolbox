@@ -504,6 +504,63 @@ class Cli(cmd2.Cmd):
             self.poutput("Entering interactive mode.")
             return None
 
+    def _generate_workspace_summary(
+        self,
+        workspace_dir: pathlib.Path,
+        input_dim: int,
+        interface_details: dict[str, dict[str, str]],
+    ) -> None:
+        """Generate and display a summary of the workspace setup.
+
+        Parameters
+        ----------
+        workspace_dir : pathlib.Path
+            Path to the workspace directory.
+        input_dim : int
+            Dimension of the simulator input space.
+        interface_details : dict[str, dict[str, str]]
+            Details of the added hardware interfaces, including parameter files.
+        """
+        self._clear_screen()
+        self._generate_bordered_header(
+            "Workspace Setup Summary",
+            width=70,
+            title_color="\033[1;34m",
+            border_char="-",
+        )
+        self._render_stdout(f"Workspace Directory: {workspace_dir}", False)
+        self._render_stdout(f"Input Dimension: {input_dim}", False)
+
+        # Create a table for interface details
+        headers = ["Interface Name", "Details"]
+        data = []
+        for name, details in interface_details.items():
+            params_file = workspace_dir / details["params"]
+            try:
+                # Load the parameter details from the file
+                with open(params_file, "r") as f:
+                    params = json.load(f)
+
+                # Format and truncate parameters
+                formatted_params = [
+                    f"{k}: {self._truncate_string(str(v), 30)}" for k, v in params.items()
+                ]
+                formatted_line = "; ".join(formatted_params)
+                formatted_line = self._truncate_string(
+                    formatted_line, 120
+                )  # Truncate overall line
+            except Exception as e:
+                formatted_line = f"Error loading parameters: {e}"
+
+            data.append([name, formatted_line])
+
+        table = make_table(
+            OrderedDict(
+                (header, [row[i] for row in data]) for i, header in enumerate(headers)
+            )
+        )
+        self._render_stdout("Interfaces Added:\n" + table)
+
     def _interface_entry_method_prompt(self) -> Optional[str]:
         """Prompt the user to select an interface entry method."""
 
