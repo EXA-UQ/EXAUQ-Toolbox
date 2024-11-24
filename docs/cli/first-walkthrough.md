@@ -45,53 +45,117 @@ $ exauq --docs
 ```
 
 
-## Starting a new workspace
+## Starting a New Workspace
 
-When you run `exauq` in a new directory, it will walk you through the steps for creating a
-_workspace_. Conceptually, we can think of a workspace corresponding to a particular
-'project' for which we need to run simulations. In practice, a workspace is nothing more
-than a directory dedicated to storing settings and simulation data, which enables `exauq`
-to resume where it left off next time you start it.
+When you run `exauq` in a new directory, the CLI will guide you through creating a new _workspace_. Conceptually, a workspace corresponds to a specific 'project' requiring simulations. In practice, it’s a directory dedicated to storing settings and simulation data, enabling `exauq` to resume where it left off in subsequent sessions.
 
-Below we give an example run-through of starting a new workspace, with line-by-line
-explanations of steps where user input is required. (The comments with numbering, e.g. `#
-(1)`, are just to help refer to the lines in the explanation and shouldn't be included
-when running through for real.)
+Here, we provide an updated walkthrough for starting a new workspace with line-by-line explanations of user input. Comments with numbering (e.g., `# (1)`) are provided for clarity but should not be included when following the steps in your terminal.
+
+### Example Session
 
 ```
 $ exauq
-A new workspace '.exauq-ws' will be set up.
-Please provide the following details to initialise the workspace...
-  Dimension of simulator input space: 3  # (1)
-  Host server address: server.example.com  # (2)
-  Host username: joe  # (3)
-  Path to simulator script on host: path/to/my-simulator-script.sh  # (4)
-  Program to run simulator script with: bash  # (5)
-  Use SSH agent? (Default 'no'): n  # (6)
-Setting up hardware...
-Password for joe@server.example.com:  # (7)
-Connection to server.example.com established.
-Thanks -- workspace '.exauq-ws' is now set up.
-(exauq)>  # (8)
+======================================================================
+                     EXAUQ Command Line Interface                     
+                            Version 0.1.0                             
+======================================================================
+----------------------------------------------------------------------
+                       Workspace Initialisation                       
+             A new workspace '.exauq-ws' will be set up.              
+----------------------------------------------------------------------
+Dimension of simulator input space: 3  # (1)
+Simulator input dimension set to: 3
+
+Press Enter to continue...
 ```
+1. **Input Dimension**: Specify the number of input variables expected by your simulator. In this example, the simulator requires three input variables.
+```
+======================================================================
+                     EXAUQ Command Line Interface                     
+                            Version 0.1.0                             
+======================================================================
+----------------------------------------------------------------------
+                           Interface Setup                            
+----------------------------------------------------------------------
 
-1. The number of input variables that the simulator expects.
-2. The address to the server where the simulator lives.
-3. Your username for the server.
-4. The path on the server to the simulator script. _We recommend providing an absolute
-   path._
-5. The program to run the simulator script with. In this example, we have a shell script,
-   so we use the program `bash`.
-6. Whether to use an already-running SSH agent for managing authentication with private 
-   keys to the server. If and agent is running and 'yes' is selected, then the `exauq`
-   application will use this to connect to the server without prompting for a password.
-   Otherwise, you will be prompted to enter your password to connect to the server (see
-   next).
-7. Enter your password to establish connection to the server. _This password is not stored
-   within the workspace or anywhere else by the_ `exauq` _application._
-8. After establishing a connection to the server, a directory `.exauq-ws` is created in
-   the current working directory and the main `exauq` command line interpreter is entered.
+---------------------------------
+  Select Interface Setup Method  
+---------------------------------
+  1: Interactive mode
+  2: Load from file
 
+Enter the number corresponding to your choice: 1  # (2)
+```
+2. **Interface Setup Method**: Choose how to configure the hardware interface:
+   - Interactive mode walks you through a step-by-step setup.
+   - Load from file uses a pre-configured JSON file containing interface details.
+
+```
+======================================================================
+                     EXAUQ Command Line Interface                     
+                            Version 0.1.0                             
+======================================================================
+----------------------------------------------------------------------
+                 Interactive Interface Configuration                  
+          Please provide details of your hardware interface           
+----------------------------------------------------------------------
+------------------------------------------------------
+  Choose the type of hardware interface to configure  
+------------------------------------------------------
+  1: Unix Server Script Interface
+
+Enter the number corresponding to your choice: 1  # (3)
+Selected: Unix Server Script Interface
+```
+3. Interface Type: Select the type of hardware interface you want to configure. In this example, a Unix Server Script Interface is chosen.
+
+```
+--------------------------------------------
+  Hardware Interface Configuration details  
+--------------------------------------------
+Hardware interface name: ExampleServer  # (4)
+Hardware interface level: 1  # (5)
+Host server address: server.example.com  # (6)
+Host username: joe  # (7)
+Path to simulator script on host: path/to/my-simulator-script.sh  # (8)
+Program to run simulator script with: bash  # (9)
+Use SSH agent? (Default 'no'): n  # (10)
+Password for joe@server.example.com:  # (11)
+Connection to server.example.com established.
+Add another hardware interface? (y/n): n  # (12)
+```
+4. Hardware Interface Details:
+	- (4) Name the hardware interface for identification.
+	- (5) Assign a level to the interface.
+	- (6) Provide the server address where the simulator resides.
+	- (7) Enter the username for the server.
+	- (8) Specify the path to the simulator script on the server.
+	- (9) Indicate the program to execute the simulator script (e.g., bash for shell scripts, python for python scripts, etc.).
+	- (10) Choose whether to use an SSH agent for authentication.
+	- (11) If not using an SSH agent, input your server password to establish a connection.
+	- (12) Decide whether to add additional hardware interfaces.
+
+```
+======================================================================
+                     EXAUQ Command Line Interface                     
+                            Version 0.1.0                             
+======================================================================
+----------------------------------------------------------------------
+                       Workspace Setup Summary                        
+----------------------------------------------------------------------
+Workspace Directory: .exauq-ws
+Input Dimension: 3
+Interfaces Added:
+Interface Name  Details                                                                                                                 
+ExampleServer   user: joe; host: server.example.com; program: bash; script_path: path/to/my-simulator-scrip...; name: ExampleServ...
+
+(exauq)>  # (13)
+```
+5. Workspace Summary: After completing the setup, exauq displays a summary:
+	- The workspace directory path.
+	- The simulator input dimension.
+	- Details of the configured hardware interfaces, including the host, user, program, and script path.
+6. Command Prompt: You are now ready to use exauq to manage simulations! The command prompt `(exauq)>` indicates the CLI is ready to accept commands.
 
 ## Quitting the application
 
