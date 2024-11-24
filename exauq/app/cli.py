@@ -465,6 +465,12 @@ class Cli(cmd2.Cmd):
                 )
                 return input_dim, hardware_interfaces, interface_details
 
+    def _truncate_string(self, value: str, max_length: int) -> str:
+        """Truncate a string to a maximum length, adding ellipses if needed."""
+        if len(value) > max_length:
+            return value[: max_length - 3] + "..."
+        return value
+
     def _select_interface_entry_method_prompt(self) -> str | None:
         """Prompt the user to select an interface entry method and return a valid file path or None."""
 
