@@ -488,6 +488,14 @@ class Cli(cmd2.Cmd):
         choice = self._interface_entry_method_prompt()
         if choice == "2":
             while True:
+                self._clear_screen()
+                self._generate_bordered_header(
+                    title="File Interface Configuration",
+                    subtitle="Load interface details from file",
+                    width=70,
+                    title_color="\033[1;34m",
+                    border_char="-",
+                )
                 file_path = input(
                     "Enter the path to the file containing your interface details: "
                 )
@@ -500,7 +508,9 @@ class Cli(cmd2.Cmd):
                     try:
                         with open(file_path, "r") as file:
                             json.load(file)
-                            self.poutput("File loaded successfully.")
+                            self._render_stdout(
+                                "File loaded successfully.", text_color="\033[1;32m"
+                            )
                             return file_path
                     except json.JSONDecodeError as e:
                         self._render_error(
