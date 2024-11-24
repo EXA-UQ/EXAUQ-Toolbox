@@ -593,20 +593,37 @@ class Cli(cmd2.Cmd):
         self._render_stdout("Interfaces Added:\n" + table)
 
     def _interface_entry_method_prompt(self) -> Optional[str]:
-        """Prompt the user to select an interface entry method."""
+        """Prompt the user to select an interface entry method with input validation."""
 
-        self.poutput()
-        self._generate_bordered_header(
-            title="Interface details input method", border_char="-"
-        )
+        while True:
+            # Display the header
+            self.poutput()
+            self._generate_bordered_header(
+                title="Select Interface Setup Method",
+                border_char="-",
+            )
 
-        # Format the menu options
-        self.poutput("  \033[1;33m1\033[0m: Interactive mode")
-        self.poutput("  \033[1;33m2\033[0m: Load from file\n")
+            # Display the menu options
+            self._render_stdout(
+                "  \033[1;33m1\033[0m: Interactive mode", trailing_newline=False
+            )
+            self._render_stdout("  \033[1;33m2\033[0m: Load from file")
 
-        # Add the input prompt
-        choice = input("Enter the number corresponding to your choice: ")
-        return choice
+            # Prompt the user for input
+            choice = input("Enter the number corresponding to your choice: ").strip()
+
+            # Validate the input
+            if choice in {"1", "2"}:
+                self._render_stdout(
+                    f"Selected: \033[1;32m{'Interactive mode' if choice == '1' else 'Load from file'}\033[0m"
+                )
+                return choice
+            else:
+                self._render_stdout(
+                    "Invalid choice. Please enter '1' or '2'.",
+                    text_color="\033[1;31m",
+                    trailing_newline=False,
+                )
 
     def _hardware_interface_configuration_prompt(
         self, factory: HardwareInterfaceFactory
