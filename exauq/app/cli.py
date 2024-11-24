@@ -401,6 +401,7 @@ class Cli(cmd2.Cmd):
         hardware_interfaces = []
         interface_details = {}
 
+        self._clear_screen()
         self._generate_bordered_header(
             "Workspace Initialisation",
             f"A new workspace '{self._workspace_dir}' will be set up.",
@@ -410,11 +411,29 @@ class Cli(cmd2.Cmd):
         )
 
         input_dim = int(input("Dimension of simulator input space: "))
+        self._render_stdout(
+            f"Simulator input dimension set to: {input_dim}\n",
+            text_color="\033[1;32m",
+            trailing_newline=False,
+        )
+        _ = input("Press Enter to continue...")
 
         while True:
+            self._clear_screen()
+            self._generate_bordered_header(
+                "Interface Setup", width=70, border_char="-", title_color="\033[1;34m"
+            )
             interface_settings_file_path = self._select_interface_entry_method_prompt()
 
             if interface_settings_file_path is None:
+                self._clear_screen()
+                self._generate_bordered_header(
+                    "Interactive Interface Configuration",
+                    "Please provide details of your hardware interface",
+                    width=70,
+                    border_char="-",
+                    title_color="\033[1;34m",
+                )
                 display_name, factory_cls = self._select_hardware_interface_prompt()
                 factory = factory_cls()
                 self._hardware_interface_configuration_prompt(factory)
