@@ -629,11 +629,11 @@ class Cli(cmd2.Cmd):
         self, factory: HardwareInterfaceFactory
     ) -> None:
         """Prompt the user to configure a hardware interface."""
-        self.poutput(
-            "Please provide the following details for your hardware " "interface..."
+        self._generate_bordered_header(
+            "Hardware Interface Configuration details", border_char="-"
         )
         for param, prompt in factory.interactive_prompts.items():
-            value_str = input(f"  {prompt}: ")
+            value_str = input(f"{prompt}: ")
             try:
                 factory.set_param_from_str(param, value_str)
             except ValueError as e:
