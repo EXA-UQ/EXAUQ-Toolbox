@@ -458,7 +458,11 @@ class Cli(cmd2.Cmd):
                 "params": hardware_params_filename,
             }
 
-            if input("  Add another hardware interface? (y/n): ").lower() != "y":
+            add_another = input("Add another hardware interface? (y/n): ").strip().lower()
+            if add_another != "y":
+                self._generate_workspace_summary(
+                    self._workspace_dir, input_dim, interface_details
+                )
                 return input_dim, hardware_interfaces, interface_details
 
     def _select_interface_entry_method_prompt(self) -> str | None:
