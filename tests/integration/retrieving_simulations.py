@@ -32,7 +32,7 @@ try:
     # Check that job IDs in the log file are present (indicates successful submission of
     # jobs)
     log = SimulationsLog(log_file, domain.dim)
-    assert ('1', '2', '3') == log.get_non_terminated_jobs()
+    assert ("1", "2", "3") == log.get_non_terminated_jobs()
 
     # Check that there are no un-submitted jobs
     assert tuple() == log.get_unsubmitted_inputs()
