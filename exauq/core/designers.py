@@ -1354,16 +1354,6 @@ def compute_multi_level_loo_samples(
     return MultiLevel({level: tuple(inputs) for level, inputs in design_points.items()})
 
 
-def initialise_for_multi_level_loo_sampling(
-    mlgp: MultiLevelGaussianProcess,
-    data: MultiLevel[Sequence[TrainingDatum]],
-    costs: MultiLevel[Real],
-    correlations: MultiLevel[Real],
-) -> tuple[MultiLevelGaussianProcess, MultiLevel[Real]]:
-    mlgp.fit(data)
-    return mlgp, costs
-
-
 def create_data_for_multi_level_loo_sampling(
     data: MultiLevel[Sequence[TrainingDatum]],
     costs: MultiLevel[Real],
@@ -1384,13 +1374,13 @@ def create_data_for_multi_level_loo_sampling(
             for datum in data[level]:
                 # Find datum in previous level with the same input as the current datum
                 prev_level_datum = [
-                    dat for dat in prev_level_data if equal_within_tolerance(dat.input, datum.input)
+                    dat
+                    for dat in prev_level_data
+                    if equal_within_tolerance(dat.input, datum.input)
                 ][0]
 
                 # Remove matching inputs from the rest of data
-                data = _remove_multi_level_repeated_inputs(
-                    data, datum, level
-                )
+                data = _remove_multi_level_repeated_inputs(data, datum, level)
 
                 # Compute output for this input as the difference between this level's
                 # output and the previous level's output multiplied by correlation.
@@ -1422,17 +1412,18 @@ def create_data_for_multi_level_loo_sampling(
 
     return delta_data, costs, delta_coefficients
 
+
 def _remove_multi_level_repeated_inputs(
-    data: MultiLevel[Sequence[TrainingDatum]], 
-    datum: TrainingDatum, 
+    data: MultiLevel[Sequence[TrainingDatum]],
+    datum: TrainingDatum,
     level: int,
 ) -> MultiLevel[Sequence[TrainingDatum]]:
 
-    # Todo: write docstrings and tests. 
+    # Todo: write docstrings and tests.
 
     for lvl in range(min(data.levels), level):
         data[lvl] = [
             dat for dat in data[lvl] if not equal_within_tolerance(dat.input, datum.input)
-            ]
+        ]
 
     return data
