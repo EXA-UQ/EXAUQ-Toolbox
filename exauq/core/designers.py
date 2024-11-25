@@ -1369,6 +1369,7 @@ def create_data_for_multi_level_loo_sampling(
     costs: MultiLevel[Real],
     correlations: Union[MultiLevel[Real], Real] = 1,
 ):
+    # To do - write doc string
     top_level = max(costs.levels)
     bottom_level = min(costs.levels)
     if isinstance(correlations, Real):
@@ -1376,32 +1377,33 @@ def create_data_for_multi_level_loo_sampling(
             {level: correlations for level in costs.levels if level < top_level}
         )
 
-    # Compute output data
-    # prev_level_data = MultiLevel(
-    #     {bottom_level: TrainingDatum(datum.input, 0) for datum in data[bottom_level]}
-    #     | {level: data[level - 1] for level in data.levels if level > bottom_level}
-    # )
     delta_data = MultiLevel({level: [] for level in data.levels})
     for level in reversed(data.levels):
-        if level == top_level:
+        if level != bottom_level:
             prev_level_data = data[level - 1]
-            for datum in data[top_level]:
+            for datum in data[level]:
                 # Find datum in previous level with the same input as the current datum
                 prev_level_datum = [
-                    dat for dat in prev_level_data if dat.input == datum.input
+                    dat for dat in prev_level_data if equal_within_tolerance(dat.input, datum.input)
                 ][0]
+
+                # Remove matching inputs from the rest of data
+                data = _remove_multi_level_repeated_inputs(
+                    data, datum, level
+                )
 
                 # Compute output for this input as the difference between this level's
                 # output and the previous level's output multiplied by correlation.
                 delta_output = (
-                    datum.output - correlations[top_level - 1] * prev_level_datum.output
+                    datum.output - correlations[level - 1] * prev_level_datum.output
                 )
 
                 # Add input and the computed output to the training data to return
-                delta_data[top_level].append(TrainingDatum(datum.input, delta_output))
+                delta_data[level].append(TrainingDatum(datum.input, delta_output))
 
         else:
-            delta_data[level] = []
+            # In the case of the bottom level simply return raw values
+            delta_data[level] = data[level]
 
     # Compute output coefficients
     delta_coefficients = costs.map(
@@ -1420,3 +1422,17 @@ def create_data_for_multi_level_loo_sampling(
 
     return delta_data, costs, delta_coefficients
 
+def _remove_multi_level_repeated_inputs(
+    data: MultiLevel[Sequence[TrainingDatum]], 
+    datum: TrainingDatum, 
+    level: int,
+) -> MultiLevel[Sequence[TrainingDatum]]:
+
+    # Todo: write docstrings and tests. 
+
+    for lvl in range(min(data.levels), level):
+        data[lvl] = [
+            dat for dat in data[lvl] if not equal_within_tolerance(dat.input, datum.input)
+            ]
+
+    return data
