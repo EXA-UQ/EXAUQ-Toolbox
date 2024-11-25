@@ -1359,7 +1359,36 @@ def create_data_for_multi_level_loo_sampling(
     costs: MultiLevel[Real],
     correlations: Union[MultiLevel[Real], Real] = 1,
 ):
-    # To do - write doc string
+    """Prepare data from the simulators to be ready for multi-level adaptive sampling.
+
+    For the implementation of creating the successive simulator differences used by
+    `compute_multi_level_loo_samples`, the data needs to satisfy the correct delta
+    calculations calculated between level $L$ and $L-1$ for the same inputs.
+    It must then be ensured that there are no repeats of inputs across the different
+    levels and hence are removed from the data as it makes no mathematical sense to have
+    repeated inputs across the multi-level GP with differing outputs.
+
+    By default the constant correlation of 1 is applied to every level if no correlation is
+    provided. Note that the correlations only run to level $L - 1$ as it denotes the correlation
+    between that level and the one above. If a 'Real' value is provided, then this value is provided
+    for every level in the multi-level correlations object.
+
+    Parameters
+    ----------
+    data:
+        Training data for the simulator at that level.
+    costs:
+        The costs of running a simulation at each of the levels.
+    correlations:
+        The Markov-like correlations between simulators at successive levels
+    Returns
+    -------
+    tuple[MultiLevel[Sequence[TrainingDatum]], MultiLevel[Real], MultiLevel[Real]]
+        A tuple containing the delta calulated training data, the multi-level costs
+        and the multi-level delta coefficients calculated.
+
+    """
+    # To do - write doc string (input sanitisation and validation)
     top_level = max(costs.levels)
     bottom_level = min(costs.levels)
     if isinstance(correlations, Real):
@@ -1380,7 +1409,7 @@ def create_data_for_multi_level_loo_sampling(
                 ][0]
 
                 # Remove matching inputs from the rest of data
-                data = _remove_multi_level_repeated_inputs(data, datum, level)
+                data = _remove_multi_level_repeated_input(data, datum, level)
 
                 # Compute output for this input as the difference between this level's
                 # output and the previous level's output multiplied by correlation.
@@ -1413,11 +1442,33 @@ def create_data_for_multi_level_loo_sampling(
     return delta_data, costs, delta_coefficients
 
 
-def _remove_multi_level_repeated_inputs(
+def _remove_multi_level_repeated_input(
     data: MultiLevel[Sequence[TrainingDatum]],
     datum: TrainingDatum,
     level: int,
 ) -> MultiLevel[Sequence[TrainingDatum]]:
+    """Remove a repeated input from a set of training data at a specific level.
+
+    Currently a utility function to `create_data_for_multi_level_loo_sampling` to improve readability,
+    although it may become a more generalised function at a later date. It will remove all repeated
+    entries across the multilevel for the input of a single datum.
+
+    Passing the level ensures that you keep the highest fidelity level of that repeated input.
+
+    Parameters
+    ----------
+    data:
+        Training data to be checked for repeated input
+    datum:
+        Single TrainingDatum used for comparison of input.
+    level:
+        The highest fidelity level at which the input appears.
+
+    Returns
+    -------
+    MultiLevel[Sequecnce[TrainingDatum]]
+        Returns an updated version of data with repeated inputs removed.
+    """
 
     # Todo: write docstrings and tests.
 
