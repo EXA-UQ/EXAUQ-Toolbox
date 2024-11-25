@@ -1388,15 +1388,36 @@ def create_data_for_multi_level_loo_sampling(
         and the multi-level delta coefficients calculated.
 
     """
-    # To do - write doc string (input sanitisation and validation)
+
+    if not isinstance(data, MultiLevel):
+        raise TypeError(
+            "Expected 'data' to be of type MultiLevel Sequence of TrainingDatum, "
+            f"but received {type(data)} instead."
+        )
+
+    if not isinstance(costs, MultiLevel):
+        raise TypeError(
+            "Expected 'costs' to be of type MultiLevel integers, "
+            f"but received {type(costs)} instead."
+        )
+
+    if correlations is not None:
+        if not isinstance(correlations, MultiLevel) and not isinstance(
+            correlations, Real
+        ):
+            raise TypeError(
+                "Expected 'correlations' to be of type MultiLevel Real or Real, "
+                f"but received {type(correlations)} instead."
+            )
+
     top_level = max(costs.levels)
     bottom_level = min(costs.levels)
     if isinstance(correlations, Real):
         correlations = MultiLevel(
             {level: correlations for level in costs.levels if level < top_level}
         )
-
     delta_data = MultiLevel({level: [] for level in data.levels})
+
     for level in reversed(data.levels):
         if level != bottom_level:
             prev_level_data = data[level - 1]
@@ -1424,12 +1445,6 @@ def create_data_for_multi_level_loo_sampling(
             # In the case of the bottom level simply return raw values
             delta_data[level] = data[level]
 
-    # Compute output coefficients
-    delta_coefficients = costs.map(
-        lambda level, _: math.prod(
-            correlations[lev] for lev in correlations.levels if lev >= level
-        )
-    )
     delta_coefficients = MultiLevel(
         {top_level: 1}
         | correlations.map(
@@ -1469,8 +1484,6 @@ def _remove_multi_level_repeated_input(
     MultiLevel[Sequecnce[TrainingDatum]]
         Returns an updated version of data with repeated inputs removed.
     """
-
-    # Todo: write docstrings and tests.
 
     for lvl in data.levels:
         if lvl < level:
