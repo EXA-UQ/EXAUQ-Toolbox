@@ -15,6 +15,7 @@ import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
     SimpleDesigner,
+    _remove_multi_level_repeated_input,
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_loo_prediction,
@@ -2429,6 +2430,99 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
 
         self.assertEqual(expected, delta_data)
+
+
+class TestRemoveMultiLevelRepeatedInput(ExauqTestCase):
+
+    def test_multi_level_removal_repeated_inputs(self):
+
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.3), 3)],
+                2: [TrainingDatum(Input(0.3), 3.3)],
+                3: [TrainingDatum(Input(0.3), 3.33)],
+            }
+        )
+
+        expected_return = MultiLevel({1: [], 2: [], 3: [TrainingDatum(Input(0.3), 3.33)]})
+
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
+    def test_multi_level_empty_level_data(self):
+
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.3), 3)],
+                2: [],
+                3: [TrainingDatum(Input(0.3), 3.33)],
+            }
+        )
+
+        expected_return = MultiLevel({1: [], 2: [], 3: [TrainingDatum(Input(0.3), 3.33)]})
+
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
+    def test_multi_level_repeated_inputs_within_levels(self):
+
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.3), 3)],
+                2: [TrainingDatum(Input(0.3), 3), TrainingDatum(Input(0.3), 3)],
+                3: [TrainingDatum(Input(0.3), 3.33)],
+            }
+        )
+
+        expected_return = MultiLevel({1: [], 2: [], 3: [TrainingDatum(Input(0.3), 3.33)]})
+
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
+    def test_multi_level_no_repeated_inputs(self):
+
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.1), 1)],
+                2: [TrainingDatum(Input(0.2), 2.2)],
+                3: [TrainingDatum(Input(0.3), 3.33)],
+            }
+        )
+
+        expected_return = data
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
+    def test_multi_level_missing_level(self):
+
+        data = MultiLevel(
+            {1: [TrainingDatum(Input(0.3), 3)], 3: [TrainingDatum(Input(0.3), 3.33)]}
+        )
+
+        expected_return = MultiLevel({1: [], 3: [TrainingDatum(Input(0.3), 3.33)]})
+
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
 
 
 if __name__ == "__main__":
