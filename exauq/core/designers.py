@@ -1356,7 +1356,6 @@ def compute_multi_level_loo_samples(
 
 def create_data_for_multi_level_loo_sampling(
     data: MultiLevel[Sequence[TrainingDatum]],
-    costs: MultiLevel[Real],
     correlations: Union[MultiLevel[Real], Real] = 1,
 ):
     """Prepare data from the simulators to be ready for multi-level adaptive sampling.
@@ -1377,8 +1376,6 @@ def create_data_for_multi_level_loo_sampling(
     ----------
     data:
         Training data for the simulator at that level.
-    costs:
-        The costs of running a simulation at each of the levels.
     correlations:
         The Markov-like correlations between simulators at successive levels
     Returns
@@ -1395,12 +1392,6 @@ def create_data_for_multi_level_loo_sampling(
             f"but received {type(data)} instead."
         )
 
-    if not isinstance(costs, MultiLevel):
-        raise TypeError(
-            "Expected 'costs' to be of type MultiLevel integers, "
-            f"but received {type(costs)} instead."
-        )
-
     if correlations is not None:
         if not isinstance(correlations, MultiLevel) and not isinstance(
             correlations, Real
@@ -1410,11 +1401,11 @@ def create_data_for_multi_level_loo_sampling(
                 f"but received {type(correlations)} instead."
             )
 
-    top_level = max(costs.levels)
-    bottom_level = min(costs.levels)
+    top_level = max(data.levels)
+    bottom_level = min(data.levels)
     if isinstance(correlations, Real):
         correlations = MultiLevel(
-            {level: correlations for level in costs.levels if level < top_level}
+            {level: correlations for level in data.levels if level < top_level}
         )
     delta_data = MultiLevel({level: [] for level in data.levels})
 
@@ -1454,7 +1445,7 @@ def create_data_for_multi_level_loo_sampling(
         )
     )
 
-    return delta_data, costs, delta_coefficients
+    return delta_data, delta_coefficients
 
 
 def _remove_multi_level_repeated_input(

@@ -2262,6 +2262,17 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
         self.costs = MultiLevel([1, 11, 110])
 
+    # def test_argument_type_errors(self):
+    #     """Ensure that correct TypeErrors are returned for incorrect arguments."""
+
+    # def test_empty_multi_level_data(self):
+
+    # def test_missing_levels_multi_level_data(self):
+
+    # def test_different_correlations_data_multi_levels(self):
+
+    # def test_no_level_1_training_data(self):
+
     def test_returns_delta_coefficients(self):
         """The coefficients for creating the multi-level GP for LOO adaptive sampling
         are returned, where the highest level coefficient is equal to 1 and each of the
@@ -2283,28 +2294,21 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 ],
             }
         )
-        costs = MultiLevel([1, 11, 110, 1100])
 
         # Case of 2 levels
         data2 = MultiLevel({1: data[1], 2: data[2]})
-        costs2 = MultiLevel({1: costs[1], 2: costs[2]})
         corrs2 = MultiLevel([0.1])
 
-        _, _, delta_coefficients = create_data_for_multi_level_loo_sampling(
-            data2, costs2, corrs2
-        )
+        _, delta_coefficients = create_data_for_multi_level_loo_sampling(data2, corrs2)
 
         expected = MultiLevel({1: corrs2[1], 2: 1})
         self.assertEqual(expected, delta_coefficients)
 
         # Case of 3 levels
         data3 = MultiLevel({1: data[1], 2: data[2], 3: data[3]})
-        costs3 = MultiLevel({1: costs[1], 2: costs[2], 3: costs[3]})
         corrs3 = MultiLevel([0.1, 0.2])
 
-        _, _, delta_coefficients = create_data_for_multi_level_loo_sampling(
-            data3, costs3, corrs3
-        )
+        _, delta_coefficients = create_data_for_multi_level_loo_sampling(data3, corrs3)
 
         expected = MultiLevel({1: corrs3[1] * corrs3[2], 2: corrs3[2], 3: 1})
         self.assertEqual(expected, delta_coefficients)
@@ -2312,9 +2316,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         # Case of 4 levels
         corrs4 = MultiLevel([0.1, 0.2, 0.3])
 
-        _, _, delta_coefficients = create_data_for_multi_level_loo_sampling(
-            data, costs, corrs4
-        )
+        _, delta_coefficients = create_data_for_multi_level_loo_sampling(data, corrs4)
 
         expected = MultiLevel(
             {
@@ -2332,8 +2334,8 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
 
         correlation = 0.5
 
-        _, _, delta_coefficients = create_data_for_multi_level_loo_sampling(
-            self.data, self.costs, correlations=correlation
+        _, delta_coefficients = create_data_for_multi_level_loo_sampling(
+            self.data, correlations=correlation
         )
 
         expected = MultiLevel({1: correlation * correlation, 2: correlation, 3: 1})
@@ -2343,9 +2345,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         """By default, a constant correlation of 1 is applied to every level
         (except the top level)."""
 
-        _, _, delta_coefficients = create_data_for_multi_level_loo_sampling(
-            self.data, self.costs
-        )
+        _, delta_coefficients = create_data_for_multi_level_loo_sampling(self.data)
 
         expected = MultiLevel({level: 1 for level in self.costs.levels})
         self.assertEqual(expected, delta_coefficients)
@@ -2365,11 +2365,8 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
             }
         )
         correlations = MultiLevel([0.1, 0.2, 0.3])
-        costs = MultiLevel([1, 10, 100, 1000])
 
-        delta_data, _, _ = create_data_for_multi_level_loo_sampling(
-            data, costs, correlations
-        )
+        delta_data, _ = create_data_for_multi_level_loo_sampling(data, correlations)
 
         expected = MultiLevel(
             {
@@ -2408,11 +2405,8 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
             }
         )
         correlations = MultiLevel([0.1, 0.2])
-        costs = MultiLevel([1, 10, 100])
 
-        delta_data, _, _ = create_data_for_multi_level_loo_sampling(
-            data, costs, correlations
-        )
+        delta_data, _ = create_data_for_multi_level_loo_sampling(data, correlations)
 
         expected = MultiLevel(
             {
