@@ -312,7 +312,7 @@ class SimulationsLog(object):
             The status of the job to be recorded alongside the input `x`.
             Defaults to JobStatus.PENDING_SUBMIT.
         job_level : int, optional
-            The level of the job. Defaults to 0.
+            The level of the job. Defaults to 1.
         interface_name : Optional[str], optional
             The name of the interface that the job is assigned to. Defaults to None.
 
