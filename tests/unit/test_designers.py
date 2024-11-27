@@ -2309,12 +2309,38 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         ):
             _ = create_data_for_multi_level_loo_sampling(test_data)
 
+    def test_incorrect_length_of_correlations(self):
+        """Ensure that a ValueError is raised if an incorrect number of correlations are passed.
+
+        Given the test_data is maxed at level 4, therefore there should be at least 4 levels of correlations.
+        It doesn't matter if there are more as this makes it easier for the user to just store all of the correlations
+        for their entire mlgp and pass this when using mlas with only a couple of new points on different levels. However,
+        there need to be at least 4 levels in order to correlate previous level points from a top-down point of view.
+        """
+
+        test_data = MultiLevel(
+            {
+                3: [TrainingDatum(Input(0.3), 33)],
+                4: [TrainingDatum(Input(0.4), 42)],
+            }
+        )
+        correlations = MultiLevel([1, 1])
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"'Correlations' MultiLevel expected to be provided for at least max level of 'data' - 1: {max(test_data.levels) - 1}, but "
+                f"is only of length: {max(correlations.levels)}."
+            ),
+        ):
+            _ = create_data_for_multi_level_loo_sampling(test_data, correlations)
+
     def test_data_with_only_one_level(self):
         """Ensure the raw values are simply returned if only 1 level of data is passed."""
 
         test_data = MultiLevel(
             {
-                1: [
+                3: [
                     TrainingDatum(Input(0.1), 1),
                     TrainingDatum(Input(0.2), 2),
                     TrainingDatum(Input(0.3), 3),
@@ -2352,7 +2378,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 4: [TrainingDatum(Input(0.1), outputs[4])],
             }
         )
-        correlations = MultiLevel([0.2, 0.3])
+        correlations = MultiLevel([0.2, 0.3, 0.4])
 
         delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
 
@@ -2377,13 +2403,13 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 4: [TrainingDatum(Input(0.2), outputs[4])],
             }
         )
-        correlations = MultiLevel([0.2, 0.3])
+        correlations = MultiLevel([0.2, 0.3, 0.4])
 
         delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
 
         expected = MultiLevel(
             {
-                1: [TrainingDatum(Input(0.1)), outputs[1]],
+                1: [TrainingDatum(Input(0.1), outputs[1])],
                 3: [],
                 4: [TrainingDatum(Input(0.2), outputs[4] - correlations[3] * outputs[3])],
             }

@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Optional, Union
+from warnings import warn
 
 import numpy as np
 from scipy.stats import norm
@@ -1387,6 +1388,10 @@ def create_data_for_multi_level_loo_sampling(
             f"but received {type(data)} instead."
         )
 
+    if not data.items():
+        warn("'data' passed was empty and therefore no transformations taken place.")
+        return data
+
     if correlations is not None:
         if not isinstance(correlations, MultiLevel) and not isinstance(
             correlations, Real
@@ -1402,11 +1407,25 @@ def create_data_for_multi_level_loo_sampling(
         correlations = MultiLevel(
             {level: correlations for level in data.levels if level < top_level}
         )
+
     delta_data = MultiLevel({level: [] for level in data.levels})
 
     for level in reversed(data.levels):
         if level != bottom_level:
-            prev_level_data = data[level - 1]
+
+            if max(correlations.levels) < top_level - 1:
+                raise ValueError(
+                    f"'Correlations' MultiLevel expected to be provided for at least max level of 'data' - 1: {top_level - 1}, but "
+                    f"is only of length: {max(correlations.levels)}."
+                )
+
+            # Catch missing levels in data MultiLevel
+            try:
+                prev_level_data = data[level - 1]
+
+            except KeyError:
+                continue
+
             for datum in data[level]:
                 # Find datum in previous level with the same input as the current datum
                 prev_level_datum = [
