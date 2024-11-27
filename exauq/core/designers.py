@@ -1357,7 +1357,7 @@ def compute_multi_level_loo_samples(
 def create_data_for_multi_level_loo_sampling(
     data: MultiLevel[Sequence[TrainingDatum]],
     correlations: Union[MultiLevel[Real], Real] = 1,
-):
+) -> MultiLevel[Sequence[TrainingDatum]]:
     """Prepare data from the simulators to be ready for multi-level adaptive sampling.
 
     For the implementation of creating the successive simulator differences used by
@@ -1367,11 +1367,6 @@ def create_data_for_multi_level_loo_sampling(
     levels and hence are removed from the data as it makes no mathematical sense to have
     repeated inputs across the multi-level GP with differing outputs.
 
-    By default the constant correlation of 1 is applied to every level if no correlation is
-    provided. Note that the correlations only run to level $L - 1$ as it denotes the correlation
-    between that level and the one above. If a 'Real' value is provided, then this value is provided
-    for every level in the multi-level correlations object.
-
     Parameters
     ----------
     data:
@@ -1380,9 +1375,9 @@ def create_data_for_multi_level_loo_sampling(
         The Markov-like correlations between simulators at successive levels
     Returns
     -------
-    tuple[MultiLevel[Sequence[TrainingDatum]], MultiLevel[Real], MultiLevel[Real]]
-        A tuple containing the delta calulated training data, the multi-level costs
-        and the multi-level delta coefficients calculated.
+    MultiLevel[Sequence[TrainingDatum]
+        A MultiLevel Sequence of TrainingDatum recalculated with deltas calculated
+        and repeated inputs across levels removed.
 
     """
 
@@ -1436,8 +1431,69 @@ def create_data_for_multi_level_loo_sampling(
             # In the case of the bottom level simply return raw values
             delta_data[level] = data[level]
 
+    return delta_data
+
+
+def compute_delta_coefficients(
+    levels: Union[Optional[Sequence[int]], int],
+    correlations: Union[MultiLevel[Real], Real] = 1,
+) -> MultiLevel[Real]:
+    """Calculate the delta coefficients from the Markov-like correlations.
+
+    The levels argument creates the correlaions for the number of levels that there are. If a sequence is passed
+    then this is expected to be a range of levels for the mlgp. Optionally, you can simply pass the number of levels
+    as an integer and this will create the correlations up to that level.
+
+    By default the constant correlation of 1 is applied to every level if no correlation is
+    provided. Note that the correlations only run to level $L - 1$ as it denotes the correlation
+    between that level and the one above. If a 'Real' value is provided, then this value is provided
+    for every level in the multi-level correlations object.
+
+    Parameters
+    ----------
+    levels:
+        The number of levels or a tuple of levels for the coefficients to be calculated for.
+
+    correlations:
+        The Markov-like correlations between simulators at successive levels.
+
+    Returns
+    -------
+    MultiLevel[Real]:
+        The delta coefficients calculated from the correlations across levels.
+    """
+
+    if not isinstance(levels, int) and not isinstance(levels, Sequence):
+        raise TypeError(
+            "Expected 'levels' to be of type Sequence of int or int, "
+            f"but received {type(levels)} instead."
+        )
+
+    if isinstance(levels, int):
+        levels = range(1, levels + 1)
+
+    if not all(isinstance(level, int) for level in levels):
+        raise TypeError(
+            "Expected 'levels' to be of type Sequence of int or int, "
+            f"but received unexpected types."
+        )
+
+    if correlations is not None:
+        if not isinstance(correlations, MultiLevel) and not isinstance(
+            correlations, Real
+        ):
+            raise TypeError(
+                "Expected 'correlations' to be of type MultiLevel Real or Real, "
+                f"but received {type(correlations)} instead."
+            )
+
+    if isinstance(correlations, Real):
+        correlations = MultiLevel(
+            {level: correlations for level in levels if level < max(levels)}
+        )
+
     delta_coefficients = MultiLevel(
-        {top_level: 1}
+        {max(levels): 1}
         | correlations.map(
             lambda k, _: math.prod(
                 correlations[level] for level in correlations.levels if level >= k
@@ -1445,7 +1501,7 @@ def create_data_for_multi_level_loo_sampling(
         )
     )
 
-    return delta_data, delta_coefficients
+    return delta_coefficients
 
 
 def _remove_multi_level_repeated_input(

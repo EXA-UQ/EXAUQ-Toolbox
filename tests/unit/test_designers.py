@@ -16,6 +16,7 @@ from exauq.core.designers import (
     PEICalculator,
     SimpleDesigner,
     _remove_multi_level_repeated_input,
+    compute_delta_coefficients,
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_loo_prediction,
@@ -2273,7 +2274,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 f"but received {type(arg1)} instead."
             ),
         ):
-            _, _ = create_data_for_multi_level_loo_sampling(arg1)
+            _ = create_data_for_multi_level_loo_sampling(arg1)
 
         with self.assertRaisesRegex(
             TypeError,
@@ -2282,7 +2283,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 f"but received {type(arg1)} instead."
             ),
         ):
-            _, _ = create_data_for_multi_level_loo_sampling(self.data, arg1)
+            _ = create_data_for_multi_level_loo_sampling(self.data, arg1)
 
         arg2 = MultiLevel({1: [TrainingDatum(Input(0.1), 1)], 2: [Input(0.1), 23]})
 
@@ -2293,7 +2294,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 "but at least one element was unexpected."
             ),
         ):
-            _, _ = create_data_for_multi_level_loo_sampling(arg2)
+            _ = create_data_for_multi_level_loo_sampling(arg2)
 
     def test_empty_multi_level_data(self):
         """Ensure a correct Warning is raised for a completely empty MultiLevel."""
@@ -2306,7 +2307,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 "'data' passed was empty and therefore no transformations taken place."
             ),
         ):
-            _, _ = create_data_for_multi_level_loo_sampling(test_data)
+            _ = create_data_for_multi_level_loo_sampling(test_data)
 
     def test_data_with_only_one_level(self):
         """Ensure the raw values are simply returned if only 1 level of data is passed."""
@@ -2322,7 +2323,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
 
         expected_return = test_data
-        returned_data, _ = create_data_for_multi_level_loo_sampling(test_data)
+        returned_data = create_data_for_multi_level_loo_sampling(test_data)
         self.assertEqual(expected_return, returned_data)
 
     def test_no_training_datum_in_MultiLevel(self):
@@ -2337,7 +2338,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
 
         expected_return = test_data
-        returned_data, _ = create_data_for_multi_level_loo_sampling(test_data)
+        returned_data = create_data_for_multi_level_loo_sampling(test_data)
         self.assertEqual(expected_return, returned_data)
 
     def test_no_level_1_training_data(self):
@@ -2353,7 +2354,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
         correlations = MultiLevel([0.2, 0.3])
 
-        delta_data, _ = create_data_for_multi_level_loo_sampling(data, correlations)
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
 
         expected = MultiLevel(
             {
@@ -2378,7 +2379,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
         correlations = MultiLevel([0.2, 0.3])
 
-        delta_data, _ = create_data_for_multi_level_loo_sampling(data, correlations)
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
 
         expected = MultiLevel(
             {
@@ -2405,9 +2406,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
             }
         )
 
-        delta_data, delta_coefficients = create_data_for_multi_level_loo_sampling(
-            data, corrs
-        )
+        delta_data = create_data_for_multi_level_loo_sampling(data, corrs)
 
         expected_data = MultiLevel(
             {
@@ -2419,96 +2418,6 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
 
         # Ensure data is correct
         self.assertEqual(expected_data, delta_data)
-
-        expected_coefficients = MultiLevel(
-            {
-                1: corrs[1] * corrs[2] * corrs[3] * corrs[4],
-                2: corrs[2] * corrs[3] * corrs[4],
-                3: corrs[3] * corrs[4],
-                4: corrs[4],
-                5: 1,
-            }
-        )
-
-        # Ensure coefficients are also calcualted correctly
-        self.assertEqual(expected_coefficients, delta_coefficients)
-
-    def test_returns_delta_coefficients(self):
-        """The coefficients for creating the multi-level GP for LOO adaptive sampling
-        are returned, where the highest level coefficient is equal to 1 and each of the
-        lower coefficients are products of the supplied correlation values."""
-
-        data = MultiLevel(
-            {
-                1: [
-                    TrainingDatum(Input(0.1), 1),
-                ],
-                2: [
-                    TrainingDatum(Input(0.1), 1),
-                ],
-                3: [
-                    TrainingDatum(Input(0.1), 1),
-                ],
-                4: [
-                    TrainingDatum(Input(0.1), 1),
-                ],
-            }
-        )
-
-        # Case of 2 levels
-        data2 = MultiLevel({1: data[1], 2: data[2]})
-        corrs2 = MultiLevel([0.1])
-
-        _, delta_coefficients = create_data_for_multi_level_loo_sampling(data2, corrs2)
-
-        expected = MultiLevel({1: corrs2[1], 2: 1})
-        self.assertEqual(expected, delta_coefficients)
-
-        # Case of 3 levels
-        data3 = MultiLevel({1: data[1], 2: data[2], 3: data[3]})
-        corrs3 = MultiLevel([0.1, 0.2])
-
-        _, delta_coefficients = create_data_for_multi_level_loo_sampling(data3, corrs3)
-
-        expected = MultiLevel({1: corrs3[1] * corrs3[2], 2: corrs3[2], 3: 1})
-        self.assertEqual(expected, delta_coefficients)
-
-        # Case of 4 levels
-        corrs4 = MultiLevel([0.1, 0.2, 0.3])
-
-        _, delta_coefficients = create_data_for_multi_level_loo_sampling(data, corrs4)
-
-        expected = MultiLevel(
-            {
-                1: corrs4[1] * corrs4[2] * corrs4[3],
-                2: corrs4[2] * corrs4[3],
-                3: corrs4[3],
-                4: 1,
-            }
-        )
-        self.assertEqual(expected, delta_coefficients)
-
-    def test_delta_coefficients_constant_correlation_case(self):
-        """If a single real number is supplied for the correlations, then this is
-        interpreted as applying to every level (except the top level)."""
-
-        correlation = 0.5
-
-        _, delta_coefficients = create_data_for_multi_level_loo_sampling(
-            self.data, correlations=correlation
-        )
-
-        expected = MultiLevel({1: correlation * correlation, 2: correlation, 3: 1})
-        self.assertEqual(expected, delta_coefficients)
-
-    def test_default_correlation(self):
-        """By default, a constant correlation of 1 is applied to every level
-        (except the top level)."""
-
-        _, delta_coefficients = create_data_for_multi_level_loo_sampling(self.data)
-
-        expected = MultiLevel({level: 1 for level in self.data.levels})
-        self.assertEqual(expected, delta_coefficients)
 
     def test_delta_data_contains_inter_level_differences_of_outputs(self):
         """The data returned consists of differences of outputs between successive levels,
@@ -2526,7 +2435,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
         correlations = MultiLevel([0.1, 0.2, 0.3])
 
-        delta_data, _ = create_data_for_multi_level_loo_sampling(data, correlations)
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
 
         expected = MultiLevel(
             {
@@ -2566,7 +2475,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
         correlations = MultiLevel([0.1, 0.2])
 
-        delta_data, _ = create_data_for_multi_level_loo_sampling(data, correlations)
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
 
         expected = MultiLevel(
             {
@@ -2584,6 +2493,90 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
 
         self.assertEqual(expected, delta_data)
+
+
+class TestComputeDeltaCoefficients(ExauqTestCase):
+
+    def setUp(self) -> None:
+
+        self.levels = range(1, 5)
+
+    def test_default_correlation(self):
+        """By default, a constant correlation of 1 is applied to every level
+        (except the top level)."""
+
+        delta_coefficients = compute_delta_coefficients(self.levels)
+
+        expected = MultiLevel({level: 1 for level in self.levels})
+        self.assertEqual(expected, delta_coefficients)
+
+    def test_delta_coefficients_constant_correlation_case(self):
+        """If a single real number is supplied for the correlations, then this is
+        interpreted as applying to every level (except the top level)."""
+
+        correlation = 0.5
+
+        delta_coefficients = compute_delta_coefficients(
+            self.levels, correlations=correlation
+        )
+
+        expected = MultiLevel(
+            {1: correlation**3, 2: correlation**2, 3: correlation, 4: 1}
+        )
+        self.assertEqual(expected, delta_coefficients)
+
+    def test_returns_delta_coefficients(self):
+        """The coefficients for creating the multi-level GP for LOO adaptive sampling
+        are returned, where the highest level coefficient is equal to 1 and each of the
+        lower coefficients are products of the supplied correlation values."""
+
+        data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                ],
+                2: [
+                    TrainingDatum(Input(0.1), 1),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1),
+                ],
+                4: [
+                    TrainingDatum(Input(0.1), 1),
+                ],
+            }
+        )
+
+        # Case of 2 levels
+        corrs2 = MultiLevel([0.1])
+
+        delta_coefficients = compute_delta_coefficients(2, corrs2)
+
+        expected = MultiLevel({1: corrs2[1], 2: 1})
+        self.assertEqual(expected, delta_coefficients)
+
+        # Case of 3 levels
+        corrs3 = MultiLevel([0.1, 0.2])
+
+        delta_coefficients = compute_delta_coefficients(3, corrs3)
+
+        expected = MultiLevel({1: corrs3[1] * corrs3[2], 2: corrs3[2], 3: 1})
+        self.assertEqual(expected, delta_coefficients)
+
+        # Case of 4 levels
+        corrs4 = MultiLevel([0.1, 0.2, 0.3])
+
+        delta_coefficients = compute_delta_coefficients(4, corrs4)
+
+        expected = MultiLevel(
+            {
+                1: corrs4[1] * corrs4[2] * corrs4[3],
+                2: corrs4[2] * corrs4[3],
+                3: corrs4[3],
+                4: 1,
+            }
+        )
+        self.assertEqual(expected, delta_coefficients)
 
 
 class TestRemoveMultiLevelRepeatedInput(ExauqTestCase):
