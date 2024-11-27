@@ -2260,18 +2260,178 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
                 ],
             }
         )
-        self.costs = MultiLevel([1, 11, 110])
 
-    # def test_argument_type_errors(self):
-    #     """Ensure that correct TypeErrors are returned for incorrect arguments."""
+    def test_argument_type_errors(self):
+        """Ensure that correct TypeErrors are raised for incorrect arguments."""
 
-    # def test_empty_multi_level_data(self):
+        arg1 = "test"
 
-    # def test_missing_levels_multi_level_data(self):
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'data' to be of type MultiLevel Sequence of TrainingDatum, "
+                f"but received {type(arg1)} instead."
+            ),
+        ):
+            _, _ = create_data_for_multi_level_loo_sampling(arg1)
 
-    # def test_different_correlations_data_multi_levels(self):
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'correlations' to be of type MultiLevel Real or Real, "
+                f"but received {type(arg1)} instead."
+            ),
+        ):
+            _, _ = create_data_for_multi_level_loo_sampling(self.data, arg1)
 
-    # def test_no_level_1_training_data(self):
+        arg2 = MultiLevel({1: [TrainingDatum(Input(0.1), 1)], 2: [Input(0.1), 23]})
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'data' to be of type MultiLevel Sequence of TrainingDatum, "
+                "but at least one element was unexpected."
+            ),
+        ):
+            _, _ = create_data_for_multi_level_loo_sampling(arg2)
+
+    def test_empty_multi_level_data(self):
+        """Ensure a correct Warning is raised for a completely empty MultiLevel."""
+
+        test_data = MultiLevel([])
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact(
+                "'data' passed was empty and therefore no transformations taken place."
+            ),
+        ):
+            _, _ = create_data_for_multi_level_loo_sampling(test_data)
+
+    def test_data_with_only_one_level(self):
+        """Ensure the raw values are simply returned if only 1 level of data is passed."""
+
+        test_data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                ]
+            }
+        )
+
+        expected_return = test_data
+        returned_data, _ = create_data_for_multi_level_loo_sampling(test_data)
+        self.assertEqual(expected_return, returned_data)
+
+    def test_no_training_datum_in_MultiLevel(self):
+        """Ensure MultiLevels with empty sequences pass through without error."""
+
+        test_data = MultiLevel(
+            {
+                1: [],
+                2: [],
+                3: [],
+            }
+        )
+
+        expected_return = test_data
+        returned_data, _ = create_data_for_multi_level_loo_sampling(test_data)
+        self.assertEqual(expected_return, returned_data)
+
+    def test_no_level_1_training_data(self):
+        """Ensure that the correct functionality occurs without level 1 in training data."""
+
+        outputs = {2: -1, 3: 1, 4: 2}
+        data = MultiLevel(
+            {
+                2: [TrainingDatum(Input(0.1), outputs[2])],
+                3: [TrainingDatum(Input(0.1), outputs[3])],
+                4: [TrainingDatum(Input(0.1), outputs[4])],
+            }
+        )
+        correlations = MultiLevel([0.2, 0.3])
+
+        delta_data, _ = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                2: [],
+                3: [],
+                4: [TrainingDatum(Input(0.1), outputs[4] - correlations[3] * outputs[3])],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_missing_levels_multi_level_data(self):
+        """Ensure that the correct functionality occurs without all levels in training data."""
+
+        outputs = {1: -1, 3: 1, 4: 2}
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.1), outputs[1])],
+                3: [TrainingDatum(Input(0.2), outputs[3])],
+                4: [TrainingDatum(Input(0.2), outputs[4])],
+            }
+        )
+        correlations = MultiLevel([0.2, 0.3])
+
+        delta_data, _ = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.1)), outputs[1]],
+                3: [],
+                4: [TrainingDatum(Input(0.2), outputs[4] - correlations[3] * outputs[3])],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_different_correlations_data_multi_levels(self):
+        """Ensure that full MultiLevel correlations can be passed even with missing levels in training data."""
+
+        # Correlations suggests 5 levels in the full mlgp
+        corrs = MultiLevel([0.1, 0.2, 0.3, 0.4])
+
+        outputs = {2: -1, 3: 1, 4: 2}
+        data = MultiLevel(
+            {
+                2: [TrainingDatum(Input(0.1), outputs[2])],
+                3: [TrainingDatum(Input(0.1), outputs[3])],
+                4: [TrainingDatum(Input(0.1), outputs[4])],
+            }
+        )
+
+        delta_data, delta_coefficients = create_data_for_multi_level_loo_sampling(
+            data, corrs
+        )
+
+        expected_data = MultiLevel(
+            {
+                2: [],
+                3: [],
+                4: [TrainingDatum(Input(0.1), outputs[4] - corrs[3] * outputs[3])],
+            }
+        )
+
+        # Ensure data is correct
+        self.assertEqual(expected_data, delta_coefficients)
+
+        expected_coefficients = MultiLevel(
+            {
+                1: corrs[1] * corrs[2] * corrs[3] * corrs[4],
+                2: corrs[2] * corrs[3] * corrs[4],
+                3: corrs[3] * corrs[4],
+                4: corrs[4],
+                5: 1,
+            }
+        )
+
+        # Ensure coefficients are also calcualted correctly
+        self.assertEqual(expected_coefficients, delta_coefficients)
 
     def test_returns_delta_coefficients(self):
         """The coefficients for creating the multi-level GP for LOO adaptive sampling
@@ -2347,7 +2507,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
 
         _, delta_coefficients = create_data_for_multi_level_loo_sampling(self.data)
 
-        expected = MultiLevel({level: 1 for level in self.costs.levels})
+        expected = MultiLevel({level: 1 for level in self.data.levels})
         self.assertEqual(expected, delta_coefficients)
 
     def test_delta_data_contains_inter_level_differences_of_outputs(self):
