@@ -2501,6 +2501,42 @@ class TestComputeDeltaCoefficients(ExauqTestCase):
 
         self.levels = range(1, 5)
 
+    def test_argument_type_errors(self):
+        """Ensure that the correct TypeErrors are raised for arguments passed."""
+
+        arg1 = 0.6
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'levels' to be of type Sequence of int or int, "
+                f"but received {type(arg1)} instead."
+            ),
+        ):
+            _ = compute_delta_coefficients(arg1)
+
+        arg2 = "test"
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'correlations' to be of type MultiLevel Real or Real, "
+                f"but received {type(arg2)} instead."
+            ),
+        ):
+            _ = compute_delta_coefficients(self.levels, arg2)
+
+        arg3 = [1, 2, 2.9]
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'levels' to be of type Sequence of int or int, "
+                "but received unexpected types."
+            ),
+        ):
+            _ = compute_delta_coefficients(arg3)
+
     def test_default_correlation(self):
         """By default, a constant correlation of 1 is applied to every level
         (except the top level)."""
