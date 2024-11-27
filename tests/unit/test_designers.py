@@ -2418,7 +2418,7 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
 
         # Ensure data is correct
-        self.assertEqual(expected_data, delta_coefficients)
+        self.assertEqual(expected_data, delta_data)
 
         expected_coefficients = MultiLevel(
             {
