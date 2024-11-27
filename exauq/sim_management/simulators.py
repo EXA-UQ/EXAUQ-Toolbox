@@ -254,15 +254,16 @@ class SimulationsLog(object):
         """
         Get all simulations contained in the log file.
 
-        This returns an immutable sequence of simulator inputs along with outputs. In
-        the case where the simulator output is not available for the corresponding
-        input, ``None`` is instead returned alongside the input.
+        This returns an immutable sequence of simulator inputs, outputs and their
+        corresponding level. In the case where the simulator output is not available
+        for the corresponding input, ``None`` is instead returned alongside the input.
 
         Returns
         -------
-        tuple[tuple[Input, Optional[Real]]]
-            A tuple of ``(x, y)`` pairs, where ``x`` is an `Input` and ``y`` is the
-            simulation output, or ``None`` if this hasn't yet been computed.
+        tuple[tuple[Input, Optional[Real], int]]
+            A tuple of ``(x, y, z)``, where ``x`` is an `Input`, ``y`` is the
+            simulation output, or ``None`` if this hasn't yet been computed and
+            ``z`` is the level of the simulation.
         """
         with self._lock:
             return tuple(
@@ -271,7 +272,7 @@ class SimulationsLog(object):
             )
 
     def _extract_simulation(self, record: dict[str, str]) -> Simulation:
-        """Extract a pair of simulator inputs and outputs from a dictionary record read
+        """Extract simulator inputs, outputs and level from a dictionary record read
         from the log file. Missing outputs are converted to ``None``."""
 
         input_items = sorted(
@@ -282,7 +283,9 @@ class SimulationsLog(object):
         x = Input(*input_coords)
         output = self._get_output(record)
         y = float(output) if output else None
-        return x, y
+        level = self._get_job_level(record)
+        z = int(level)
+        return x, y, z
 
     def add_new_record(
         self,
