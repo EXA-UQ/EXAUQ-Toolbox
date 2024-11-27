@@ -262,11 +262,17 @@ class TestSimulationsLog(unittest.TestCase):
         self.tmp_dir = pathlib.Path(self.tmp.name).as_posix()
         self.simulations_file = pathlib.Path(self.tmp_dir, "simulations.csv")
 
-        self.log_data1 = {"Input_1": [], "Output": [], "Job_ID": []}
+        self.log_data1 = {
+            "Input_1": [],
+            "Output": [],
+            "Job_ID": [],
+            "Job_Level": [],
+        }
         self.log_data2 = {
             "Input_1": [1, 2],
             "Output": [10, None],
             "Job_ID": [1, 2],
+            "Job_Level": [2, 1],
         }
 
     def tearDown(self) -> None:
@@ -373,18 +379,39 @@ class TestSimulationsLog(unittest.TestCase):
         x3 = Input(3, 3)
         log.add_new_record(x3, job_id="3")
 
-        expected = ((x1, 10), (x2, None), (x3, None))
+        expected = ((x1, 10, 1), (x2, None, 1), (x3, None, 1))
         self.assertEqual(expected, log.get_simulations())
 
     def test_get_simulations_unusual_column_order(self):
-        """Test that a log file is parsed correctly irrespective of the order of input
-        and output columns."""
+        """Test that a log file is parsed correctly irrespective of the order of input,
+        output and level columns."""
 
         self.simulations_file.write_text(
             "Input_2,Job_Status,Job_ID,Job_Level,Interface_Name,Output,Input_1\n1,Completed,0,1,server_01,2,10\n"
         )
         log = SimulationsLog(self.simulations_file, input_dim=2)
-        expected = ((Input(10, 1), 2),)
+        expected = ((Input(10, 1), 2, 1),)
+        self.assertEqual(expected, log.get_simulations())
+
+    def test_get_simulations_multiple_different_levels(self):
+        """Test that a log file with multiple levels in different orders are all returned correctly."""
+
+        log = SimulationsLog(self.simulations_file, input_dim=2)
+
+        x1 = Input(1, 1)
+        l1 = 1
+        log.add_new_record(x1, job_id="1", job_level=l1)
+        log.insert_result(job_id="1", result=10)
+
+        x2 = Input(2, 2)
+        l2 = 2
+        log.add_new_record(x2, job_id="2", job_level=l2)
+
+        x3 = Input(3, 3)
+        l3 = 3
+        log.add_new_record(x3, job_id="3", job_level=l3)
+
+        expected = ((x1, 10, l1), (x2, None, l2), (x3, None, l3))
         self.assertEqual(expected, log.get_simulations())
 
     def test_add_new_record_input_wrong_dim_error(self):
@@ -452,7 +479,7 @@ class TestSimulationsLog(unittest.TestCase):
         x = Input(1)
         log = SimulationsLog(self.simulations_file, input_dim=len(x))
         log.add_new_record(x, "1234")
-        self.assertEqual(((x, None),), log.get_simulations())
+        self.assertEqual(((x, None, 1),), log.get_simulations())
 
     def test_add_new_record_multiple_records_same_input(self):
         """Test that, when multiple records for the same input are added, one simulation
@@ -462,7 +489,7 @@ class TestSimulationsLog(unittest.TestCase):
         log = SimulationsLog(self.simulations_file, input_dim=len(x))
         log.add_new_record(x, "1111")
         log.add_new_record(x, "2222")
-        self.assertEqual(((x, None), (x, None)), log.get_simulations())
+        self.assertEqual(((x, None, 1), (x, None, 1)), log.get_simulations())
 
     def test_add_new_record_default_status(self):
         """Test that, when a new record is created, it is labelled as PENDING_SUBMIT by default."""
