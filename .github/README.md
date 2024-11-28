@@ -2,21 +2,21 @@
 
 The EXAUQ-Toolbox is a collection of packages and utilities that supports the development of
 emulators of complex computer simulations. A key feature is support for fitting
-multi-level Gaussian Process emulators for hierarchies of simulation models. Here, simulations in the
+multi-level Gaussian Process emulators for hierarchies of simulation models. Simulations in the
 hierarchy are arranged according to differing levels of model fidelity, with the
-simulation at the apex of the hierarchy potentially requiring exascale
+simulation at the top of the hierarchy potentially requiring exascale
 computing to complete. As well as implementing statistical methods for training multi-level
 emulators, the EXAUQ-Toolbox takes care of managing the use of multiple computing
 resources, which would typically be required when running simulations in the
-multi-fidelity hierarchy. (For example, runs of the highest-fidelity simulation may
+multi-fidelity hierarchy. For example, runs of the highest-fidelity simulation may
 be run on an exascale computer, whereas a lower-fidelity, but cheaper, simulation may be
-run on a more conventional HPC, or a departmental server).
+run on a more conventional HPC, or a departmental server.
 
 The EXAUQ-Toolbox welcomes contributors and users to raise issues/ideas. Please do take a look through 
 our [support](SUPPORT.md) page to see how you can help and how we can help you in the most efficient way!
 
 Software developed by the RSE team at the University of Exeter, UK and funded by the EPRSC (2021-2025)
-as part of project ExCALIBUR.
+as part of project ExCALIBUR. JS - ADD SPECIFIC GRANT NUMBER?
 
 Many thanks to the code developers of the toolbox:
 
