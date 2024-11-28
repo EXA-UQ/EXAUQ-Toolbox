@@ -574,6 +574,22 @@ class TestSimulationsLog(unittest.TestCase):
         log = SimulationsLog(self.simulations_file, input_dim=1)
         self.assertEqual(tuple(), log.get_unsubmitted_inputs())
 
+    def test_prepare_training_data_empty_log(self):
+        """Ensure that an appropriate warning is raised if the log is empty."""
+
+        pass
+
+    def test_prepare_training_data_single_entry_log(self):
+        """Ensure that a correct MultiLevel of just one object is returned if only 1 simulation."""
+
+        pass
+
+    def test_prepare_training_data_multiple_levels(self):
+        """Ensure that the correct MultiLevel Sequence of TrainingDatum is returned for
+        simulations across multiple levels."""
+
+        pass
+
 
 class TestJobManager(unittest.TestCase):
     def setUp(self):
