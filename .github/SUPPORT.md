@@ -6,8 +6,8 @@ and use the EXAUQ-Toolbox repository most effectively.
 - For download instructions both from a usage or contributors point of view, please refer to the
 [README](README.md). 
 
-- If you are interacting with members of the EXAUQ-Toolbox whether through issues, PRs, reviews etc. 
-Please do refer to and stick to our [Code of Conduct](CODE-OF-CONDUCT.md) to ensure a welcoming 
+- If you are interacting with members of the EXAUQ-Toolbox whether through issues, PRs, reviews etc., 
+please do refer to and stick to our [Code of Conduct](CODE-OF-CONDUCT.md) to ensure a welcoming 
 environment for all. 
 
 - We would love for you to contribute and if you are considering this, please do refer to our
@@ -15,7 +15,7 @@ environment for all.
 is structured by the EXAUQ-Toolbox team.
 
 - If you wish to fork the repository, or use it in some way please do refer to the 
-the following [Licence](LICENSE) before doing so to ensure this is upheld correctly. 
+the following [License](LICENSE) before doing so to ensure this is upheld correctly. 
 
 
 ## References
