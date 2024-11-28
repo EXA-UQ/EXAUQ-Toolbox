@@ -26,7 +26,7 @@ Please feel free to raise multiple issues (within reason),
 but stick to one singular thing in an issue. It should be structured as follows:
 
 1) **Motivation:** Why am I raising this as an issue? It could be a question, bug or feature request, but please let us know why you
-are raising it and how it well help either the toolbox or a user of the toolbox.
+are raising it and how it will help either the toolbox or a user of the toolbox.
 2) **Example:** How can I show this? In the case of a bug or feature request, please give a basic example that we can either: reproduce, in the case of a bug; use
 as the basis for a test case if it is for a feature request.
 3) **Acceptance Criteria:** How will we know that this issue is now closed? You could do this via bullet points/tasks or simply an explanation that gives
@@ -70,12 +70,12 @@ to make everyone aware that is being worked on. If you realise you won't finish 
 and drop a note into the discussion. Someone else may well pick it up from where you left off. 
 
 Please do not begin work on a branch someone else is working on without their prior consent, it will likely just cause merge issues and slow down progress. 
-If you wish to help on an already open PR, please first enter the discussion and seek permission from whoever is assigned to that PR. If there is no one assigned 
+If you wish to help on an already open PR, please first enter the discussion and seek permission from whoever is assigned to that PR. If there is no one assigned JS - MISSING TEXT
 
-When you think you have finished the PR please, **before requesting a review**, remember to:
+When you think you have finished the PR, **before requesting a review**, please remember to:
 1) **Documentation:** Double check you have updated all of the relevent documentation including API, user guides / tutorials (see below).
 2) **Test:** Run all of the unittests.
-3) **Lint**: There are github workflows such as linting checks and documents rebuilding that will occur. See below for the standards we use and
+3) **Lint**: There are github workflows such as linting checks and document rebuilding that will occur. See below for the standards we use and
 how to use the pre-commit hook if necessary.
 
 
@@ -101,9 +101,9 @@ straight back without further review until these pass.
 Pre-commit hooks are built into this Toolbox which include [iSort](https://pycqa.github.io/isort/) and [black](https://github.com/psf/black). Each time
 you commit to a branch these hooks **should** be run automatically unless you are editing non-python files. Please do not skip them, this will only cause 
 your PR to fail the check later on and it is your responsibility, not the reviewer, to run the pre-commit locally. To do so, you can always run
-```pre-commit run --all-files``` and granted the checks are all working correctly this should only affect only code you have edited. 
+```pre-commit run --all-files``` and granted the checks are all working correctly this should only affect code you have edited. 
 
-We also have initial GtiHub Actions in place which help our team maintain the code more easily - these include: 
+We also have initial GitHub Actions in place which help our team maintain the code more easily - these include: 
 
 - **iSort and black:** Before your code is merged into dev it will undergo checks for [iSort](https://pycqa.github.io/isort/) (for import sorting)
 and linted using [black](https://github.com/psf/black) - more specifically `Black --line-length 90`. See pre-commit notes!
@@ -113,7 +113,7 @@ no warnings or errors. On release these will also be pushed up to the relative G
 
 ### Branch Protection Rules
 
-We have branch protection rules in place to protect the `main` and `dev` branches. These require all checks to pass alongside approved reiviews from 
+We have branch protection rules in place to protect the `main` and `dev` branches. These require all checks to pass alongside approved reviews from 
 approved maintainers of the toolbox. Currently there are no other protections in place, however, it is possible that some will be in place on specific branches 
 from time to time in special circumstances of development. 
 
@@ -205,5 +205,5 @@ Good documentation consists of more than just API documentation. We already have
 introducing newcomers on how to use the toolbox to train emulators and do basic adaptive sampling 
 (both single and multi-level). These tutorials only cover the most basic use cases, however. 
 If you wish to contribute to the guides and tutorials, we follow the [Diátaxis](https://diataxis.fr/) approach to 
-writing documentation. Tutorials are designed for learning the basics, where as user guides should be goal-oriented, 
+writing documentation. Tutorials are designed for learning the basics, whereas user guides should be goal-oriented, 
 consisting of directions that guide the reader through a problem or towards a result. 
