@@ -9,6 +9,7 @@ from numbers import Real
 from threading import Event, Lock, Thread
 from time import sleep
 from typing import Any, Optional, Sequence, Union
+from warnings import warn
 
 from exauq.core.modelling import (
     AbstractSimulator,
@@ -575,13 +576,17 @@ class SimulationsLog(object):
             The prepared training data for the mlgp.
         """
 
-        with self._lock:
-            simulations = self.get_simulations()
+        simulations = self.get_simulations()
 
         training_data = defaultdict(list)
         for design_input, output, level in simulations:
             if output is not None:
                 training_data[level].append(TrainingDatum(design_input, output))
+
+        if not training_data.items():
+            warn(
+                "No sucessfully completed simulations in log, returning empty MultiLevel."
+            )
 
         return MultiLevel(training_data)
 
