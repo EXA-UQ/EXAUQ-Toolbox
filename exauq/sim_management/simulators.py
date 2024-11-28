@@ -568,10 +568,10 @@ class SimulationsLog(object):
         with self._lock:
             simulations = self.get_simulations()
 
-            training_data = defaultdict(list)
-            for design_input, output, level in simulations:
-                if output is not None:
-                    training_data[level].append(TrainingDatum(design_input, output))
+        training_data = defaultdict(list)
+        for design_input, output, level in simulations:
+            if output is not None:
+                training_data[level].append(TrainingDatum(design_input, output))
 
         return MultiLevel(training_data)
 
