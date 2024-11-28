@@ -563,7 +563,17 @@ class SimulationsLog(object):
                 raise SimulationsLogLookupError(msg)
 
     def prepare_training_data(self) -> MultiLevel[Sequence[TrainingDatum]]:
-        """Transform the simulations log into feasible training data for an mlgp."""
+        """Transform the simulations log into feasible training data for an mlgp.
+
+        This quality of life function allows the user to have a direct route from
+        the simulation log within the job management side of the Toolbox, to a set of
+        training data for fitting to a mlgp.
+
+        Returns
+        -------
+        MultiLevel[Sequence[TrainingDatum]]
+            The prepared training data for the mlgp.
+        """
 
         with self._lock:
             simulations = self.get_simulations()
