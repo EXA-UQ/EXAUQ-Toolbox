@@ -2,6 +2,7 @@ import csv
 import os
 import random
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from collections.abc import Collection
 from datetime import datetime
 from numbers import Real
@@ -9,7 +10,13 @@ from threading import Event, Lock, Thread
 from time import sleep
 from typing import Any, Optional, Sequence, Union
 
-from exauq.core.modelling import AbstractSimulator, Input, MultiLevel, SimulatorDomain
+from exauq.core.modelling import (
+    AbstractSimulator,
+    Input,
+    MultiLevel,
+    SimulatorDomain,
+    TrainingDatum,
+)
 from exauq.sim_management.hardware import (
     PENDING_STATUSES,
     TERMINAL_STATUSES,
@@ -250,7 +257,7 @@ class SimulationsLog(object):
         """Get the interface name of a job from a database record"""
         return record[self._interface_name_key]
 
-    def get_simulations(self) -> tuple[Simulation]:
+    def get_simulations(self) -> tuple[tuple[Input, Optional[Real], int]]:
         """
         Get all simulations contained in the log file.
 
@@ -271,7 +278,9 @@ class SimulationsLog(object):
                 for record in self._simulations_db.query()
             )
 
-    def _extract_simulation(self, record: dict[str, str]) -> Simulation:
+    def _extract_simulation(
+        self, record: dict[str, str]
+    ) -> tuple[tuple[Input, Optional[Real], int]]:
         """Extract simulator inputs, outputs and level from a dictionary record read
         from the log file. Missing outputs are converted to ``None``."""
 
@@ -552,6 +561,19 @@ class SimulationsLog(object):
                     "no such simulation exists."
                 )
                 raise SimulationsLogLookupError(msg)
+
+    def prepare_training_data(self) -> MultiLevel[Sequence[TrainingDatum]]:
+        """Transform the simulations log into feasible training data for an mlgp."""
+
+        with self._lock:
+            simulations = self.get_simulations()
+
+            training_data = defaultdict(list)
+            for design_input, output, level in simulations:
+                if output is not None:
+                    training_data[level].append(TrainingDatum(design_input, output))
+
+        return MultiLevel(training_data)
 
 
 class SimulationsLogLookupError(Exception):
