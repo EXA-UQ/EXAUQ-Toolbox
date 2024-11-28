@@ -10,7 +10,7 @@ from time import sleep
 from typing import Type
 from unittest.mock import Mock, patch
 
-from exauq.core.modelling import Input, SimulatorDomain
+from exauq.core.modelling import Input, MultiLevel, SimulatorDomain, TrainingDatum
 from exauq.sim_management.hardware import HardwareInterface, JobStatus
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.simulators import (
@@ -269,10 +269,10 @@ class TestSimulationsLog(unittest.TestCase):
             "Job_Level": [],
         }
         self.log_data2 = {
-            "Input_1": [1, 2],
-            "Output": [10, None],
-            "Job_ID": [1, 2],
-            "Job_Level": [2, 1],
+            "Input_1": [1, 2, 3, 4],
+            "Output": [10, None, 1, 9],
+            "Job_ID": [1, 2, 3, 4],
+            "Job_Level": [2, 1, 3, 3],
         }
 
     def tearDown(self) -> None:
@@ -575,20 +575,98 @@ class TestSimulationsLog(unittest.TestCase):
         self.assertEqual(tuple(), log.get_unsubmitted_inputs())
 
     def test_prepare_training_data_empty_log(self):
-        """Ensure that an appropriate warning is raised if the log is empty."""
+        """Ensure that an appropriate warning is raised if the log is empty alongside
+        an empty MultiLevel returned."""
 
-        pass
+        sim_log = SimulationsLog(self.simulations_file, input_dim=2)
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact(
+                "No sucessfully completed simulations in log, returning empty MultiLevel."
+            ),
+        ):
+            training_data = sim_log.prepare_training_data()
+
+        # Also check empty MultiLevel object is returned.
+        self.assertFalse(training_data.items())
+
+    def test_prepare_training_data_failure_log(self):
+        """Ensure that an appropriate warning is raised if the log only
+        only has None outputs."""
+
+        self.simulations_file.write_text(
+            "Input_2,Job_Status,Job_ID,Job_Level,Interface_Name,Output,Input_1\n1,Failed,0,1,server_01,,10\n"
+        )
+
+        sim_log = SimulationsLog(self.simulations_file, input_dim=2)
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact(
+                "No sucessfully completed simulations in log, returning empty MultiLevel."
+            ),
+        ):
+            training_data = sim_log.prepare_training_data()
+
+        # Also check empty MultiLevel object is returned.
+        self.assertFalse(training_data.items())
 
     def test_prepare_training_data_single_entry_log(self):
         """Ensure that a correct MultiLevel of just one object is returned if only 1 simulation."""
 
-        pass
+        self.simulations_file.write_text(
+            "Input_2,Job_Status,Job_ID,Job_Level,Interface_Name,Output,Input_1\n1,Completed,0,1,server_01,2,10\n"
+        )
+
+        sim_log = SimulationsLog(self.simulations_file, input_dim=2)
+
+        expected = MultiLevel(
+            {
+                1: [TrainingDatum(Input(10, 1), 2)],
+            }
+        )
+
+        training_data = sim_log.prepare_training_data()
+
+        # Also check empty MultiLevel object is returned.
+        self.assertEqual(expected, training_data)
 
     def test_prepare_training_data_multiple_levels(self):
         """Ensure that the correct MultiLevel Sequence of TrainingDatum is returned for
         simulations across multiple levels."""
 
-        pass
+        log = SimulationsLog(self.simulations_file, 2)
+
+        x1 = Input(1, 1)
+        y1 = 10
+        l1 = 1
+        log.add_new_record(x1, job_id="1", job_level=l1)
+        log.insert_result(job_id="1", result=y1)
+
+        x2 = Input(2, 2)
+        y2 = 20
+        l2 = 2
+        log.add_new_record(x2, job_id="2", job_level=l2)
+        log.insert_result(job_id="2", result=y2)
+
+        x3 = Input(3, 3)
+        y3 = 30
+        l3 = 3
+        log.add_new_record(x3, job_id="3", job_level=l3)
+        log.insert_result(job_id="3", result=y3)
+
+        expected = MultiLevel(
+            {
+                1: [TrainingDatum(x1, y1)],
+                2: [TrainingDatum(x2, y2)],
+                3: [TrainingDatum(x3, y3)],
+            }
+        )
+
+        training_data = log.prepare_training_data()
+
+        self.assertEqual(expected, training_data)
 
 
 class TestJobManager(unittest.TestCase):
