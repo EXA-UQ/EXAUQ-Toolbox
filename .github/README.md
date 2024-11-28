@@ -30,7 +30,7 @@ Alongside the research team for the algorithms:
   - [Prof. Peter Challenor](https://experts.exeter.ac.uk/22136-peter-challenor)
   - [Dr. James Salter](https://experts.exeter.ac.uk/26439-james-salter)
   - [Dr. Louise Kimpton](https://experts.exeter.ac.uk/28206-louise-kimpton)
-  - [Dr. Xiauyu Xiong](https://experts.exeter.ac.uk/27140-xiaoyu-xiong)
+  - [Dr. Xiaoyu Xiong](https://experts.exeter.ac.uk/27140-xiaoyu-xiong)
   
 ## Installing the latest development version
 
