@@ -1552,12 +1552,13 @@ def _remove_multi_level_repeated_input(
     """
 
     for lvl in data.levels:
-        if lvl < level:
+        if lvl <= level:
             data[lvl] = [
                 dat
                 for dat in data[lvl]
                 if not equal_within_tolerance(dat.input, datum.input)
             ]
-        else:
-            return data
+
+    # Re-enter the original comparing TrainingDatum
+    data[level].append(datum)
     return data
