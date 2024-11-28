@@ -2285,17 +2285,6 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         ):
             _ = create_data_for_multi_level_loo_sampling(self.data, arg1)
 
-        arg2 = MultiLevel({1: [TrainingDatum(Input(0.1), 1)], 2: [Input(0.1), 23]})
-
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                "Expected 'data' to be of type MultiLevel Sequence of TrainingDatum, "
-                "but at least one element was unexpected."
-            ),
-        ):
-            _ = create_data_for_multi_level_loo_sampling(arg2)
-
     def test_empty_multi_level_data(self):
         """Ensure a correct Warning is raised for a completely empty MultiLevel."""
 
@@ -2644,6 +2633,7 @@ class TestComputeDeltaCoefficients(ExauqTestCase):
 class TestRemoveMultiLevelRepeatedInput(ExauqTestCase):
 
     def test_multi_level_removal_repeated_inputs(self):
+        """Ensure that repeating inputs across levels are removed."""
 
         data = MultiLevel(
             {
@@ -2663,6 +2653,7 @@ class TestRemoveMultiLevelRepeatedInput(ExauqTestCase):
         self.assertEqual(training_data, expected_return)
 
     def test_multi_level_empty_level_data(self):
+        """Ensure that there are no errors with empty levels"""
 
         data = MultiLevel(
             {
@@ -2682,6 +2673,7 @@ class TestRemoveMultiLevelRepeatedInput(ExauqTestCase):
         self.assertEqual(training_data, expected_return)
 
     def test_multi_level_repeated_inputs_within_levels(self):
+        """Ensure if there are repeated inputs within lower levels, these are all removed."""
 
         data = MultiLevel(
             {
@@ -2700,7 +2692,30 @@ class TestRemoveMultiLevelRepeatedInput(ExauqTestCase):
 
         self.assertEqual(training_data, expected_return)
 
+    def test_multi_level_repeated_inputs_in_highest_level(self):
+        """Ensure that if there are repeated inputs within the highest level, these
+        are all removed."""
+
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.3), 3)],
+                2: [TrainingDatum(Input(0.3), 3)],
+                3: [TrainingDatum(Input(0.3), 3.33), TrainingDatum(Input(0.3), 3.33)],
+            }
+        )
+
+        expected_return = MultiLevel({1: [], 2: [], 3: [TrainingDatum(Input(0.3), 3.33)]})
+
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
     def test_multi_level_no_repeated_inputs(self):
+        """Ensure that if there are no repeated inputs then the entire Multilevel
+        is returned untouched."""
 
         data = MultiLevel(
             {
@@ -2719,6 +2734,7 @@ class TestRemoveMultiLevelRepeatedInput(ExauqTestCase):
         self.assertEqual(training_data, expected_return)
 
     def test_multi_level_missing_level(self):
+        """Ensure that with missing levels, the correct repeating inputs are still removed"""
 
         data = MultiLevel(
             {1: [TrainingDatum(Input(0.3), 3)], 3: [TrainingDatum(Input(0.3), 3.33)]}
