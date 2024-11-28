@@ -16,7 +16,7 @@ The EXAUQ-Toolbox welcomes contributors and users to raise issues/ideas. Please 
 our [support](SUPPORT.md) page to see how you can help and how we can help you in the most efficient way!
 
 Software developed by the RSE team at the University of Exeter, UK and funded by the EPRSC (2021-2025)
-as part of project ExCALIBUR. JS - ADD SPECIFIC GRANT NUMBER?
+as part of project ExCALIBUR, grant number EP/W007886/1.
 
 Many thanks to the code developers of the toolbox:
 
