@@ -358,7 +358,9 @@ class Cli(cmd2.Cmd):
         if args.twr:
             statuses = {JobStatus.CANCELLED, JobStatus.FAILED, JobStatus.FAILED_SUBMIT}
         else:
-            statuses_included = parse_statuses_string_to_set(args.status, empty_to_all=True)
+            statuses_included = parse_statuses_string_to_set(
+                args.status, empty_to_all=True
+            )
             statuses_excluded = parse_statuses_string_to_set(args.status_not)
             statuses = statuses_included - statuses_excluded
 
@@ -375,11 +377,9 @@ class Cli(cmd2.Cmd):
         old_ids = tuple(old_id for old_id, _, _ in jobs)
         new_ids = tuple(new_id for _, new_id, _ in jobs)
         inputs = tuple(data for _, _, data in jobs)
-        data = OrderedDict([
-            ("OLD_JOBID", old_ids),
-            ("NEW_JOBID", new_ids),
-            (self._INPUT_HEADER, inputs)
-        ])
+        data = OrderedDict(
+            [("OLD_JOBID", old_ids), ("NEW_JOBID", new_ids), (self._INPUT_HEADER, inputs)]
+        )
         return self._make_table(data)
 
     @cmd2.with_argparser(resubmit_parser)

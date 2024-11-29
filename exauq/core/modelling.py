@@ -18,7 +18,7 @@ from typing import Any, Callable, Optional, TypeVar, Union
 from warnings import warn
 
 import numpy as np
-from numpy.linalg import cond, LinAlgError
+from numpy.linalg import LinAlgError, cond
 from numpy.typing import NDArray
 
 import exauq.utilities.validation as validation
