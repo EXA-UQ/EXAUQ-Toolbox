@@ -60,7 +60,8 @@ class TestInput(unittest.TestCase):
             _ = Input(1.1, None)
 
         self.assertEqual(
-            f"Expected 'Input coordinates' to be of type {Real}, but received None type instead", str(cm.exception)
+            f"Expected 'Input coordinates' to be of type {Real}, but received None type instead",
+            str(cm.exception),
         )
 
     def test_input_non_finite_error(self):
@@ -172,7 +173,9 @@ class TestInput(unittest.TestCase):
         x = Input(2)
         with self.assertRaisesRegex(
             TypeError,
-            exact(f"Expected 'subscript' to be of type int or slice, but received {type(i)} instead."),
+            exact(
+                f"Expected 'subscript' to be of type int or slice, but received {type(i)} instead."
+            ),
         ):
             x[i]
 
@@ -318,7 +321,10 @@ class TestTrainingDatum(unittest.TestCase):
         with self.assertRaises(TypeError) as cm:
             _ = TrainingDatum(Input(1), None)
 
-        self.assertEqual(f"Expected argument 'output' to be of type {Real}, but received None type instead.", str(cm.exception))
+        self.assertEqual(
+            f"Expected argument 'output' to be of type {Real}, but received None type instead.",
+            str(cm.exception),
+        )
 
     def test_output_not_finite_error(self):
         """Test that a ValueError is raised if the constructor arg `output` is
@@ -884,7 +890,8 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         for datum in new_training_data:
             self.assertTrue(
                 any(
-                    datum.input == existing_datum.input and datum.output == existing_datum.output
+                    datum.input == existing_datum.input
+                    and datum.output == existing_datum.output
                     for existing_datum in emulator.training_data
                 ),
                 f"New training datum with input {datum.input} and output {datum.output} "
@@ -1173,7 +1180,9 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             transformation_func = self.hyperparameters[hyperparameter]["func"]
             with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
                 TypeError,
-                exact(f"Expected '{arg}' to be of type {Real}, but received {type(x)} instead."),
+                exact(
+                    f"Expected '{arg}' to be of type {Real}, but received {type(x)} instead."
+                ),
             ):
                 _ = transformation_func(x)
 
@@ -1303,7 +1312,10 @@ class TestSimulatorDomain(unittest.TestCase):
             SimulatorDomain({(0, 1), (0, 1)})
 
         # Forcing string of test case for better context in error messages
-        self.assertEqual(str(context.exception), "Expected 'bounds' to be of type sequence, but received <class 'set'> instead.")
+        self.assertEqual(
+            str(context.exception),
+            "Expected 'bounds' to be of type sequence, but received <class 'set'> instead.",
+        )
 
     def test_init_with_invalid_bounds_type(self):
         with self.assertRaises(
@@ -1338,7 +1350,10 @@ class TestSimulatorDomain(unittest.TestCase):
         ) as context:
             SimulatorDomain([(0, 1), (0, "1")])
 
-        self.assertEqual(str(context.exception), f"Expected 'bounds' to be of type {Real} but received <class 'int'> and <class 'str'> instead.")
+        self.assertEqual(
+            str(context.exception),
+            f"Expected 'bounds' to be of type {Real} but received <class 'int'> and <class 'str'> instead.",
+        )
 
     def test_init_with_low_greater_than_high(self):
         test_cases = [

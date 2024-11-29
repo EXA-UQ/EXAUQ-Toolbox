@@ -52,7 +52,7 @@ from typing import Any, Callable, Optional, TypeVar, Union
 from warnings import warn
 
 import numpy as np
-from numpy.linalg import cond, LinAlgError
+from numpy.linalg import LinAlgError, cond
 from numpy.typing import NDArray
 
 import exauq.utilities.validation as validation
@@ -626,7 +626,7 @@ class Prediction:
 
     See Also
     --------
-    [``equal_within_tolerance``][exauq.core.numerics.equal_within_tolerance] : 
+    [``equal_within_tolerance``][exauq.core.numerics.equal_within_tolerance] :
     Equality up to tolerances.
     """
 
@@ -1032,6 +1032,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         return self.fit_hyperparameters.process_var * self.correlation(
             inputs, training_inputs
         )
+
     @staticmethod
     def _validate_covariance_matrix(k: NDArray) -> None:
         """Validate that the covariance is a non-singular matrix before attempting to invert it"""
@@ -1473,7 +1474,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         See Also
         --------
-        [`AbstractGaussianProcess.fit`][exauq.core.modelling.AbstractGaussianProcess.fit] : 
+        [`AbstractGaussianProcess.fit`][exauq.core.modelling.AbstractGaussianProcess.fit] :
         Fitting individual Gaussian processes.
         """
 
@@ -1700,10 +1701,10 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
     nugget : numbers.Real, optional
         (Read only, default: None) The nugget, or ``None`` if not supplied.
 
-    See Also: 
+    See Also:
     ---------
     [equal_within_tolerance][exauq.core.numerics.equal_within_tolerance]:
-    Numerical tolerance check. 
+    Numerical tolerance check.
     """
 
     corr_length_scales: Union[Sequence[Real], np.ndarray[Real]]
@@ -1829,7 +1830,7 @@ class SimulatorDomain(object):
         real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each pair ``(a_i, b_i)``
         representing the lower and upper bounds for the corresponding coordinate in the
         domain.
-    dim : 
+    dim :
         (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
         from this domain have.
     corners:
@@ -2267,4 +2268,3 @@ class SimulatorDomain(object):
         masked_points = points[mask]
         mesh_points = tuple(Input(*point) for point in masked_points)
         return mesh_points
-

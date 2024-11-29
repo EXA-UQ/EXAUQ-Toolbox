@@ -5,8 +5,7 @@ import unittest
 import numpy as np
 
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance, set_tolerance
-from tests.utilities.utilities import make_window
-from tests.utilities.utilities import exact
+from tests.utilities.utilities import exact, make_window
 
 
 class TestEqualWithinTolerance(unittest.TestCase):
@@ -182,9 +181,10 @@ class TestSetTolerance(unittest.TestCase):
 
         tol = [1, 2]
         with self.assertRaisesRegex(
-            TypeError, 
+            TypeError,
             exact(
-                f"Expected 'tol' to be of type float, but receieved {type(tol)} instead."), 
+                f"Expected 'tol' to be of type float, but receieved {type(tol)} instead."
+            ),
         ):
             set_tolerance(tol)
 

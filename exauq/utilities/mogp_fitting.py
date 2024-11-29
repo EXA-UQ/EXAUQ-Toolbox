@@ -29,19 +29,19 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
 
+import platform
+from functools import partial
+from multiprocessing import Pool
+
 import numpy as np
 import scipy.stats
+from mogp_emulator import LibGPGPU
+from mogp_emulator.GaussianProcess import GaussianProcess, GaussianProcessBase
+from mogp_emulator.GaussianProcessGPU import GaussianProcessGPU
+from mogp_emulator.MultiOutputGP import MultiOutputGP
+from mogp_emulator.MultiOutputGP_GPU import MultiOutputGP_GPU
 from scipy.linalg import LinAlgError
 from scipy.optimize import minimize
-from multiprocessing import Pool
-from functools import partial
-import platform
-
-from mogp_emulator.GaussianProcess import GaussianProcessBase, GaussianProcess
-from mogp_emulator.GaussianProcessGPU import GaussianProcessGPU
-from mogp_emulator.MultiOutputGP_GPU import MultiOutputGP_GPU
-from mogp_emulator import LibGPGPU
-from mogp_emulator.MultiOutputGP import MultiOutputGP
 
 
 # TODO (TH, 2023-05-30): This code is a quick modification of code from
@@ -56,7 +56,7 @@ def fit_GP_MAP(
     skip_failures=True,
     refit=False,
     bounds=None,
-    **kwargs
+    **kwargs,
 ):
     """Fit one or more Gaussian Processes by attempting to minimize the
     negative log-posterior
@@ -429,7 +429,7 @@ def _fit_MOGP_MAP(
                     n_tries=n_tries,
                     method=method,
                     bounds=bounds,
-                    **kwargs
+                    **kwargs,
                 ),
                 [(emulator, t0) for (emulator, t0) in zip(emulators_to_fit, thetavals)],
             )

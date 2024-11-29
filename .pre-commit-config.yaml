@@ -1,0 +1,12 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+    - id: black
+      types_or: [python]
+      args: ["--line-length", "90"]
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2 
+    hooks:
+      - id: isort

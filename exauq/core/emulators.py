@@ -51,10 +51,9 @@ from exauq.core.modelling import (
     OptionalFloatPairs,
     TrainingDatum,
 )
-
 from exauq.core.numerics import equal_within_tolerance
-from exauq.utilities.mogp_fitting import fit_GP_MAP
 from exauq.utilities.decorators import suppress_print
+from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
 class MogpEmulator(AbstractGaussianProcess):

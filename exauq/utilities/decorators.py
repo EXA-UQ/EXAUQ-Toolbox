@@ -1,6 +1,6 @@
-from io import StringIO
-from functools import wraps
 import contextlib
+from functools import wraps
+from io import StringIO
 
 
 def suppress_print(func):
