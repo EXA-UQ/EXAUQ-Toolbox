@@ -126,15 +126,16 @@ Connection to server.example.com established.
 Add another hardware interface? (y/n): n  # (12)
 ```
 4. Hardware Interface Details:
-	- (4) Name the hardware interface for identification.
-	- (5) Assign a level to the interface.
-	- (6) Provide the server address where the simulator resides.
-	- (7) Enter the username for the server.
-	- (8) Specify the path to the simulator script on the server.
-	- (9) Indicate the program to execute the simulator script (e.g., bash for shell scripts, python for python scripts, etc.).
-	- (10) Choose whether to use an SSH agent for authentication.
-	- (11) If not using an SSH agent, input your server password to establish a connection.
-	- (12) Decide whether to add additional hardware interfaces.
+
+-  (4) Name the hardware interface for identification.
+-  (5) Assign a level to the interface.
+-  (6) Provide the server address where the simulator resides.
+-  (7) Enter the username for the server.
+-  (8) Specify the path to the simulator script on the server.
+-  (9) Indicate the program to execute the simulator script (e.g., bash for shell scripts, python for python scripts, etc.).
+-  (10) Choose whether to use an SSH agent for authentication.
+-  (11) If not using an SSH agent, input your server password to establish a connection.
+-  (12) Decide whether to add additional hardware interfaces.
 
 !!! note
     You can add multiple hardware interfaces to run simulations on different servers or with different programs. In this example, only one interface is added.
