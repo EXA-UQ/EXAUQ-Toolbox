@@ -217,11 +217,7 @@ TrainingDatum.tabulate(gp.training_data, rows = 5)
 ```
 
 <div class="result" markdown>
-    Inputs:                                 
-</div>
-
-<div class="result" markdown>
-    Output:             
+    Inputs:                                 Output:             
     ------------------------------------------------------------
     0.2744089188        1.0049536304        1.3460506974        
     0.5927920194        -0.3948649447       -2.0511268894       
@@ -261,10 +257,10 @@ print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2.9826684070574254), variance=np.float64(0.3252151528831815), standard_deviation=0.5702763828909465)
-    Point estimate: 2.9826684070574254
-    Variance of estimate: 0.3252151528831815
-    Standard deviation of estimate: 0.5702763828909465
+    GaussianProcessPrediction(estimate=np.float64(2.9826684809655353), variance=np.float64(0.3252150944485681), standard_deviation=0.5702763316573537)
+    Point estimate: 2.9826684809655353
+    Variance of estimate: 0.3252150944485681
+    Standard deviation of estimate: 0.5702763316573537
     
 </div>
 
@@ -281,9 +277,9 @@ print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2.9826684070574254
+    Predicted value: 2.9826684809655353
     Actual simulator value: 2.5857864376269055
-    Percentage error: 15.34859815394332
+    Percentage error: 15.34860101218825
     
 </div>
 
@@ -302,7 +298,7 @@ prediction.nes_error(y)
 
 
 <div class="result" markdown>
-    0.7480505717415877
+    0.7480506048975407
 </div>
 
 
