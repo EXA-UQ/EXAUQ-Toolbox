@@ -601,34 +601,45 @@ class Cli(cmd2.Cmd):
         self._render_stdout(f"Workspace Directory: {workspace_dir}", False)
         self._render_stdout(f"Input Dimension: {input_dim}", False)
 
-        # Create a table for interface details
-        headers = ["Interface Name", "Details"]
+        # Determine headers based on available interface details
+        headers = ["Name", "Level"]
+        optional_headers = ["Host", "User"]
         data = []
+
+        # Collect data and determine which headers are available
         for name, details in interface_details.items():
             params_file = workspace_dir / details["params"]
+
             try:
-                # Load the parameter details from the file
                 with open(params_file, "r") as f:
                     params = json.load(f)
 
-                # Format and truncate parameters
-                formatted_params = [
-                    f"{k}: {self._truncate_string(str(v), 30)}" for k, v in params.items()
-                ]
-                formatted_line = "; ".join(formatted_params)
-                formatted_line = self._truncate_string(
-                    formatted_line, 120
-                )  # Truncate overall line
+                row = {
+                    "Name": name,
+                    "Level": params.get("level", "N/A"),
+                    "Host": params.get("host", "N/A"),
+                    "User": params.get("user", "N/A"),
+                }
+                data.append(row)
             except Exception as e:
-                formatted_line = f"Error loading parameters: {e}"
+                row = {
+                    "Name": name,
+                    "Level": "Error loading details",
+                    "Host": "N/A",
+                    "User": "N/A",
+                }
+                data.append(row)
 
-            data.append([name, formatted_line])
+        # Determine which optional headers are present in the data
+        available_headers = headers + [
+            h for h in optional_headers if any(row[h] != "N/A" for row in data)
+        ]
 
-        table = make_table(
-            OrderedDict(
-                (header, [row[i] for row in data]) for i, header in enumerate(headers)
-            )
+        # Format and print the table
+        table_data = OrderedDict(
+            (header, [row[header] for row in data]) for header in available_headers
         )
+        table = make_table(table_data)
         self._render_stdout("Interfaces Added:\n" + table)
 
     def _interface_entry_method_prompt(self) -> Optional[str]:
