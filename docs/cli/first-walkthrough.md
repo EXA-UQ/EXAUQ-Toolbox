@@ -271,10 +271,13 @@ JOBID              INPUT
 
 (exauq)>
 ```
+
 1. **Unique Job ID**: Notice that an ID has been returned for the submitted job. This is a uniquely 
 generated integer used by exauq to keep track of the job status. (The ID you receive will differ.)
+
 2. **Rounded Input Display**: The input for the job is also displayed, with coordinates rounded to 
 avoid overly long output lines.
+
 
 !!! note
     Although the coordinates are rounded in the INPUT table heading, the full-precision values are submitted to the simulator.
