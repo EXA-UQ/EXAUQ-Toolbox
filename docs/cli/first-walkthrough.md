@@ -45,53 +45,123 @@ $ exauq --docs
 ```
 
 
-## Starting a new workspace
+## Starting a New Workspace
 
-When you run `exauq` in a new directory, it will walk you through the steps for creating a
-_workspace_. Conceptually, we can think of a workspace corresponding to a particular
-'project' for which we need to run simulations. In practice, a workspace is nothing more
-than a directory dedicated to storing settings and simulation data, which enables `exauq`
-to resume where it left off next time you start it.
+When you run `exauq` in a new directory, the CLI will guide you through creating a new _workspace_. Conceptually, a workspace corresponds to a specific 'project' requiring simulations. In practice, it’s a directory dedicated to storing settings and simulation data, enabling `exauq` to resume where it left off in subsequent sessions.
 
-Below we give an example run-through of starting a new workspace, with line-by-line
-explanations of steps where user input is required. (The comments with numbering, e.g. `#
-(1)`, are just to help refer to the lines in the explanation and shouldn't be included
-when running through for real.)
+Here, we provide an updated walkthrough for starting a new workspace with line-by-line explanations of user input. Comments with numbering (e.g., `# (1)`) are provided for clarity but should not be included when following the steps in your terminal.
+
+### Example Session
 
 ```
 $ exauq
-A new workspace '.exauq-ws' will be set up.
-Please provide the following details to initialise the workspace...
-  Dimension of simulator input space: 3  # (1)
-  Host server address: server.example.com  # (2)
-  Host username: joe  # (3)
-  Path to simulator script on host: path/to/my-simulator-script.sh  # (4)
-  Program to run simulator script with: bash  # (5)
-  Use SSH agent? (Default 'no'): n  # (6)
-Setting up hardware...
-Password for joe@server.example.com:  # (7)
-Connection to server.example.com established.
-Thanks -- workspace '.exauq-ws' is now set up.
-(exauq)>  # (8)
+======================================================================
+                     EXAUQ Command Line Interface                     
+                            Version 0.1.0                             
+======================================================================
+----------------------------------------------------------------------
+                       Workspace Initialisation                       
+             A new workspace '.exauq-ws' will be set up.              
+----------------------------------------------------------------------
+Dimension of simulator input space: 3  # (1)
+Simulator input dimension set to: 3
+
+Press Enter to continue...
 ```
+1. **Input Dimension**: Specify the number of input variables expected by your simulator. In this example, the simulator requires three input variables.
+```
+======================================================================
+                     EXAUQ Command Line Interface                     
+                            Version 0.1.0                             
+======================================================================
+----------------------------------------------------------------------
+                           Interface Setup                            
+----------------------------------------------------------------------
 
-1. The number of input variables that the simulator expects.
-2. The address to the server where the simulator lives.
-3. Your username for the server.
-4. The path on the server to the simulator script. _We recommend providing an absolute
-   path._
-5. The program to run the simulator script with. In this example, we have a shell script,
-   so we use the program `bash`.
-6. Whether to use an already-running SSH agent for managing authentication with private 
-   keys to the server. If and agent is running and 'yes' is selected, then the `exauq`
-   application will use this to connect to the server without prompting for a password.
-   Otherwise, you will be prompted to enter your password to connect to the server (see
-   next).
-7. Enter your password to establish connection to the server. _This password is not stored
-   within the workspace or anywhere else by the_ `exauq` _application._
-8. After establishing a connection to the server, a directory `.exauq-ws` is created in
-   the current working directory and the main `exauq` command line interpreter is entered.
+---------------------------------
+  Select Interface Setup Method  
+---------------------------------
+  1: Interactive mode
+  2: Load from file
 
+Enter the number corresponding to your choice: 1  # (2)
+```
+2. **Interface Setup Method**: Choose how to configure the hardware interface:
+
+   - Interactive mode walks you through a step-by-step setup.
+   - Load from file uses a pre-configured JSON file containing interface details.
+
+```
+======================================================================
+                     EXAUQ Command Line Interface                     
+                            Version 0.1.0                             
+======================================================================
+----------------------------------------------------------------------
+                 Interactive Interface Configuration                  
+          Please provide details of your hardware interface           
+----------------------------------------------------------------------
+------------------------------------------------------
+  Choose the type of hardware interface to configure  
+------------------------------------------------------
+  1: Unix Server Script Interface
+
+Enter the number corresponding to your choice: 1  # (3)
+Selected: Unix Server Script Interface
+```
+3. **Interface Type**: Select the type of hardware interface you want to configure. In this example, a Unix Server Script Interface is chosen.
+
+```
+--------------------------------------------
+  Hardware Interface Configuration details  
+--------------------------------------------
+Hardware interface name: ExampleServer  # (4)
+Hardware interface level: 1  # (5)
+Host server address: server.example.com  # (6)
+Host username: joe  # (7)
+Path to simulator script on host: path/to/my-simulator-script.sh  # (8)
+Program to run simulator script with: bash  # (9)
+Use SSH agent? (Default 'no'): n  # (10)
+Password for joe@server.example.com:  # (11)
+Connection to server.example.com established.
+Add another hardware interface? (y/n): n  # (12)
+```
+4. Hardware Interface Details:
+
+-  (4) Name the hardware interface for identification.
+-  (5) Assign a level to the interface.
+-  (6) Provide the server address where the simulator resides.
+-  (7) Enter the username for the server.
+-  (8) Specify the path to the simulator script on the server.
+-  (9) Indicate the program to execute the simulator script (e.g., bash for shell scripts, python for python scripts, etc.).
+-  (10) Choose whether to use an SSH agent for authentication.
+-  (11) If not using an SSH agent, input your server password to establish a connection.
+-  (12) Decide whether to add additional hardware interfaces.
+
+!!! note
+    You can add multiple hardware interfaces to run simulations on different servers or with different programs. In this example, only one interface is added.
+```
+======================================================================
+                     EXAUQ Command Line Interface                     
+                            Version 0.1.0                             
+======================================================================
+----------------------------------------------------------------------
+                       Workspace Setup Summary                        
+----------------------------------------------------------------------
+Workspace Directory: .exauq-ws
+Input Dimension: 3
+Interfaces Added:
+Interface Name  Details                                                                                                                 
+ExampleServer   user: joe; host: server.example.com; program: bash; script_path: path/to/my-simulator-scrip...; name: ExampleServ...
+
+(exauq)>  # (13)
+```
+5. Workspace Summary: After completing the setup, exauq displays a summary:
+
+- The workspace directory path.
+- The simulator input dimension.
+- Details of the configured hardware interfaces, including the host, user, program, and script path.
+
+6. Command Prompt: You are now ready to use exauq to manage simulations! The command prompt `(exauq)>` indicates the CLI is ready to accept commands.
 
 ## Quitting the application
 
@@ -115,11 +185,10 @@ $ ls -a
 .  ..  .exauq-ws
 
 $ ls .exauq-ws/
-hardware_params  settings.json
+hw_params_ExampleServer.json  settings.json
 ```
 
 !!! warning
-
     Don't go modifying the files in the workspace directory, as this will likely make the
     `exauq` application behave incorrectly. In general, we recommend leaving the
     workspace directory alone.
@@ -160,8 +229,9 @@ To view all available commands within the application, run the `help` command:
 
 Documented commands (use 'help -v' for verbose/'help <topic>' for details):
 ===========================================================================
-alias  help     macro  run_pyscript  set    shortcuts  submit
-edit   history  quit   run_script    shell  show     
+add_interface  edit     list_interfaces  resubmit      set        show  
+alias          help     macro            run_pyscript  shell      submit
+cancel         history  quit             run_script    shortcuts  write     
 
 (exauq)>
 ```
@@ -171,27 +241,28 @@ for a particular command, run `help COMMAND`, for example:
 
 ```
 (exauq)> help submit
-Usage: submit [-h] [-f FILE] [inputs [...]]
+Usage: submit [-h] [-f FILE] [-l LEVEL] [inputs [...]]
 
-Submit a job to the simulator.
+Submit jobs to the simulator.
 
 positional arguments:
-  inputs           The inputs to submit to the simulator.
+  inputs             The inputs to submit to the simulator.
 
 optional arguments:
-  -h, --help       show this help message and exit
-  -f, --file FILE  A path to a csv file containing inputs to submit to the simulator.
+  -h, --help         show this help message and exit
+  -f, --file FILE    A path to a csv file containing inputs to submit to the simulator.
+  -l, --level LEVEL  The level of the hardware interface to use for the simulation.
 
 (exauq)>
 ```
 
-### Submitting jobs
+### Submitting Jobs
 
-A _job_ consists of sending a single _input_ to the simulator. (Note that an _input_ will
-in general consist of multiple coordinates.) In our example, we specified that the
-simulator takes in 3-dimensional inputs when creating the workspace. We can submit an
-input to the simulator with the `submit` command, as a comma-separated list of numbers. For example, to
-submit the input `(1.111, 2.222, 9.999)`, we enter the following into the application:
+A _job_ consists of sending a single _input_ to the simulator. (Note that an _input_ will generally 
+consist of multiple coordinates.) In our example, we specified that the simulator takes in 3-dimensional 
+inputs when creating the workspace. We can submit an input to the simulator with the `submit` command, 
+providing a comma-separated list of numbers. For example, to submit the input `(1.111, 2.222, 9.999)`, 
+we enter the following into the application:
 
 ```
 (exauq)> submit 1.111,2.222,9.999
@@ -201,42 +272,52 @@ JOBID              INPUT
 (exauq)>
 ```
 
-Notice that an ID has been returned for the submitted job. This is a uniquely-generated
-integer for the job and is used by the `exauq` application to keep track of the status of
-the job. (The ID you receive will likely differ.) The input for the job is also printed,
-with coordinates rounded to avoid long lines of output.
+1. **Unique Job ID**: Notice that an ID has been returned for the submitted job. This is a uniquely 
+generated integer used by exauq to keep track of the job status. (The ID you receive will differ.)
+
+2. **Rounded Input Display**: The input for the job is also displayed, with coordinates rounded to 
+avoid overly long output lines.
+
 
 !!! note
-    Although the coordinates are rounded in the `INPUT` table heading, the full precision
-    numbers are submitted to the simulator.
+    Although the coordinates are rounded in the INPUT table heading, the full-precision values are submitted to the simulator.
 
-!!! info
-    If you try submitting an input that starts with a negative number with the approach
-    given above, you will encounter an error:
+#### Handling Negative Inputs
 
-    ```
-    (exauq)> submit -1,2,3
-    Usage: submit [-h] [-f FILE] [inputs [...]]
-    Error: unrecognized arguments: -1,2,3
+If you try submitting an input starting with a negative number, you’ll encounter an error due to argument parsing:
 
-    (exauq)>
-    ```
-    
-    This is because the `-1` is being interpreted as an optional argument to `submit`,
-    which is not what we want. To get around this, place the list of inputs after `--`,
-    like so:
+```
+(exauq)> submit -1,2,3
+Usage: submit [-h] [-f FILE] [-l LEVEL] [inputs [...]]
+Error: unrecognized arguments: -1,2,3
 
-    ```
-    (exauq)> submit -- -1,2,3
-    ``` 
+(exauq)>
+```
+To resolve this, place the input list after a --, like so:
 
-    This will now submit the input `(-1.0, 2.0, 3.0)` as desired.
+```
+(exauq)> submit -- -1,2,3
+```
 
+This will submit the input (-1.0, 2.0, 3.0) as expected.
 
-Instead of submitting inputs manually at the prompt, there is the option to submit a
-collection of inputs as read from a csv file, using the `--file` (or `-f`) option. For
-example, supposing we had a csv file `design.csv` in our working directory, we could run
-the command
+#### Using the --level Option
+
+The --level (or -l) option allows you to specify which hardware interface level to use for the submission. For example, to submit the input (4.444, 5.555, 6.666) using hardware level 2:
+
+```
+(exauq)> submit -l 2 4.444,5.555,6.666
+JOBID              INPUT             
+20240420183710123  (4.44, 5.56, 6.67)
+
+(exauq)>
+```
+
+The default level is 1 if the --level argument is not specified.
+
+#### Submitting Inputs from a CSV File
+
+Instead of submitting inputs manually, you can use the --file (or -f) option to submit multiple inputs from a CSV file. For example, if you have a file named design.csv in your working directory:
 
 ```
 (exauq)> submit --file design.csv
@@ -248,6 +329,9 @@ JOBID              INPUT
 
 (exauq)>
 ```
+
+Each row in the file corresponds to a simulator input, and the system generates a unique job ID for each submission.
+
 
 ### Showing the status of jobs
 
@@ -418,3 +502,18 @@ $ ls -a
 .  ..  .exauq-ws  jobs.csv
 
 ```
+### Viewing Interfaces
+
+The _list_interfaces_ command displays an overview of all hardware interfaces configured in the workspace, 
+including their name, level, host, user, and the number of active jobs. For example:
+
+```
+(exauq)> list_interfaces 
+Name             Level  Host                 User    Active Jobs
+ExampleServer    1      server.example.com   joe     1
+AnotherServer    2      server2.example.com  joe     3
+
+(exauq)>
+```
+
+This command is useful for quickly reviewing the available interfaces and monitoring job distribution.
