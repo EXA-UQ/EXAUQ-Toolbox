@@ -70,7 +70,8 @@ to make everyone aware that is being worked on. If you realise you won't finish 
 and drop a note into the discussion. Someone else may well pick it up from where you left off. 
 
 Please do not begin work on a branch someone else is working on without their prior consent, it will likely just cause merge issues and slow down progress. 
-If you wish to help on an already open PR, please first enter the discussion and seek permission from whoever is assigned to that PR. If there is no one assigned JS - MISSING TEXT
+If you wish to help on an already open PR, please first enter the discussion and seek permission from whoever is assigned to that PR. If there is no one assigned 
+then drop a comment in the discussion explaining how far you wish to take the PR and, upon approval of a maintainer, assign yourself to it and feel free to work on it.
 
 When you think you have finished the PR, **before requesting a review**, please remember to:
 1) **Documentation:** Double check you have updated all of the relevent documentation including API, user guides / tutorials (see below).
@@ -106,7 +107,7 @@ your PR to fail the check later on and it is your responsibility, not the review
 We also have initial GitHub Actions in place which help our team maintain the code more easily - these include: 
 
 - **iSort and black:** Before your code is merged into dev it will undergo checks for [iSort](https://pycqa.github.io/isort/) (for import sorting)
-and linted using [black](https://github.com/psf/black) - more specifically `Black --line-length 90`. See pre-commit notes!
+and linted using [black](https://github.com/psf/black) - more specifically `Black --line-length 90`. See pre-commit notes.
 - **mkdocs build:** The docs will be rebuilt ensuring that your API documentation is the latest version, is fully up to date and builds with
 no warnings or errors. On release these will also be pushed up to the relative GitHub pages. 
 - **Test:** Unit tests will be run on the current determined versions of Python `3.10, 3.11, 3.12` and `3.13` to ensure compatibility.
