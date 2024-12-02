@@ -156,9 +156,11 @@ ExampleServer   user: joe; host: server.example.com; program: bash; script_path:
 (exauq)>  # (13)
 ```
 5. Workspace Summary: After completing the setup, exauq displays a summary:
-	- The workspace directory path.
-	- The simulator input dimension.
-	- Details of the configured hardware interfaces, including the host, user, program, and script path.
+
+- The workspace directory path.
+- The simulator input dimension.
+- Details of the configured hardware interfaces, including the host, user, program, and script path.
+
 6. Command Prompt: You are now ready to use exauq to manage simulations! The command prompt `(exauq)>` indicates the CLI is ready to accept commands.
 
 ## Quitting the application
