@@ -87,6 +87,7 @@ Press Enter to continue...
 Enter the number corresponding to your choice: 1  # (2)
 ```
 2. **Interface Setup Method**: Choose how to configure the hardware interface:
+
    - Interactive mode walks you through a step-by-step setup.
    - Load from file uses a pre-configured JSON file containing interface details.
 
