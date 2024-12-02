@@ -92,6 +92,14 @@ e.g. by creating a nested shell:
 poetry shell
 ```
 
+Finally, to use the automatic pre-commit hooks designed for linting, run:
+
+```bash
+pre-commit install
+```
+
+this will be required to pass the linting checks for PRs. 
+
 ### Updating dependencies
 
 To update Python package dependencies to the latest versions that are consistent

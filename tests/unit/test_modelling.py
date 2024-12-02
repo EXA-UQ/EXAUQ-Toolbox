@@ -888,7 +888,8 @@ class TestAbstractGaussianProcess(ExauqTestCase):
         for datum in new_training_data:
             self.assertTrue(
                 any(
-                    datum.input == existing_datum.input and datum.output == existing_datum.output
+                    datum.input == existing_datum.input
+                    and datum.output == existing_datum.output
                     for existing_datum in emulator.training_data
                 ),
                 f"New training datum with input {datum.input} and output {datum.output} "

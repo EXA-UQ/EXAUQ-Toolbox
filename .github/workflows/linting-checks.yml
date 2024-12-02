@@ -1,0 +1,66 @@
+# These are PR checks that with protected branch rules will not allow
+# for pushes or merging of PRs without checks passing. Theoretically, if one
+# uses the pre-commit hooks - they shouldn't fail. 
+
+name: Linting Checks
+run-name: "Linting checks upon ${{ github.event_name }} from ${{ github.ref_name }}"
+on:
+  pull_request_review:
+    types: [submitted]
+  repository_dispatch:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+
+  black:
+    name: black Formatting Check
+    runs-on: ubuntu-latest
+    if: ${{ github.event.review.state == 'approved' && 
+      (github.event.pull_request.base.ref == 'main' || 
+      github.event.pull_request.base.ref == 'dev' || 
+      startsWith(github.event.pull_request.base.ref, 'releases/')) 
+      }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Install pre-commit hooks
+        run: pre-commit install-hooks
+
+      - name: Black pre-commit
+        run: pre-commit run black --all-files
+
+  isort:
+    name: isort Import Check
+    runs-on: ubuntu-latest
+    if: ${{ github.event.review.state == 'approved' && 
+      (github.event.pull_request.base.ref == 'main' || 
+      github.event.pull_request.base.ref == 'dev' || 
+      startsWith(github.event.pull_request.base.ref, 'releases/')) 
+        }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Install pre-commit hooks
+        run: pre-commit install-hooks
+        
+      - name: isort pre-commit
+        run: pre-commit run isort --all-files
