@@ -421,13 +421,19 @@ class Cli(cmd2.Cmd):
             border_char="-",
         )
 
-        input_dim = int(input("Dimension of simulator input space: "))
-        self._render_stdout(
-            f"Simulator input dimension set to: {input_dim}\n",
-            text_color="\033[1;32m",
-            trailing_newline=False,
-        )
-        _ = input("Press Enter to continue...")
+        while True:
+            input_dim = self._get_positive_integer_input(
+                "Dimension of simulator input space: "
+            )
+            if self._confirm_dimension(input_dim):
+                self._render_stdout(
+                    f"Simulator input dimension set to: {input_dim}\n",
+                    text_color="\033[1;32m",
+                    trailing_newline=False,
+                )
+                break
+            else:
+                self._render_stdout("Let's try again.", text_color="\033[1;33m")
 
         while True:
             self._clear_screen()
@@ -481,6 +487,40 @@ class Cli(cmd2.Cmd):
         if len(value) > max_length:
             return value[: max_length - 3] + "..."
         return value
+
+    def _get_positive_integer_input(
+        self,
+        prompt: str,
+        error_message: str = "Invalid input. Please enter a positive integer.",
+    ) -> int:
+        """Prompt the user to enter a positive integer, with error handling for invalid inputs."""
+        while True:
+            try:
+                value = int(input(prompt))
+                if value <= 0:
+                    raise ValueError("Value must be greater than zero.")
+                return value
+            except ValueError as e:
+                self._render_error(f"{error_message} ({e})")
+
+    def _confirm_dimension(self, dimension: int) -> bool:
+        """Prompt the user to confirm the entered simulator dimension."""
+
+        if dimension > 20:
+            self._render_warning(
+                f"High dimensionality ({dimension}). This may lead to increased computational requirements."
+            )
+
+        while True:
+            response = input(f"Confirm dimension of {dimension}? [Y/n]: ").strip().lower()
+            if response in {"", "y", "yes"}:
+                return True
+            elif response in {"n", "no"}:
+                return False
+            else:
+                self._render_error(
+                    "Invalid input. Please enter 'Y' for Yes or 'N' for No."
+                )
 
     def _select_interface_entry_method_prompt(self) -> str | None:
         """Prompt the user to select an interface entry method and return a valid file path or None."""
