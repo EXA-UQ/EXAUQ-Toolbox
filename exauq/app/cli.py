@@ -465,20 +465,30 @@ class Cli(cmd2.Cmd):
                 factory = factory_cls()
                 factory.load_hardware_parameters(interface_settings_file_path)
 
-            hardware_interfaces.append(factory.create_hardware())
+            try:
+                hardware = factory.create_hardware()
+                hardware_interfaces.append(hardware)
 
-            self._workspace_dir.mkdir(exist_ok=True)
-            interface_name = hardware_interfaces[-1].name
-            hardware_params_filename = (
-                self._hardware_params_prefix + interface_name + ".json"
-            )
-            hardware_params_file = self._workspace_dir / hardware_params_filename
-            factory.serialise_hardware_parameters(hardware_params_file)
+                self._workspace_dir.mkdir(exist_ok=True)
+                interface_name = hardware_interfaces[-1].name
+                hardware_params_filename = (
+                    self._hardware_params_prefix + interface_name + ".json"
+                )
+                hardware_params_file = self._workspace_dir / hardware_params_filename
+                factory.serialise_hardware_parameters(hardware_params_file)
 
-            interface_details[interface_name] = {
-                "factory": factory_cls.__name__,
-                "params": hardware_params_filename,
-            }
+                interface_details[interface_name] = {
+                    "factory": factory_cls.__name__,
+                    "params": hardware_params_filename,
+                }
+
+                self._render_stdout(
+                    f"Interface '{interface_name}' added successfully.",
+                    text_color="\033[1;32m",
+                )
+
+            except Exception as e:
+                self._render_error(f"Error creating hardware interface: {e}")
 
             add_another = input("Add another hardware interface? (y/n): ").strip().lower()
             if add_another != "y":
