@@ -32,7 +32,6 @@ from __future__ import annotations
 
 import dataclasses
 import itertools
-import warnings
 from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Literal, Optional

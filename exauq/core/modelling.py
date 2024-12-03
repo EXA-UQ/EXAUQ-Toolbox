@@ -43,11 +43,9 @@ import functools
 import math
 import sys
 import warnings
-from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from itertools import product
 from numbers import Real
-from types import GenericAlias
 from typing import Any, Callable, Optional, TypeVar, Union
 from warnings import warn
 
