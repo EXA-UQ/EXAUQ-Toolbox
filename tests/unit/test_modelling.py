@@ -278,6 +278,89 @@ class TestInput(unittest.TestCase):
 
         self.assertEqual(msg, str(cm.exception))
 
+    def test_sequence_from_array(self):
+        """Test that a sequence of inputs can be generated from a
+        sequence of arrays."""
+
+        _inputs = np.array(
+            [
+                [1, 2, 3],
+                [4, 5, 6],
+            ]
+        )
+        expected = (Input(1, 2, 3), Input(4, 5, 6))
+        self.assertEqual(expected, Input.sequence_from_array(_inputs))
+
+    def test_sequence_from_array_wrong_dimension(self):
+        """Test a ValueError is raised if the wrong dimensional array is passed"""
+
+        _inputs1 = np.array(
+            [
+                [[1, 2], [3, 4], [5, 6], [7, 8]],
+                [[9, 10], [11, 12], [13, 14], [15, 16]],
+                [[17, 18], [19, 20], [21, 22], [23, 24]],
+            ]
+        )
+        msg = (
+            f"Expected np.array of dimension 2, but received {_inputs1.ndim} dimensions."
+        )
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            _ = Input.sequence_from_array(_inputs1)
+
+        _inputs2 = np.array([1, 2, 3])
+        msg = (
+            f"Expected np.array of dimension 2, but received {_inputs2.ndim} dimensions."
+        )
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            _ = Input.sequence_from_array(_inputs2)
+
+    def test_sequence_from_array_numpy_conversion(self):
+        """Test that a sequence of arrays is taken in and converted to a numpy array."""
+
+        # From a list
+        _inputs1 = [np.array([1, 2, 3]), np.array([4, 5, 6])]
+        expected1 = (Input(1, 2, 3), Input(4, 5, 6))
+        self.assertEqual(expected1, Input.sequence_from_array(_inputs1))
+
+        # From a tuple
+        _inputs2 = (np.array([1, 2, 3]), np.array([4, 5, 6]))
+        expected2 = (Input(1, 2, 3), Input(4, 5, 6))
+        self.assertEqual(expected2, Input.sequence_from_array(_inputs2))
+
+    def test_sequence_from_array_numpy_conversion_fail(self):
+        """Test that a standard TypeError is raised if the sequence cannot be converted
+        to a numpy array for some reason."""
+
+        # List -> invalid numpy array
+        _inputs1 = [np.array([1, 2, 3]), "Testing"]
+
+        try:
+            np.array(_inputs1)
+            msg = "Test Fail"
+
+        except Exception as e:
+            msg = f"Cannot convert inputs to numpy array: {e}"
+
+        finally:
+            with self.assertRaisesRegex(TypeError, exact(msg)):
+                _ = Input.sequence_from_array(_inputs1)
+
+    def test_sequence_from_array_single_input(self):
+        """Test that a sequence of arrays of length 1 returns a correct tuple."""
+
+        _inputs = np.array(
+            [1, 2, 3],
+        )
+        expected = (Input(1, 2, 3),)
+        self.assertEqual(expected, Input.sequence_from_array(_inputs))
+
+    def test_sequence_from_array_empty_input(self):
+        "Test that an empty tuple is returned for an empty array."
+
+        _inputs = np.array([])
+        expected = ()
+        self.assertEqual(expected, Input.sequence_from_array(_inputs))
+
 
 class TestTrainingDatum(unittest.TestCase):
     def setUp(self) -> None:
