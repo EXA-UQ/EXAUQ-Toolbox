@@ -52,25 +52,37 @@ class Cli(cmd2.Cmd):
         # Add more factories if needed
     }
 
-    submit_parser = cmd2.Cmd2ArgumentParser()
-    submit_parser.add_argument(
-        "inputs",
-        nargs="*",
+    add_interface_parser = cmd2.Cmd2ArgumentParser(
+        description=(
+            "Adds a hardware interface to the workspace.\n\n"
+            "Usage:\n"
+            "- Provide a JSON file with interface details as an argument to automatically add that interface.\n"
+            "- If no file is provided, an interactive prompt will guide you to manually input interface details."
+        )
+    )
+
+    add_interface_parser.add_argument(
+        "file",
+        type=argparse.FileType(mode="r"),
+        nargs="?",
+        help="JSON file defining the hardware interface to add (optional).",
+    )
+
+    cancel_parser = cmd2.Cmd2ArgumentParser()
+    cancel_parser.add_argument(
+        "job_ids",
+        nargs="+",
         type=str,
-        help="The inputs to submit to the simulator.",
+        help="Job IDs of the jobs to cancel.",
     )
-    submit_parser.add_argument(
-        "-f",
-        "--file",
-        type=argparse.FileType(mode="r", encoding="utf-8-sig"),
-        help="A path to a csv file containing inputs to submit to the simulator.",
+
+    keychecks_parser = argparse.ArgumentParser()
+    keychecks_parser.add_argument(
+        "-o", "--off", action="store_true", help="Turn off key checks."
     )
-    submit_parser.add_argument(
-        "-l",
-        "--level",
-        type=int,
-        default=1,
-        help="The level of the hardware interface to use for the simulation.",
+
+    list_interfaces_parser = cmd2.Cmd2ArgumentParser(
+        description="List all hardware interfaces with their details."
     )
 
     resubmit_parser = cmd2.Cmd2ArgumentParser()
@@ -115,14 +127,6 @@ class Cli(cmd2.Cmd):
             "This overrides any filters applied to statuses with the arguments "
             f"{status_opt_short} and {status_not_opt_short}."
         ),
-    )
-
-    cancel_parser = cmd2.Cmd2ArgumentParser()
-    cancel_parser.add_argument(
-        "job_ids",
-        nargs="+",
-        type=str,
-        help=("Job IDs of the jobs to cancel."),
     )
 
     show_parser = cmd2.Cmd2ArgumentParser()
@@ -214,31 +218,32 @@ class Cli(cmd2.Cmd):
         ),
     )
 
+    submit_parser = cmd2.Cmd2ArgumentParser()
+    submit_parser.add_argument(
+        "inputs",
+        nargs="*",
+        type=str,
+        help="The inputs to submit to the simulator.",
+    )
+    submit_parser.add_argument(
+        "-f",
+        "--file",
+        type=argparse.FileType(mode="r", encoding="utf-8-sig"),
+        help="A path to a csv file containing inputs to submit to the simulator.",
+    )
+    submit_parser.add_argument(
+        "-l",
+        "--level",
+        type=int,
+        default=1,
+        help="The level of the hardware interface to use for the simulation.",
+    )
+
     write_parser = cmd2.Cmd2ArgumentParser()
     write_parser.add_argument(
         "file",
         type=argparse.FileType(mode="w"),
         help="A path to a csv file to write job details to.",
-    )
-
-    add_interface_parser = cmd2.Cmd2ArgumentParser(
-        description=(
-            "Adds a hardware interface to the workspace.\n\n"
-            "Usage:\n"
-            "- Provide a JSON file with interface details as an argument to automatically add that interface.\n"
-            "- If no file is provided, an interactive prompt will guide you to manually input interface details."
-        )
-    )
-
-    add_interface_parser.add_argument(
-        "file",
-        type=argparse.FileType(mode="r"),
-        nargs="?",
-        help="JSON file defining the hardware interface to add (optional).",
-    )
-
-    list_interfaces_parser = cmd2.Cmd2ArgumentParser(
-        description="List all hardware interfaces with their details."
     )
 
     def __init__(self, workspace_dir: FilePath):
@@ -783,6 +788,121 @@ class Cli(cmd2.Cmd):
         data = OrderedDict([(self._JOBID_HEADER, ids), (self._INPUT_HEADER, inputs)])
         return self._make_table(data)
 
+    @cmd2.with_argparser(add_interface_parser)
+    def do_add_interface(self, args) -> None:
+        """Add a hardware interface to the workspace."""
+
+        if args.file is not None:
+            try:
+                json.load(args.file)
+            except json.JSONDecodeError as e:
+                self._render_error(
+                    f"Error reading interface settings: The file provided does not appear to be valid JSON. "
+                    f"Please ensure the file contains properly formatted JSON data. Details: {e}"
+                )
+                return None
+            except Exception as e:
+                self._render_error(f"Unexpected error reading interface settings: {e}")
+                return None
+
+            display_name, factory_cls = self._select_hardware_interface_prompt()
+            factory = factory_cls()
+            factory.load_hardware_parameters(args.file.name)
+            self._finalise_hardware_setup(factory, factory_cls)
+
+        else:
+            display_name, factory_cls = self._select_hardware_interface_prompt()
+            factory = factory_cls()
+            self._hardware_interface_configuration_prompt(factory)
+            self._finalise_hardware_setup(factory, factory_cls)
+
+    @cmd2.with_argparser(cancel_parser)
+    def do_cancel(self, args) -> None:
+        """Cancel simulation jobs."""
+
+        try:
+            job_ids = parse_job_ids(args.job_ids)
+        except ParsingError as e:
+            self._render_error(str(e))
+            return None
+
+        report = self._app.cancel(job_ids)
+        cancelled_jobs = report["cancelled_jobs"]
+        if cancelled_jobs:
+            self._render_stdout(self._make_cancel_table(cancelled_jobs))
+
+        terminated_jobs = [str(job_id) for job_id in report["terminated_jobs"]]
+        if terminated_jobs:
+            self._render_stdout(
+                "The following jobs have already terminated and were not cancelled:\n"
+                + "\n".join(f"  {job_id}" for job_id in terminated_jobs),
+                trailing_newline=False,
+            )
+
+        non_existent_jobs = [str(job_id) for job_id in report["non_existent_jobs"]]
+        if non_existent_jobs:
+            self._render_warning(
+                "Could not find jobs with the following IDs:\n"
+                + "\n".join(f"  {job_id}" for job_id in non_existent_jobs)
+            )
+
+    @cmd2.with_argparser(keychecks_parser)
+    def do_keychecks(self, args):
+        """Check or toggle the key checks status."""
+
+        if args.off:
+            self._render_warning("Key checks off.")
+        else:
+            self._render_stdout(
+                "Key checks enabled.", text_color="\033[1;32m", trailing_newline=False
+            )
+
+    @cmd2.with_argparser(list_interfaces_parser)
+    def do_list_interfaces(self, args) -> None:
+        """List all hardware interfaces with details and current job counts."""
+
+        # Include an additional header for job count
+        headers = ["Name", "Level", "Host", "User", "Active Jobs"]
+        data = []
+
+        for interface in self._app.interfaces:
+            name = interface.name
+            level = interface.level
+
+            if isinstance(interface, SSHInterface):
+                host = interface.host
+                user = interface.user
+            else:
+                host = "N/A"
+                user = "N/A"
+
+            # Get the current job count for the interface
+            job_count = self._app.get_interface_job_count(name)
+
+            # Append to table data
+            data.append(
+                [name, level, host, user, job_count if job_count is not None else "N/A"]
+            )
+
+        # Format and print the table
+        table = make_table(
+            OrderedDict(
+                (header, [row[i] for row in data]) for i, header in enumerate(headers)
+            )
+        )
+        self.poutput(table)
+
+    @cmd2.with_argparser(show_parser)
+    def do_show(self, args) -> None:
+        """Show information about jobs."""
+
+        try:
+            kwargs = self._parse_show_args(args)
+            jobs = self._app.get_jobs(**kwargs)
+            self._render_stdout(self._make_show_table(jobs))
+        except ParsingError as e:
+            self._render_error(str(e))
+
     @cmd2.with_argparser(submit_parser)
     def do_submit(self, args) -> None:
         """Submit jobs to the simulator."""
@@ -797,6 +917,37 @@ class Cli(cmd2.Cmd):
         finally:
             if isinstance(args.file, TextIOWrapper):
                 args.file.close()
+
+    @cmd2.with_argparser(resubmit_parser)
+    def do_resubmit(self, args) -> None:
+        """Resubmit jobs to the simulator."""
+
+        try:
+            kwargs = self._parse_resubmit_args(args)
+            jobs = self._app.get_jobs(**kwargs)
+
+            resubmitted_jobs = []
+            for job in jobs:
+                new_job = self._app.submit([job["input"]])[0]
+                resubmitted_jobs.append((job["job_id"], new_job.id, job["input"]))
+
+            self._render_stdout(self._make_resubmissions_table(resubmitted_jobs))
+        except ParsingError as e:
+            self._render_error(str(e))
+
+    @cmd2.with_argparser(write_parser)
+    def do_write(self, args) -> None:
+        """Write details of jobs in this workspace to a CSV file."""
+
+        jobs = [
+            self._restructure_record_for_csv(record) for record in self._app.get_jobs()
+        ]
+        try:
+            self._write_to_csv(jobs, args.file)
+        except Exception as e:
+            self._render_error(str(e))
+        finally:
+            args.file.close()
 
     def _parse_resubmit_args(self, args) -> dict[str, Any]:
         """Convert command line arguments for the resubmit command to a dict of arguments for
@@ -829,23 +980,6 @@ class Cli(cmd2.Cmd):
         )
         return self._make_table(data)
 
-    @cmd2.with_argparser(resubmit_parser)
-    def do_resubmit(self, args) -> None:
-        """Resubmit jobs to the simulator."""
-
-        try:
-            kwargs = self._parse_resubmit_args(args)
-            jobs = self._app.get_jobs(**kwargs)
-
-            resubmitted_jobs = []
-            for job in jobs:
-                new_job = self._app.submit([job["input"]])[0]
-                resubmitted_jobs.append((job["job_id"], new_job.id, job["input"]))
-
-            self._render_stdout(self._make_resubmissions_table(resubmitted_jobs))
-        except ParsingError as e:
-            self._render_error(str(e))
-
     def _make_cancel_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of details of cancelled jobs for displaying to the user."""
 
@@ -862,36 +996,6 @@ class Cli(cmd2.Cmd):
         )
 
         return self._make_table(data)
-
-    @cmd2.with_argparser(cancel_parser)
-    def do_cancel(self, args) -> None:
-        "Cancel simulation jobs."
-
-        try:
-            job_ids = parse_job_ids(args.job_ids)
-        except ParsingError as e:
-            self._render_error(str(e))
-            return None
-
-        report = self._app.cancel(job_ids)
-        cancelled_jobs = report["cancelled_jobs"]
-        if cancelled_jobs:
-            self._render_stdout(self._make_cancel_table(cancelled_jobs))
-
-        terminated_jobs = [str(job_id) for job_id in report["terminated_jobs"]]
-        if terminated_jobs:
-            self._render_stdout(
-                "The following jobs have already terminated and were not cancelled:\n"
-                + "\n".join(f"  {job_id}" for job_id in terminated_jobs),
-                trailing_newline=False,
-            )
-
-        non_existent_jobs = [str(job_id) for job_id in report["non_existent_jobs"]]
-        if non_existent_jobs:
-            self._render_warning(
-                "Could not find jobs with the following IDs:\n"
-                + "\n".join(f"  {job_id}" for job_id in non_existent_jobs)
-            )
 
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of job information for displaying to the user."""
@@ -937,30 +1041,6 @@ class Cli(cmd2.Cmd):
             "statuses": statuses,
             "result_filter": result_filter,
         }
-
-    @cmd2.with_argparser(show_parser)
-    def do_show(self, args) -> None:
-        """Show information about jobs."""
-        try:
-            kwargs = self._parse_show_args(args)
-            jobs = self._app.get_jobs(**kwargs)
-            self._render_stdout(self._make_show_table(jobs))
-        except ParsingError as e:
-            self._render_error(str(e))
-
-    @cmd2.with_argparser(write_parser)
-    def do_write(self, args) -> None:
-        """Write details of jobs in this workspace to a CSV file."""
-
-        jobs = [
-            self._restructure_record_for_csv(record) for record in self._app.get_jobs()
-        ]
-        try:
-            self._write_to_csv(jobs, args.file)
-        except Exception as e:
-            self._render_error(str(e))
-        finally:
-            args.file.close()
 
     def _restructure_record_for_csv(self, job_record: dict[str, Any]) -> dict[str, Any]:
         """Convert job information to a dict that's suitable for writing to a CSV.
@@ -1011,34 +1091,6 @@ class Cli(cmd2.Cmd):
         writer.writeheader()
         writer.writerows(jobs)
 
-    @cmd2.with_argparser(add_interface_parser)
-    def do_add_interface(self, args) -> None:
-        """Add a hardware interface to the workspace."""
-
-        if args.file is not None:
-            try:
-                json.load(args.file)
-            except json.JSONDecodeError as e:
-                self._render_error(
-                    f"Error reading interface settings: The file provided does not appear to be valid JSON. "
-                    f"Please ensure the file contains properly formatted JSON data. Details: {e}"
-                )
-                return None
-            except Exception as e:
-                self._render_error(f"Unexpected error reading interface settings: {e}")
-                return None
-
-            display_name, factory_cls = self._select_hardware_interface_prompt()
-            factory = factory_cls()
-            factory.load_hardware_parameters(args.file.name)
-            self._finalise_hardware_setup(factory, factory_cls)
-
-        else:
-            display_name, factory_cls = self._select_hardware_interface_prompt()
-            factory = factory_cls()
-            self._hardware_interface_configuration_prompt(factory)
-            self._finalise_hardware_setup(factory, factory_cls)
-
     def _finalise_hardware_setup(
         self, factory: HardwareInterfaceFactory, factory_cls: type
     ) -> None:
@@ -1076,41 +1128,6 @@ class Cli(cmd2.Cmd):
         self.poutput(
             f"Thanks -- new hardware interface '{hardware_interface.name}' added to workspace '{self._workspace_dir}'."
         )
-
-    @cmd2.with_argparser(list_interfaces_parser)
-    def do_list_interfaces(self, args) -> None:
-        """List all hardware interfaces with details and current job counts."""
-
-        # Include an additional header for job count
-        headers = ["Name", "Level", "Host", "User", "Active Jobs"]
-        data = []
-
-        for interface in self._app.interfaces:
-            name = interface.name
-            level = interface.level
-
-            if isinstance(interface, SSHInterface):
-                host = interface.host
-                user = interface.user
-            else:
-                host = "N/A"
-                user = "N/A"
-
-            # Get the current job count for the interface
-            job_count = self._app.get_interface_job_count(name)
-
-            # Append to table data
-            data.append(
-                [name, level, host, user, job_count if job_count is not None else "N/A"]
-            )
-
-        # Format and print the table
-        table = make_table(
-            OrderedDict(
-                (header, [row[i] for row in data]) for i, header in enumerate(headers)
-            )
-        )
-        self.poutput(table)
 
 
 def clean_input_string(string: str) -> str:
