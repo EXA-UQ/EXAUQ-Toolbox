@@ -291,31 +291,8 @@ class TestInput(unittest.TestCase):
         expected = (Input(1, 2, 3), Input(4, 5, 6))
         self.assertEqual(expected, Input.sequence_from_array(_inputs))
 
-    def test_sequence_from_array_wrong_dimension(self):
-        """Test a ValueError is raised if the wrong dimensional array is passed"""
-
-        _inputs1 = np.array(
-            [
-                [[1, 2], [3, 4], [5, 6], [7, 8]],
-                [[9, 10], [11, 12], [13, 14], [15, 16]],
-                [[17, 18], [19, 20], [21, 22], [23, 24]],
-            ]
-        )
-        msg = (
-            f"Expected np.array of dimension 2, but received {_inputs1.ndim} dimensions."
-        )
-        with self.assertRaisesRegex(ValueError, exact(msg)):
-            _ = Input.sequence_from_array(_inputs1)
-
-        _inputs2 = np.array([1, 2, 3])
-        msg = (
-            f"Expected np.array of dimension 2, but received {_inputs2.ndim} dimensions."
-        )
-        with self.assertRaisesRegex(ValueError, exact(msg)):
-            _ = Input.sequence_from_array(_inputs2)
-
-    def test_sequence_from_array_numpy_conversion(self):
-        """Test that a sequence of arrays is taken in and converted to a numpy array."""
+    def test_sequence_from_array_lists_tuples(self):
+        """Test that a sequence of arrays is taken in and still correctly functions."""
 
         # From a list
         _inputs1 = [np.array([1, 2, 3]), np.array([4, 5, 6])]
@@ -327,37 +304,56 @@ class TestInput(unittest.TestCase):
         expected2 = (Input(1, 2, 3), Input(4, 5, 6))
         self.assertEqual(expected2, Input.sequence_from_array(_inputs2))
 
-    def test_sequence_from_array_numpy_conversion_fail(self):
-        """Test that a standard TypeError is raised if the sequence cannot be converted
-        to a numpy array for some reason."""
+    def test_sequence_from_array_type_error(self):
+        """Ensure that a TypeError is raised if a non-sequence type is passed."""
 
-        # List -> invalid numpy array
-        _inputs1 = [np.array([1, 2, 3]), "Testing"]
+        _inputs = 32
+        msg = f"Expected 'inputs' to be of type Sequence of np.ndarray or 2D np.ndarray, but received {type(_inputs)} instead."
+        with self.assertRaisesRegex(TypeError, exact(msg)):
+            _ = Input.sequence_from_array(_inputs)
 
-        try:
-            np.array(_inputs1)
-            msg = "Test Fail"
+    def test_sequence_from_array_wrong_dimension(self):
+        """Test a ValueError is raised if the wrong dimensional array is passed"""
 
-        except Exception as e:
-            msg = f"Cannot convert inputs to numpy array: {e}"
+        # 3D case
+        _inputs = np.array(
+            [
+                [[1, 2], [3, 4], [5, 6], [7, 8]],
+                [[9, 10], [11, 12], [13, 14], [15, 16]],
+                [[17, 18], [19, 20], [21, 22], [23, 24]],
+            ]
+        )
+        msg = f"Expected np.array of dimension 2, but received {_inputs.ndim} dimensions."
 
-        finally:
-            with self.assertRaisesRegex(TypeError, exact(msg)):
-                _ = Input.sequence_from_array(_inputs1)
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            _ = Input.sequence_from_array(_inputs)
+
+        # 1D case
+        _inputs = np.array([1, 2, 3])
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            _ = Input.sequence_from_array(_inputs)
+
+        # Empty array case
+        _inputs = np.array([])
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            _ = Input.sequence_from_array(_inputs)
 
     def test_sequence_from_array_single_input(self):
         """Test that a sequence of arrays of length 1 returns a correct tuple."""
 
         _inputs = np.array(
-            [1, 2, 3],
+            [
+                [1, 2, 3],
+            ],
         )
         expected = (Input(1, 2, 3),)
         self.assertEqual(expected, Input.sequence_from_array(_inputs))
 
     def test_sequence_from_array_empty_input(self):
-        "Test that an empty tuple is returned for an empty array."
+        """Test that an empty tuple is returned for an empty sequence."""
 
-        _inputs = np.array([])
+        # NOTE: Sequence; empty np.ndarray will be picked up on dimensional error.
+        _inputs = []
         expected = ()
         self.assertEqual(expected, Input.sequence_from_array(_inputs))
 
