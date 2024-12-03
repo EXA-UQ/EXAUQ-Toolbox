@@ -892,9 +892,9 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         hyperparameters: Optional[GaussianProcessHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
-        """Fit the Guassian process emulator to data.
+        """Fit the Gaussian process emulator to data.
 
-        By default, hyperparameters should be estimated when fitting the Guassian process
+        By default, hyperparameters should be estimated when fitting the Gaussian process
         to data. Alternatively, a collection of hyperparameters may be supplied to
         use directly as the fitted values. If bounds are supplied for the hyperparameters,
         then estimation of the hyperparameters should respect these bounds.
@@ -946,7 +946,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         """Update the current fitted gp to new conditions.
 
         Allows the user a more friendly experience when implementing different hyperparameters
-        or hyperparam bounds or adding new training data to their GP without having to construct
+        or hyperparameter bounds or adding new training data to their GP without having to construct
         the refit themselves.
 
         Parameters
@@ -1201,7 +1201,7 @@ class MultiLevel(dict[int, T]):
         in both self and other. If other has any items that are on a separate level to any
         previously stored in self, then this will create a new level.
 
-        NOTE: It concatenates elements of sequences on the same level into 1 combined tuple, not indvidually adding
+        NOTE: It concatenates elements of sequences on the same level into 1 combined tuple, not individually adding
         the elements mathematically. See Examples.
 
         Parameters
@@ -1524,7 +1524,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         """Update the current fitted gp to new conditions.
 
         Allows the user a more friendly experience when implementing different hyperparameters
-        or hyperparam bounds or adding new training data to their GP without having to construct
+        or hyperparameter bounds or adding new training data to their GP without having to construct
         the refit themselves.
 
         Parameters
@@ -1672,7 +1672,7 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
 
     There are three basic (sets of) hyperparameters used for fitting Gaussian processes:
     correlation length scales, process variance and, optionally, a nugget. These are
-    expected to be on a linear scale; tranformation functions for converting to a log
+    expected to be on a linear scale; transformation functions for converting to a log
     scale are provided as static methods.
 
     Equality of `GaussianProcessHyperparameters` objects is tested hyperparameter-wise up

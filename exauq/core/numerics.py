@@ -84,7 +84,7 @@ def set_tolerance(tol: float):
 
     if not isinstance(tol, float):
         raise TypeError(
-            f"Expected 'tol' to be of type float, but receieved {type(tol)} instead."
+            f"Expected 'tol' to be of type float, but received {type(tol)} instead."
         )
 
     if tol < 0:

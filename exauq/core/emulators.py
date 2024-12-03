@@ -15,7 +15,7 @@ and adapting to work with the implemented designers from ``exauq.core.designers`
 
 [`gp`][exauq.core.emulators.MogpEmulator.gp]                                                **(Read-Only)** Underlying GP for this emulator.
 
-[`predict`][exauq.core.emulators.MogpEmulator.predict]                                      Make predicton for simulator output given Input.
+[`predict`][exauq.core.emulators.MogpEmulator.predict]                                      Make prediction for simulator output given Input.
 
 [`training_data`][exauq.core.emulators.MogpEmulator.training_data]                          **(Read-only)** The data on which the emulator has been trained.
 
@@ -217,7 +217,7 @@ class MogpEmulator(AbstractGaussianProcess):
         This method trains the underlying ``GaussianProcess``, as stored in
         the `gp` property, using the supplied training data. By default,
         hyperparameters are estimated as part of this training, by maximising the
-        log-posterior. Alternatively, a collection of hyperparamters can be supplied to
+        log-posterior. Alternatively, a collection of hyperparameters can be supplied to
         use directly as the fitted values. (If the nugget is not supplied as part of these
         values, then it will be calculated according to the 'nugget' argument used in the
         construction of the underlying ``GaussianProcess``.)
