@@ -4,6 +4,7 @@ import json
 import os
 import pathlib
 import re
+import sys
 from collections import OrderedDict
 from collections.abc import Sequence
 from importlib.metadata import PackageNotFoundError, version
@@ -489,6 +490,31 @@ class Cli(cmd2.Cmd):
 
             except Exception as e:
                 self._render_error(f"Error creating hardware interface: {e}")
+
+                if not hardware_interfaces:
+                    self._render_warning(
+                        "No hardware interfaces have been successfully added."
+                    )
+                    self._render_warning(
+                        "The workspace cannot be initialized without at least one hardware interface.\n"
+                        "If you choose not to retry adding an interface, the application will exit."
+                    )
+
+                    retry = (
+                        input("Would you like to try adding another interface? (y/n): ")
+                        .strip()
+                        .lower()
+                    )
+
+                    if retry != "y":
+                        self._render_warning("Exiting workspace setup and shutting down.")
+                        if self._app is not None:
+                            self._app.shutdown()
+
+                        sys.exit(1)
+
+                    else:
+                        continue
 
             add_another = input("Add another hardware interface? (y/n): ").strip().lower()
             if add_another != "y":
