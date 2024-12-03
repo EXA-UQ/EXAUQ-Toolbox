@@ -422,7 +422,7 @@ class Input(Sequence):
     def sequence_from_array(
         cls, inputs: Union[Sequence[np.ndarray], np.ndarray]
     ) -> tuple[Input]:
-        """Create a tuple of inputs from a sequence of arrays.
+        """Create a tuple of inputs from a sequence of arrays or 2D NDarray.
 
         Parameters
         ----------
@@ -433,7 +433,7 @@ class Input(Sequence):
         Returns
         -------
         tuple[Input]:
-            A tuple of simulator Input co-ordinates
+            A tuple of simulator Input co-ordinates.
         """
 
         if not isinstance(inputs, Sequence) and not isinstance(inputs, np.ndarray):
