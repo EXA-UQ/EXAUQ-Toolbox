@@ -537,11 +537,14 @@ class TrainingDatum(object):
 
     @staticmethod
     def _validate_input(input: Any) -> None:
-        """Check that an object is an instance of an Input, raising a
-        TypeError if not."""
+        """Check that an object is an instance of a non-empty Input, raising a
+        TypeError if not the correct type or a ValueError if empty."""
 
         if not isinstance(input, Input):
             raise TypeError("Argument 'input' must be of type Input")
+
+        if not input:
+            raise ValueError("Argument 'input' is empty, it must contain a value.")
 
     @staticmethod
     def _validate_output(observation: Any) -> None:
