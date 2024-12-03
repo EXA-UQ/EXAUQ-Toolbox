@@ -418,6 +418,24 @@ class Input(Sequence):
 
         return cls(*tuple(input))
 
+    @classmethod
+    def sequence_from_array(cls, inputs: Sequence[np.ndarray]) -> tuple[Input]:
+        """Create a tuple of inputs from a sequence of arrays.
+
+        Parameters
+        ----------
+        inputs:
+            A 2-dimensional array (or sequence of arrays) which has a sequence
+            of input co-ordinate arrays to be converted to the Input type.
+
+        Returns
+        -------
+        tuple[Input]:
+            A tuple of simulator Input co-ordinates
+        """
+
+        pass
+
     def __str__(self) -> str:
         if self._value is None:
             return "()"
