@@ -270,6 +270,8 @@ class Cli(cmd2.Cmd):
         self.register_preloop_hook(self.initialise_app)
         self._hardware_params_prefix = "hw_params_"
 
+        self._interface_names = set()
+
         self._package_version = self._get_package_version("exauq")
 
         self._generate_bordered_header(
@@ -482,6 +484,8 @@ class Cli(cmd2.Cmd):
                     "factory": factory_cls.__name__,
                     "params": hardware_params_filename,
                 }
+
+                self._interface_names.add(interface_name)
 
                 self._render_stdout(
                     f"Interface '{interface_name}' added successfully.",
@@ -727,6 +731,8 @@ class Cli(cmd2.Cmd):
             while True:
                 value_str = input(f"{prompt}: ")
                 try:
+                    if param == "name":
+                        self._validate_interface_name(value_str)
                     factory.set_param_from_str(param, value_str)
                     break
                 except ValueError as e:
@@ -1162,10 +1168,28 @@ class Cli(cmd2.Cmd):
         )
 
         self._app.add_interface(hardware_interface)
+        self._interface_names.add(hardware_interface.name)
 
         self.poutput(
             f"Thanks -- new hardware interface '{hardware_interface.name}' added to workspace '{self._workspace_dir}'."
         )
+
+    def _validate_interface_name(self, name: str):
+        """Validate the name of a hardware interface. and checks for duplicates"""
+
+        if not name.isidentifier():
+            raise ValueError(
+                f"'{name}' is not a valid name. Names must follow these rules:\n"
+                "- Start with a letter (A-Z, a-z) or an underscore (_).\n"
+                "- Contain only letters, numbers, or underscores (no spaces or symbols).\n"
+                "- Not be empty or start with a number.\n"
+                "Please provide a valid name."
+            )
+
+        if name in self._interface_names:
+            raise ValueError(
+                f"'{name}' is already in use. Please provide a unique name for the interface."
+            )
 
 
 def clean_input_string(string: str) -> str:
