@@ -698,11 +698,13 @@ class Cli(cmd2.Cmd):
             "Hardware Interface Configuration details", border_char="-"
         )
         for param, prompt in factory.interactive_prompts.items():
-            value_str = input(f"{prompt}: ")
-            try:
-                factory.set_param_from_str(param, value_str)
-            except ValueError as e:
-                self._render_error(f"Invalid value -- {e}")
+            while True:
+                value_str = input(f"{prompt}: ")
+                try:
+                    factory.set_param_from_str(param, value_str)
+                    break
+                except ValueError as e:
+                    self._render_error(f"Invalid value -- {e}")
 
     def _select_hardware_interface_prompt(self) -> tuple[str, type]:
         """Prompt the user to select a hardware interface type."""
