@@ -182,7 +182,9 @@ class TestSetTolerance(unittest.TestCase):
         tol = [1, 2]
         with self.assertRaisesRegex(
             TypeError,
-            exact(f"Expected 'tol' to be of type float but receieved {type(tol)}."),
+            exact(
+                f"Expected 'tol' to be of type float, but received {type(tol)} instead."
+            ),
         ):
             set_tolerance(tol)
 

@@ -56,7 +56,7 @@ def fit_GP_MAP(
     skip_failures=True,
     refit=False,
     bounds=None,
-    **kwargs
+    **kwargs,
 ):
     """Fit one or more Gaussian Processes by attempting to minimize the
     negative log-posterior
@@ -213,10 +213,11 @@ def fit_GP_MAP(
             gp = _fit_MOGPGPU_MAP(gp, n_tries, theta0, method, **kwargs)
         else:
             raise TypeError(
-                "single arg to fit_GP_MAP must be a GaussianProcess or MultiOutputGP instance"
+                "Expected single arg to 'fit_GP_MAP' to be of type GaussianProcess or MultiOutputGP instance, "
+                f"but received P{type(gp)} instead."
             )
     elif len(args) < 2:
-        raise TypeError("missing required inputs/targets arrays to GaussianProcess")
+        raise TypeError("Missing required inputs/targets arrays to GaussianProcess")
     else:
         gp_kwargs = {}
         for key in ["mean", "kernel", "priors", "nugget", "inputdict", "use_patsy"]:
@@ -428,7 +429,7 @@ def _fit_MOGP_MAP(
                     n_tries=n_tries,
                     method=method,
                     bounds=bounds,
-                    **kwargs
+                    **kwargs,
                 ),
                 [(emulator, t0) for (emulator, t0) in zip(emulators_to_fit, thetavals)],
             )

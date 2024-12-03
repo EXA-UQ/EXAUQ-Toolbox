@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.43">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.44">
     
     
       
@@ -66,6 +66,11 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
+      
+        
+        <a href="#exauq.core" class="md-skip">
+          Skip to content
+        </a>
       
     </div>
     <div data-md-component="announce">
@@ -1035,6 +1040,41 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#exauq.core" class="md-nav__link">
+    <span class="md-ellipsis">
+      core
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exauq.core--exauqcore" class="md-nav__link">
+    <span class="md-ellipsis">
+      exauq.core
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exauq.core--modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      modules
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1050,7 +1090,65 @@
 
   <h1>core</h1>
 
-<p>Documentation coming soon for this module.</p>
+<div class="doc doc-object doc-module">
+
+
+
+<a id="exauq.core"></a>
+    <div class="doc doc-contents first">
+
+      <h2 id="exauq.core--exauqcore">exauq.core</h2>
+<hr />
+<p>The exauq core package contains everything required for the creation and training 
+of both single level and multi-level deterministic Gaussian process (GP) emulators 
+and leave-one-out (LOO) sampling methods on customisable designs. The GP emulation
+is built upon the <code>mogp_emulator</code> while implementing the ability to bound hyperparameters. 
+Spatial domains can be created and filled with effective sampled points alongside
+repulsion points across the boundary. </p>
+<p>Tutorials on how to create a basic experimental design can be found within the 
+Experimental Design tutorials. </p>
+<hr />
+<h2 id="exauq.core--modules">modules</h2>
+<p><a class="autorefs autorefs-internal" href="designers.html#exauq.core.designers"><code>designers</code></a>:</p>
+<p>Create the experimental domain using either a simple oneshot Latin hypercube or
+through the LOO sampling methods for both single and multi-level GPs.</p>
+<p><a class="autorefs autorefs-internal" href="emulators.html#exauq.core.emulators"><code>emulators</code></a>: </p>
+<p>Provides the emulators to modify and train the GP and control hyperparameters.</p>
+<p><a class="autorefs autorefs-internal" href="modelling.html#exauq.core.modelling"><code>modelling</code></a>:</p>
+<p>Contains the objects required for utilising and training GP emulators alongside
+the LOO sampling methods for both single and multi-level GPs.</p>
+<p><a class="autorefs autorefs-internal" href="numerics.html#exauq.core.numerics"><code>numerics</code></a>:</p>
+<p>Numerical tolerance checks.</p>
+
+
+<details class="references-" open>
+  <summary>References</summary>
+  <p><code>mogp_emulator</code>:  <a href="https://github.com/alan-turing-institute/mogp-emulator">https://github.com/alan-turing-institute/mogp-emulator</a></p>
+<p><code>LOO Sampling</code>: </p>
+<p>Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive
+Sampling for Gaussian process models". DOI: <a href="https://doi.org/10.1137/21M1404260">https://doi.org/10.1137/21M1404260</a></p>
+<p>Kimpton, L. M. et al. (2023) "Cross-Validation Based Adaptive Sampling for
+        Multi-Level Gaussian Process Models". arXiv: <a href="https://arxiv.org/abs/2307.09095">https://arxiv.org/abs/2307.09095</a></p>
+</details>
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 
