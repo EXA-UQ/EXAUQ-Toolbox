@@ -72,7 +72,7 @@ Assuming you have Python and Poetry installed, install Python package
 dependencies by running the following from the root project folder:
 
 ```bash
-poetry install
+poetry install --with=dev
 ```
 
 This will install packages into a dedicated virtual environment, according
