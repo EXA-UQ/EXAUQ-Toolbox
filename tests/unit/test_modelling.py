@@ -305,6 +305,14 @@ class TestTrainingDatum(unittest.TestCase):
         with self.assertRaisesRegex(TypeError, exact(msg)):
             TrainingDatum(1, 1)
 
+    def test_empty_input_error(self):
+        """Test that a ValueError is raised if the constructor arg 'input'
+        is an empty Input."""
+
+        msg = "Argument 'input' is empty, it must contain a value."
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            TrainingDatum(Input(), 42)
+
     def test_output_error(self):
         """Test that a TypeError is raised if the constructor arg 'output'
         is not a real number."""
