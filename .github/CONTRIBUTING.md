@@ -207,4 +207,4 @@ introducing newcomers on how to use the toolbox to train emulators and do basic 
 (both single and multi-level). These tutorials only cover the most basic use cases, however. 
 If you wish to contribute to the guides and tutorials, we follow the [Diátaxis](https://diataxis.fr/) approach to 
 writing documentation. Tutorials are designed for learning the basics, whereas user guides should be goal-oriented, 
-consisting of directions that guide the reader through a problem or towards a result. 
+consisting of directions that guide the reader through a problem or towards a result.  
