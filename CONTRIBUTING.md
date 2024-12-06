@@ -44,7 +44,9 @@ will likely be removed. However, this process takes time so please do ensure you
 As it stands there is only a very small team maintaining the toolbox, therefore please do give some time for the issue to be resolved. If
 you wish to follow up on your own issue please feel free to create a branch and pull request (PR) (see below). 
 
-### Labels
+### Labels (Contributors Only)
+
+If you are an external contributor, one of the maintainers will add labels to your issue upon reading it. 
 
 When creating issues please feel free to add appropriate labels to the issue from the list provided. This helps the team quickly 
 identify bugs from feature requests etc. without having to open issues. This may seem trivial but if there are a sudden influx of issues
@@ -53,12 +55,23 @@ it does help us sort through them more quickly for those that are urgent or assi
 There is also a **"Good First Issue"** label. If you are new to the EXAUQ-Toolbox and wish to contribute, please
 do take a look at these first as our team realise these are good issues to get you up to speed with contributing to the toolbox more easily. 
 
-### Branches and Pull Requests
+### Branches/Forks and Pull Requests 
 
-If you wish to resolve an issue please create a new branch and label the branch **"iss{number}-{issue_title}"**. We suggest opening 
+**Note:** These instructions differ slightly depending on if you are a contributor within the repository or if you are externally wishing to contribute due to the necessity of write permissions to protect branches. However, there are very few differences!
+
+As an **external contributor:**
+
+If you wish to resolve an issue you will have to create a fork of the repository to your own GitHub account and then clone this repository so that you have write permissions to your own forked copy. Rather than using the main branch of this fork, create a new branch which (for minor fixes) fits the template **"iss{issue_number}-{issue_title}"**. Depending on the changes made and if they are fairly complex we suggest pulling this down locally. When you have tested and are happy with your work / current progress, you can open a pull request to merge the fork back into the original EXAUQ-Toolbox repository. **Ensure that your are attempting to merge into the `dev` branch and not the default `main`!** If you forget, it will be rebased and this could cause issues with your merge - although, these can of course be fixed.   
+
+As an **internal contributor:**
+
+If you wish to resolve an issue please create a new branch and label the branch **"iss{issue_number}-{issue_title}"**. We suggest opening 
 the branches locally and then pushing through to the remote branch when you wish. **NOTE:** This does not have to be when you are 
-finished and ready to submit your PR. Draft/WIP PRs are fully encouraged so that the maintainers of the 
-toolbox can see what you are working on, please just label the title of your PR **"[WiP]{Name_of_branch}"**. 
+finished and ready to submit your PR. 
+
+**For Both:**
+Draft/WIP PRs are fully encouraged so that the maintainers of the 
+toolbox can see what you are working on, please just label the title of your PR **"[WiP]{Name_of_branch/fork}"**. 
 
 **Most importantly: Your new branch should base (or at least have the root base if you are branching off a branch) into `dev` and not `main`.** `dev` is the development branch, `main` is
 for when we release and only an admin will be merging dev into main upon a new release. 
