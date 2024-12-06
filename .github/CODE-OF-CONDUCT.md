@@ -1,8 +1,6 @@
 
 # EXAUQ-Toolbox Contributor Code of Conduct
 
-**NOTE: THIS NEEDS UPDATING WITH ENFORCEMENT POLICIES WHEN DECIDED**
-
 ## Our Pledge
 
 We as members, contributors, and leaders pledge to make participation in our
