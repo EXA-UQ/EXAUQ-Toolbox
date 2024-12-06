@@ -57,7 +57,7 @@ do take a look at these first as our team realise these are good issues to get y
 
 If you wish to resolve an issue please create a new branch and label the branch **"iss{number}-{issue_title}"**. We suggest opening 
 the branches locally and then pushing through to the remote branch when you wish. **NOTE:** This does not have to be when you are 
-finished and ready to submit your PR. Draft/WIP PRs are fully encouraged so that the maintaners of the 
+finished and ready to submit your PR. Draft/WIP PRs are fully encouraged so that the maintainers of the 
 toolbox can see what you are working on, please just label the title of your PR **"[WiP]{Name_of_branch}"**. 
 
 **Most importantly: Your new branch should base (or at least have the root base if you are branching off a branch) into `dev` and not `main`.** `dev` is the development branch, `main` is
@@ -74,7 +74,7 @@ If you wish to help on an already open PR, please first enter the discussion and
 then drop a comment in the discussion explaining how far you wish to take the PR and, upon approval of a maintainer, assign yourself to it and feel free to work on it.
 
 When you think you have finished the PR, **before requesting a review**, please remember to:
-1) **Documentation:** Double check you have updated all of the relevent documentation including API, user guides / tutorials (see below).
+1) **Documentation:** Double check you have updated all of the relevant documentation including API, user guides / tutorials (see below).
 2) **Test:** Run all of the unittests.
 3) **Lint**: There are github workflows such as linting checks and document rebuilding that will occur. See below for the standards we use and
 how to use the pre-commit hook if necessary.
@@ -92,16 +92,16 @@ and then be placed within the testcase for the class the method sits within. If 
 
 ### Reviewing
 
-Finally when your PR is ready, change the name of the PR to **"[ReadyforReview]{branch_name}"** and request a review from one of the team. Currently, 
+Finally, when your PR is ready, change the name of the PR to **"[ReadyforReview]{branch_name}"** and request a review from one of the team. Currently, 
 we are still finalising how long reviews will take (and this will depend on the number of PRs). However, 2 weeks is probably a reasonable request currently. 
 It is worth noting that the first thing our reviewers will do is run the tests and linting pre-commit hook. PRs which fail either of these checks will be sent 
 straight back without further review until these pass. 
 
-### Pre-commit and Github Actions
+### Pre-commit and GitHub Actions
 
 Pre-commit hooks are built into this Toolbox which include [iSort](https://pycqa.github.io/isort/) and [black](https://github.com/psf/black). Each time
 you commit to a branch these hooks **should** be run automatically unless you are editing non-python files. Please do not skip them, this will only cause 
-your PR to fail the check later on and it is your responsibility, not the reviewer, to run the pre-commit locally. To do so, you can always run
+your PR to fail the check later on, and it is your responsibility, not the reviewer, to run the pre-commit locally. To do so, you can always run
 ```pre-commit run --all-files``` and granted the checks are all working correctly this should only affect code you have edited. 
 
 We also have initial GitHub Actions in place which help our team maintain the code more easily - these include: 
@@ -115,7 +115,7 @@ no warnings or errors. On release these will also be pushed up to the relative G
 ### Branch Protection Rules
 
 We have branch protection rules in place to protect the `main` and `dev` branches. These require all checks to pass alongside approved reviews from 
-approved maintainers of the toolbox. Currently there are no other protections in place, however, it is possible that some will be in place on specific branches 
+approved maintainers of the toolbox. Currently, there are no other protections in place, however, it is possible that some will be in place on specific branches 
 from time to time in special circumstances of development. 
 
 ## Developing Documentation
@@ -135,7 +135,7 @@ The toolbox uses [MkDocs](https://www.mkdocs.org/) with the following plugins:
 ### Building the Docs
 
 Currently, documentation is distributed within the toolbox for offline viewing. Building
-the documentation is a two step process (run from the repository root directory,
+the documentation is a two-step process (run from the repository root directory,
 either using `poetry run` or after first activating the Poetry environment):
 
 1. Run `python scripts/build_notebooks.py`. This converts any Jupyter notebooks
@@ -148,7 +148,7 @@ either using `poetry run` or after first activating the Poetry environment):
    directory.
 
 When developing documentation, you can instead use `mkdocs serve` to start a development
-server for the docs website. This will watch for changes to the markdown source in `docs/`
+server for the docs' website. This will watch for changes to the markdown source in `docs/`
 and regenerate the web content automatically. A workflow which is more suitable for quick
 feedback when writing docs:
 
