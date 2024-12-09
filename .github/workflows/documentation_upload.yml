@@ -58,10 +58,9 @@ jobs:
           set -x
           poetry run mkdocs build
 
-    #   # Step 9: Deploy to GitHub Pages
-    #   - name: Deploy to GitHub Pages
-    #     run: |
-    #       set -e
-    #       set -x
-    #       poetry run mkdocs gh-deploy --force
-
+      # Step 9: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        run: |
+          set -e
+          set -x
+          poetry run mkdocs gh-deploy --force
