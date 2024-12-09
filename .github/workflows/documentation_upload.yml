@@ -23,9 +23,9 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
 
       # Step 3: Set up Python
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v4
         with:
-          python-version: 3.10
+          python-version: '3.10'
 
       # Step 4: Cache Poetry dependencies
       - name: Cache Poetry dependencies
@@ -58,10 +58,9 @@ jobs:
           set -x
           poetry run mkdocs build
 
-    #   # Step 9: Deploy to GitHub Pages
-    #   - name: Deploy to GitHub Pages
-    #     run: |
-    #       set -e
-    #       set -x
-    #       poetry run mkdocs gh-deploy --force
-
+      # Step 9: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        run: |
+          set -e
+          set -x
+          poetry run mkdocs gh-deploy --force
