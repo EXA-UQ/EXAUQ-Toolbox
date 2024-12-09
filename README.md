@@ -41,19 +41,19 @@ To install the `exauq` package from the toolbox, run the following command (afte
 activating the virtual environment, if necessary):
 
 ``` bash
-python -m pip install "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git@v0.1.0"
+python -m pip install "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git"
 ```
-This will install the version of `exauq` currently on the Git repository's v0.1.0 release.
+This will install the latest version of `exauq` currently on the Git repository.
 If you already have `exauq` installed and wish to update it to the latest version, run
 
 ``` bash
-python -m pip install --force-reinstall "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git@v0.1.0"
+python -m pip install --force-reinstall "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git"
 ```
 
 If you wish to use a specific version of `exauq`, then simply alter the version at the end of the command. 
 
 ```bash
-python -m pip install "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git@vX.X.X"
+python -m pip install "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git@v0.1.0"
 ```
 
 ## Viewing documentation
