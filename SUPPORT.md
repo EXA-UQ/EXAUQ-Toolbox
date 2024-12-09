@@ -14,7 +14,7 @@ environment for all.
 [Contributing Guidelines](CONTRIBUTING.md) which should give a good explanation for how the workflow
 is structured by the EXAUQ-Toolbox team.
 
-- If you wish to fork the repository, or use it in some way please do refer to the 
+- If you wish to fork the repository, or use it in some way please do refer to 
 the following [License](LICENSE.txt) before doing so to ensure this is upheld correctly. 
 
 
