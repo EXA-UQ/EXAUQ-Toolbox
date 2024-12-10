@@ -367,48 +367,6 @@ def make_default_parser(
     return parse
 
 
-def make_posix_path_parser(
-    required: bool = True, default: Optional[FilePath] = None
-) -> Callable[[str], Optional[str]]:
-    """Make a function for parsing a POSIX-compliant path, with handling for blank
-    strings.
-
-    The returned parser function is designed to be used for parsing user-provided text.
-    If the provided string defines a valid POSIX path, then the parser will return it
-    as-is (after stripping out any leading/trailing whitespace). If the string is empty
-    or only contains whitespace, then the specified default path is returned as a string
-    if `required` is ``False`` and a ValueError is raised if `required` is ``True``.
-
-    Parameters
-    ----------
-    required : bool, optional
-        (Default: True) Whether the returned function should raise a ValueError on strings
-        that are empty or only contain whitespace.
-    default : Optional[exauq.sim_management.types.FilePath], optional
-        (Default: None) The value for the returned function to return on strings that are
-        empty or only contain whitespace, in the case where `required` is ``False``.
-
-    Returns
-    -------
-    Callable[[str], Optional[str]]
-        A function to parse strings as POSIX file paths with handling for strings that are
-        empty or only contain whitespace, as specified by the values of `required` and
-        `default`.
-    """
-
-    def parse(x: str) -> Optional[str]:
-        x = make_default_parser(required=required, default="")(x)
-        if x == "":
-            return str(pathlib.PurePosixPath(default))
-        else:
-            try:
-                return str(pathlib.PurePosixPath(x))
-            except ValueError:
-                raise ValueError(f"Could not parse '{x}' as a Posix path.")
-
-    return parse
-
-
 def make_bool_parser(
     required: bool = True, default: Optional[bool] = None
 ) -> Callable[[str], Optional[bool]]:
@@ -497,5 +455,47 @@ def make_int_parser(
             return int(x)
         except ValueError:
             raise ValueError(f"Could not parse '{x}' as an integer")
+
+    return parse
+
+
+def make_posix_path_parser(
+    required: bool = True, default: Optional[FilePath] = None
+) -> Callable[[str], Optional[str]]:
+    """Make a function for parsing a POSIX-compliant path, with handling for blank
+    strings.
+
+    The returned parser function is designed to be used for parsing user-provided text.
+    If the provided string defines a valid POSIX path, then the parser will return it
+    as-is (after stripping out any leading/trailing whitespace). If the string is empty
+    or only contains whitespace, then the specified default path is returned as a string
+    if `required` is ``False`` and a ValueError is raised if `required` is ``True``.
+
+    Parameters
+    ----------
+    required : bool, optional
+        (Default: True) Whether the returned function should raise a ValueError on strings
+        that are empty or only contain whitespace.
+    default : Optional[exauq.sim_management.types.FilePath], optional
+        (Default: None) The value for the returned function to return on strings that are
+        empty or only contain whitespace, in the case where `required` is ``False``.
+
+    Returns
+    -------
+    Callable[[str], Optional[str]]
+        A function to parse strings as POSIX file paths with handling for strings that are
+        empty or only contain whitespace, as specified by the values of `required` and
+        `default`.
+    """
+
+    def parse(x: str) -> Optional[str]:
+        x = make_default_parser(required=required, default="")(x)
+        if x == "":
+            return str(pathlib.PurePosixPath(default))
+        else:
+            try:
+                return str(pathlib.PurePosixPath(x))
+            except ValueError:
+                raise ValueError(f"Could not parse '{x}' as a Posix path.")
 
     return parse
