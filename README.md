@@ -32,7 +32,7 @@ Alongside the research team for the algorithms:
   - [Dr. Louise Kimpton](https://experts.exeter.ac.uk/28206-louise-kimpton)
   - [Dr. Xiaoyu Xiong](https://experts.exeter.ac.uk/27140-xiaoyu-xiong)
   
-## Installing the latest development version
+## Installing the latest release version
 
 We strongly recommend using virtual environments (e.g. Conda environments) to
 manage packages when using the EXAUQ-Toolbox in your work.
@@ -41,14 +41,19 @@ To install the `exauq` package from the toolbox, run the following command (afte
 activating the virtual environment, if necessary):
 
 ``` bash
-python -m pip install "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git@dev"
+python -m pip install "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git"
 ```
-This will install the version of `exauq` currently on the Git repository's `dev` branch.
-
-If you already have `exauq` installed and wish to update it, run
+This will install the latest version of `exauq` currently on the Git repository.
+If you already have `exauq` installed and wish to update it to the latest version, run
 
 ``` bash
-python -m pip install --force-reinstall "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git@dev"
+python -m pip install --force-reinstall "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git"
+```
+
+If you wish to use a specific version of `exauq`, then simply alter the version at the end of the command. 
+
+```bash
+python -m pip install "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git@v0.1.0"
 ```
 
 ## Viewing documentation
