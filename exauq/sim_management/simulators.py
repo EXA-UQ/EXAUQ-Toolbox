@@ -668,6 +668,19 @@ class JobManager:
         if wait_for_pending and self._thread is not None:
             self._thread.join()
 
+    @property
+    def interface_job_counts(self) -> dict[str, int]:
+        """
+        Provides a thread-safe, read-only view of the job monitoring counts per interface.
+
+        Returns
+        -------
+        dict[str, int]
+            A dictionary mapping interface names to the number of jobs being monitored.
+        """
+        with self._lock:
+            return dict(self._interface_job_monitor_counts)
+
     def submit(self, x: Input, level: int = 1) -> Job:
         """
         Submits a new simulation job. This method creates a job with a unique ID,
@@ -833,7 +846,7 @@ class JobManager:
 
         return strategies
 
-    def monitor(self, jobs: list[Job]):
+    def monitor(self, jobs: Sequence[Job]):
         """
         Initiates or resumes monitoring of the specified jobs for status updates.
 
@@ -843,8 +856,8 @@ class JobManager:
 
         Parameters
         ----------
-        jobs : list[Job]
-            A list of Job objects to be monitored.
+        jobs : Sequence[Job]
+            A sequence of Job objects to be monitored.
 
         Notes
         ----
