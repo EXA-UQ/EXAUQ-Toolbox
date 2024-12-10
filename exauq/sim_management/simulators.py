@@ -857,7 +857,7 @@ class JobManager:
         Parameters
         ----------
         jobs : Sequence[Job]
-            A list of Job objects to be monitored.
+            A sequence of Job objects to be monitored.
 
         Notes
         ----
