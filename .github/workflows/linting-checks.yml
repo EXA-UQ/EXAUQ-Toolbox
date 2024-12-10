@@ -2,8 +2,8 @@
 # for pushes or merging of PRs without checks passing. Theoretically, if one
 # uses the pre-commit hooks - they shouldn't fail. 
 
-name: Test linting
-run-name: "Test linting upon ${{ github.event_name }} from ${{ github.ref_name }}"
+name: Linting Checks
+run-name: "Linting checks upon ${{ github.event_name }} from ${{ github.ref_name }}"
 on:
   pull_request_review:
     types: [submitted]
@@ -12,42 +12,55 @@ on:
   workflow_call:
 
 jobs:
+
   black:
-    if: ${{ github.event.review.state == 'approved' && 
-          (github.event.pull_request.base.ref == 'main' || 
-            github.event.pull_request.base.ref == 'dev' || 
-            startsWith(github.event.pull_request.base.ref, 'releases/')) 
-            }}
-    name: Black formatting check
+    name: black Formatting Check
     runs-on: ubuntu-latest
+    if: ${{ github.event.review.state == 'approved' && 
+      (github.event.pull_request.base.ref == 'main' || 
+      github.event.pull_request.base.ref == 'dev' || 
+      startsWith(github.event.pull_request.base.ref, 'releases/')) 
+      }}
     steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: dev
-      - uses: actions/setup-python@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Install black
-        run: pipx install black
-      - name: Run black
-        run: black --check --line-length 90 .
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Install pre-commit hooks
+        run: pre-commit install-hooks
+
+      - name: Black pre-commit
+        run: pre-commit run black --all-files
 
   isort:
-    if: ${{ github.event.review.state == 'approved' && 
-          (github.event.pull_request.base.ref == 'main' || 
-            github.event.pull_request.base.ref == 'dev' || 
-            startsWith(github.event.pull_request.base.ref, 'releases/')) 
-            }}
-    name: Isort import sorting check
+    name: isort Import Check
     runs-on: ubuntu-latest
+    if: ${{ github.event.review.state == 'approved' && 
+      (github.event.pull_request.base.ref == 'main' || 
+      github.event.pull_request.base.ref == 'dev' || 
+      startsWith(github.event.pull_request.base.ref, 'releases/')) 
+        }}
     steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: dev
-      - uses: actions/setup-python@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Install isort
-        run: pipx install isort
-      - name: Run isort
-        run: isort --check-only .
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Install pre-commit hooks
+        run: pre-commit install-hooks
+        
+      - name: isort pre-commit
+        run: pre-commit run isort --all-files
