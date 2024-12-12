@@ -469,6 +469,7 @@ class Cli(cmd2.Cmd):
                 factory.load_hardware_parameters(interface_settings_file_path)
 
             try:
+                self._validate_interface_name(factory.hardware_parameters.get("name"))
                 hardware = factory.create_hardware()
                 hardware_interfaces.append(hardware)
 
