@@ -267,7 +267,7 @@ class UnixServerScriptInterfaceFactory(HardwareInterfaceFactory):
             A mapping of hardware interface parameter names to parsing functions.
         """
         return super().make_parsers() | {
-            "level": make_int_parser(),
+            "level": make_pos_int_parser(),
             "script_path": make_posix_path_parser(),
             "use_ssh_agent": make_bool_parser(
                 required=False,
@@ -455,6 +455,46 @@ def make_int_parser(
             return int(x)
         except ValueError:
             raise ValueError(f"Could not parse '{x}' as an integer")
+
+    return parse
+
+
+def make_pos_int_parser(
+    required: bool = True, default: Optional[int] = None
+) -> Callable[[str], Optional[int]]:
+    """Make a function for parsing a string as a positive integer, with handling for blank
+    strings.
+
+    The parser takes in a string, strips out any leading/trailing whitespace, and then
+    does one of the following with the result:
+
+    * Returns an integer if the string can be converted to an integer and is positive.
+    * Returns a specified default value if `required` is ``False`` and the string is
+      empty.
+    * Raises a ValueError otherwise.
+
+    Parameters
+    ----------
+    required : bool, optional
+        (Default: True) Whether the returned function should raise a ValueError on strings
+        that are empty or only contain whitespace.
+    default : Optional[exauq.sim_management.types.FilePath], optional
+        (Default: None) The value for the returned function to return on strings that are
+        empty or only contain whitespace, in the case where `required` is ``False``.
+
+    Returns
+    -------
+    Callable[[str], Optional[str]]
+        A function to parse strings as positive integers with handling for strings that are
+        empty or only contain whitespace, as specified by the values of `required` and
+        `default`.
+    """
+
+    def parse(x: str) -> Optional[int]:
+        x = make_int_parser(required=required, default=default)(x)
+        if x is not None and x <= 0:
+            raise ValueError(f"Expected a positive integer, but got '{x}'.")
+        return x
 
     return parse
 
