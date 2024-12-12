@@ -840,6 +840,14 @@ class Cli(cmd2.Cmd):
         if args.file is not None:
             try:
                 json.load(args.file)
+                _, factory_cls = self._select_hardware_interface_prompt()
+                interface_factory = factory_cls()
+                interface_factory.load_hardware_parameters(args.file.name)
+                self._validate_interface_name(
+                    interface_factory.hardware_parameters.get("name")
+                )
+                self._finalise_hardware_setup(interface_factory, factory_cls)
+
             except json.JSONDecodeError as e:
                 self._render_error(
                     f"Error reading interface settings: The file provided does not appear to be valid JSON. "
@@ -850,16 +858,11 @@ class Cli(cmd2.Cmd):
                 self._render_error(f"Unexpected error reading interface settings: {e}")
                 return None
 
-            display_name, factory_cls = self._select_hardware_interface_prompt()
-            factory = factory_cls()
-            factory.load_hardware_parameters(args.file.name)
-            self._finalise_hardware_setup(factory, factory_cls)
-
         else:
-            display_name, factory_cls = self._select_hardware_interface_prompt()
-            factory = factory_cls()
-            self._hardware_interface_configuration_prompt(factory)
-            self._finalise_hardware_setup(factory, factory_cls)
+            _, factory_cls = self._select_hardware_interface_prompt()
+            interface_factory = factory_cls()
+            self._hardware_interface_configuration_prompt(interface_factory)
+            self._finalise_hardware_setup(interface_factory, factory_cls)
 
     @cmd2.with_argparser(cancel_parser)
     def do_cancel(self, args) -> None:
