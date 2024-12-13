@@ -309,7 +309,9 @@ class TestTrainingDatum(unittest.TestCase):
         """Test that a ValueError is raised if the constructor arg 'input'
         is an empty Input."""
 
-        msg = "Argument 'input' is empty, it must contain a value."
+        msg = (
+            "Argument 'input' must not be empty; it must contain at least one dimension."
+        )
         with self.assertRaisesRegex(ValueError, exact(msg)):
             TrainingDatum(Input(), 42)
 
