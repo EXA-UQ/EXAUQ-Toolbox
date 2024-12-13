@@ -60,7 +60,7 @@ def main():
             "-v",
             "--version", 
             action="version",
-            version=f"exauq v{get_version()}",
+            version=f"exauq {get_version()}",
             help="show the current installed version of the EXAUQ-Toolbox and exit",
         )
 
