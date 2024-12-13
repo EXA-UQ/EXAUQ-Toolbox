@@ -4,7 +4,7 @@ import pathlib
 import subprocess
 import sys
 import webbrowser
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 
 import exauq
 import exauq.app.cli
@@ -58,7 +58,7 @@ def main():
         )
         parser.add_argument(
             "-v",
-            "--version", 
+            "--version",
             action="version",
             version=f"exauq {get_version()}",
             help="show the current installed version of the EXAUQ-Toolbox and exit",
