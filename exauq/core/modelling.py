@@ -544,7 +544,7 @@ class TrainingDatum(object):
             raise TypeError("Argument 'input' must be of type Input")
 
         if not input:
-            raise ValueError("Argument 'input' is empty, it must contain a value.")
+            raise ValueError("Argument 'input' must not be empty; it must contain at least one dimension.")
 
     @staticmethod
     def _validate_output(observation: Any) -> None:
