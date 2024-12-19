@@ -330,11 +330,13 @@ class TestInput(unittest.TestCase):
 
         # 1D case
         _inputs = np.array([1, 2, 3])
+        msg = f"Expected np.array of dimension 2, but received {_inputs.ndim} dimensions."
         with self.assertRaisesRegex(ValueError, exact(msg)):
             _ = Input.sequence_from_array(_inputs)
 
         # Empty array case
         _inputs = np.array([])
+        msg = f"Expected np.array of dimension 2, but received {_inputs.ndim} dimensions."
         with self.assertRaisesRegex(ValueError, exact(msg)):
             _ = Input.sequence_from_array(_inputs)
 
