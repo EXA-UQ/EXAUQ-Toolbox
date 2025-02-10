@@ -33,8 +33,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: "poetry"
-    - name: Poetry lock no-update
-      run: poetry lock --no-update
+    - name: Poetry lock
+      run: poetry lock
     - name: Install dependencies
       run: poetry install --with=dev
     - name: Run unit tests
