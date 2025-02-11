@@ -1,18 +1,21 @@
 import argparse
 import csv
 import json
+import os
 import pathlib
 import re
+import sys
 from collections import OrderedDict
 from collections.abc import Sequence
+from importlib.metadata import PackageNotFoundError, version
 from io import TextIOWrapper
 from typing import Any, Callable, Optional, Union
 
 import cmd2
 
 from exauq.app.app import App
-from exauq.app.startup import UnixServerScriptInterfaceFactory
-from exauq.sim_management.hardware import JobStatus
+from exauq.app.startup import HardwareInterfaceFactory, UnixServerScriptInterfaceFactory
+from exauq.sim_management.hardware import HardwareInterface, JobStatus, SSHInterface
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
 
@@ -44,18 +47,43 @@ class Cli(cmd2.Cmd):
         Path to the workspace directory to use for the app's session.
     """
 
-    submit_parser = cmd2.Cmd2ArgumentParser()
-    submit_parser.add_argument(
-        "inputs",
-        nargs="*",
-        type=str,
-        help="The inputs to submit to the simulator.",
+    INTERFACE_FACTORIES = {
+        "1": ("Unix Server Script Interface", UnixServerScriptInterfaceFactory),
+        # "2": ("Windows Server Script Interface", WindowsServerScriptInterfaceFactory),
+        # Add more factories if needed
+    }
+
+    add_interface_parser = cmd2.Cmd2ArgumentParser(
+        description=(
+            "Adds a hardware interface to the workspace.\n\n"
+            "Usage:\n"
+            "- Provide a JSON file with interface details as an argument to automatically add that interface.\n"
+            "- If no file is provided, an interactive prompt will guide you to manually input interface details."
+        )
     )
-    submit_parser.add_argument(
-        "-f",
-        "--file",
-        type=argparse.FileType(mode="r", encoding="utf-8-sig"),
-        help="A path to a csv file containing inputs to submit to the simulator.",
+
+    add_interface_parser.add_argument(
+        "file",
+        type=argparse.FileType(mode="r"),
+        nargs="?",
+        help="JSON file defining the hardware interface to add (optional).",
+    )
+
+    cancel_parser = cmd2.Cmd2ArgumentParser()
+    cancel_parser.add_argument(
+        "job_ids",
+        nargs="+",
+        type=str,
+        help="Job IDs of the jobs to cancel.",
+    )
+
+    keychecks_parser = argparse.ArgumentParser()
+    keychecks_parser.add_argument(
+        "-o", "--off", action="store_true", help="Turn off key checks."
+    )
+
+    list_interfaces_parser = cmd2.Cmd2ArgumentParser(
+        description="List all hardware interfaces with their details."
     )
 
     resubmit_parser = cmd2.Cmd2ArgumentParser()
@@ -100,14 +128,6 @@ class Cli(cmd2.Cmd):
             "This overrides any filters applied to statuses with the arguments "
             f"{status_opt_short} and {status_not_opt_short}."
         ),
-    )
-
-    cancel_parser = cmd2.Cmd2ArgumentParser()
-    cancel_parser.add_argument(
-        "job_ids",
-        nargs="+",
-        type=str,
-        help=("Job IDs of the jobs to cancel."),
     )
 
     show_parser = cmd2.Cmd2ArgumentParser()
@@ -199,6 +219,27 @@ class Cli(cmd2.Cmd):
         ),
     )
 
+    submit_parser = cmd2.Cmd2ArgumentParser()
+    submit_parser.add_argument(
+        "inputs",
+        nargs="*",
+        type=str,
+        help="The inputs to submit to the simulator.",
+    )
+    submit_parser.add_argument(
+        "-f",
+        "--file",
+        type=argparse.FileType(mode="r", encoding="utf-8-sig"),
+        help="A path to a csv file containing inputs to submit to the simulator.",
+    )
+    submit_parser.add_argument(
+        "-l",
+        "--level",
+        type=int,
+        default=1,
+        help="The level of the hardware interface to use for the simulation.",
+    )
+
     write_parser = cmd2.Cmd2ArgumentParser()
     write_parser.add_argument(
         "file",
@@ -210,7 +251,7 @@ class Cli(cmd2.Cmd):
         super().__init__(allow_cli_args=False)
         self._workspace_dir = pathlib.Path(workspace_dir)
         self._app = None
-        self.prompt = "(exauq)> "
+        self.prompt = self.prompt = "\033[1;34m(exauq)>\033[0m "
         self._JOBID_HEADER = "JOBID"
         self._INPUT_HEADER = "INPUT"
         self._STATUS_HEADER = "STATUS"
@@ -227,6 +268,88 @@ class Cli(cmd2.Cmd):
             self._RESULT_HEADER: lambda x: format_float(x, sig_figs=None),
         }
         self.register_preloop_hook(self.initialise_app)
+        self._hardware_params_prefix = "hw_params_"
+
+        self._interface_names = set()
+
+        self._package_version = self._get_package_version("exauq")
+
+        self._generate_bordered_header(
+            "EXAUQ Command Line Interface",
+            f"Version {self._package_version}",
+            width=70,
+            title_color="\033[1;34m",
+        )
+
+    def postloop(self) -> None:
+        """Perform cleanup after the command loop ends."""
+        if self._app is not None:
+            self._render_stdout(
+                "Shutting down… Even kernels need a break sometimes.",
+                text_color="\033[1;32m",
+            )
+            self._app.shutdown()
+
+        super().postloop()
+
+    def _generate_bordered_header(
+        self,
+        title: str,
+        subtitle: Optional[str] = None,
+        width: Optional[int] = None,
+        title_color: Optional[str] = None,
+        subtitle_color: Optional[str] = None,
+        border_char: str = "=",
+    ) -> None:
+        """Generate and print a bordered header with a title and optional subtitle.
+
+        Parameters
+        ----------
+        title : str
+            The main title to display within the border.
+        subtitle : str, optional
+            An optional subtitle displayed below the title.
+        width : int, optional
+            The total width of the border. Defaults to the length of the longest text (title or subtitle) plus padding.
+        title_color : str, optional
+            ANSI color code for the title. Defaults to white bold.
+        subtitle_color : str, optional
+            ANSI color code for the subtitle. Defaults to white bold.
+        border_char : str, optional
+            Character(s) used to draw the border. Defaults to '='.
+        """
+        # Calculate width
+        text_width = max(len(title), len(subtitle) if subtitle else 0) + 4  # Add padding
+        width = max(
+            width or 0, text_width
+        )  # Use provided width if larger than text width
+
+        if title_color is None:
+            title_color = ""
+        if subtitle_color is None:
+            subtitle_color = ""
+
+        # Build the border, centered title, and centered subtitle
+        border = (border_char * (width // len(border_char) + 1))[:width]
+        centered_title = f"{title_color}{title.center(width)}\033[0m"  # Reset color
+        centered_subtitle = (
+            f"{subtitle_color}{subtitle.center(width)}\033[0m" if subtitle else ""
+        )
+
+        # Print the header
+        self.poutput(border)
+        self.poutput(centered_title)
+        if subtitle:
+            self.poutput(centered_subtitle)
+        self.poutput(border)
+
+    @staticmethod
+    def _get_package_version(package_name: str) -> str:
+        """Fetch the current version of the given package."""
+        try:
+            return version(package_name)
+        except PackageNotFoundError:
+            return "Unknown"
 
     def initialise_app(self) -> None:
         """Initialise the application with workspace settings.
@@ -239,80 +362,437 @@ class Cli(cmd2.Cmd):
         stored in the workspace directory, and then a new application instance is
         initialised with these settings.
 
-        Currently the only possible hardware interface that can be used is the
-        ``UnixServerScriptInterface``. This methods creates and uses an instance of
+        Currently, the only possible hardware interface that can be used is the
+        ``UnixServerScriptInterface``. This method creates and uses an instance of
         ``UnixServerScriptInterfaceFactory`` to set up this interface.
         """
 
         general_settings_file = self._workspace_dir / "settings.json"
-        hardware_params_file = self._workspace_dir / "hardware_params"
         workspace_log_file = self._workspace_dir / "simulations.csv"
 
-        # TODO: add option to dispatch on plugin
-        factory = UnixServerScriptInterfaceFactory()
-
         if not general_settings_file.exists():
-            # Gather settings from UI
-            self.poutput(f"A new workspace '{self._workspace_dir}' will be set up.")
-            self.poutput(
-                "Please provide the following details to initialise the workspace..."
+            input_dim, hardware_interfaces, interface_details = (
+                self._init_workspace_prompt()
             )
-            input_dim = int(input("  Dimension of simulator input space: "))
-            for param, prompt in factory.interactive_prompts.items():
-                value_str = input(f"  {prompt}: ")
-                try:
-                    factory.set_param_from_str(param, value_str)
-                except ValueError as e:
-                    self._render_error(f"Invalid value -- {e}")
 
-            self.poutput("Setting up hardware...")
-            hardware = factory.create_hardware()
-
-            # Write settings to file
-            self._workspace_dir.mkdir(exist_ok=True)
             write_settings_json(
                 {
-                    "hardware_type": factory.hardware_cls.__name__,
+                    "interfaces": interface_details,
                     "input_dim": input_dim,
                 },
                 general_settings_file,
             )
-            factory.serialise_hardware_parameters(hardware_params_file)
-            self.poutput(f"Thanks -- workspace '{self._workspace_dir}' is now set up.")
 
             # Create app
             self._app = App(
-                interface=hardware,
+                interfaces=hardware_interfaces,
                 input_dim=input_dim,
                 simulations_log_file=workspace_log_file,
             )
         else:
+            hardware_interfaces = []
             self.poutput(f"Using workspace '{self._workspace_dir}'.")
             general_settings = read_settings_json(general_settings_file)
-            factory.load_hardware_parameters(hardware_params_file)
-            hardware = factory.create_hardware()
+
+            for interface_name, interface_details in general_settings[
+                "interfaces"
+            ].items():
+                factory_cls = interface_details["factory"]
+                hardware_params_filename = interface_details["params"]
+                hardware_params_file = self._workspace_dir / hardware_params_filename
+                factory = globals()[factory_cls]()
+
+                factory.load_hardware_parameters(hardware_params_file)
+                hardware_interfaces.append(factory.create_hardware())
+
             self._app = App(
-                interface=hardware,
+                interfaces=hardware_interfaces,
                 input_dim=general_settings["input_dim"],
                 simulations_log_file=workspace_log_file,
             )
         return None
 
-    def do_quit(self, args) -> Optional[bool]:
-        """Exit the application."""
+    def _init_workspace_prompt(
+        self,
+    ) -> tuple[int, list[HardwareInterface], dict[str, dict[str, str]]]:
+        """Initialise the application with workspace settings."""
 
-        if self._app is not None:
-            self._app.shutdown()
+        hardware_interfaces = []
+        interface_details = {}
 
-        return super().do_quit(args)
+        self._clear_screen()
+        self._generate_bordered_header(
+            "Workspace Initialisation",
+            f"A new workspace '{self._workspace_dir}' will be set up.",
+            width=70,
+            title_color="\033[1;34m",
+            border_char="-",
+        )
 
-    def _render_stdout(self, text: str, trailing_newline: bool = True) -> None:
-        """Write text to standard output, with an optional trailing newline character."""
+        while True:
+            input_dim = self._get_positive_integer_input(
+                "Dimension of simulator input space: "
+            )
+            if self._confirm_dimension(input_dim):
+                self._render_stdout(
+                    f"Simulator input dimension set to: {input_dim}\n",
+                    text_color="\033[1;32m",
+                    trailing_newline=False,
+                )
+                break
+            else:
+                self._render_stdout("Let's try again.", text_color="\033[1;33m")
 
-        if trailing_newline:
-            self.poutput(text + "\n")
+        while True:
+            self._clear_screen()
+            self._generate_bordered_header(
+                "Interface Setup", width=70, border_char="-", title_color="\033[1;34m"
+            )
+            interface_settings_file_path = self._select_interface_entry_method_prompt()
+
+            if interface_settings_file_path is None:
+                self._clear_screen()
+                self._generate_bordered_header(
+                    "Interactive Interface Configuration",
+                    "Please provide details of your hardware interface",
+                    width=70,
+                    border_char="-",
+                    title_color="\033[1;34m",
+                )
+                display_name, factory_cls = self._select_hardware_interface_prompt()
+                factory = factory_cls()
+                self._hardware_interface_configuration_prompt(factory)
+
+            else:
+                display_name, factory_cls = self._select_hardware_interface_prompt()
+                factory = factory_cls()
+                factory.load_hardware_parameters(interface_settings_file_path)
+
+            try:
+                self._validate_interface_name(factory.hardware_parameters.get("name"))
+                hardware = factory.create_hardware()
+                hardware_interfaces.append(hardware)
+
+                self._workspace_dir.mkdir(exist_ok=True)
+                interface_name = hardware_interfaces[-1].name
+                hardware_params_filename = (
+                    self._hardware_params_prefix + interface_name + ".json"
+                )
+                hardware_params_file = self._workspace_dir / hardware_params_filename
+                factory.serialise_hardware_parameters(hardware_params_file)
+
+                interface_details[interface_name] = {
+                    "factory": factory_cls.__name__,
+                    "params": hardware_params_filename,
+                }
+
+                self._interface_names.add(interface_name)
+
+                self._render_stdout(
+                    f"Interface '{interface_name}' added successfully.",
+                    text_color="\033[1;32m",
+                )
+
+            except Exception as e:
+                self._render_error(f"Error creating hardware interface: {e}")
+
+                if not hardware_interfaces:
+                    self._render_warning(
+                        "No hardware interfaces have been successfully added."
+                    )
+                    self._render_warning(
+                        "The workspace cannot be initialized without at least one hardware interface.\n"
+                        "If you choose not to retry adding an interface, the application will exit."
+                    )
+
+                    retry = (
+                        input("Would you like to try adding another interface? (y/n): ")
+                        .strip()
+                        .lower()
+                    )
+
+                    if retry != "y":
+                        self._render_warning("Exiting workspace setup and shutting down.")
+                        if self._app is not None:
+                            self._app.shutdown()
+
+                        sys.exit(1)
+
+                    else:
+                        continue
+
+            add_another = input("Add another hardware interface? (y/n): ").strip().lower()
+            if add_another != "y":
+                self._generate_workspace_summary(
+                    self._workspace_dir, input_dim, interface_details
+                )
+                return input_dim, hardware_interfaces, interface_details
+
+    def _truncate_string(self, value: str, max_length: int) -> str:
+        """Truncate a string to a maximum length, adding ellipses if needed."""
+        if len(value) > max_length:
+            return value[: max_length - 3] + "..."
+        return value
+
+    def _get_positive_integer_input(
+        self,
+        prompt: str,
+        error_message: str = "Invalid input. Please enter a positive integer.",
+    ) -> int:
+        """Prompt the user to enter a positive integer, with error handling for invalid inputs."""
+        while True:
+            try:
+                value = int(input(prompt))
+                if value <= 0:
+                    raise ValueError("Value must be greater than zero.")
+                return value
+            except ValueError as e:
+                self._render_error(f"{error_message} ({e})")
+
+    def _confirm_dimension(self, dimension: int) -> bool:
+        """Prompt the user to confirm the entered simulator dimension."""
+
+        if dimension > 20:
+            self._render_warning(
+                f"High dimensionality ({dimension}). This may lead to increased computational requirements."
+            )
+
+        while True:
+            response = input(f"Confirm dimension of {dimension}? [Y/n]: ").strip().lower()
+            if response in {"", "y", "yes"}:
+                return True
+            elif response in {"n", "no"}:
+                return False
+            else:
+                self._render_error(
+                    "Invalid input. Please enter 'Y' for Yes or 'N' for No."
+                )
+
+    def _select_interface_entry_method_prompt(self) -> str | None:
+        """Prompt the user to select an interface entry method and return a valid file path or None."""
+
+        choice = self._interface_entry_method_prompt()
+        if choice == "2":
+            while True:
+                self._clear_screen()
+                self._generate_bordered_header(
+                    title="File Interface Configuration",
+                    subtitle="Load interface details from file",
+                    width=70,
+                    title_color="\033[1;34m",
+                    border_char="-",
+                )
+                file_path = input(
+                    "Enter the path to the file containing your interface details: "
+                )
+
+                if not os.path.isfile(file_path):
+                    self._render_error(
+                        f"File not found: '{file_path}'. Please provide a valid file path."
+                    )
+                else:
+                    try:
+                        with open(file_path, "r") as file:
+                            json.load(file)
+                            self._render_stdout(
+                                "File loaded successfully.", text_color="\033[1;32m"
+                            )
+                            return file_path
+                    except json.JSONDecodeError as e:
+                        self._render_error(
+                            f"Error reading interface settings: The file does not appear to be valid JSON. "
+                            f"Please ensure it contains properly formatted JSON data.\nDetails: {e}"
+                        )
+                    except Exception as e:
+                        self._render_error(
+                            f"Unexpected error reading interface settings: {e}"
+                        )
+
+                # Ask if the user wants to try again or cancel
+                retry = (
+                    input("Would you like to try entering the file path again? (y/n): ")
+                    .strip()
+                    .lower()
+                )
+                if retry != "y":
+                    self.poutput("Exiting file entry process.")
+                    return None
         else:
-            self.poutput(text)
+            return None
+
+    def _generate_workspace_summary(
+        self,
+        workspace_dir: pathlib.Path,
+        input_dim: int,
+        interface_details: dict[str, dict[str, str]],
+    ) -> None:
+        """Generate and display a summary of the workspace setup.
+
+        Parameters
+        ----------
+        workspace_dir : pathlib.Path
+            Path to the workspace directory.
+        input_dim : int
+            Dimension of the simulator input space.
+        interface_details : dict[str, dict[str, str]]
+            Details of the added hardware interfaces, including parameter files.
+        """
+        self._clear_screen()
+        self._generate_bordered_header(
+            "Workspace Setup Summary",
+            width=70,
+            title_color="\033[1;34m",
+            border_char="-",
+        )
+        self._render_stdout(f"Workspace Directory: {workspace_dir}", False)
+        self._render_stdout(f"Input Dimension: {input_dim}", False)
+
+        # Determine headers based on available interface details
+        headers = ["Name", "Level"]
+        optional_headers = ["Host", "User"]
+        data = []
+
+        # Collect data and determine which headers are available
+        for name, details in interface_details.items():
+            params_file = workspace_dir / details["params"]
+
+            try:
+                with open(params_file, "r") as f:
+                    params = json.load(f)
+
+                row = {
+                    "Name": name,
+                    "Level": params.get("level", "N/A"),
+                    "Host": params.get("host", "N/A"),
+                    "User": params.get("user", "N/A"),
+                }
+                data.append(row)
+            except Exception as e:
+                row = {
+                    "Name": name,
+                    "Level": "Error loading details",
+                    "Host": "N/A",
+                    "User": "N/A",
+                }
+                data.append(row)
+
+        # Determine which optional headers are present in the data
+        available_headers = headers + [
+            h for h in optional_headers if any(row[h] != "N/A" for row in data)
+        ]
+
+        # Format and print the table
+        table_data = OrderedDict(
+            (header, [row[header] for row in data]) for header in available_headers
+        )
+        table = make_table(table_data)
+        self._render_stdout("Interfaces Added:\n" + table)
+
+    def _interface_entry_method_prompt(self) -> Optional[str]:
+        """Prompt the user to select an interface entry method with input validation."""
+
+        while True:
+            # Display the header
+            self.poutput()
+            self._generate_bordered_header(
+                title="Select Interface Setup Method",
+                border_char="-",
+            )
+
+            # Display the menu options
+            self._render_stdout(
+                "  \033[1;33m1\033[0m: Interactive mode", trailing_newline=False
+            )
+            self._render_stdout("  \033[1;33m2\033[0m: Load from file")
+
+            # Prompt the user for input
+            choice = input("Enter the number corresponding to your choice: ").strip()
+
+            # Validate the input
+            if choice in {"1", "2"}:
+                self._render_stdout(
+                    f"Selected: \033[1;32m{'Interactive mode' if choice == '1' else 'Load from file'}\033[0m"
+                )
+                return choice
+            else:
+                self._render_stdout(
+                    "Invalid choice. Please enter '1' or '2'.",
+                    text_color="\033[1;31m",
+                    trailing_newline=False,
+                )
+
+    def _hardware_interface_configuration_prompt(
+        self, factory: HardwareInterfaceFactory
+    ) -> None:
+        """Prompt the user to configure a hardware interface."""
+        self._generate_bordered_header(
+            "Hardware Interface Configuration details", border_char="-"
+        )
+        for param, prompt in factory.interactive_prompts.items():
+            while True:
+                value_str = input(f"{prompt}: ")
+                try:
+                    if param == "name":
+                        self._validate_interface_name(value_str)
+                    factory.set_param_from_str(param, value_str)
+                    break
+                except ValueError as e:
+                    self._render_error(f"Invalid value -- {e}")
+
+    def _select_hardware_interface_prompt(self) -> tuple[str, type]:
+        """Prompt the user to select a hardware interface type."""
+
+        while True:
+            self._generate_bordered_header(
+                title="Choose the type of hardware interface to configure",
+                border_char="-",
+            )
+            # Display hardware interface options
+            for option, (display_name, _) in Cli.INTERFACE_FACTORIES.items():
+                self._render_stdout(f"  \033[1;33m{option}\033[0m: {display_name}")
+
+            # Prompt user for input
+            factory_choice = input("Enter the number corresponding to your choice: ")
+            selected_factory = Cli.INTERFACE_FACTORIES.get(factory_choice)
+
+            # Handle valid and invalid input
+            if selected_factory:
+                self._render_stdout(
+                    f"Selected: \033[1;32m{selected_factory[0]}\033[0m"
+                )  # Success message in green
+                return selected_factory
+            else:
+                self._render_stdout(
+                    "Invalid choice, please try again.", text_color="\033[1;31m"
+                )  # Error message in red
+
+    def _render_stdout(
+        self,
+        text: str,
+        trailing_newline: bool = True,
+        text_color: Optional[str] = None,
+    ) -> None:
+        """Write text to standard output, with optional trailing newline and text color.
+
+        Parameters
+        ----------
+        text : str
+            The text to output.
+        trailing_newline : bool, optional
+            Whether to add a trailing newline character. Defaults to True.
+        text_color : str, optional
+            ANSI color code for the text color. If None, no color formatting is applied.
+        """
+        # Add a newline if required
+        if trailing_newline:
+            text += "\n"
+
+        # Format the text with color if provided
+        if text_color:
+            text = f"{text_color}{text}\033[0m"  # Add reset after colored text
+
+        # Output the text
+        self.poutput(text)
 
     def _render_error(self, text: str) -> None:
         """Write text as an error message to standard error."""
@@ -323,6 +803,22 @@ class Cli(cmd2.Cmd):
         """Write text as a warning message to standard error."""
 
         self.pwarning("Warning: " + text)
+
+    def _clear_screen(self) -> None:
+        """Clear the terminal screen and display the EXAUQ header."""
+        # Clear screen based on the operating system
+        if os.name == "nt":  # For Windows
+            os.system("cls")
+        else:  # For macOS and Linux
+            os.system("clear")
+
+        # Display the EXAUQ header after clearing
+        self._generate_bordered_header(
+            title="EXAUQ Command Line Interface",
+            subtitle=f"Version {self._package_version}",
+            width=70,
+            title_color="\033[1;34m",
+        )
 
     def _make_table(self, data: OrderedDict[str, Sequence[Any]]) -> str:
         """Make a textual table from data."""
@@ -337,19 +833,169 @@ class Cli(cmd2.Cmd):
         data = OrderedDict([(self._JOBID_HEADER, ids), (self._INPUT_HEADER, inputs)])
         return self._make_table(data)
 
+    @cmd2.with_argparser(add_interface_parser)
+    def do_add_interface(self, args) -> None:
+        """Add a hardware interface to the workspace."""
+
+        if args.file is not None:
+            try:
+                json.load(args.file)
+                _, factory_cls = self._select_hardware_interface_prompt()
+                interface_factory = factory_cls()
+                interface_factory.load_hardware_parameters(args.file.name)
+                self._validate_interface_name(
+                    interface_factory.hardware_parameters.get("name")
+                )
+                self._finalise_hardware_setup(interface_factory, factory_cls)
+
+            except json.JSONDecodeError as e:
+                self._render_error(
+                    f"Error reading interface settings: The file provided does not appear to be valid JSON. "
+                    f"Please ensure the file contains properly formatted JSON data. Details: {e}"
+                )
+                return None
+            except Exception as e:
+                self._render_error(f"Unexpected error reading interface settings: {e}")
+                return None
+
+        else:
+            _, factory_cls = self._select_hardware_interface_prompt()
+            interface_factory = factory_cls()
+            self._hardware_interface_configuration_prompt(interface_factory)
+            self._finalise_hardware_setup(interface_factory, factory_cls)
+
+    @cmd2.with_argparser(cancel_parser)
+    def do_cancel(self, args) -> None:
+        """Cancel simulation jobs."""
+
+        try:
+            job_ids = parse_job_ids(args.job_ids)
+        except ParsingError as e:
+            self._render_error(str(e))
+            return None
+
+        report = self._app.cancel(job_ids)
+        cancelled_jobs = report["cancelled_jobs"]
+        if cancelled_jobs:
+            self._render_stdout(self._make_cancel_table(cancelled_jobs))
+
+        terminated_jobs = [str(job_id) for job_id in report["terminated_jobs"]]
+        if terminated_jobs:
+            self._render_stdout(
+                "The following jobs have already terminated and were not cancelled:\n"
+                + "\n".join(f"  {job_id}" for job_id in terminated_jobs),
+                trailing_newline=False,
+            )
+
+        non_existent_jobs = [str(job_id) for job_id in report["non_existent_jobs"]]
+        if non_existent_jobs:
+            self._render_warning(
+                "Could not find jobs with the following IDs:\n"
+                + "\n".join(f"  {job_id}" for job_id in non_existent_jobs)
+            )
+
+    @cmd2.with_argparser(keychecks_parser)
+    def do_keychecks(self, args):
+        """Check or toggle the key checks status."""
+
+        if args.off:
+            self._render_warning("Key checks off.")
+        else:
+            self._render_stdout(
+                "Key checks enabled.", text_color="\033[1;32m", trailing_newline=False
+            )
+
+    @cmd2.with_argparser(list_interfaces_parser)
+    def do_list_interfaces(self, args) -> None:
+        """List all hardware interfaces with details and current job counts."""
+
+        # Include an additional header for job count
+        headers = ["Name", "Level", "Host", "User", "Active Jobs"]
+        data = []
+
+        for interface in self._app.interfaces:
+            name = interface.name
+            level = interface.level
+
+            if isinstance(interface, SSHInterface):
+                host = interface.host
+                user = interface.user
+            else:
+                host = "N/A"
+                user = "N/A"
+
+            # Get the current job count for the interface
+            job_count = self._app.get_interface_job_count(name)
+
+            # Append to table data
+            data.append(
+                [name, level, host, user, job_count if job_count is not None else "N/A"]
+            )
+
+        # Format and print the table
+        table = make_table(
+            OrderedDict(
+                (header, [row[i] for row in data]) for i, header in enumerate(headers)
+            )
+        )
+        self.poutput(table)
+
+    @cmd2.with_argparser(show_parser)
+    def do_show(self, args) -> None:
+        """Show information about jobs."""
+
+        try:
+            kwargs = self._parse_show_args(args)
+            jobs = self._app.get_jobs(**kwargs)
+            self._render_stdout(self._make_show_table(jobs))
+        except ParsingError as e:
+            self._render_error(str(e))
+
     @cmd2.with_argparser(submit_parser)
     def do_submit(self, args) -> None:
         """Submit jobs to the simulator."""
 
         try:
             inputs = parse_inputs(args.inputs) + parse_inputs(args.file)
-            submitted_jobs = self._app.submit(inputs)
+            level = args.level
+            submitted_jobs = self._app.submit(inputs, level=level)
             self._render_stdout(self._make_submissions_table(submitted_jobs))
         except ParsingError as e:
             self._render_error(str(e))
         finally:
             if isinstance(args.file, TextIOWrapper):
                 args.file.close()
+
+    @cmd2.with_argparser(resubmit_parser)
+    def do_resubmit(self, args) -> None:
+        """Resubmit jobs to the simulator."""
+
+        try:
+            kwargs = self._parse_resubmit_args(args)
+            jobs = self._app.get_jobs(**kwargs)
+
+            resubmitted_jobs = []
+            for job in jobs:
+                new_job = self._app.submit([job["input"]])[0]
+                resubmitted_jobs.append((job["job_id"], new_job.id, job["input"]))
+
+            self._render_stdout(self._make_resubmissions_table(resubmitted_jobs))
+        except ParsingError as e:
+            self._render_error(str(e))
+
+    @cmd2.with_argparser(write_parser)
+    def do_write(self, args) -> None:
+        """Write details of jobs in this workspace to a CSV file."""
+
+        jobs = [
+            self._restructure_record_for_csv(record) for record in self._app.get_jobs()
+        ]
+        try:
+            self._write_to_csv(jobs, args.file)
+        except Exception as e:
+            self._render_error(str(e))
+        finally:
+            args.file.close()
 
     def _parse_resubmit_args(self, args) -> dict[str, Any]:
         """Convert command line arguments for the resubmit command to a dict of arguments for
@@ -382,23 +1028,6 @@ class Cli(cmd2.Cmd):
         )
         return self._make_table(data)
 
-    @cmd2.with_argparser(resubmit_parser)
-    def do_resubmit(self, args) -> None:
-        """Resubmit jobs to the simulator."""
-
-        try:
-            kwargs = self._parse_resubmit_args(args)
-            jobs = self._app.get_jobs(**kwargs)
-
-            resubmitted_jobs = []
-            for job in jobs:
-                new_job = self._app.submit([job["input"]])[0]
-                resubmitted_jobs.append((job["job_id"], new_job.id, job["input"]))
-
-            self._render_stdout(self._make_resubmissions_table(resubmitted_jobs))
-        except ParsingError as e:
-            self._render_error(str(e))
-
     def _make_cancel_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of details of cancelled jobs for displaying to the user."""
 
@@ -415,36 +1044,6 @@ class Cli(cmd2.Cmd):
         )
 
         return self._make_table(data)
-
-    @cmd2.with_argparser(cancel_parser)
-    def do_cancel(self, args) -> None:
-        "Cancel simulation jobs."
-
-        try:
-            job_ids = parse_job_ids(args.job_ids)
-        except ParsingError as e:
-            self._render_error(str(e))
-            return None
-
-        report = self._app.cancel(job_ids)
-        cancelled_jobs = report["cancelled_jobs"]
-        if cancelled_jobs:
-            self._render_stdout(self._make_cancel_table(cancelled_jobs))
-
-        terminated_jobs = [str(job_id) for job_id in report["terminated_jobs"]]
-        if terminated_jobs:
-            self._render_stdout(
-                "The following jobs have already terminated and were not cancelled:\n"
-                + "\n".join(f"  {job_id}" for job_id in terminated_jobs),
-                trailing_newline=False,
-            )
-
-        non_existent_jobs = [str(job_id) for job_id in report["non_existent_jobs"]]
-        if non_existent_jobs:
-            self._render_warning(
-                "Could not find jobs with the following IDs:\n"
-                + "\n".join(f"  {job_id}" for job_id in non_existent_jobs)
-            )
 
     def _make_show_table(self, jobs: Sequence[dict[str, Any]]) -> str:
         """Make table of job information for displaying to the user."""
@@ -490,30 +1089,6 @@ class Cli(cmd2.Cmd):
             "statuses": statuses,
             "result_filter": result_filter,
         }
-
-    @cmd2.with_argparser(show_parser)
-    def do_show(self, args) -> None:
-        """Show information about jobs."""
-        try:
-            kwargs = self._parse_show_args(args)
-            jobs = self._app.get_jobs(**kwargs)
-            self._render_stdout(self._make_show_table(jobs))
-        except ParsingError as e:
-            self._render_error(str(e))
-
-    @cmd2.with_argparser(write_parser)
-    def do_write(self, args) -> None:
-        """Write details of jobs in this workspace to a CSV file."""
-
-        jobs = [
-            self._restructure_record_for_csv(record) for record in self._app.get_jobs()
-        ]
-        try:
-            self._write_to_csv(jobs, args.file)
-        except Exception as e:
-            self._render_error(str(e))
-        finally:
-            args.file.close()
 
     def _restructure_record_for_csv(self, job_record: dict[str, Any]) -> dict[str, Any]:
         """Convert job information to a dict that's suitable for writing to a CSV.
@@ -563,6 +1138,62 @@ class Cli(cmd2.Cmd):
         writer = csv.DictWriter(csv_file, fieldnames=field_names)
         writer.writeheader()
         writer.writerows(jobs)
+
+    def _finalise_hardware_setup(
+        self, factory: HardwareInterfaceFactory, factory_cls: type
+    ) -> None:
+        """Finalise the setup of a hardware interface."""
+
+        self.poutput("Setting up hardware...")
+        hardware_interface = factory.create_hardware()
+
+        hardware_params_filename = (
+            self._hardware_params_prefix + hardware_interface.name + ".json"
+        )
+        hardware_params_file = self._workspace_dir / hardware_params_filename
+        factory.serialise_hardware_parameters(hardware_params_file)
+
+        general_settings_file = self._workspace_dir / "settings.json"
+        general_settings = read_settings_json(general_settings_file)
+
+        interface_details = general_settings["interfaces"]
+
+        interface_details[hardware_interface.name] = {
+            "factory": factory_cls.__name__,
+            "params": hardware_params_filename,
+        }
+
+        write_settings_json(
+            {
+                "interfaces": interface_details,
+                "input_dim": general_settings["input_dim"],
+            },
+            general_settings_file,
+        )
+
+        self._app.add_interface(hardware_interface)
+        self._interface_names.add(hardware_interface.name)
+
+        self.poutput(
+            f"Thanks -- new hardware interface '{hardware_interface.name}' added to workspace '{self._workspace_dir}'."
+        )
+
+    def _validate_interface_name(self, name: str):
+        """Validate the name of a hardware interface. and checks for duplicates"""
+
+        if not name.isidentifier():
+            raise ValueError(
+                f"'{name}' is not a valid name. Names must follow these rules:\n"
+                "- Start with a letter (A-Z, a-z) or an underscore (_).\n"
+                "- Contain only letters, numbers, or underscores (no spaces or symbols).\n"
+                "- Not be empty or start with a number.\n"
+                "Please provide a valid name."
+            )
+
+        if name in self._interface_names:
+            raise ValueError(
+                f"'{name}' is already in use. Please provide a unique name for the interface."
+            )
 
 
 def clean_input_string(string: str) -> str:

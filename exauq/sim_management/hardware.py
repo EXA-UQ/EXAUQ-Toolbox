@@ -188,6 +188,8 @@ class SSHInterface(HardwareInterface, ABC):
         max_attempts: int = 3,
     ):
         super().__init__(name, level)
+        self._user = user
+        self._host = host
         self.max_attempts = max_attempts
 
         # Check if more than one method is provided
@@ -250,6 +252,16 @@ class SSHInterface(HardwareInterface, ABC):
             except SSHException as e:
                 print(f"Could not connect to {self._conn.original_host}: {str(e)}")
                 raise  # Re-raise the exception
+
+    @property
+    def user(self) -> str:
+        """(Read-only) The username to authenticate with the SSH server."""
+        return self._user
+
+    @property
+    def host(self) -> str:
+        """(Read-only) The hostname or IP address of the SSH server."""
+        return self._host
 
     def __enter__(self):
         return self
