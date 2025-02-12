@@ -101,7 +101,7 @@ class SimulationsLog(object):
         return input_dim
 
     @staticmethod
-    def _make_db(log_file: FilePath, fields: tuple[str]) -> CsvDB:
+    def _make_db(log_file: FilePath, fields: tuple[str, ...]) -> CsvDB:
         """Make the underlying database used to store details of simulation jobs."""
 
         if isinstance(log_file, bytes):
