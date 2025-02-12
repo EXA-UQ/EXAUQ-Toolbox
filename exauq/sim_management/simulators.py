@@ -263,7 +263,52 @@ class SimulationsLog(object):
         job_ids: Sequence[Union[str, JobId, int]] = None,
         statuses: Sequence[JobStatus] = None,
     ) -> list[dict[str, Any]]:
-        """Return records based on given job ids and job status codes"""
+        """
+        Return records based on given job IDs and job status codes.
+
+        This method retrieves simulation job records from the simulations log based on specified
+        job IDs and/or job status codes. If no filters are provided, all records are returned.
+        The method ensures thread safety during record retrieval.
+
+        Parameters
+        ----------
+        job_ids : Sequence[Union[str, JobId, int]], optional
+            A sequence of job IDs to filter the records. If `None`, records are not filtered
+            based on job IDs. Default is `None`.
+        statuses : Sequence[JobStatus], optional
+            A sequence of `JobStatus` values to filter the records. If `None`, records are not
+            filtered based on status. Default is `None`.
+
+        Returns
+        -------
+        list[dict[str, Any]]
+            A list of dictionaries, where each dictionary represents a job record with the
+            following keys:
+
+            - 'job_id' (JobId): The unique identifier of the job.
+            - 'status' (JobStatus): The current status of the job.
+            - 'input' (Input): The input associated with the simulation job.
+            - 'output' (Optional[Real]): The output of the simulation, or `None` if not yet available.
+
+        Examples
+        --------
+        Retrieve all job records:
+        >>> log.get_records()
+
+        Retrieve records for specific job IDs:
+        >>> log.get_records(job_ids=["123", "456"])
+
+        Retrieve records with specific statuses:
+        >>> log.get_records(statuses=[JobStatus.COMPLETED, JobStatus.FAILED])
+
+        Retrieve records with specific job IDs and statuses:
+        >>> log.get_records(job_ids=["789"], statuses=[JobStatus.RUNNING])
+
+        Notes
+        -----
+        - This method is thread-safe, ensuring consistent results when accessed concurrently.
+        - If both `job_ids` and `statuses` are provided, records must match both filters to be included.
+        """
         with self._lock:
             job_ids_str = (
                 [str(job_id) for job_id in job_ids] if job_ids is not None else None
