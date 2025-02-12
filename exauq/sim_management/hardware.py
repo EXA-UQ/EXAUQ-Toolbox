@@ -41,7 +41,6 @@ from paramiko.ssh_exception import AuthenticationException, SSHException
 
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.types import FilePath
-from exauq.utilities.string_validation import validate_interface_name
 
 
 class JobStatus(Enum):
