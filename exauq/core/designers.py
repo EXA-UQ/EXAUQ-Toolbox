@@ -6,40 +6,54 @@ improvement (PEI) class.
 
 
 Sampling Methods
------------------------------------------------------------------------------------------------------------------------------------------------
-[`compute_single_level_loo_samples`][exauq.core.designers.compute_single_level_loo_samples]         Single level leave-one-out design points.
+------------------------------------------------------------------------------------------------
+[`compute_single_level_loo_samples`][exauq.core.designers.compute_single_level_loo_samples]
+Single level leave-one-out design points.
 
-[`compute_multi_level_loo_samples`][exauq.core.designers.compute_multi_level_loo_samples]           Multi level leave-one-out design points.
+[`compute_multi_level_loo_samples`][exauq.core.designers.compute_multi_level_loo_samples]
+Multi level leave-one-out design points.
 
-[`oneshot_lhs`][exauq.core.designers.oneshot_lhs]                                                   Latin hypercube sampling.
+[`oneshot_lhs`][exauq.core.designers.oneshot_lhs]
+Latin hypercube sampling.
 
 
 [PEI Calculator][exauq.core.designers.PEICalculator]
-------------------------------------------------------------------------------------------------------------------------------------------------
-[`repulsion_points`][exauq.core.designers.PEICalculator.repulsion_points]                           Current set of repulsion points.
+------------------------------------------------------------------------------------------------
+[`repulsion_points`][exauq.core.designers.PEICalculator.repulsion_points]
+Current set of repulsion points.
 
-[`add_repulsion_points`][exauq.core.designers.PEICalculator.add_repulsion_points]                   Add simulator points to repulsion points.
+[`add_repulsion_points`][exauq.core.designers.PEICalculator.add_repulsion_points]
+Add simulator points to repulsion points.
 
-[`compute`][exauq.core.designers.PEICalculator.compute]                                             Compute pseudo expected improvement for a given input.
+[`compute`][exauq.core.designers.PEICalculator.compute]
+Compute pseudo expected improvement for a given input.
 
-[`expected_improvement`][exauq.core.designers.PEICalculator.expected_improvement]                   Calculate expected improvement for a given input.
+[`expected_improvement`][exauq.core.designers.PEICalculator.expected_improvement]
+Calculate expected improvement for a given input.
 
-[`repulsion`][exauq.core.designers.PEICalculator.repulsion]                                         Calculate repulsion factor for a given input.
+[`repulsion`][exauq.core.designers.PEICalculator.repulsion]
+Calculate repulsion factor for a given input.
 
 
 Computing Leave-One-Out
---------------------------------------------------------------------------------------------------------------------------------------------------
-[`compute_loo_gp`][exauq.core.designers.compute_single_level_loo_samples]                           Calculate a leave-one-out GP.
+------------------------------------------------------------------------------------------------
+[`compute_loo_gp`][exauq.core.designers.compute_single_level_loo_samples]
+Calculate a leave-one-out GP.
 
-[`compute_loo_errors_gp`][exauq.core.designers.compute_loo_errors_gp]                               Calculate a GP trained on leave-one-out errors.
+[`compute_loo_errors_gp`][exauq.core.designers.compute_loo_errors_gp]
+Calculate a GP trained on leave-one-out errors.
 
-[`compute_loo_prediction`][exauq.core.designers.compute_loo_prediction]                             Make a prediction from GP minus leave-one-out point.
+[`compute_loo_prediction`][exauq.core.designers.compute_loo_prediction]
+Make a prediction from GP minus leave-one-out point.
 
-[`compute_multi_level_loo_error_data`][exauq.core.designers.compute_multi_level_loo_error_data]     Calculate multi-level leave-one-out errors.
+[`compute_multi_level_loo_error_data`][exauq.core.designers.compute_multi_level_loo_error_data]
+Calculate multi-level leave-one-out errors.
 
-[`compute_multi_level_loo_errors_gp`][exauq.core.designers.compute_multi_level_loo_errors_gp]       Calculate a GP trained on multi-level leave-one-out errors.
+[`compute_multi_level_loo_errors_gp`][exauq.core.designers.compute_multi_level_loo_errors_gp]
+Calculate a GP trained on multi-level leave-one-out errors.
 
-[`compute_multi_level_loo_prediction`][exauq.core.designers.compute_multi_level_loo_prediction]     Make a prediction for a Multi-level GP minus leave-one-out point.
+[`compute_multi_level_loo_prediction`][exauq.core.designers.compute_multi_level_loo_prediction]
+Make a prediction for a Multi-level GP minus leave-one-out point.
 
 
 """
