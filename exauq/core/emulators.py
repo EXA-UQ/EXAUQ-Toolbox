@@ -4,27 +4,37 @@ and adapting to work with the implemented designers from ``exauq.core.designers`
 
 
 [MogpEmulator][exauq.core.emulators.MogpEmulator]
------------------------------------------------------------------------------------------------------------------------------------------------
-[`correlation`][exauq.core.emulators.MogpEmulator.correlation]                              Compute correlation matrix for Input Sequences.
+---------------------------------------------------------------------------------------
+[`correlation`][exauq.core.emulators.MogpEmulator.correlation]
+Compute correlation matrix for Input Sequences.
 
-[`covariance_matrix`][exauq.core.emulators.MogpEmulator.covariance_matrix]                  Compute covariance matrix for Input Sequences.
+[`covariance_matrix`][exauq.core.emulators.MogpEmulator.covariance_matrix]
+Compute covariance matrix for Input Sequences.
 
-[`fit`][exauq.core.emulators.MogpEmulator.fit]                                              Fit emulator to the data.
+[`fit`][exauq.core.emulators.MogpEmulator.fit]
+Fit emulator to the data.
 
-[`fit_hyperparameters`][exauq.core.emulators.MogpEmulator.fit_hyperparameters]              **(Read-Only)** Hyperparameters of current fitted GP.
+[`fit_hyperparameters`][exauq.core.emulators.MogpEmulator.fit_hyperparameters]
+**(Read-Only)** Hyperparameters of current fitted GP.
 
-[`gp`][exauq.core.emulators.MogpEmulator.gp]                                                **(Read-Only)** Underlying GP for this emulator.
+[`gp`][exauq.core.emulators.MogpEmulator.gp]
+**(Read-Only)** Underlying GP for this emulator.
 
-[`predict`][exauq.core.emulators.MogpEmulator.predict]                                      Make prediction for simulator output given Input.
+[`predict`][exauq.core.emulators.MogpEmulator.predict]
+Make prediction for simulator output given Input.
 
-[`training_data`][exauq.core.emulators.MogpEmulator.training_data]                          **(Read-only)** The data on which the emulator has been trained.
+[`training_data`][exauq.core.emulators.MogpEmulator.training_data]
+**(Read-only)** The data on which the emulator has been trained.
 
 
 [MogpHyperparameters][exauq.core.emulators.MogpHyperparameters]
------------------------------------------------------------------------------------------------------------------------------------------------
-[`from_mogp_gp_params`][exauq.core.emulators.MogpHyperparameters.from_mogp_gp_params]       Create instance of `MogpHyperparameters`.
+---------------------------------------------------------------------------------------
+[`from_mogp_gp_params`][exauq.core.emulators.MogpHyperparameters.from_mogp_gp_params]
+Create instance of `MogpHyperparameters`.
 
-[`to_mogp_gp_params`][exauq.core.emulators.MogpHyperparameters.to_mogp_gp_params]           Convert to an instance of ``mogp_emulator.GPParams.GPParams``.
+[`to_mogp_gp_params`][exauq.core.emulators.MogpHyperparameters.to_mogp_gp_params]
+Convert to an instance of ``mogp_emulator.GPParams.GPParams``.
+
 
 """
 
