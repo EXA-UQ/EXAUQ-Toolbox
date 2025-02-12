@@ -131,7 +131,7 @@ class SimulationsLog(object):
         """Get the interface name of a job from a database record"""
         return record[self._interface_name_key]
 
-    def get_simulations(self) -> tuple[Simulation]:
+    def get_simulations(self) -> tuple[Simulation, ...]:
         """
         Get all simulations contained in the log file.
 
