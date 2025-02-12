@@ -713,24 +713,56 @@ class JobManager:
             return interface_name
 
     def cancel(self, job_id: JobId) -> Job:
-        """Cancels a job with the given ID.
+        """
+        Cancels a job with the given ID.
+
+        This method attempts to cancel a job identified by the provided job ID. It first checks
+        if the job is actively being monitored. If the job is found, it updates its status to
+        `PENDING_CANCEL`, signaling that the cancellation process is underway.
+
+        If the job is not currently monitored, the method queries the simulations log to check
+        its status. If the job has already reached a terminal state (e.g., COMPLETED, FAILED),
+        an `InvalidJobStatusError` is raised as such jobs cannot be cancelled. If no job with
+        the provided ID exists, an `UnknownJobIdError` is raised.
 
         Parameters
         ----------
         job_id : JobId
-            The ID of the job to cancel.
+            The unique identifier of the job to be cancelled.
 
         Returns
         -------
         Job
-            The job that was cancelled.
+            The job object representing the job that was marked for cancellation.
 
         Raises
         ------
         UnknownJobIdError
-            If the provided ID does not define a job from the simulations log.
+            If the provided ID does not correspond to any job in the simulations log.
         InvalidJobStatusError
-            If the job has already terminated and so cannot be cancelled.
+            If the job has already reached a terminal status and cannot be cancelled.
+
+        Examples
+        --------
+        Cancel an active job with ID '12345':
+        >>> job_manager.cancel(JobId('12345'))
+
+        Attempt to cancel a job that has already completed:
+        >>> try:
+        ...     job_manager.cancel(JobId('67890'))
+        ... except InvalidJobStatusError as e:
+        ...     print(f"Cannot cancel job: {e.status}")
+
+        Attempt to cancel a non-existent job:
+        >>> try:
+        ...     job_manager.cancel(JobId('00000'))
+        ... except UnknownJobIdError:
+        ...     print("Job ID not found in the simulations log.")
+
+        Notes
+        -----
+        - This method is thread-safe, ensuring consistency when accessed concurrently.
+        - Only jobs that have not yet reached a terminal status can be cancelled.
         """
         with self._lock:
             jobs_to_cancel = [job for job in self._monitored_jobs if job.id == job_id]
