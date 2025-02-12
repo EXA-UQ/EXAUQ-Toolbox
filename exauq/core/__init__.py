@@ -14,26 +14,22 @@ Tutorials on how to create a basic experimental design can be found within the
 Experimental Design tutorials. 
 
 -------------------------------------------------------------------------------------------
-modules 
+Modules
 =========
 
 [`designers`][exauq.core.designers]:
-    
-Create the experimental domain using either a simple oneshot Latin hypercube or
-through the LOO sampling methods for both single and multi-level GPs.
+    Create the experimental domain using either a simple oneshot Latin hypercube or through
+    the LOO sampling methods for both single and multi-level GPs.
 
-[`emulators`][exauq.core.emulators]: 
-
-Provides the emulators to modify and train the GP and control hyperparameters.
+[`emulators`][exauq.core.emulators]:
+    Provides the emulators to modify and train the GP and control hyperparameters.
     
 [`modelling`][exauq.core.modelling]:
-
-Contains the objects required for utilising and training GP emulators alongside
-the LOO sampling methods for both single and multi-level GPs.
+    Contains the objects required for utilising and training GP emulators alongside the
+    LOO sampling methods for both single and multi-level GPs.
 
 [`numerics`][exauq.core.numerics]:
-
-Numerical tolerance checks.
+    Numerical tolerance checks.
 
 
 References 
