@@ -4,34 +4,45 @@ are abstract base classes which allow the derivation and training of both single
 creation and manipulation of Inputs/TrainingDatum, alongside creation and management of the domain space. 
 
 Abstract Base Classes (Classes)
------------------------------------------------------------------------------------------------------------------------------------------------
-[`AbstractEmulator`][exauq.core.modelling.AbstractEmulator]                                     Represents an abstract emulator for simulators.
+----------------------------------------------------------------------------------------------------------
+[`AbstractEmulator`][exauq.core.modelling.AbstractEmulator]
+Represents an abstract emulator for simulators.
 
-[`AbstractGaussianProcess`][exauq.core.modelling.AbstractGaussianProcess]                       Represents an abstract Gaussian process emulator for simulators.
+[`AbstractGaussianProcess`][exauq.core.modelling.AbstractGaussianProcess]
+Represents an abstract Gaussian process emulator for simulators.
 
-[`AbstractHyperParameters`][exauq.core.modelling.AbstractHyperparameters]                       A base class for hyperparameters used to train an emulator.
+[`AbstractHyperParameters`][exauq.core.modelling.AbstractHyperparameters]
+A base class for hyperparameters used to train an emulator.
 
 Gaussian Processes (Classes)
------------------------------------------------------------------------------------------------------------------------------------------------
-[`GaussianProcessHyperparameters`][exauq.core.modelling.GaussianProcessHyperparameters]         Represents the hyperparameters for use in fitting Gaussian processes.
+----------------------------------------------------------------------------------------------------------
+[`GaussianProcessHyperparameters`][exauq.core.modelling.GaussianProcessHyperparameters]
+Represents the hyperparameters for use in fitting Gaussian processes.
 
-[`Prediction`][exauq.core.modelling.Prediction]                                                 Represents the prediction of an emulator at a simulator input.
+[`Prediction`][exauq.core.modelling.Prediction]
+Represents the prediction of an emulator at a simulator input.
 
-[`GaussianProcessPrediction`][exauq.core.modelling.GaussianProcessPrediction]                   Represents a prediction arising from a Gaussian process.
+[`GaussianProcessPrediction`][exauq.core.modelling.GaussianProcessPrediction]
+Represents a prediction arising from a Gaussian process.
 
-[`MultiLevel`][exauq.core.modelling.MultiLevel]                                                 A multi-level collection of objects, as a mapping from level to objects.
+[`MultiLevel`][exauq.core.modelling.MultiLevel]
+A multi-level collection of objects, as a mapping from level to objects.
 
-[`MultiLevelGaussianProcess`][exauq.core.modelling.MultiLevelGaussianProcess]                   A multi-level Gaussian process emulator for simulators.
+[`MultiLevelGaussianProcess`][exauq.core.modelling.MultiLevelGaussianProcess]
+A multi-level Gaussian process emulator for simulators.
 
 Design Points (Classes)
------------------------------------------------------------------------------------------------------------------------------------------------
-[`Input`][exauq.core.modelling.Input]                                                           Class representing the input co-ordinate vectors to a simulator or emulator.
+----------------------------------------------------------------------------------------------------------
+[`Input`][exauq.core.modelling.Input]
+Class representing the input co-ordinate vectors to a simulator or emulator.
 
-[`TrainingDatum`][exauq.core.modelling.TrainingDatum]                                           Class representing a training point for an emulator.
+[`TrainingDatum`][exauq.core.modelling.TrainingDatum]
+Class representing a training point for an emulator.
 
 Domain Space
------------------------------------------------------------------------------------------------------------------------------------------------
-[`SimulatorDomain`][exauq.core.modelling.SimulatorDomain]                                       Class representing the domain of a simulator.
+----------------------------------------------------------------------------------------------------------
+[`SimulatorDomain`][exauq.core.modelling.SimulatorDomain]
+Class representing the domain of a simulator.
 """
 
 from __future__ import annotations
