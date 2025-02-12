@@ -228,8 +228,8 @@ class SimulationsLog(object):
             self._simulations_db.create(record)
 
     def insert_result(self, job_id: Union[str, JobId], result: Real) -> None:
-        """Insert the output of a simulation into a job record in the simulations log
-        file.
+        """
+        Insert the output of a simulation into a job record in the simulations log file.
 
         Parameters
         ----------
