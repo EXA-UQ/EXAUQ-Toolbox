@@ -41,7 +41,7 @@ class SimulationsLog(object):
     file : exauq.sim_management.types.FilePath
         A path to the underlying log file containing details of simulations.
     input_dim : int
-        The number of coordinates needed to define an input to the simultor.
+        The number of coordinates needed to define an input to the simulator.
     """
 
     def __init__(self, file: FilePath, input_dim: int):
