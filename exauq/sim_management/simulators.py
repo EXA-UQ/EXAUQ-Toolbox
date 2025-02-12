@@ -1,3 +1,66 @@
+"""
+Provides classes and utilities for managing simulation jobs, handling submission, monitoring, and
+status updates through various hardware interfaces. This module ensures consistent management of
+simulations with robust error handling and logging mechanisms.
+
+
+Core Classes
+----------------------------------------------------------------------------------------------------
+[`SimulationsLog`][exauq.sim_management.simulators.SimulationsLog]
+Manages the logging of simulation jobs, including submission details, statuses, and outputs.
+Supports querying and updating job records.
+
+[`JobManager`][exauq.sim_management.simulators.JobManager]
+Orchestrates the lifecycle of simulation jobs, including submission, monitoring, and cancellation.
+Utilizes hardware interfaces for job execution.
+
+
+Job Strategies
+----------------------------------------------------------------------------------------------------
+Defines strategies for handling jobs based on their current statuses. Each strategy
+dictates the actions to be taken for specific job states.
+
+- [`CompletedJobStrategy`][exauq.sim_management.simulators.CompletedJobStrategy]
+  Handles jobs that have completed execution by recording results and updating statuses.
+
+- [`FailedJobStrategy`][exauq.sim_management.simulators.FailedJobStrategy]
+  Manages jobs that have failed, ensuring proper status updates and cleanup.
+
+- [`FailedSubmitJobStrategy`][exauq.sim_management.simulators.FailedSubmitJobStrategy]
+  Handles jobs that failed during submission, updating logs accordingly.
+
+- [`RunningJobStrategy`][exauq.sim_management.simulators.RunningJobStrategy]
+  Monitors jobs currently running to ensure their statuses are correctly reflected.
+
+- [`SubmittedJobStrategy`][exauq.sim_management.simulators.SubmittedJobStrategy]
+  Manages jobs that have been submitted but are not yet completed or failed.
+
+- [`PendingSubmitJobStrategy`][exauq.sim_management.simulators.PendingSubmitJobStrategy]
+  Attempts submission of jobs, handling retries and updating statuses in case of failures.
+
+- [`PendingCancelJobStrategy`][exauq.sim_management.simulators.PendingCancelJobStrategy]
+  Handles cancellation requests, including retries and status updates.
+
+
+Utilities
+----------------------------------------------------------------------------------------------------
+[`JobIDGenerator`][exauq.sim_management.simulators.JobIDGenerator]
+Generates unique job IDs based on the current datetime, ensuring uniqueness even in
+concurrent environments.
+
+
+Exceptions
+----------------------------------------------------------------------------------------------------
+[`SimulationsLogLookupError`][exauq.sim_management.simulators.SimulationsLogLookupError]
+Raised when a simulation log does not contain a particular record.
+
+[`InvalidJobStatusError`][exauq.sim_management.simulators.InvalidJobStatusError]
+Raised when a job's status is inappropriate for a specific action.
+
+[`UnknownJobIdError`][exauq.sim_management.simulators.UnknownJobIdError]
+Raised when a provided job ID does not correspond to any known job.
+"""
+
 import csv
 import os
 import random
