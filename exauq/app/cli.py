@@ -318,25 +318,21 @@ class Cli(cmd2.Cmd):
         border_char : str, optional
             Character(s) used to draw the border. Defaults to '='.
         """
-        # Calculate width
-        text_width = max(len(title), len(subtitle) if subtitle else 0) + 4  # Add padding
-        width = max(
-            width or 0, text_width
-        )  # Use provided width if larger than text width
+
+        text_width = max(len(title), len(subtitle) if subtitle else 0) + 4
+        width = max(width or 0, text_width)
 
         if title_color is None:
             title_color = ""
         if subtitle_color is None:
             subtitle_color = ""
 
-        # Build the border, centered title, and centered subtitle
         border = (border_char * (width // len(border_char) + 1))[:width]
         centered_title = f"{title_color}{title.center(width)}\033[0m"  # Reset color
         centered_subtitle = (
             f"{subtitle_color}{subtitle.center(width)}\033[0m" if subtitle else ""
         )
 
-        # Print the header
         self.poutput(border)
         self.poutput(centered_title)
         if subtitle:
@@ -346,6 +342,7 @@ class Cli(cmd2.Cmd):
     @staticmethod
     def _get_package_version(package_name: str) -> str:
         """Fetch the current version of the given package."""
+
         try:
             return version(package_name)
         except PackageNotFoundError:
@@ -383,7 +380,6 @@ class Cli(cmd2.Cmd):
                 general_settings_file,
             )
 
-            # Create app
             self._app = App(
                 interfaces=hardware_interfaces,
                 input_dim=input_dim,
@@ -528,8 +524,10 @@ class Cli(cmd2.Cmd):
                 )
                 return input_dim, hardware_interfaces, interface_details
 
-    def _truncate_string(self, value: str, max_length: int) -> str:
+    @staticmethod
+    def _truncate_string(value: str, max_length: int) -> str:
         """Truncate a string to a maximum length, adding ellipses if needed."""
+
         if len(value) > max_length:
             return value[: max_length - 3] + "..."
         return value
@@ -540,6 +538,7 @@ class Cli(cmd2.Cmd):
         error_message: str = "Invalid input. Please enter a positive integer.",
     ) -> int:
         """Prompt the user to enter a positive integer, with error handling for invalid inputs."""
+
         while True:
             try:
                 value = int(input(prompt))
@@ -637,6 +636,7 @@ class Cli(cmd2.Cmd):
         interface_details : dict[str, dict[str, str]]
             Details of the added hardware interfaces, including parameter files.
         """
+
         self._clear_screen()
         self._generate_bordered_header(
             "Workspace Setup Summary",
@@ -681,7 +681,6 @@ class Cli(cmd2.Cmd):
             h for h in optional_headers if any(row[h] != "N/A" for row in data)
         ]
 
-        # Format and print the table
         table_data = OrderedDict(
             (header, [row[header] for row in data]) for header in available_headers
         )
@@ -692,23 +691,19 @@ class Cli(cmd2.Cmd):
         """Prompt the user to select an interface entry method with input validation."""
 
         while True:
-            # Display the header
             self.poutput()
             self._generate_bordered_header(
                 title="Select Interface Setup Method",
                 border_char="-",
             )
 
-            # Display the menu options
             self._render_stdout(
                 "  \033[1;33m1\033[0m: Interactive mode", trailing_newline=False
             )
             self._render_stdout("  \033[1;33m2\033[0m: Load from file")
 
-            # Prompt the user for input
             choice = input("Enter the number corresponding to your choice: ").strip()
 
-            # Validate the input
             if choice in {"1", "2"}:
                 self._render_stdout(
                     f"Selected: \033[1;32m{'Interactive mode' if choice == '1' else 'Load from file'}\033[0m"
@@ -725,6 +720,7 @@ class Cli(cmd2.Cmd):
         self, factory: HardwareInterfaceFactory
     ) -> None:
         """Prompt the user to configure a hardware interface."""
+
         self._generate_bordered_header(
             "Hardware Interface Configuration details", border_char="-"
         )
@@ -747,24 +743,20 @@ class Cli(cmd2.Cmd):
                 title="Choose the type of hardware interface to configure",
                 border_char="-",
             )
-            # Display hardware interface options
+
             for option, (display_name, _) in Cli.INTERFACE_FACTORIES.items():
                 self._render_stdout(f"  \033[1;33m{option}\033[0m: {display_name}")
 
-            # Prompt user for input
             factory_choice = input("Enter the number corresponding to your choice: ")
             selected_factory = Cli.INTERFACE_FACTORIES.get(factory_choice)
 
-            # Handle valid and invalid input
             if selected_factory:
-                self._render_stdout(
-                    f"Selected: \033[1;32m{selected_factory[0]}\033[0m"
-                )  # Success message in green
+                self._render_stdout(f"Selected: \033[1;32m{selected_factory[0]}\033[0m")
                 return selected_factory
             else:
                 self._render_stdout(
                     "Invalid choice, please try again.", text_color="\033[1;31m"
-                )  # Error message in red
+                )
 
     def _render_stdout(
         self,
@@ -783,15 +775,13 @@ class Cli(cmd2.Cmd):
         text_color : str, optional
             ANSI color code for the text color. If None, no color formatting is applied.
         """
-        # Add a newline if required
+
         if trailing_newline:
             text += "\n"
 
-        # Format the text with color if provided
         if text_color:
-            text = f"{text_color}{text}\033[0m"  # Add reset after colored text
+            text = f"{text_color}{text}\033[0m"
 
-        # Output the text
         self.poutput(text)
 
     def _render_error(self, text: str) -> None:
@@ -806,13 +796,12 @@ class Cli(cmd2.Cmd):
 
     def _clear_screen(self) -> None:
         """Clear the terminal screen and display the EXAUQ header."""
-        # Clear screen based on the operating system
+
         if os.name == "nt":  # For Windows
             os.system("cls")
         else:  # For macOS and Linux
             os.system("clear")
 
-        # Display the EXAUQ header after clearing
         self._generate_bordered_header(
             title="EXAUQ Command Line Interface",
             subtitle=f"Version {self._package_version}",
@@ -909,7 +898,6 @@ class Cli(cmd2.Cmd):
     def do_list_interfaces(self, args) -> None:
         """List all hardware interfaces with details and current job counts."""
 
-        # Include an additional header for job count
         headers = ["Name", "Level", "Host", "User", "Active Jobs"]
         data = []
 
@@ -924,15 +912,12 @@ class Cli(cmd2.Cmd):
                 host = "N/A"
                 user = "N/A"
 
-            # Get the current job count for the interface
             job_count = self._app.get_interface_job_count(name)
 
-            # Append to table data
             data.append(
                 [name, level, host, user, job_count if job_count is not None else "N/A"]
             )
 
-        # Format and print the table
         table = make_table(
             OrderedDict(
                 (header, [row[i] for row in data]) for i, header in enumerate(headers)
@@ -1001,6 +986,7 @@ class Cli(cmd2.Cmd):
         """Convert command line arguments for the resubmit command to a dict of arguments for
         the application to process.
         """
+
         if args.twr:
             statuses = {JobStatus.CANCELLED, JobStatus.FAILED, JobStatus.FAILED_SUBMIT}
         else:
@@ -1061,6 +1047,7 @@ class Cli(cmd2.Cmd):
         """Convert command line arguments for the show command to a dict of arguments for
         the application to process.
         """
+
         if args.n_jobs < 0:
             raise ParsingError(
                 f"Value for {self.n_jobs_opt_short}/{self.n_jobs_opt} must be a non-negative integer."
@@ -1091,23 +1078,13 @@ class Cli(cmd2.Cmd):
         }
 
     def _restructure_record_for_csv(self, job_record: dict[str, Any]) -> dict[str, Any]:
-        """Convert job information to a dict that's suitable for writing to a CSV.
+        """Convert job information to a dict that's suitable for writing to a CSV."""
 
-        Performs the following steps:
-
-        * Converts the keys to the headers required for CSV output.
-        * Unpacks the ``Input`` in `job_record['input']` so that there is one dict entry
-          for each input coordinate.
-        * Formats the ``JobStatus`` for CSV output.
-        """
-
-        # Rename keys
         restructured_record = {
             new_key: job_record[old_key]
             for old_key, new_key in self._HEADER_MAPPER.items()
         }
 
-        # Unpack input coordinates
         input_coords = {
             self._make_input_coord_header(i): x
             for i, x in enumerate(restructured_record[self._INPUT_HEADER])
@@ -1115,7 +1092,6 @@ class Cli(cmd2.Cmd):
         restructured_record |= input_coords
         del restructured_record[self._INPUT_HEADER]
 
-        # Format status
         restructured_record[self._STATUS_HEADER] = format_status(
             restructured_record[self._STATUS_HEADER]
         )
@@ -1266,14 +1242,12 @@ def parse_statuses_string_to_set(
     """
     statuses = clean_input_string(statuses)
 
-    # Get comma-separated components
     statuses = statuses.split(",")
 
     # Remove leading and trailing whitespace, replace inner whitespace with a single
     # underscore, and convert to upper case
     statuses = {re.sub("\\s+", "_", status.strip()).upper() for status in statuses}
 
-    # Return as set of job statuses
     if statuses == {""} and empty_to_all:
         return set(JobStatus)
     else:
