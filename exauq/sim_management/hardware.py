@@ -1,3 +1,32 @@
+"""
+Provides classes and utilities for managing hardware interfaces and job execution, primarily
+over SSH. This module abstracts hardware interactions, enabling consistent APIs for job
+submission, monitoring, and control across various systems, including Unix servers.
+
+
+Job Status (Enums)
+-----------------------------------------------------------------------------------------------
+[`JobStatus`][exauq.sim_management.hardware.JobStatus]
+Represents various states a job can occupy, such as `COMPLETED`, `FAILED`, `RUNNING`, and more.
+
+
+Hardware Interfaces (Abstract Base Classes)
+-----------------------------------------------------------------------------------------------
+[`HardwareInterface`][exauq.sim_management.hardware.HardwareInterface]
+Abstract base class defining the interface for interacting with hardware resources.
+
+[`SSHInterface`][exauq.sim_management.hardware.SSHInterface]
+Abstract class extending `HardwareInterface` to manage remote hardware via SSH connections.
+
+
+Hardware Interfaces (Concrete Classes)
+------------------------------------------------------------------------------------------------
+[`UnixServerScriptInterface`][exauq.sim_management.hardware.UnixServerScriptInterface]
+Concrete implementation of `SSHInterface` for executing simulation scripts on Unix servers.
+
+
+"""
+
 import getpass
 import io
 import pathlib
