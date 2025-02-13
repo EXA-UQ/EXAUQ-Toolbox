@@ -31,6 +31,7 @@ from exauq.sim_management.simulators import (
 from exauq.sim_management.types import FilePath
 from tests.utilities.utilities import exact
 
+
 def make_fake_simulations_log_class(
     simulations: tuple[tuple[Input, Real]]
 ) -> Type[SimulationsLog]:
@@ -67,6 +68,7 @@ def make_fake_simulations_log_class(
             return []
 
     return FakeSimulationsLog
+
 
 class TestSimulationsLog(unittest.TestCase):
     def setUp(self) -> None:

@@ -410,6 +410,7 @@ class FakeGPHyperparameters(GaussianProcessHyperparameters):
     def __post_init__(self):
         pass
 
+
 class DumbHardwareInterface(HardwareInterface):
     """A stub for a hardware interface that doesn't do anything beyond the implementations
     in the abstract HardwareInterface class."""

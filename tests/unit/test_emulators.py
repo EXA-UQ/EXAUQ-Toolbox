@@ -195,8 +195,10 @@ class TestMogpEmulator(ExauqTestCase):
         inputs2 = [Input(3)]
         with self.assertRaisesRegex(
             TypeError,
-            exact("Expected all 'inputs1' and 'inputs2' to be of type Input objects, "
-                "but one or more elements were of an unexpected type."),
+            exact(
+                "Expected all 'inputs1' and 'inputs2' to be of type Input objects, "
+                "but one or more elements were of an unexpected type."
+            ),
         ):
             _ = emulator.correlation(inputs1, inputs2)
 
@@ -204,8 +206,10 @@ class TestMogpEmulator(ExauqTestCase):
         inputs2 = Input(3)
         with self.assertRaisesRegex(
             TypeError,
-            exact("Expected all 'inputs1' and 'inputs2' to be of type Input objects, "
-                "but one or more elements were of an unexpected type."),
+            exact(
+                "Expected all 'inputs1' and 'inputs2' to be of type Input objects, "
+                "but one or more elements were of an unexpected type."
+            ),
         ):
             _ = emulator.correlation(inputs1, inputs2)
 
@@ -421,8 +425,10 @@ class TestMogpEmulator(ExauqTestCase):
         inputs = Input(1)
         with self.assertRaisesRegex(
             TypeError,
-            exact("Expected all elements of 'inputs' to be of type Input objects, "
-                    "but one or more elements were of an unexpected type."),
+            exact(
+                "Expected all elements of 'inputs' to be of type Input objects, "
+                "but one or more elements were of an unexpected type."
+            ),
         ):
             _ = emulator.covariance_matrix(inputs)
 
@@ -764,7 +770,9 @@ class TestMogpEmulator(ExauqTestCase):
         for x in [0.5, None, "0.5"]:
             with self.subTest(x=x), self.assertRaisesRegex(
                 TypeError,
-                exact(f"Expected 'x' to be of type Input, but received {type(x)} instead."),
+                exact(
+                    f"Expected 'x' to be of type Input, but received {type(x)} instead."
+                ),
             ):
                 emulator.predict(x)
 

@@ -14,7 +14,6 @@ from scipy.stats import norm
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
-    oneshot_lhs,
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_loo_prediction,
