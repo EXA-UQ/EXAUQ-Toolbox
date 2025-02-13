@@ -12,21 +12,21 @@ for uncertainty quantification tasks at scale.
 
  Modules
 -------------------------------------------------------------------------------------------
-[`hardware`][exauq.sim_management.hardware]:
+- [`hardware`][exauq.sim_management.hardware]:
 Defines abstract and concrete classes for hardware interfaces, allowing job submission,
 status tracking, and output retrieval on both local and remote systems. Includes
 SSH-based interfaces for secure remote job management.
 
-[`jobs`][exauq.sim_management.jobs]:
+- [`jobs`][exauq.sim_management.jobs]:
 Contains classes representing simulation jobs (`Job`) and job identifiers (`JobId`).
 Handles job creation, data validation, and encapsulates job-related metadata.
 
-[`simulators`][exauq.sim_management.simulators]:
+- [`simulators`][exauq.sim_management.simulators]:
 Provides tools for managing simulation workflows, including logging simulation inputs
 and outputs, monitoring job progress, and handling job status updates. Supports integration
 with various simulation backends and hardware interfaces.
 
-[`types`][exauq.sim_management.types]:
+- [`types`][exauq.sim_management.types]:
 Defines reusable type aliases, such as `FilePath`, to represent common data structures like
 file paths, enhancing code readability and type safety.
 
