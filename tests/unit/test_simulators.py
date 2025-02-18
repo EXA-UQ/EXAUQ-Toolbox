@@ -3,14 +3,14 @@ import pathlib
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime
 from numbers import Real
 from threading import Thread
 from time import sleep
 from typing import Type
 from unittest.mock import Mock, patch
 
-from exauq.core.modelling import Input, MultiLevel, SimulatorDomain, TrainingDatum
+from exauq.core.modelling import Input, MultiLevel, TrainingDatum
 from exauq.sim_management.hardware import HardwareInterface, JobStatus
 from exauq.sim_management.jobs import Job, JobId
 from exauq.sim_management.simulators import (
@@ -25,31 +25,11 @@ from exauq.sim_management.simulators import (
     RunningJobStrategy,
     SimulationsLog,
     SimulationsLogLookupError,
-    Simulator,
     SubmittedJobStrategy,
     UnknownJobIdError,
 )
 from exauq.sim_management.types import FilePath
-from tests.unit.fakes import DumbHardwareInterface, DumbJobManager
 from tests.utilities.utilities import exact
-
-
-def make_fake_simulator(
-    simulations: tuple[tuple[Input, Real]],
-    simulations_log: str = r"a/b/c.csv",
-) -> Simulator:
-    """Make a Simulator object whose previous simulations are pre-loaded to be the given
-    simulations, if a path to a simulations log file is supplied (the default). If
-    `simulations_log` is ``None`` then the simulator returned has no previous simulations.
-    """
-
-    with patch(
-        "exauq.sim_management.simulators.SimulationsLog",
-        new=make_fake_simulations_log_class(simulations),
-    ), patch("exauq.sim_management.simulators.JobManager", new=DumbJobManager):
-        return Simulator(
-            SimulatorDomain([(-10, 10)]), DumbHardwareInterface(), simulations_log
-        )
 
 
 def make_fake_simulations_log_class(
@@ -88,171 +68,6 @@ def make_fake_simulations_log_class(
             return []
 
     return FakeSimulationsLog
-
-
-class TestSimulator(unittest.TestCase):
-    def setUp(self) -> None:
-        self.simulator_domain = SimulatorDomain([(-10, 10)])
-        self.hardware_interface = DumbHardwareInterface()
-        self.simulations = ((Input(1), 0),)
-        self.empty_simulator = make_fake_simulator(tuple())
-        self.simulator_with_sim = make_fake_simulator(self.simulations)
-
-    def test_initialise_incorrect_types(self):
-        """Test that a TypeError is raised if one of the arguments passed to the
-        initialiser is of the incorrect type."""
-
-        domain = 1
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                "Argument 'domain' must define a SimulatorDomain, but received object "
-                f"of type {type(domain)} instead."
-            ),
-        ):
-            Simulator(domain, self.hardware_interface)
-
-        interface = 1
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(
-                "Argument 'interface' must inherit from HardwareInterface, but received "
-                f"object of type {type(interface)} instead."
-            ),
-        ):
-            Simulator(self.simulator_domain, interface)
-
-    def test_initialise_invalid_log_file_error(self):
-        """Test that a TypeError is raised if an invalid path is supplied for the log
-        file."""
-
-        for path in [None, 0, 1]:
-            with self.subTest(path=path):
-                with self.assertRaisesRegex(
-                    TypeError,
-                    exact(
-                        "Argument 'simulations_log' must define a file path, but received "
-                        f"object of type {type(path)} instead."
-                    ),
-                ):
-                    _ = Simulator(self.simulator_domain, self.hardware_interface, path)
-
-    def test_initialise_with_simulations_record_file(self):
-        """Test that a simulator can be initialised with a path to a file containing
-        records of previous simulations."""
-
-        with patch(
-            "exauq.sim_management.simulators.SimulationsLog",
-            new=make_fake_simulations_log_class(tuple()),
-        ):
-            # Unix
-            _ = Simulator(self.simulator_domain, self.hardware_interface, r"a/b/c")
-
-            # Windows
-            _ = Simulator(self.simulator_domain, self.hardware_interface, r"a\b\c")
-
-            # Platform independent
-            _ = Simulator(
-                self.simulator_domain, self.hardware_interface, pathlib.Path("a/b/c")
-            )
-
-    def test_initialise_default_log_file(self):
-        """Test that a new log file with name 'simulations.csv' is created in the
-        working directory as the default."""
-
-        with patch("exauq.sim_management.simulators.SimulationsLog") as mock:
-            _ = Simulator(self.simulator_domain, self.hardware_interface)
-            mock.assert_called_once_with("simulations.csv", self.simulator_domain.dim)
-
-    def test_previous_simulations_no_simulations_run(self):
-        """Test that an empty tuple is returned if there are no simulations in the
-        log file."""
-
-        self.assertEqual(tuple(), self.empty_simulator.previous_simulations)
-
-    def test_previous_simulations_immutable(self):
-        """Test that the previous_simulations property is read-only."""
-
-        with self.assertRaises(AttributeError):
-            self.empty_simulator.previous_simulations = tuple()
-
-    def test_previous_simulations_from_log_file(self):
-        """Test that the previously run simulations are returned from the log file
-        when this is supplied."""
-
-        self.assertEqual(self.simulations, self.simulator_with_sim.previous_simulations)
-
-    def test_compute_non_input_error(self):
-        """Test that a TypeError is raised if an argument of type other than Input is
-        supplied for computation."""
-
-        for x in ["a", 1, (0, 0)]:
-            with self.subTest(x=x):
-                with self.assertRaisesRegex(
-                    TypeError,
-                    exact(f"Argument 'x' must be of type Input, but received {type(x)}."),
-                ):
-                    self.empty_simulator.compute(x)
-
-    def test_compute_output_unseen_input(self):
-        """Test that None is returned as the value of a computation if a new input is
-        supplied."""
-
-        self.assertIsNone(self.empty_simulator.compute(Input(2)))
-
-    def test_compute_new_input_features_in_previous_simulations(self):
-        """Test that, when an unseen input is submitted for computation, the
-        input features in the previous simulations."""
-
-        x = Input(2)
-        self.empty_simulator.compute(x)
-        self.assertEqual(x, self.empty_simulator.previous_simulations[-1][0])
-
-    def test_compute_new_input_features_in_previous_simulations_multiple(self):
-        """Test that, when multiple unseen inputs are submitted for computation
-        sequentially, these inputs feature in the previous simulations."""
-
-        x1 = Input(2)
-        x2 = Input(3)
-        self.empty_simulator.compute(x1)
-        self.empty_simulator.compute(x2)
-        self.assertEqual(x2, self.empty_simulator.previous_simulations[-1][0])
-        self.assertEqual(x1, self.empty_simulator.previous_simulations[-2][0])
-
-    def test_compute_returns_output_for_computed_input(self):
-        """Test that, when compute is called on an input for which an output has
-        been computed, this output is returned."""
-
-        x, y = self.simulator_with_sim.previous_simulations[0]
-        self.assertEqual(y, self.simulator_with_sim.compute(x))
-
-    def test_compute_for_computed_input_previous_sims_unchanged(self):
-        """Test that, when compute is called on an input for which an output has
-        been computed, the collection of previous simulations remains unchanged."""
-
-        previous_sims = self.simulator_with_sim.previous_simulations
-        _ = self.simulator_with_sim.compute(previous_sims[0][0])
-        self.assertEqual(previous_sims, self.simulator_with_sim.previous_simulations)
-
-    def test_compute_for_submitted_input_previous_sims_unchanged(self):
-        """Test that, when compute is called on an input for which the computed result
-        is pending, the collection of previous simulations remains unchanged."""
-
-        simulations = ((Input(1), None),)
-        simulator = make_fake_simulator(simulations)
-        _ = simulator.compute(simulations[0][0])
-        self.assertEqual(simulations, simulator.previous_simulations)
-
-    def test_compute_returns_output_for_computed_input_multiple_simulations(self):
-        """Test that, when compute is called on an input for which an output has
-        been computed, this output is returned, in the case where there are multiple
-        previous simulations."""
-
-        simulations = ((Input(1), 0), (Input(2), 10))
-        simulator = make_fake_simulator(simulations)
-        for x, y in simulator.previous_simulations:
-            with self.subTest(x=x, y=y):
-                self.assertEqual(y, simulator.compute(x))
 
 
 class TestSimulationsLog(unittest.TestCase):
@@ -583,7 +398,7 @@ class TestSimulationsLog(unittest.TestCase):
         with self.assertWarnsRegex(
             UserWarning,
             exact(
-                "No sucessfully completed simulations in log, returning empty MultiLevel."
+                "No successfully completed simulations in log, returning empty MultiLevel."
             ),
         ):
             training_data = sim_log.prepare_training_data()
@@ -604,7 +419,7 @@ class TestSimulationsLog(unittest.TestCase):
         with self.assertWarnsRegex(
             UserWarning,
             exact(
-                "No sucessfully completed simulations in log, returning empty MultiLevel."
+                "No successfully completed simulations in log, returning empty MultiLevel."
             ),
         ):
             training_data = sim_log.prepare_training_data()

@@ -14,7 +14,6 @@ from scipy.stats import norm
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
-    SimpleDesigner,
     _remove_multi_level_repeated_input,
     compute_delta_coefficients,
     compute_loo_errors_gp,
@@ -38,7 +37,7 @@ from exauq.core.modelling import (
     SimulatorDomain,
     TrainingDatum,
 )
-from exauq.core.numerics import equal_within_tolerance, set_tolerance
+from exauq.core.numerics import equal_within_tolerance
 from exauq.utilities.optimisation import maximise
 from tests.utilities.utilities import ExauqTestCase, exact
 
@@ -57,7 +56,7 @@ class TestOneshotLhs(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'batch_size' to be of type int, but received {type(batch_size)}."
+                f"Expected 'batch_size' to be of type int, but received {type(batch_size)} instead."
             ),
         ):
             oneshot_lhs(self.domain, batch_size, self.seed)
@@ -106,60 +105,6 @@ class TestOneshotLhs(ExauqTestCase):
 
         for x in oneshot_lhs(self.domain, self.batch_size, self.seed):
             self.assertTrue(x in self.domain)
-
-
-class TestSimpleDesigner(unittest.TestCase):
-    def setUp(self) -> None:
-        self.domain = SimulatorDomain([(0, 1)])
-        self.designer = SimpleDesigner(self.domain)
-
-    def test_make_design_batch_size_type_error(self):
-        """Test that a TypeError is raised if something other than an int is provided
-        as the size."""
-
-        size = 2.3
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(f"Expected 'size' to be an integer but received {type(size)}."),
-        ):
-            self.designer.make_design_batch(size)
-
-    def test_make_design_batch_size_negative_error(self):
-        """Test that a ValueError is raised if the size provided is negative."""
-
-        size = -1
-        with self.assertRaisesRegex(
-            ValueError,
-            exact(
-                f"Expected 'size' to be a non-negative integer but is equal to {size}."
-            ),
-        ):
-            self.designer.make_design_batch(size)
-
-    def test_make_design_batch_return_list_length(self):
-        """Test that a list of the required size is returned."""
-
-        for size in range(0, 3):
-            with self.subTest(size=size):
-                design_points = self.designer.make_design_batch(size)
-                self.assertIsInstance(design_points, list)
-                self.assertEqual(size, len(design_points))
-
-    def test_make_design_batch_returns_list_inputs(self):
-        """Test that a list of Input objects is returned."""
-
-        for x in self.designer.make_design_batch(2):
-            self.assertIsInstance(x, Input)
-
-    def test_make_design_batch_returns_inputs_from_domain(self):
-        """Test that the Input objects returned belong to the SimulatorDomain
-        contained within the designer."""
-
-        domain = SimulatorDomain([(2, 3), (0.5, 1)])
-        designer = SimpleDesigner(domain)
-
-        for x in designer.make_design_batch(2):
-            self.assertTrue(x in domain)
 
 
 class TestComputeLooErrorsGp(ExauqTestCase):
@@ -562,7 +507,7 @@ class TestPEICalculator(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                f"Expected 'additional_repulsion_pts' to be of type collection of {Input}s,"
                 f"but received {type(arg)} instead."
             ),
         ):
@@ -572,8 +517,8 @@ class TestPEICalculator(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
-                "but this is not the case."
+                f"Expected 'additional_repulsion_pts' to be of type collection of {Input}s,"
+                f"but one or more elements were of an unexpected type."
             ),
         ):
             _ = PEICalculator(self.domain, self.gp, additional_repulsion_pts=arg2)
@@ -909,7 +854,7 @@ class TestPEICalculator(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
+                f"Expected 'repulsion_points' to be of type collection of {Input}s,"
                 f"but received {type(arg)} instead."
             ),
         ):
@@ -919,8 +864,8 @@ class TestPEICalculator(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'repulsion_points' to be a collection of {Input} objects, "
-                "but this is not the case."
+                f"Expected 'repulsion_points' to be of type collection of {Input}s,"
+                f"but one or more elements were of an unexpected type."
             ),
         ):
             self.pei_calculator.add_repulsion_points(arg2)
@@ -1078,7 +1023,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'batch_size' to be an integer, but received {type(arg)} instead."
+                f"Expected 'batch_size' to be of type int, but received {type(arg)} instead."
             ),
         ):
             _ = compute_single_level_loo_samples(self.gp, self.domain, batch_size=arg)
@@ -1087,7 +1032,7 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
+                f"Expected 'additional_repulsion_pts' to be of type collection of {Input}s,"
                 f"but received {type(arg2)} instead."
             ),
         ):
@@ -1099,8 +1044,8 @@ class TestComputeSingleLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'additional_repulsion_pts' to be a collection of {Input} objects, "
-                "but this is not the case."
+                f"Expected 'additional_repulsion_pts' to be of type collection of {Input}s,"
+                "but one or more elements were of an unexpected type."
             ),
         ):
             _ = compute_single_level_loo_samples(
@@ -1874,7 +1819,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'batch_size' to be an integer, but received {type(arg)} instead."
+                f"Expected 'batch_size' to be of type int, but received {type(arg)} instead."
             ),
         ):
             _ = self.compute_multi_level_loo_samples(batch_size=arg)
@@ -1882,7 +1827,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'additional_repulsion_pts' to be a MultiLevel collection of {Input} objects, "
+                f"Expected 'additional_repulsion_pts' to be of type MultiLevel collection of {Input}s, "
                 f"but received {type(arg)} instead."
             ),
         ):
@@ -1891,7 +1836,7 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'seeds' to be of type {MultiLevel} with integer values, but "
+                f"Expected 'seeds' to be of type {MultiLevel} of int, but "
                 f"received {type(arg)} instead."
             ),
         ):

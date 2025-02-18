@@ -1,10 +1,47 @@
-"""Provides emulators for simulators."""
+"""
+Provides the emulators for the simulators building upon the `mogp` package
+and adapting to work with the implemented designers from ``exauq.core.designers``.
+
+
+[MogpEmulator][exauq.core.emulators.MogpEmulator]
+---------------------------------------------------------------------------------------
+[`correlation`][exauq.core.emulators.MogpEmulator.correlation]
+Compute correlation matrix for Input Sequences.
+
+[`covariance_matrix`][exauq.core.emulators.MogpEmulator.covariance_matrix]
+Compute covariance matrix for Input Sequences.
+
+[`fit`][exauq.core.emulators.MogpEmulator.fit]
+Fit emulator to the data.
+
+[`fit_hyperparameters`][exauq.core.emulators.MogpEmulator.fit_hyperparameters]
+**(Read-Only)** Hyperparameters of current fitted GP.
+
+[`gp`][exauq.core.emulators.MogpEmulator.gp]
+**(Read-Only)** Underlying GP for this emulator.
+
+[`predict`][exauq.core.emulators.MogpEmulator.predict]
+Make prediction for simulator output given Input.
+
+[`training_data`][exauq.core.emulators.MogpEmulator.training_data]
+**(Read-only)** The data on which the emulator has been trained.
+
+
+[MogpHyperparameters][exauq.core.emulators.MogpHyperparameters]
+---------------------------------------------------------------------------------------
+[`from_mogp_gp_params`][exauq.core.emulators.MogpHyperparameters.from_mogp_gp_params]
+Create instance of `MogpHyperparameters`.
+
+[`to_mogp_gp_params`][exauq.core.emulators.MogpHyperparameters.to_mogp_gp_params]
+Convert to an instance of ``mogp_emulator.GPParams.GPParams``.
+
+
+"""
 
 from __future__ import annotations
 
 import dataclasses
 import itertools
-import warnings
 from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Literal, Optional
@@ -43,7 +80,7 @@ class MogpEmulator(AbstractGaussianProcess):
     'SquaredExponential' (the default), 'Matern52' and 'ProductMat52'; these should be
     specified as strings during initialisation.
 
-    The underlying ``GaussianProcess` object can be obtained through the
+    The underlying ``GaussianProcess`` object can be obtained through the
     `gp` property. Note that the `fit` method, used to train the emulator, will
     modify the underlying ``GaussianProcess``.
 
@@ -190,7 +227,7 @@ class MogpEmulator(AbstractGaussianProcess):
         This method trains the underlying ``GaussianProcess``, as stored in
         the `gp` property, using the supplied training data. By default,
         hyperparameters are estimated as part of this training, by maximising the
-        log-posterior. Alternatively, a collection of hyperparamters can be supplied to
+        log-posterior. Alternatively, a collection of hyperparameters can be supplied to
         use directly as the fitted values. (If the nugget is not supplied as part of these
         values, then it will be calculated according to the 'nugget' argument used in the
         construction of the underlying ``GaussianProcess``.)
@@ -204,15 +241,15 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Parameters
         ----------
-        training_data : collection of TrainingDatum
+        training_data :
             The pairs of inputs and simulator outputs on which the emulator
             should be trained. Should be a finite collection of such pairs.
-        hyperparameters : MogpHyperparameters, optional
-            (Default: None) Hyperparameters to use directly in fitting the Gaussian
+        hyperparameters :
+            Hyperparameters to use directly in fitting the Gaussian
             process. If ``None`` then the hyperparameters will be estimated as part of
             fitting to data.
-        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
-            (Default: None) A sequence of bounds to apply to hyperparameters
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
             length parameters, while the last tuple should represent bounds for
@@ -238,7 +275,7 @@ class MogpEmulator(AbstractGaussianProcess):
         ):
             raise TypeError(
                 "Expected 'hyperparameters' to be None or of type "
-                f"{MogpHyperparameters.__name__}, but received {type(hyperparameters)}."
+                f"{MogpHyperparameters.__name__}, but received {type(hyperparameters)} instead."
             )
 
         self._validate_hyperparameter_bounds(hyperparameter_bounds)
@@ -299,7 +336,8 @@ class MogpEmulator(AbstractGaussianProcess):
 
         except TypeError:
             raise TypeError(
-                f"Expected a finite collection of TrainingDatum, but received {type(training_data)}."
+                f"Expected 'training_data' to be of type finite collection of TrainingDatum, "
+                f"but received {type(training_data)} instead."
             )
 
     def _validate_hyperparameter_bounds(
@@ -333,12 +371,13 @@ class MogpEmulator(AbstractGaussianProcess):
                 )
         except TypeError:
             raise TypeError(
-                f"Expected 'bounds' to be a sequence, but received {type(bounds)}."
+                f"Expected 'bounds' to be of type sequence, but received {type(bounds)} instead."
             )
 
         if not all(bound is None or isinstance(bound, Real) for bound in bounds):
             raise TypeError(
-                f"Expected each bound in {bounds} to be None or of type {Real}."
+                f"Expected each 'bound' in {bounds} to be None or of type {Real} "
+                "but one or more elements were of an unexpected type."
             )
 
         lower, upper = bounds
@@ -414,7 +453,7 @@ class MogpEmulator(AbstractGaussianProcess):
 
         For the definitions of the transformations from raw values, see:
 
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+        <https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams>
         """
 
         for _, upper in bounds:
@@ -461,7 +500,7 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Parameters
         ----------
-        inputs1, inputs2 : Sequence[Input]
+        inputs1, inputs2 :
             Sequences of simulator inputs.
 
         Returns
@@ -484,7 +523,7 @@ class MogpEmulator(AbstractGaussianProcess):
         except TypeError:
             # Raised if inputs1 or inputs2 not iterable
             raise TypeError(
-                "Expected 'inputs1' and 'inputs2' to be sequences of Input objects, "
+                "Expected 'inputs1' and 'inputs2' to be of type sequences of Input objects, "
                 f"but received {type(inputs1)} and {type(inputs2)} instead."
             )
 
@@ -493,7 +532,8 @@ class MogpEmulator(AbstractGaussianProcess):
             and all(isinstance(x, Input) for x in inputs2)
         ):
             raise TypeError(
-                "Expected 'inputs1' and 'inputs2' to only contain Input objects."
+                "Expected all 'inputs1' and 'inputs2' to be of type Input objects, "
+                "but one or more elements were of an unexpected type."
             )
 
         try:
@@ -532,7 +572,7 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Parameters
         ----------
-        inputs : Sequence[Input]
+        inputs :
             A sequence of simulator inputs.
 
         Returns
@@ -553,12 +593,13 @@ class MogpEmulator(AbstractGaussianProcess):
         except TypeError:
             if not isinstance(inputs, Sequence):
                 raise TypeError(
-                    "Expected 'inputs' to be a sequence of Input objects, but received "
+                    "Expected 'inputs' to be of type sequence of Input objects, but received "
                     f"{type(inputs)} instead."
                 ) from None
             else:
                 raise TypeError(
-                    "Expected 'inputs' to only contain Input objects."
+                    "Expected all elements of 'inputs' to be of type Input objects, "
+                    "but one or more elements were of an unexpected type."
                 ) from None
 
     def predict(self, x: Input) -> GaussianProcessPrediction:
@@ -566,13 +607,13 @@ class MogpEmulator(AbstractGaussianProcess):
 
         Parameters
         ----------
-        x : Input
+        x :
             A simulator input.
 
         Returns
         -------
         GaussianProcessPrediction
-            The Gaussian process's prediction of the simulator output from the given
+            The Gaussian process' prediction of the simulator output from the given
             input.
 
         Raises
@@ -583,7 +624,9 @@ class MogpEmulator(AbstractGaussianProcess):
         """
 
         if not isinstance(x, Input):
-            raise TypeError(f"Expected 'x' to be of type Input, but received {type(x)}.")
+            raise TypeError(
+                f"Expected 'x' to be of type Input, but received {type(x)} instead."
+            )
 
         if len(self.training_data) == 0:
             raise RuntimeError(
@@ -626,7 +669,7 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
     ``mogp_emulator.GPParams.GPParams`` class. The correlation length scale parameters,
     process variance and nugget described below are on the 'transformed' (linear) scale
     rather than the log scale; cf.
-    https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams
+    [mogp_docs.GPParams.GPParams](https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams).
 
     Equality of `MogpHyperparameters` objects is tested hyperparameter-wise up to the
     default numerical precision defined in ``exauq.core.numerics.FLOAT_TOLERANCE``
@@ -634,23 +677,28 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
 
     Parameters
     ----------
-    corr_length_scales : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of Real
         The correlation length scale parameters. The length of the sequence or array
         should equal the number of input coordinates for an emulator and each scale
         parameter should be a positive.
     process_var: numbers.Real
         The process variance, which should be positive.
     nugget : numbers.Real, optional
-        (Default: None) A nugget, which should be non-negative if provided.
+         A nugget, which should be non-negative if provided.
 
     Attributes
     ----------
-    corr_length_scales : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of Real
         (Read-only) The correlation length scale parameters.
     process_var: numbers.Real
         (Read-only) The process variance.
     nugget : numbers.Real, optional
-        (Read only, default: None) The nugget, or ``None`` if not supplied.
+        (Read only) The nugget, or ``None`` if not supplied.
+
+    See Also
+    ---------
+    [equal_within_tolerance][exauq.core.numerics.equal_within_tolerance] :
+    Numerical tolerance check.
     """
 
     @classmethod
@@ -660,7 +708,7 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
 
         Parameters
         ----------
-        params : mogp_emulator.GPParams.GPParams
+        params :
             A parameters object from mogp-emulator.
 
         Returns
@@ -672,7 +720,7 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
         if not isinstance(params, GPParams):
             raise TypeError(
                 "Expected 'params' to be of type mogp_emulator.GPParams.GPParams, but "
-                f"received {type(params)}."
+                f"received {type(params)} instead."
             )
 
         if params.corr is None and params.cov is None:
@@ -712,16 +760,11 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
           output object will be as specified in `nugget_type`, representing the case
           where the nugget is computed in some way different to hyperparameter estimation.
 
-        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.nugget_type).
-        for details of the `nugget_type` attribute in ``mogp_emulator.GPParams.GPParams``
-        objects and
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#mogp_emulator.GaussianProcess.GaussianProcess
-        for a discussion about what the different nugget fitting methods mean.
 
         Parameters
         ----------
         nugget_type : one of {"fixed", "fit", "adaptive", "pivot"}
-            (Default: 'fixed') The type of nugget to be specified in construction of the
+            The type of nugget to be specified in construction of the
             returned ``mogp_emulator.GPParams.GPParams`` object. See above for discussion
             on valid values.
 
@@ -733,17 +776,18 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
 
         See Also
         --------
-        See https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.nugget_type).
+        See [mogp-emulator/nugget_type](https://mogp-emulator.readthedocs.io/en/latest/implementation/GPParams.html#mogp_emulator.GPParams.GPParams.nugget_type)
         for details of the `nugget_type` attribute in ``mogp_emulator.GPParams.GPParams``
         objects and
-        https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#mogp_emulator.GaussianProcess.GaussianProcess
+        [mogp-emulator/nugget_fitting_methods](https://mogp-emulator.readthedocs.io/en/latest/implementation/GaussianProcess.html#mogp_emulator.GaussianProcess.GaussianProcess)
         for a discussion about what the different nugget fitting methods mean.
+
         """
 
         if not isinstance(nugget_type, str):
             raise TypeError(
-                "Expected 'nugget_type' to be of type str, but got "
-                f"{type(nugget_type)}."
+                "Expected 'nugget_type' to be of type str, but received "
+                f"{type(nugget_type)} instead."
             )
 
         nugget_types = ["fixed", "fit", "adaptive", "pivot"]

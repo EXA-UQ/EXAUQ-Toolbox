@@ -1,5 +1,5 @@
 name: Update dependencies
-run-name: Update Poetry lock file and run tests upon ${{ github.event_name }}
+run-name: Update Poetry lock file upon ${{ github.event_name }}
 on:
   schedule:
     # On 1, 15, 29 day of each month at 5:45am UTC
@@ -36,8 +36,3 @@ jobs:
             Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action.
             
             Updates Python packages as specified in the `pyproject.toml` file and updates `Poetry.lock` accordingly. 
-
-  job2:
-    name: Run unit tests
-    needs: job1
-    uses: ./.github/workflows/test-package.yml

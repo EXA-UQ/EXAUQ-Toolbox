@@ -1,3 +1,23 @@
+"""
+Provides classes for defining and managing simulation jobs, including job identifiers and
+associated metadata. This module ensures consistent handling of job-related data within
+simulation workflows.
+
+
+Job Identifiers (Classes)
+--------------------------------------------------------------------------------------------------
+[`JobId`][exauq.sim_management.jobs.JobId]
+Represents a unique identifier for a job, restricted to digit-only strings.
+
+
+Jobs (Classes)
+--------------------------------------------------------------------------------------------------
+[`Job`][exauq.sim_management.jobs.Job]
+Represents a simulation job, containing input data, job ID, level, and associated interface name.
+
+
+"""
+
 from __future__ import annotations
 
 import re

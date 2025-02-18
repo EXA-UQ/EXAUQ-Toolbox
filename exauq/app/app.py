@@ -25,7 +25,7 @@ class App:
 
     Parameters
     ----------
-    interface : HardwareInterface
+    interfaces : list[HardwareInterface]
         The hardware interface through which simulation jobs will be executed.
     input_dim : int
         The dimensionality of the input data for simulations.
@@ -44,7 +44,7 @@ class App:
 
     def __init__(
         self,
-        interface: HardwareInterface,
+        interfaces: list[HardwareInterface],
         input_dim: int,
         simulations_log_file: FilePath = "simulations.csv",
     ):
@@ -54,11 +54,11 @@ class App:
         """
         self._sim_log_path = simulations_log_file
         self._input_dim = input_dim
-        self._interface = interface
+        self._interfaces = interfaces
         self._sim_log = SimulationsLog(self._sim_log_path, self._input_dim)
         self._job_manager = JobManager(
             simulations_log=self._sim_log,
-            interface=self._interface,
+            interfaces=self._interfaces,
             polling_interval=10,
             wait_for_pending=False,
         )
@@ -69,13 +69,19 @@ class App:
 
         return self._input_dim
 
-    def submit(self, inputs: Sequence[Sequence[Real]]) -> tuple[Job]:
-        """
-        Submits a batch of simulation jobs to the job manager based on the provided input sequences.
+    @property
+    def interfaces(self) -> list[HardwareInterface]:
+        """(Read-only) The hardware interfaces registered with the application."""
 
-        Each input sequence is converted into an Input object and then submitted as a new simulation
-        job through the JobManager. This method is ideal for bulk submission of jobs to utilize
-        hardware resources efficiently.
+        return self._interfaces
+
+    def submit(self, inputs: Sequence[Sequence[Real]], level: int = 1) -> tuple[Job, ...]:
+        """
+        Submits a batch of simulation jobs to the job manager based on the provided input sequences and level.
+
+        Each input sequence is converted into an ``Input`` object and submitted to the job manager with the
+        specified level. The method returns a tuple of the ``Job`` objects created for each submitted job,
+        allowing for further interaction or status checking.
 
         Parameters
         ----------
@@ -83,9 +89,12 @@ class App:
             A sequence of input sequences, where each inner sequence represents the input parameters
             for a single simulation job.
 
+        level : int
+            The level of the submitted jobs. Defaults to 1.
+
         Returns
         -------
-        tuple[Job]
+        tuple[Job, ...]
             A tuple of the Job objects created for each submitted job, allowing for further interaction
             or status checking.
 
@@ -100,7 +109,7 @@ class App:
 
         submitted_jobs = []
         for inp in inputs:
-            submitted_jobs.append(self._job_manager.submit(Input(*inp)))
+            submitted_jobs.append(self._job_manager.submit(Input(*inp), level=level))
 
         return tuple(submitted_jobs)
 
@@ -249,3 +258,53 @@ class App:
         Demonstrates initiating a shutdown of the application's job management and monitoring systems.
         """
         self._job_manager.shutdown()
+
+    def add_interface(self, interface: HardwareInterface):
+        """
+        Registers a new hardware interface with the application.
+
+        This method registers a hardware interface for use within the application,
+        updating the job manager to incorporate the new interface for managing and
+        submitting simulation jobs. It appends the interface to the application's
+        list of interfaces, reinitializes the job manager, and adjusts its configuration
+        to include all registered interfaces.
+
+        Parameters
+        ----------
+        interface : HardwareInterface
+            The hardware interface to be added to the application.
+
+        Examples
+        --------
+        >>> app.add_interface(interface)
+
+        Demonstrates the addition of a hardware interface to enable simulation job
+        submissions within the application.
+        """
+        self._interfaces.append(interface)
+        self._job_manager.shutdown()
+        del self._job_manager
+        self._job_manager = JobManager(
+            simulations_log=self._sim_log,
+            interfaces=self._interfaces,
+            polling_interval=10,
+            wait_for_pending=False,
+        )
+
+    def get_interface_job_count(self, interface_name: str) -> Optional[int]:
+        """
+        Get the job count for a specific interface.
+
+        Parameters
+        ----------
+        interface_name : str
+            The name of the interface to retrieve the job count for.
+
+        Returns
+        -------
+        Optional[int]
+            The number of jobs assigned to the specified interface, or None if the
+            interface does not exist.
+        """
+        interface_job_counts = self._job_manager.interface_job_counts
+        return interface_job_counts.get(interface_name)

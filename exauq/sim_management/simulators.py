@@ -1,3 +1,66 @@
+"""
+Provides classes and utilities for managing simulation jobs, handling submission, monitoring, and
+status updates through various hardware interfaces. This module ensures consistent management of
+simulations with robust error handling and logging mechanisms.
+
+
+Core Classes
+----------------------------------------------------------------------------------------------------
+[`SimulationsLog`][exauq.sim_management.simulators.SimulationsLog]
+Manages the logging of simulation jobs, including submission details, statuses, and outputs.
+Supports querying and updating job records.
+
+[`JobManager`][exauq.sim_management.simulators.JobManager]
+Orchestrates the lifecycle of simulation jobs, including submission, monitoring, and cancellation.
+Utilizes hardware interfaces for job execution.
+
+
+Job Strategies
+----------------------------------------------------------------------------------------------------
+Defines strategies for handling jobs based on their current statuses. Each strategy
+dictates the actions to be taken for specific job states.
+
+- [`CompletedJobStrategy`][exauq.sim_management.simulators.CompletedJobStrategy]
+  Handles jobs that have completed execution by recording results and updating statuses.
+
+- [`FailedJobStrategy`][exauq.sim_management.simulators.FailedJobStrategy]
+  Manages jobs that have failed, ensuring proper status updates and cleanup.
+
+- [`FailedSubmitJobStrategy`][exauq.sim_management.simulators.FailedSubmitJobStrategy]
+  Handles jobs that failed during submission, updating logs accordingly.
+
+- [`RunningJobStrategy`][exauq.sim_management.simulators.RunningJobStrategy]
+  Monitors jobs currently running to ensure their statuses are correctly reflected.
+
+- [`SubmittedJobStrategy`][exauq.sim_management.simulators.SubmittedJobStrategy]
+  Manages jobs that have been submitted but are not yet completed or failed.
+
+- [`PendingSubmitJobStrategy`][exauq.sim_management.simulators.PendingSubmitJobStrategy]
+  Attempts submission of jobs, handling retries and updating statuses in case of failures.
+
+- [`PendingCancelJobStrategy`][exauq.sim_management.simulators.PendingCancelJobStrategy]
+  Handles cancellation requests, including retries and status updates.
+
+
+Utilities
+----------------------------------------------------------------------------------------------------
+[`JobIDGenerator`][exauq.sim_management.simulators.JobIDGenerator]
+Generates unique job IDs based on the current datetime, ensuring uniqueness even in
+concurrent environments.
+
+
+Exceptions
+----------------------------------------------------------------------------------------------------
+[`SimulationsLogLookupError`][exauq.sim_management.simulators.SimulationsLogLookupError]
+Raised when a simulation log does not contain a particular record.
+
+[`InvalidJobStatusError`][exauq.sim_management.simulators.InvalidJobStatusError]
+Raised when a job's status is inappropriate for a specific action.
+
+[`UnknownJobIdError`][exauq.sim_management.simulators.UnknownJobIdError]
+Raised when a provided job ID does not correspond to any known job.
+"""
+
 import csv
 import os
 import random
@@ -11,13 +74,7 @@ from time import sleep
 from typing import Any, Optional, Sequence, Union
 from warnings import warn
 
-from exauq.core.modelling import (
-    AbstractSimulator,
-    Input,
-    MultiLevel,
-    SimulatorDomain,
-    TrainingDatum,
-)
+from exauq.core.modelling import Input, MultiLevel, TrainingDatum
 from exauq.sim_management.hardware import (
     PENDING_STATUSES,
     TERMINAL_STATUSES,
@@ -31,125 +88,6 @@ from exauq.utilities.validation import check_file_path
 
 Simulation = tuple[Input, Optional[Real]]
 """A type to represent a simulator input, possibly with corresponding simulator output."""
-
-
-class Simulator(AbstractSimulator):
-    """
-    Represents a simulation code that can be run with inputs.
-
-    This class provides a way of working with some simulation code as a black box,
-    abstracting away details of how to submit simulator inputs for computation and
-    retrieve the results. The set of valid simulator inputs is represented by the
-    `domain` supplied at initialisation, while the `interface` provided at initialisation
-    encapsulates the details of how to actually run the simulation code with a
-    collection of inputs and retrieve outputs.
-
-    A simulations log file records inputs that have been submitted for computation, as
-    well as any simulation outputs. These can be retrieved using the
-    ``previous_simulations` property of this class.
-
-    Parameters
-    ----------
-    domain : SimulatorDomain
-        The domain of the simulator, representing the set of valid inputs for the
-        simulator.
-    interface : HardwareInterface
-        An implementation of the ``HardwareInterface`` base class, providing the interface
-        to a computer that the simulation code runs on.
-    simulations_log_file : exauq.sim_management.types.FilePath, optional
-        (Default: ``simulations.csv``) A path to the simulation log file. The default
-        will work with a file called ``simulations.csv`` in the current working directory
-        for the calling Python process.
-
-    Attributes
-    ----------
-    previous_simulations : tuple[Input, Optional[Real]]
-        (Read-only) Simulations that have been previously submitted for evaluation.
-        In the case where an `Input` has been submitted for evaluation but no output from
-        the simulator has been retrieved, the output is recorded as ``None``.
-    """
-
-    def __init__(
-        self,
-        domain: SimulatorDomain,
-        interface: HardwareInterface,
-        simulations_log_file: FilePath = "simulations.csv",
-    ):
-        self._check_arg_types(domain, interface)
-        self._simulations_log = self._make_simulations_log(
-            simulations_log_file, domain.dim
-        )
-        self._manager = JobManager(self._simulations_log, [interface])
-
-    @staticmethod
-    def _check_arg_types(domain: Any, interface: Any):
-        if not isinstance(domain, SimulatorDomain):
-            raise TypeError(
-                "Argument 'domain' must define a SimulatorDomain, but received object "
-                f"of type {type(domain)} instead."
-            )
-
-        if not isinstance(interface, HardwareInterface):
-            raise TypeError(
-                "Argument 'interface' must inherit from HardwareInterface, but received "
-                f"object of type {type(interface)} instead."
-            )
-
-    @staticmethod
-    def _make_simulations_log(simulations_log: FilePath, input_dim: int):
-        check_file_path(
-            simulations_log,
-            TypeError(
-                "Argument 'simulations_log' must define a file path, but received "
-                f"object of type {type(simulations_log)} instead."
-            ),
-        )
-
-        return SimulationsLog(simulations_log, input_dim)
-
-    @property
-    def previous_simulations(self) -> tuple[Simulation]:
-        """
-        (Read-only) A tuple of simulations that have been previously submitted for
-        computation. In the case where an `Input` has been submitted for evaluation but
-        no output from the simulator has been retrieved, the output is recorded as
-        ``None``.
-        """
-        return tuple(self._simulations_log.get_simulations())
-
-    def compute(self, x: Input) -> Optional[Real]:
-        """
-        Submit a simulation input for computation.
-
-        In the case where a never-before seen input is supplied, this will be submitted
-        for computation and ``None`` will be returned. If the input has been seen before
-        (that is, features in an entry in the simulations log file for this simulator),
-        then the corresponding simulator output will be returned, or ``None`` if this is
-        not yet available.
-
-        Parameters
-        ----------
-        x : Input
-            An input for the simulator.
-
-        Returns
-        -------
-        Optional[Real]
-            ``None`` if a new input has been provided, or else the corresponding simulator
-            output, if this has previously been computed.
-        """
-
-        if not isinstance(x, Input):
-            raise TypeError(
-                f"Argument 'x' must be of type Input, but received {type(x)}."
-            )
-
-        for _input, output in self.previous_simulations:
-            if _input == x:
-                return output
-
-        self._manager.submit(x)
-        return None
 
 
 class SimulationsLog(object):
@@ -168,7 +106,7 @@ class SimulationsLog(object):
     file : exauq.sim_management.types.FilePath
         A path to the underlying log file containing details of simulations.
     input_dim : int
-        The number of coordinates needed to define an input to the simultor.
+        The number of coordinates needed to define an input to the simulator.
     """
 
     def __init__(self, file: FilePath, input_dim: int):
@@ -228,7 +166,7 @@ class SimulationsLog(object):
         return input_dim
 
     @staticmethod
-    def _make_db(log_file: FilePath, fields: tuple[str]) -> CsvDB:
+    def _make_db(log_file: FilePath, fields: tuple[str, ...]) -> CsvDB:
         """Make the underlying database used to store details of simulation jobs."""
 
         if isinstance(log_file, bytes):
@@ -395,7 +333,52 @@ class SimulationsLog(object):
         job_ids: Sequence[Union[str, JobId, int]] = None,
         statuses: Sequence[JobStatus] = None,
     ) -> list[dict[str, Any]]:
-        """Return records based on given job ids and job status codes"""
+        """
+        Return records based on given job IDs and job status codes.
+
+        This method retrieves simulation job records from the simulations log based on specified
+        job IDs and/or job status codes. If no filters are provided, all records are returned.
+        The method ensures thread safety during record retrieval.
+
+        Parameters
+        ----------
+        job_ids : Sequence[Union[str, JobId, int]], optional
+            A sequence of job IDs to filter the records. If `None`, records are not filtered
+            based on job IDs. Default is `None`.
+        statuses : Sequence[JobStatus], optional
+            A sequence of `JobStatus` values to filter the records. If `None`, records are not
+            filtered based on status. Default is `None`.
+
+        Returns
+        -------
+        list[dict[str, Any]]
+            A list of dictionaries, where each dictionary represents a job record with the
+            following keys:
+
+            - 'job_id' (JobId): The unique identifier of the job.
+            - 'status' (JobStatus): The current status of the job.
+            - 'input' (Input): The input associated with the simulation job.
+            - 'output' (Optional[Real]): The output of the simulation, or `None` if not yet available.
+
+        Examples
+        --------
+        Retrieve all job records:
+        >>> log.get_records()
+
+        Retrieve records for specific job IDs:
+        >>> log.get_records(job_ids=["123", "456"])
+
+        Retrieve records with specific statuses:
+        >>> log.get_records(statuses=[JobStatus.COMPLETED, JobStatus.FAILED])
+
+        Retrieve records with specific job IDs and statuses:
+        >>> log.get_records(job_ids=["789"], statuses=[JobStatus.RUNNING])
+
+        Notes
+        -----
+        - This method is thread-safe, ensuring consistent results when accessed concurrently.
+        - If both `job_ids` and `statuses` are provided, records must match both filters to be included.
+        """
         with self._lock:
             job_ids_str = (
                 [str(job_id) for job_id in job_ids] if job_ids is not None else None
@@ -585,7 +568,7 @@ class SimulationsLog(object):
 
         if not training_data.items():
             warn(
-                "No sucessfully completed simulations in log, returning empty MultiLevel."
+                "No successfully completed simulations in log, returning empty MultiLevel."
             )
 
         return MultiLevel(training_data)
@@ -708,6 +691,19 @@ class JobManager:
         if wait_for_pending and self._thread is not None:
             self._thread.join()
 
+    @property
+    def interface_job_counts(self) -> dict[str, int]:
+        """
+        Provides a thread-safe, read-only view of the job monitoring counts per interface.
+
+        Returns
+        -------
+        dict[str, int]
+            A dictionary mapping interface names to the number of jobs being monitored.
+        """
+        with self._lock:
+            return dict(self._interface_job_monitor_counts)
+
     def submit(self, x: Input, level: int = 1) -> Job:
         """
         Submits a new simulation job. This method creates a job with a unique ID,
@@ -814,24 +810,56 @@ class JobManager:
             return interface_name
 
     def cancel(self, job_id: JobId) -> Job:
-        """Cancels a job with the given ID.
+        """
+        Cancels a job with the given ID.
+
+        This method attempts to cancel a job identified by the provided job ID. It first checks
+        if the job is actively being monitored. If the job is found, it updates its status to
+        `PENDING_CANCEL`, signaling that the cancellation process is underway.
+
+        If the job is not currently monitored, the method queries the simulations log to check
+        its status. If the job has already reached a terminal state (e.g., COMPLETED, FAILED),
+        an `InvalidJobStatusError` is raised as such jobs cannot be cancelled. If no job with
+        the provided ID exists, an `UnknownJobIdError` is raised.
 
         Parameters
         ----------
         job_id : JobId
-            The ID of the job to cancel.
+            The unique identifier of the job to be cancelled.
 
         Returns
         -------
         Job
-            The job that was cancelled.
+            The job object representing the job that was marked for cancellation.
 
         Raises
         ------
         UnknownJobIdError
-            If the provided ID does not define a job from the simulations log.
+            If the provided ID does not correspond to any job in the simulations log.
         InvalidJobStatusError
-            If the job has already terminated and so cannot be cancelled.
+            If the job has already reached a terminal status and cannot be cancelled.
+
+        Examples
+        --------
+        Cancel an active job with ID '12345':
+        >>> job_manager.cancel(JobId('12345'))
+
+        Attempt to cancel a job that has already completed:
+        >>> try:
+        ...     job_manager.cancel(JobId('67890'))
+        ... except InvalidJobStatusError as e:
+        ...     print(f"Cannot cancel job: {e.status}")
+
+        Attempt to cancel a non-existent job:
+        >>> try:
+        ...     job_manager.cancel(JobId('00000'))
+        ... except UnknownJobIdError:
+        ...     print("Job ID not found in the simulations log.")
+
+        Notes
+        -----
+        - This method is thread-safe, ensuring consistency when accessed concurrently.
+        - Only jobs that have not yet reached a terminal status can be cancelled.
         """
         with self._lock:
             jobs_to_cancel = [job for job in self._monitored_jobs if job.id == job_id]
@@ -873,7 +901,7 @@ class JobManager:
 
         return strategies
 
-    def monitor(self, jobs: list[Job]):
+    def monitor(self, jobs: Sequence[Job]):
         """
         Initiates or resumes monitoring of the specified jobs for status updates.
 
@@ -883,8 +911,8 @@ class JobManager:
 
         Parameters
         ----------
-        jobs : list[Job]
-            A list of Job objects to be monitored.
+        jobs : Sequence[Job]
+            A sequence of Job objects to be monitored.
 
         Notes
         ----
