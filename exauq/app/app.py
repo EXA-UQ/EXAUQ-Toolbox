@@ -71,9 +71,8 @@ class App:
 
     @property
     def interfaces(self) -> list[HardwareInterface]:
-        """
-        (Read-only) The hardware interfaces registered with the application.
-        """
+        """(Read-only) The hardware interfaces registered with the application."""
+
         return self._interfaces
 
     def submit(self, inputs: Sequence[Sequence[Real]], level: int = 1) -> tuple[Job, ...]:

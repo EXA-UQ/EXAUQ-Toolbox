@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.45">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.44">
     
     
       
@@ -512,24 +512,9 @@
         <li class="md-nav__item">
   <a href="#starting-a-new-workspace" class="md-nav__link">
     <span class="md-ellipsis">
-      Starting a New Workspace
+      Starting a new workspace
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Starting a New Workspace">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#example-session" class="md-nav__link">
-    <span class="md-ellipsis">
-      Example Session
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -573,42 +558,9 @@
           <li class="md-nav__item">
   <a href="#submitting-jobs" class="md-nav__link">
     <span class="md-ellipsis">
-      Submitting Jobs
+      Submitting jobs
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Submitting Jobs">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#handling-negative-inputs" class="md-nav__link">
-    <span class="md-ellipsis">
-      Handling Negative Inputs
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#using-the-level-option" class="md-nav__link">
-    <span class="md-ellipsis">
-      Using the --level Option
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#submitting-inputs-from-a-csv-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      Submitting Inputs from a CSV File
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -643,15 +595,6 @@
   <a href="#write-the-jobs-to-a-csv-file" class="md-nav__link">
     <span class="md-ellipsis">
       Write the jobs to a CSV file
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#viewing-interfaces" class="md-nav__link">
-    <span class="md-ellipsis">
-      Viewing Interfaces
     </span>
   </a>
   
@@ -1276,24 +1219,9 @@
         <li class="md-nav__item">
   <a href="#starting-a-new-workspace" class="md-nav__link">
     <span class="md-ellipsis">
-      Starting a New Workspace
+      Starting a new workspace
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Starting a New Workspace">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#example-session" class="md-nav__link">
-    <span class="md-ellipsis">
-      Example Session
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1337,42 +1265,9 @@
           <li class="md-nav__item">
   <a href="#submitting-jobs" class="md-nav__link">
     <span class="md-ellipsis">
-      Submitting Jobs
+      Submitting jobs
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Submitting Jobs">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#handling-negative-inputs" class="md-nav__link">
-    <span class="md-ellipsis">
-      Handling Negative Inputs
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#using-the-level-option" class="md-nav__link">
-    <span class="md-ellipsis">
-      Using the --level Option
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#submitting-inputs-from-a-csv-file" class="md-nav__link">
-    <span class="md-ellipsis">
-      Submitting Inputs from a CSV File
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -1407,15 +1302,6 @@
   <a href="#write-the-jobs-to-a-csv-file" class="md-nav__link">
     <span class="md-ellipsis">
       Write the jobs to a CSV file
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#viewing-interfaces" class="md-nav__link">
-    <span class="md-ellipsis">
-      Viewing Interfaces
     </span>
   </a>
   
@@ -1476,125 +1362,65 @@
 (or <code>-d</code>) option:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$ exauq --docs
 </span></code></pre></div>
-<h2 id="starting-a-new-workspace">Starting a New Workspace</h2>
-<p>When you run <code>exauq</code> in a new directory, the CLI will guide you through creating a new <em>workspace</em>. Conceptually, a workspace corresponds to a specific 'project' requiring simulations. In practice, it’s a directory dedicated to storing settings and simulation data, enabling <code>exauq</code> to resume where it left off in subsequent sessions.</p>
-<p>Here, we provide an updated walkthrough for starting a new workspace with line-by-line explanations of user input. Comments with numbering (e.g., <code># (1)</code>) are provided for clarity but should not be included when following the steps in your terminal.</p>
-<h3 id="example-session">Example Session</h3>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$ exauq
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>======================================================================
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>                     EXAUQ Command Line Interface                     
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>                            Version 0.1.0                             
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>======================================================================
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>----------------------------------------------------------------------
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>                       Workspace Initialisation                       
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>             A new workspace &#39;.exauq-ws&#39; will be set up.              
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>----------------------------------------------------------------------
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>Dimension of simulator input space: 3  # (1)
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>Simulator input dimension set to: 3
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>Press Enter to continue...
+<h2 id="starting-a-new-workspace">Starting a new workspace</h2>
+<p>When you run <code>exauq</code> in a new directory, it will walk you through the steps for creating a
+<em>workspace</em>. Conceptually, we can think of a workspace corresponding to a particular
+'project' for which we need to run simulations. In practice, a workspace is nothing more
+than a directory dedicated to storing settings and simulation data, which enables <code>exauq</code>
+to resume where it left off next time you start it.</p>
+<p>Below we give an example run-through of starting a new workspace, with line-by-line
+explanations of steps where user input is required. (The comments with numbering, e.g. <code>#
+(1)</code>, are just to help refer to the lines in the explanation and shouldn't be included
+when running through for real.)</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$ exauq
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>A new workspace &#39;.exauq-ws&#39; will be set up.
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Please provide the following details to initialise the workspace...
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  Dimension of simulator input space: 3  # (1)
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  Host server address: server.example.com  # (2)
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  Host username: joe  # (3)
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  Path to simulator script on host: path/to/my-simulator-script.sh  # (4)
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  Program to run simulator script with: bash  # (5)
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  Use SSH agent? (Default &#39;no&#39;): n  # (6)
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>Setting up hardware...
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>Password for joe@server.example.com:  # (7)
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>Connection to server.example.com established.
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>Thanks -- workspace &#39;.exauq-ws&#39; is now set up.
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>(exauq)&gt;  # (8)
 </span></code></pre></div>
-1. <strong>Input Dimension</strong>: Specify the number of input variables expected by your simulator. In this example, the simulator requires three input variables.
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>======================================================================
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>                     EXAUQ Command Line Interface                     
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>                            Version 0.1.0                             
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>======================================================================
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>----------------------------------------------------------------------
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>                           Interface Setup                            
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>----------------------------------------------------------------------
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>---------------------------------
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>  Select Interface Setup Method  
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>---------------------------------
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>  1: Interactive mode
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>  2: Load from file
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>Enter the number corresponding to your choice: 1  # (2)
-</span></code></pre></div>
-2. <strong>Interface Setup Method</strong>: Choose how to configure the hardware interface:
-   - Interactive mode walks you through a step-by-step setup.
-   - Load from file uses a pre-configured JSON file containing interface details.</p>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>======================================================================
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                     EXAUQ Command Line Interface                     
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                            Version 0.1.0                             
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>======================================================================
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>----------------------------------------------------------------------
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>                 Interactive Interface Configuration                  
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>          Please provide details of your hardware interface           
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>----------------------------------------------------------------------
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>------------------------------------------------------
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>  Choose the type of hardware interface to configure  
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>------------------------------------------------------
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>  1: Unix Server Script Interface
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>Enter the number corresponding to your choice: 1  # (3)
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>Selected: Unix Server Script Interface
-</span></code></pre></div>
-3. <strong>Interface Type</strong>: Select the type of hardware interface you want to configure. In this example, a Unix Server Script Interface is chosen.</p>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>--------------------------------------------
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  Hardware Interface Configuration details  
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>--------------------------------------------
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>Hardware interface name: ExampleServer  # (4)
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>Hardware interface level: 1  # (5)
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>Host server address: server.example.com  # (6)
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>Host username: joe  # (7)
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>Path to simulator script on host: path/to/my-simulator-script.sh  # (8)
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>Program to run simulator script with: bash  # (9)
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>Use SSH agent? (Default &#39;no&#39;): n  # (10)
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>Password for joe@server.example.com:  # (11)
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>Connection to server.example.com established.
-</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>Add another hardware interface? (y/n): n  # (12)
-</span></code></pre></div>
-4. Hardware Interface Details:
-    - (4) Name the hardware interface for identification.
-    - (5) Assign a level to the interface.
-    - (6) Provide the server address where the simulator resides.
-    - (7) Enter the username for the server.
-    - (8) Specify the path to the simulator script on the server.
-    - (9) Indicate the program to execute the simulator script (e.g., bash for shell scripts, python for python scripts, etc.).
-    - (10) Choose whether to use an SSH agent for authentication.
-    - (11) If not using an SSH agent, input your server password to establish a connection.
-    - (12) Decide whether to add additional hardware interfaces.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>You can add multiple hardware interfaces to run simulations on different servers or with different programs. In this example, only one interface is added.</p>
-</div>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>======================================================================
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>                     EXAUQ Command Line Interface                     
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>                            Version 0.1.0                             
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>======================================================================
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>----------------------------------------------------------------------
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>                       Workspace Setup Summary                        
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>----------------------------------------------------------------------
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>Workspace Directory: .exauq-ws
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>Input Dimension: 3
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>Interfaces Added:
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>Interface Name  Details                                                                                                                 
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>ExampleServer   user: joe; host: server.example.com; program: bash; script_path: path/to/my-simulator-scrip...; name: ExampleServ...
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>(exauq)&gt;  # (13)
-</span></code></pre></div>
-5. Workspace Summary: After completing the setup, exauq displays a summary:
-    - The workspace directory path.
-    - The simulator input dimension.
-    - Details of the configured hardware interfaces, including the host, user, program, and script path.
-6. Command Prompt: You are now ready to use exauq to manage simulations! The command prompt <code>(exauq)&gt;</code> indicates the CLI is ready to accept commands.</p>
+<ol>
+<li>The number of input variables that the simulator expects.</li>
+<li>The address to the server where the simulator lives.</li>
+<li>Your username for the server.</li>
+<li>The path on the server to the simulator script. <em>We recommend providing an absolute
+   path.</em></li>
+<li>The program to run the simulator script with. In this example, we have a shell script,
+   so we use the program <code>bash</code>.</li>
+<li>Whether to use an already-running SSH agent for managing authentication with private 
+   keys to the server. If and agent is running and 'yes' is selected, then the <code>exauq</code>
+   application will use this to connect to the server without prompting for a password.
+   Otherwise, you will be prompted to enter your password to connect to the server (see
+   next).</li>
+<li>Enter your password to establish connection to the server. <em>This password is not stored
+   within the workspace or anywhere else by the</em> <code>exauq</code> <em>application.</em></li>
+<li>After establishing a connection to the server, a directory <code>.exauq-ws</code> is created in
+   the current working directory and the main <code>exauq</code> command line interpreter is entered.</li>
+</ol>
 <h2 id="quitting-the-application">Quitting the application</h2>
 <p>Having just started the application, let's make sure we know how to exit it! We do this
 simply by entering the command <code>quit</code>, like so:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>(exauq)&gt; quit
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>$
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>(exauq)&gt; quit
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>$
 </span></code></pre></div>
 <h2 id="starting-the-application-with-the-same-workspace">Starting the application with the same workspace</h2>
 <p>Having quit the application, let's take a look at the newly created workspace directory.
 If we list the contents of the current directory (including hidden items), we see that
 we have a new directory called <code>.exauq-ws</code>. This contains settings files that record the 
 details provided at workspace creation:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>$ ls -a
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>.  ..  .exauq-ws
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>$ ls .exauq-ws/
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>hw_params_ExampleServer.json  settings.json
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$ ls -a
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>.  ..  .exauq-ws
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>$ ls .exauq-ws/
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>hardware_params  settings.json
 </span></code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
@@ -1605,114 +1431,110 @@ workspace directory alone.</p>
 <p>To start the application again with the same workspace, we simply run <code>exauq</code> within
 the directory containing <code>.exauq-ws</code>. Note this will ask us for our password to connect
 to the server.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>$ exauq
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>Using workspace &#39;.exauq-ws&#39;.
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>Password for joe@server.example.com: 
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>Connection to server.example.com established.
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>(exauq)&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$ exauq
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Using workspace &#39;.exauq-ws&#39;.
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Password for joe@server.example.com: 
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>Connection to server.example.com established.
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>(exauq)&gt;
 </span></code></pre></div>
 <h2 id="the-command-line-interpreter">The command line interpreter</h2>
 <p>Once <code>exauq</code> has been started an initialised, it is ready to receive commands from a user
 to execute. Commands are entered next to the prompt <code>(exauq)&gt;</code>, much like you enter
 commands into a terminal, following the general template:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>(exauq)&gt; COMMAND [OPTIONS] ARGS
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>(exauq)&gt; COMMAND [OPTIONS] ARGS
 </span></code></pre></div>
 <p>Once a command has been executed, and output is printed to the console and a new line with a prompt is presented, ready to receive
 another command. The application continues to go around this 'read-evaluate-print' loop
 until the application is exited.</p>
 <h3 id="view-in-app-help">View in-app help</h3>
 <p>To view all available commands within the application, run the <code>help</code> command:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>(exauq)&gt; help
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>Documented commands (use &#39;help -v&#39; for verbose/&#39;help &lt;topic&gt;&#39; for details):
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>===========================================================================
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>add_interface  edit     list_interfaces  resubmit      set        show  
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>alias          help     macro            run_pyscript  shell      submit
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>cancel         history  quit             run_script    shortcuts  write     
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>(exauq)&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>(exauq)&gt; help
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>Documented commands (use &#39;help -v&#39; for verbose/&#39;help &lt;topic&gt;&#39; for details):
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>===========================================================================
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>alias  help     macro  run_pyscript  set    shortcuts  submit
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>edit   history  quit   run_script    shell  show     
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>(exauq)&gt;
 </span></code></pre></div>
 <p>The main commands to be aware of are <code>help</code>, <code>submit</code>, <code>show</code> and <code>quit</code>. To view help
 for a particular command, run <code>help COMMAND</code>, for example:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>(exauq)&gt; help submit
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>Usage: submit [-h] [-f FILE] [-l LEVEL] [inputs [...]]
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>Submit jobs to the simulator.
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>positional arguments:
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>  inputs             The inputs to submit to the simulator.
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>optional arguments:
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>  -h, --help         show this help message and exit
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>  -f, --file FILE    A path to a csv file containing inputs to submit to the simulator.
-</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>  -l, --level LEVEL  The level of the hardware interface to use for the simulation.
-</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>
-</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>(exauq)&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>(exauq)&gt; help submit
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>Usage: submit [-h] [-f FILE] [inputs [...]]
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>Submit a job to the simulator.
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>positional arguments:
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>  inputs           The inputs to submit to the simulator.
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>optional arguments:
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>  -h, --help       show this help message and exit
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>  -f, --file FILE  A path to a csv file containing inputs to submit to the simulator.
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>(exauq)&gt;
 </span></code></pre></div>
-<h3 id="submitting-jobs">Submitting Jobs</h3>
-<p>A <em>job</em> consists of sending a single <em>input</em> to the simulator. (Note that an <em>input</em> will generally 
-consist of multiple coordinates.) In our example, we specified that the simulator takes in 3-dimensional 
-inputs when creating the workspace. We can submit an input to the simulator with the <code>submit</code> command, 
-providing a comma-separated list of numbers. For example, to submit the input <code>(1.111, 2.222, 9.999)</code>, 
-we enter the following into the application:</p>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>(exauq)&gt; submit 1.111,2.222,9.999
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>JOBID              INPUT             
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>20240419183827910  (1.11, 2.22, 10.0)
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>(exauq)&gt;
+<h3 id="submitting-jobs">Submitting jobs</h3>
+<p>A <em>job</em> consists of sending a single <em>input</em> to the simulator. (Note that an <em>input</em> will
+in general consist of multiple coordinates.) In our example, we specified that the
+simulator takes in 3-dimensional inputs when creating the workspace. We can submit an
+input to the simulator with the <code>submit</code> command, as a comma-separated list of numbers. For example, to
+submit the input <code>(1.111, 2.222, 9.999)</code>, we enter the following into the application:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>(exauq)&gt; submit 1.111,2.222,9.999
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>JOBID              INPUT             
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>20240419183827910  (1.11, 2.22, 10.0)
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>(exauq)&gt;
 </span></code></pre></div>
-1. <strong>Unique Job ID</strong>: Notice that an ID has been returned for the submitted job. This is a uniquely 
-generated integer used by exauq to keep track of the job status. (The ID you receive will differ.)
-2. <strong>Rounded Input Display</strong>: The input for the job is also displayed, with coordinates rounded to 
-avoid overly long output lines.</p>
+<p>Notice that an ID has been returned for the submitted job. This is a uniquely-generated
+integer for the job and is used by the <code>exauq</code> application to keep track of the status of
+the job. (The ID you receive will likely differ.) The input for the job is also printed,
+with coordinates rounded to avoid long lines of output.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Although the coordinates are rounded in the INPUT table heading, the full-precision values are submitted to the simulator.</p>
+<p>Although the coordinates are rounded in the <code>INPUT</code> table heading, the full precision
+numbers are submitted to the simulator.</p>
 </div>
-<h4 id="handling-negative-inputs">Handling Negative Inputs</h4>
-<p>If you try submitting an input starting with a negative number, you’ll encounter an error due to argument parsing:</p>
-<p><div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>(exauq)&gt; submit -1,2,3
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>Usage: submit [-h] [-f FILE] [-l LEVEL] [inputs [...]]
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>Error: unrecognized arguments: -1,2,3
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>(exauq)&gt;
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>If you try submitting an input that starts with a negative number with the approach
+given above, you will encounter an error:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>(exauq)&gt; submit -1,2,3
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>Usage: submit [-h] [-f FILE] [inputs [...]]
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>Error: unrecognized arguments: -1,2,3
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>(exauq)&gt;
 </span></code></pre></div>
-To resolve this, place the input list after a --, like so:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>(exauq)&gt; submit -- -1,2,3
+<p>This is because the <code>-1</code> is being interpreted as an optional argument to <code>submit</code>,
+which is not what we want. To get around this, place the list of inputs after <code>--</code>,
+like so:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>(exauq)&gt; submit -- -1,2,3
 </span></code></pre></div>
-<p>This will submit the input (-1.0, 2.0, 3.0) as expected.</p>
-<h4 id="using-the-level-option">Using the --level Option</h4>
-<p>The --level (or -l) option allows you to specify which hardware interface level to use for the submission. For example, to submit the input (4.444, 5.555, 6.666) using hardware level 2:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>(exauq)&gt; submit -l 2 4.444,5.555,6.666
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>JOBID              INPUT             
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>20240420183710123  (4.44, 5.56, 6.67)
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
-</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>(exauq)&gt;
+<p>This will now submit the input <code>(-1.0, 2.0, 3.0)</code> as desired.</p>
+</div>
+<p>Instead of submitting inputs manually at the prompt, there is the option to submit a
+collection of inputs as read from a csv file, using the <code>--file</code> (or <code>-f</code>) option. For
+example, supposing we had a csv file <code>design.csv</code> in our working directory, we could run
+the command</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>(exauq)&gt; submit --file design.csv
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>JOBID              INPUT               
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>20240419185014637  (1.32, -0.986, 31.4)
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>20240419185015374  (5.97, -3.09, -3.04)
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>20240419185015969  (6.98, -8.03, 0.099)
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>20240419185016560  (-12.0, 9.07, -2.1) 
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>(exauq)&gt;
 </span></code></pre></div>
-<p>The default level is 1 if the --level argument is not specified.</p>
-<h4 id="submitting-inputs-from-a-csv-file">Submitting Inputs from a CSV File</h4>
-<p>Instead of submitting inputs manually, you can use the --file (or -f) option to submit multiple inputs from a CSV file. For example, if you have a file named design.csv in your working directory:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>(exauq)&gt; submit --file design.csv
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>JOBID              INPUT               
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>20240419185014637  (1.32, -0.986, 31.4)
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>20240419185015374  (5.97, -3.09, -3.04)
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>20240419185015969  (6.98, -8.03, 0.099)
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>20240419185016560  (-12.0, 9.07, -2.1) 
-</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>
-</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>(exauq)&gt;
-</span></code></pre></div>
-<p>Each row in the file corresponds to a simulator input, and the system generates a unique job ID for each submission.</p>
 <h3 id="showing-the-status-of-jobs">Showing the status of jobs</h3>
 <p>Having submitted jobs, we can get the status of them by using the <code>show</code> command.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>(exauq)&gt; show
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>JOBID              INPUT                 STATUS     RESULT             
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             
-</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>20240419185014637  (1.32, -0.986, 31.4)  Running          
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>20240419185015374  (5.97, -3.09, -3.04)  Running          
-</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>20240419185015969  (6.98, -8.03, 0.099)  Running          
-</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>20240419185016560  (-12.0, 9.07, -2.1)   Running          
-</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>
-</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>(exauq)&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>(exauq)&gt; show
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>JOBID              INPUT                 STATUS     RESULT             
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>20240419185014637  (1.32, -0.986, 31.4)  Running          
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>20240419185015374  (5.97, -3.09, -3.04)  Running          
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>20240419185015969  (6.98, -8.03, 0.099)  Running          
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>20240419185016560  (-12.0, 9.07, -2.1)   Running          
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>(exauq)&gt;
 </span></code></pre></div>
 <p>Notice how jobs that have successfully completed contain the value of the simulator output
 in the <code>RESULT</code> column, while jobs that are still running are indicated as such.</p>
@@ -1721,23 +1543,23 @@ Furthermore, it will pick up where it left off when restarting a new session wit
 workspace. For example, suppose we quit the <code>exauq</code> application and waited a while for the
 jobs to finish. By starting <code>exauq</code> with the same workspace, we can check on the status of
 the jobs:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>(exauq)&gt; quit
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a># wait a while...
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>$ exauq
-</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>Using workspace &#39;.exauq-ws&#39;.
-</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>Password for joe@server.example.com: 
-</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>Connection to server.example.com established.
-</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>(exauq)&gt; show
-</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>JOBID              INPUT                 STATUS     RESULT             
-</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             
-</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>20240419185014637  (1.32, -0.986, 31.4)  Completed  31.74438342        
-</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>20240419185015374  (5.97, -3.09, -3.04)  Completed  -0.1624690000000002
-</span><span id="__span-19-14"><a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>20240419185015969  (6.98, -8.03, 0.099)  Completed  -0.9515869999999993
-</span><span id="__span-19-15"><a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a>20240419185016560  (-12.0, 9.07, -2.1)   Completed  -5.06375744        
-</span><span id="__span-19-16"><a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>
-</span><span id="__span-19-17"><a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>(exauq)&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>(exauq)&gt; quit
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a># wait a while...
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>$ exauq
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>Using workspace &#39;.exauq-ws&#39;.
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>Password for joe@server.example.com: 
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>Connection to server.example.com established.
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>(exauq)&gt; show
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>JOBID              INPUT                 STATUS     RESULT             
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>20240419185014637  (1.32, -0.986, 31.4)  Completed  31.74438342        
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>20240419185015374  (5.97, -3.09, -3.04)  Completed  -0.1624690000000002
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>20240419185015969  (6.98, -8.03, 0.099)  Completed  -0.9515869999999993
+</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>20240419185016560  (-12.0, 9.07, -2.1)   Completed  -5.06375744        
+</span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>
+</span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>(exauq)&gt;
 </span></code></pre></div>
 <p>In this case, we see that the outstanding running jobs have now completed.</p>
 <p>For a more in-depth guide on viewing information about submitted jobs, see
@@ -1746,29 +1568,29 @@ the jobs:</p>
 <p>If we ever want to cancel a job before it finishes running, we can use the <code>cancel</code>
 command with the job ID(s) of the job(s) we want to terminate. For example, suppose we
 start off a couple of jobs:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>(exauq)&gt; submit -- -1,2,3 0.5,0.32,-3.12
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>JOBID              INPUT             
-</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>20240521102800090  (-1.0, 2.0, 3.0)  
-</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>20240521102801154  (0.5, 0.32, -3.12)
-</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>
-</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>(exauq)&gt; 
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>(exauq)&gt; submit -- -1,2,3 0.5,0.32,-3.12
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>JOBID              INPUT             
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>20240521102800090  (-1.0, 2.0, 3.0)  
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>20240521102801154  (0.5, 0.32, -3.12)
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>(exauq)&gt; 
 </span></code></pre></div>
 <p>We can see that the status of the jobs is 'Running':</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>(exauq)&gt; show 20240521102800090 20240521102801154
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>JOBID              INPUT               STATUS   RESULT
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>20240521102800090  (-1.0, 2.0, 3.0)    Running        
-</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>20240521102801154  (0.5, 0.32, -3.12)  Running        
-</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>
-</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>(exauq)&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>(exauq)&gt; show 20240521102800090 20240521102801154
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>JOBID              INPUT               STATUS   RESULT
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>20240521102800090  (-1.0, 2.0, 3.0)    Running        
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>20240521102801154  (0.5, 0.32, -3.12)  Running        
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>(exauq)&gt;
 </span></code></pre></div>
 <p>To cancel the new jobs, we supply the corresponding job IDs. The returned output confirms
 their cancellation:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>(exauq)&gt; cancel 20240521102800090 20240521102801154
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>JOBID              INPUT               STATUS   
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>20240521102800090  (-1.0, 2.0, 3.0)    Cancelled
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>20240521102801154  (0.5, 0.32, -3.12)  Cancelled
-</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>
-</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>(exauq)&gt; 
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>(exauq)&gt; cancel 20240521102800090 20240521102801154
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>JOBID              INPUT               STATUS   
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>20240521102800090  (-1.0, 2.0, 3.0)    Cancelled
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>20240521102801154  (0.5, 0.32, -3.12)  Cancelled
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>(exauq)&gt; 
 </span></code></pre></div>
 <p>Note that only jobs with a status of 'Not submitted', 'Submitted' and 'Running' can be
 cancelled.</p>
@@ -1782,23 +1604,23 @@ the scenario where you have jobs that were previously cancelled and now need to 
 resubmitted.</p>
 <p>First, let's check the status of the jobs using the <code>show</code> command to identify the job 
 IDs of the cancelled jobs:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>(exauq)&gt; show
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>JOBID              INPUT                 STATUS     RESULT             
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>20240419185014637  (1.32, -0.986, 31.4)  Completed  31.74438342        
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>20240419185015374  (5.97, -3.09, -3.04)  Completed  -0.1624690000000002
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>20240419185015969  (6.98, -8.03, 0.099)  Completed  -0.9515869999999993
-</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>20240419185016560  (-12.0, 9.07, -2.1)   Completed  -5.06375744        
-</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>20240521102800090  (-1.0, 2.0, 3.0)      Cancelled
-</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>20240521102801154  (0.5, 0.32, -3.12)    Cancelled
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>(exauq)&gt; show
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>JOBID              INPUT                 STATUS     RESULT             
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>20240419183827910  (1.11, 2.22, 10.0)    Completed  13.332             
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>20240419185014637  (1.32, -0.986, 31.4)  Completed  31.74438342        
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>20240419185015374  (5.97, -3.09, -3.04)  Completed  -0.1624690000000002
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>20240419185015969  (6.98, -8.03, 0.099)  Completed  -0.9515869999999993
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>20240419185016560  (-12.0, 9.07, -2.1)   Completed  -5.06375744        
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>20240521102800090  (-1.0, 2.0, 3.0)      Cancelled
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>20240521102801154  (0.5, 0.32, -3.12)    Cancelled
 </span></code></pre></div>
 <p>To resubmit these cancelled jobs, use their job IDs in the <code>resubmit</code> command:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>(exauq)&gt; resubmit 20240521102800090 20240521102801154
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>OLD_JOBID          NEW_JOBID              INPUT               
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>20240521102800090  20240603102300450      (-1.0, 2.0, 3.0)
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>20240521102801154  20240603102300678      (0.5, 0.32, -3.12)
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>
-</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>(exauq)&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>(exauq)&gt; resubmit 20240521102800090 20240521102801154
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>OLD_JOBID          NEW_JOBID              INPUT               
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>20240521102800090  20240603102300450      (-1.0, 2.0, 3.0)
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>20240521102801154  20240603102300678      (0.5, 0.32, -3.12)
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>(exauq)&gt;
 </span></code></pre></div>
 <p>Notice that new job IDs are generated for the resubmitted jobs. This feature allows for 
 tracking the new submissions separately while maintaining a record of their origins from 
@@ -1810,8 +1632,8 @@ each job ID. For more details on resubmitting jobs, including the use of filters
 <h3 id="write-the-jobs-to-a-csv-file">Write the jobs to a CSV file</h3>
 <p>Finally, the details of the jobs can be written to a file, allowing us to use the
 output of simulations in our own analysis. This is done using the <code>write</code> command:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>(exauq)&gt; write jobs.csv
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>(exauq)&gt;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>(exauq)&gt; write jobs.csv
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>(exauq)&gt;
 </span></code></pre></div>
 <p>Note that the full precision of simulation inputs and outputs will be written to the
 file. The output CSV has the same column headings that appear in the <code>show</code> command, with
@@ -1825,21 +1647,10 @@ if we were to supply <code>foo/bar/jobs.csv</code> to <code>write</code>, then t
 </div>
 <p>If we quit the application and list to contents of the working directory, we see that
 the <code>jobs.csv</code> file has been created:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>(exauq)&gt; quit
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>$ ls -a
-</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>.  ..  .exauq-ws  jobs.csv
+<div class="language-text highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>(exauq)&gt; quit
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>$ ls -a
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>.  ..  .exauq-ws  jobs.csv
 </span></code></pre></div>
-<h3 id="viewing-interfaces">Viewing Interfaces</h3>
-<p>The <em>list_interfaces</em> command displays an overview of all hardware interfaces configured in the workspace, 
-including their name, level, host, user, and the number of active jobs. For example:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>(exauq)&gt; list_interfaces 
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>Name             Level  Host                 User    Active Jobs
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>ExampleServer    1      server.example.com   joe     1
-</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>AnotherServer    2      server2.example.com  joe     3
-</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>
-</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>(exauq)&gt;
-</span></code></pre></div>
-<p>This command is useful for quickly reviewing the available interfaces and monitoring job distribution.</p>
 
 
 
