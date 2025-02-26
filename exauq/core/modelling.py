@@ -57,7 +57,7 @@ import warnings
 from collections.abc import Collection, Mapping, Sequence
 from itertools import product
 from numbers import Real
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, TypeVar, Union
 from warnings import warn
 
 import numpy as np
@@ -72,6 +72,9 @@ from exauq.utilities.validation import check_int
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
 T = TypeVar("T")
 S = TypeVar("S")
+TrainingDataT = TypeVar(
+    "TrainingDataT", Collection["TrainingDatum"], "MultiLevel[Collection[TrainingDatum]]"
+)
 
 
 class Input(Sequence):
@@ -825,7 +828,7 @@ class GaussianProcessPrediction(Prediction):
             return 0 if expected_sq_err == 0 else float("inf")
 
 
-class AbstractEmulator(abc.ABC):
+class AbstractEmulator(abc.ABC, Generic[TrainingDataT]):
     """Represents an abstract emulator for simulators.
 
     Classes that inherit from this abstract base class define emulators which
@@ -852,7 +855,7 @@ class AbstractEmulator(abc.ABC):
     @abc.abstractmethod
     def fit(
         self,
-        training_data: Collection[TrainingDatum],
+        training_data: TrainingDataT,
         hyperparameters: Optional[AbstractHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
