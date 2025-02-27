@@ -57,7 +57,9 @@ from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     GaussianProcessPrediction,
     Input,
+    MLTrainingData,
     OptionalFloatPairs,
+    TrainingData,
     TrainingDatum,
 )
 from exauq.core.numerics import equal_within_tolerance
@@ -65,7 +67,7 @@ from exauq.utilities.decorators import suppress_print
 from exauq.utilities.mogp_fitting import fit_GP_MAP
 
 
-class MogpEmulator(AbstractGaussianProcess):
+class MogpEmulator(AbstractGaussianProcess[TrainingData]):
     """
     An emulator wrapping a ``GaussianProcess`` object from the mogp-emulator
     package.
@@ -218,7 +220,7 @@ class MogpEmulator(AbstractGaussianProcess):
     @suppress_print
     def fit(
         self,
-        training_data: Collection[TrainingDatum],
+        training_data: TrainingData,
         hyperparameters: Optional[MogpHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
