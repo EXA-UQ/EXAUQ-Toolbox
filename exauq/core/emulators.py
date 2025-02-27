@@ -821,3 +821,6 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
         params.set_data(np.array(transformed_params, dtype=float))
 
         return params
+
+
+class DeepDishGPEmulator(AbstractGaussianProcess[MLTrainingData]): ...
