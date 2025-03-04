@@ -42,18 +42,20 @@ from __future__ import annotations
 
 import dataclasses
 import itertools
-from collections.abc import Collection, Sequence
+from collections.abc import Sequence
 from numbers import Real
 from typing import Any, Literal, Optional
 
 import mogp_emulator as mogp
 import numpy as np
+import pymc as pm
 from mogp_emulator import GaussianProcess
 from mogp_emulator.GPParams import GPParams
 from numpy.typing import NDArray
 
 from exauq.core.modelling import (
     AbstractGaussianProcess,
+    AbstractHyperparameters,
     GaussianProcessHyperparameters,
     GaussianProcessPrediction,
     Input,
@@ -821,6 +823,259 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
         params.set_data(np.array(transformed_params, dtype=float))
 
         return params
+
+
+class DeepDishGPHyperparameters(AbstractHyperparameters):
+    """
+    Class to manage hyperparameters for multi-level Gaussian Process models.
+
+    This class handles creation, inheritance, and management of hyperparameters
+    across multiple levels according to the specified rules:
+
+    1. Defaults apply when no hyperparameter is provided.
+    2. Single-level specifications (without level suffix) define Level 1 parameters.
+    3. Higher levels inherit from lower levels unless explicitly overridden.
+    4. Parameters follow the naming convention {parameter}_L{level} (e.g., ls1_L1)
+    """
+
+    def __init__(self, model_context=None, input_dims=2, levels=3):
+        """
+        Initialize the hyperparameters manager.
+
+        Parameters:
+        -----------
+        model_context : pm.Model, optional
+            PyMC model context where hyperparameters will be defined.
+            Can be set later with set_model_context().
+        input_dims : int
+            Number of input dimensions (determines number of length scales)
+        levels : int
+            Number of levels in the multi-level GP model
+        """
+        self.model = model_context
+        self.input_dims = input_dims
+        self.levels = levels
+        self.param_specs = {}  # Specifications for parameters
+        self.params = {}  # Created parameter objects
+        self.initialized = False
+
+    def set_model_context(self, model_context):
+        """
+        Set the PyMC model context after initialization.
+
+        Parameters:
+        -----------
+        model_context : pm.Model
+            PyMC model context where hyperparameters will be defined
+        """
+        self.model = model_context
+        # Reset initialization state and params since we have a new context
+        self.initialized = False
+        self.params = {}
+        return self
+
+    def set_prior(self, param_name, dist_type, **dist_kwargs):
+        """
+        Set a prior distribution for a parameter.
+
+        Parameters:
+        -----------
+        param_name : str
+            Name of the parameter, with or without level suffix.
+            Examples: "ls1", "ls1_L2", "sig_L3"
+        dist_type : str
+            Name of the PyMC distribution (e.g., "Gamma", "Normal")
+        **dist_kwargs :
+            Keyword arguments for the distribution constructor
+        """
+        # Handle case where level is not specified (applies to Level 1)
+        if "_L" not in param_name:
+            param_name = f"{param_name}_L1"
+
+        self.param_specs[param_name] = {"dist_type": dist_type, "params": dist_kwargs}
+
+        # Clear params to ensure reinitialization
+        self.params = {}
+        self.initialized = False
+        return self
+
+    def apply_defaults(self):
+        """Apply default prior distributions for parameters not explicitly set"""
+        # Define defaults for Level 1
+        for i in range(1, self.input_dims + 1):
+            if f"ls{i}_L1" not in self.param_specs:
+                self.param_specs[f"ls{i}_L1"] = {
+                    "dist_type": "Gamma",
+                    "params": {"alpha": 2, "beta": 4},
+                }
+
+        if "sig_L1" not in self.param_specs:
+            self.param_specs["sig_L1"] = {
+                "dist_type": "Gamma",
+                "params": {"alpha": 8, "beta": 2},
+            }
+
+        if "nug_L1" not in self.param_specs:
+            self.param_specs["nug_L1"] = {
+                "dist_type": "Gamma",
+                "params": {"alpha": 2, "beta": 4},
+            }
+
+        if "beta_L1" not in self.param_specs:
+            self.param_specs["beta_L1"] = {
+                "dist_type": "Normal",
+                "params": {"mu": 0, "sigma": 10},
+            }
+
+        # Set up inheritance for higher levels
+        base_params = ["sig", "nug", "beta"]
+        base_params.extend([f"ls{i}" for i in range(1, self.input_dims + 1)])
+
+        for level in range(2, self.levels + 1):
+            for base_param in base_params:
+                param_name = f"{base_param}_L{level}"
+                if param_name not in self.param_specs:
+                    # Inherit from the previous level
+                    prev_level_param = f"{base_param}_L{level - 1}"
+                    self.param_specs[param_name] = {"inherit_from": prev_level_param}
+
+    def initialize(self):
+        """
+        Initialize all hyperparameters within the model context.
+
+        Raises:
+        -------
+        ValueError
+            If model_context has not been set
+        """
+        if self.initialized:
+            return
+
+        if self.model is None:
+            raise ValueError(
+                "Model context must be set before initialization. Use set_model_context()."
+            )
+
+        # Apply defaults for parameters not explicitly set
+        self.apply_defaults()
+
+        # Create actual parameter objects
+        created_params = {}
+        with self.model:
+            # First pass: create all parameters that don't inherit
+            for param_name, spec in self.param_specs.items():
+                if "inherit_from" not in spec:
+                    dist_class = getattr(pm, spec["dist_type"])
+                    created_params[param_name] = dist_class(param_name, **spec["params"])
+
+        # Second pass: resolve inheritances
+        self.params = created_params.copy()
+        for param_name, spec in self.param_specs.items():
+            if "inherit_from" in spec:
+                inherit_from = spec["inherit_from"]
+                if inherit_from in self.params:
+                    self.params[param_name] = self.params[inherit_from]
+
+        self.initialized = True
+
+    def get(self, param_name, level=None):
+        """
+        Get a hyperparameter.
+
+        Parameters:
+        -----------
+        param_name : str
+            Base name of the parameter (e.g., "ls1", "sig")
+        level : int, optional
+            Level to get the parameter for. If None, assumes param_name
+            already includes the level suffix.
+
+        Returns:
+        --------
+        pm.Distribution
+            The requested hyperparameter
+
+        Raises:
+        -------
+        ValueError
+            If model_context has not been set or parameter initialization failed
+        """
+        if self.model is None:
+            raise ValueError(
+                "Model context must be set before getting parameters. Use set_model_context()."
+            )
+
+        if not self.initialized:
+            self.initialize()
+
+        if level is not None:
+            param_name = f"{param_name}_L{level}"
+
+        param = self.params.get(param_name)
+        if param is None:
+            raise ValueError(
+                f"Parameter {param_name} not found. Check parameter name and level."
+            )
+
+        return param
+
+    def get_lengthscales(self, level):
+        """
+        Get all length scale parameters for a specific level as a list.
+
+        Parameters:
+        -----------
+        level : int
+            The level to get length scales for
+
+        Returns:
+        --------
+        list
+            List of length scale parameters for the specified level
+        """
+        return [self.get(f"ls{i}", level=level) for i in range(1, self.input_dims + 1)]
+
+    def get_all_for_level(self, level):
+        """
+        Get all hyperparameters for a specific level.
+
+        Parameters:
+        -----------
+        level : int
+            The level to get parameters for
+
+        Returns:
+        --------
+        dict
+            Dictionary of parameter names to parameter objects
+        """
+        if self.model is None:
+            raise ValueError(
+                "Model context must be set before getting parameters. Use set_model_context()."
+            )
+
+        if not self.initialized:
+            self.initialize()
+
+        level_params = {}
+        for param_name in self.params:
+            if f"_L{level}" in param_name:
+                base_name = param_name.split(f"_L{level}")[0]
+                level_params[base_name] = self.params[param_name]
+
+        return level_params
+
+    def get_signal_variance(self, level):
+        """Get signal variance parameter for the specified level"""
+        return self.get("sig", level)
+
+    def get_nugget(self, level):
+        """Get nugget parameter for the specified level"""
+        return self.get("nug", level)
+
+    def get_mean_constant(self, level):
+        """Get mean constant parameter for the specified level"""
+        return self.get("beta", level)
 
 
 class DeepDishGPEmulator(AbstractGaussianProcess[MLTrainingData]): ...
