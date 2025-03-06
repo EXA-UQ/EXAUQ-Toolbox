@@ -1311,7 +1311,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
     def fit(
         self,
         training_data: MLTrainingData,
-        hyperparameters: Optional[GaussianProcessHyperparameters] = None,
+        hyperparameters: Optional[DeepDishGPHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
         """
