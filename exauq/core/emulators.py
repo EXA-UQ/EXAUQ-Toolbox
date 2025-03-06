@@ -44,7 +44,7 @@ import dataclasses
 import itertools
 from collections.abc import Sequence
 from numbers import Real
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Tuple
 
 import mogp_emulator as mogp
 import numpy as np
@@ -52,6 +52,9 @@ import pymc as pm
 from mogp_emulator import GaussianProcess
 from mogp_emulator.GPParams import GPParams
 from numpy.typing import NDArray
+from pytensor.tensor import dot, eye
+from pytensor.tensor import sum as pt_sum
+from pytensor.tensor.slinalg import cholesky, solve_triangular
 
 from exauq.core.modelling import (
     AbstractGaussianProcess,
@@ -60,6 +63,7 @@ from exauq.core.modelling import (
     GaussianProcessPrediction,
     Input,
     MLTrainingData,
+    MultiLevel,
     OptionalFloatPairs,
     TrainingData,
     TrainingDatum,
@@ -1078,4 +1082,854 @@ class DeepDishGPHyperparameters(AbstractHyperparameters):
         return self.get("beta", level)
 
 
-class DeepDishGPEmulator(AbstractGaussianProcess[MLTrainingData]): ...
+class PosteriorCovariance(pm.gp.cov.Covariance):
+    def __init__(self, prior_cov, X_train, NL, noise_sigma):
+        """
+        Posterior covariance function for multi-level Gaussian Process.
+
+        Parameters
+        ----------
+        prior_cov: Instance of a PyMC covariance function (e.g., SquaredExponential)
+        X_train: Training inputs (N x D)
+        NL: Current level in the multi-level structure
+        noise_sigma: Observation noise standard deviation
+        """
+        input_dim = X_train[0].shape[1]
+        super(PosteriorCovariance, self).__init__(input_dim)
+        self.prior_cov = prior_cov
+        self.X_train = X_train
+        self.noise_sigma = noise_sigma
+        self.NL = NL
+
+    def full(self, X, Xs=None):
+        """Compute the posterior covariance matrix"""
+        # Default Xs to X if not provided
+        if Xs is None:
+            Xs = X
+
+        # Compute prior covariances
+        K_xx = self.prior_cov(self.X_train[self.NL - 1], self.X_train[self.NL - 1])
+        K_xs = self.prior_cov(self.X_train[self.NL - 1], X)
+        K_ss = self.prior_cov(X)
+
+        # Add noise to training covariance
+        input_dim = K_xx.shape[0]
+
+        noise_matrix = eye(input_dim) * (self.noise_sigma**2)
+        L_xx = cholesky(K_xx + noise_matrix)
+        L_inv = solve_triangular(L_xx, eye(L_xx.shape[0]), lower=True)
+        K_xx_inv = dot(L_inv.T, L_inv)
+
+        # Compute posterior covariance
+        K_post = K_ss - dot(dot(K_xs.T, K_xx_inv), K_xs)
+        return K_post
+
+    def diag(self, X):
+        """Diagonal elements of posterior covariance (predictive variance)"""
+        K_ss_diag = self.prior_cov.diag(X)
+        K_xs = self.prior_cov(self.X_train[self.NL - 1], X)
+        K_xx = self.prior_cov(self.X_train[self.NL - 1])
+        input_dim = K_xx.shape[0]
+
+        noise_matrix = eye(input_dim) * (self.noise_sigma**2)
+
+        L_xx = cholesky(K_xx + noise_matrix)
+        L_inv = solve_triangular(L_xx, eye(input_dim), lower=True)
+        K_xx_inv = dot(L_inv.T, L_inv)
+
+        # Compute diagonal elements of posterior covariance
+        diag_K_post = K_ss_diag - pt_sum(dot(K_xs.T, K_xx_inv) * K_xs.T, axis=0)
+
+        return diag_K_post
+
+
+class PosteriorMean(pm.gp.mean.Mean):
+    def __init__(self, prior_mean, prior_cov, X_train, Y_train, NL, noise_sigma):
+        """
+        Posterior mean function for multi-level Gaussian Process.
+
+        Parameters
+        ----------
+        prior_mean: Instance of a PyMC mean function
+        prior_cov: Instance of a PyMC covariance function
+        X_train: Training inputs (N x D)
+        Y_train: Training outputs
+        NL: Current level in the multi-level structure
+        noise_sigma: Observation noise standard deviation
+        """
+        super(PosteriorMean, self).__init__()
+        self.prior_mean = prior_mean
+        self.prior_cov = prior_cov
+        self.X_train = X_train
+        self.Y_train = Y_train
+        self.noise_sigma = noise_sigma
+        self.NL = NL
+
+    def __call__(self, X):
+        """Compute the posterior mean"""
+        K_xx = self.prior_cov(self.X_train[self.NL - 1], self.X_train[self.NL - 1])
+        K_xs = self.prior_cov(self.X_train[self.NL - 1], X)
+
+        # Add noise to training covariance
+        input_dim = K_xx.shape[0]
+
+        noise_matrix = eye(input_dim) * (self.noise_sigma**2)
+        L_xx = cholesky(K_xx + noise_matrix)
+        L_inv = solve_triangular(L_xx, eye(L_xx.shape[0]), lower=True)
+        K_xx_inv = dot(L_inv.T, L_inv)
+
+        M_post = self.prior_mean(X) + dot(
+            dot(K_xs.T, K_xx_inv),
+            (self.Y_train[self.NL - 1] - self.prior_mean(self.X_train[self.NL - 1])),
+        )
+        return M_post
+
+
+class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
+    """
+    Multi-level Deep GP emulator using PyMC.
+
+    This class implements a multi-level Gaussian Process where each level
+    builds upon the posterior distribution of the previous level.
+    The number of input dimensions and levels are determined automatically
+    from the training data.
+    """
+
+    def __init__(self):
+        """
+        Initialize a DeepDishGP.
+
+        The number of input dimensions and levels will be determined
+        automatically from the training data when fit() is called.
+        """
+        self._input_dims = None
+        self._levels = None
+        self._training_data = None
+        self._fit_hyperparameters = None
+        self._model = None
+        self._trace = None
+        self._kinv_value = None
+
+    @property
+    def training_data(self) -> tuple[TrainingDatum]:
+        """The data on which the emulator has been trained."""
+        return self._training_data
+
+    @property
+    def fit_hyperparameters(self) -> Optional[GaussianProcessHyperparameters]:
+        """The hyperparameters of the fit for this emulator."""
+        return self._fit_hyperparameters
+
+    @property
+    def kinv(self):
+        """The inverse of the covariance matrix of the training data."""
+        if self._kinv_value is None and self._training_data is not None:
+            self._kinv_value = self._compute_kinv()
+        return self._kinv_value
+
+    def _organize_training_data(
+        self, training_data: MLTrainingData
+    ) -> Tuple[list, list, list]:
+        """
+        Organize training data into arrays for PyMC model and determine
+        dimensionality and levels.
+
+        Parameters
+        ----------
+        training_data : MLTrainingData
+            Multi-level training data
+
+        Returns
+        -------
+        tuple
+            Organized X, y, and combined data for each level
+        """
+        if not isinstance(training_data, MultiLevel):
+            raise TypeError(
+                f"Expected 'training_data' to be of type {MultiLevel.__name__}, "
+                f"but received {type(training_data)} instead."
+            )
+
+        # Determine the number of levels from the data
+        available_levels = sorted(training_data.levels)
+
+        # Validate levels form a continuous sequence starting from 1
+        expected_levels = list(range(1, max(available_levels) + 1))
+        if available_levels != expected_levels:
+            missing = set(expected_levels) - set(available_levels)
+            raise ValueError(
+                f"Missing training data for levels: {missing}. "
+                f"Required continuous sequence from 1 to {max(available_levels)}"
+            )
+
+        # Set levels from training data
+        self._levels = max(available_levels)
+
+        # Convert training data to arrays for each level
+        X_arrays = []
+        y_arrays = []
+
+        # Determine input dimensionality from first data point
+        first_level_data = training_data[1]
+        if not first_level_data:
+            raise ValueError("Training data must contain at least one point at level 1")
+
+        self._input_dims = len(first_level_data[0].input)
+
+        for level in range(1, self._levels + 1):
+            level_data = training_data[level]
+
+            # Check for duplicate inputs
+            inputs = [datum.input for datum in level_data]
+            if len(inputs) != len(set(map(str, inputs))):
+                raise ValueError(
+                    f"Duplicate inputs found in training data for level {level}"
+                )
+
+            # Validate input dimensions consistent across all points
+            for datum in level_data:
+                if len(datum.input) != self._input_dims:
+                    raise ValueError(
+                        f"Inconsistent input dimensions. Expected {self._input_dims} but "
+                        f"found {len(datum.input)} at level {level}"
+                    )
+
+            # Extract inputs and outputs
+            X_level = np.array([[coord for coord in datum.input] for datum in level_data])
+            y_level = np.array([datum.output for datum in level_data])
+
+            X_arrays.append(X_level)
+            y_arrays.append(y_level)
+
+        # Store the training data
+        self._training_data = MultiLevel(
+            {level: tuple(data) for level, data in training_data.items()}
+        )
+
+        return X_arrays, y_arrays, list(zip(X_arrays, y_arrays))
+
+    def fit(
+        self,
+        training_data: MLTrainingData,
+        hyperparameters: Optional[GaussianProcessHyperparameters] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+    ) -> None:
+        """
+        Fit the DeepDishGP to data.
+
+        Parameters
+        ----------
+        training_data : MLTrainingData
+            Multi-level training data
+        hyperparameters : Optional[GaussianProcessHyperparameters]
+            Hyperparameters to use (if None, they will be estimated)
+        hyperparameter_bounds : Optional[Sequence[OptionalFloatPairs]]
+            Bounds for hyperparameter estimation
+        """
+        X_arrays, y_arrays, combined_data = self._organize_training_data(training_data)
+
+        # Create hyperparameters
+        if hyperparameters is None:
+            # Initialize hyperparameters with default priors
+            hparams = self._create_default_hyperparameters(hyperparameter_bounds)
+        else:
+            hparams = hyperparameters
+
+        # Create and sample from the model
+        with pm.Model() as model:
+            # Set model context for hyperparameters
+            hparams.set_model_context(model)
+
+            # Get hyperparameters
+            length_scales = hparams.get_lengthscales(1)
+            sig = hparams.get_signal_variance(1)
+
+            # Get nuggets for each level
+            nuggets = [hparams.get_nugget(level) for level in range(1, self._levels + 1)]
+
+            # Get mean constant
+            beta = hparams.get_mean_constant(1)
+
+            # First level GP
+            cov1 = sig**2 * pm.gp.cov.ExpQuad(self._input_dims, ls=length_scales)
+            mean1 = pm.gp.mean.Constant(beta)
+            gp1 = pm.gp.Marginal(mean_func=mean1, cov_func=cov1)
+            y_obs1 = gp1.marginal_likelihood(
+                "y_obs1", X=X_arrays[0], y=y_arrays[0], noise=nuggets[0]
+            )
+
+            # Higher level GPs
+            prev_cov = cov1
+            prev_mean = mean1
+
+            for level in range(2, self._levels + 1):
+                cov_level = PosteriorCovariance(prev_cov, X_arrays, level, 1e-4)
+                mean_level = PosteriorMean(
+                    prev_mean, prev_cov, X_arrays, y_arrays, level, 1e-4
+                )
+                gp_level = pm.gp.Marginal(mean_func=mean_level, cov_func=cov_level)
+                y_obs_level = gp_level.marginal_likelihood(
+                    f"y_obs{level}",
+                    X=X_arrays[level - 1],
+                    y=y_arrays[level - 1],
+                    noise=nuggets[level - 1],
+                )
+
+                # Update for next level
+                prev_cov = cov_level
+                prev_mean = mean_level
+
+            # Sample
+            trace = pm.sample(
+                1000,
+                tune=1000,
+                return_inferencedata=True,
+                target_accept=0.95,
+                progressbar=True,
+            )
+
+        # Store model components for prediction
+        self._model = model
+        self._trace = trace
+
+        # Store hyperparameters
+        self._fit_hyperparameters = self._extract_hyperparameters_from_trace(
+            trace, hparams
+        )
+
+        # Reset kinv since model has changed
+        self._kinv_value = None
+
+    def _create_default_hyperparameters(self, bounds=None):
+        """
+        Create default hyperparameters for the model.
+
+        Parameters
+        ----------
+        bounds : Optional[Sequence[OptionalFloatPairs]]
+            Bounds for hyperparameter estimation
+
+        Returns
+        -------
+        DeepDishGPHyperparameters
+            Configured hyperparameters object
+        """
+        from exauq.core.emulators import DeepDishGPHyperparameters
+
+        if self._input_dims is None or self._levels is None:
+            raise ValueError(
+                "Cannot create hyperparameters before fitting. Input dimensions and levels unknown."
+            )
+
+        hparams = DeepDishGPHyperparameters(
+            input_dims=self._input_dims, levels=self._levels
+        )
+
+        # Set default priors for all length scales
+        for i in range(1, self._input_dims + 1):
+            hparams.set_prior(f"ls{i}", "Gamma", alpha=2, beta=4)
+
+        # Set other default hyperparameters
+        hparams.set_prior("sig", "Gamma", alpha=8, beta=2).set_prior(
+            "nug", "Gamma", alpha=2, beta=4
+        ).set_prior("beta", "Normal", mu=0, sigma=10)
+
+        # Apply bounds if provided
+        if bounds is not None:
+            if len(bounds) != self._input_dims + 1:
+                raise ValueError(
+                    f"Expected {self._input_dims + 1} bounds (length scales + process variance), "
+                    f"but received {len(bounds)}"
+                )
+
+            # TODO: Implement bounds application to priors
+
+        return hparams
+
+    def _extract_hyperparameters_from_trace(self, trace, hparams):
+        """
+        Extract hyperparameters from the sampling trace.
+
+        Parameters
+        ----------
+        trace : PyMC inference data
+            Trace from sampling
+        hparams : DeepDishGPHyperparameters
+            Hyperparameters object used for sampling
+
+        Returns
+        -------
+        GaussianProcessHyperparameters
+            Fitted hyperparameters
+        """
+        # Extract posterior means for key parameters
+        ls_values = []
+
+        for i in range(1, self._input_dims + 1):
+            param_name = f"ls{i}_L1"
+            if param_name in trace.posterior:
+                ls_values.append(float(trace.posterior[param_name].mean().values))
+            else:
+                raise ValueError(f"Required parameter {param_name} not found in trace")
+
+        sig_value = float(trace.posterior["sig_L1"].mean().values)
+        nug_value = float(trace.posterior["nug_L1"].mean().values)
+
+        # Create GaussianProcessHyperparameters
+        return GaussianProcessHyperparameters(
+            corr_length_scales=ls_values, process_var=sig_value, nugget=nug_value
+        )
+
+    def predict(self, x: Input) -> GaussianProcessPrediction:
+        """
+        Make a prediction for the given input.
+
+        Parameters
+        ----------
+        x : Input
+            Input point to make prediction at
+
+        Returns
+        -------
+        GaussianProcessPrediction
+            The prediction with mean and variance
+        """
+        if self._trace is None or self._input_dims is None or self._levels is None:
+            raise ValueError("Model has not been fitted yet. Call fit() first.")
+
+        if not isinstance(x, Input):
+            raise TypeError(f"Expected 'x' to be of type Input, but received {type(x)}")
+
+        if len(x) != self._input_dims:
+            raise ValueError(
+                f"Expected input of dimension {self._input_dims}, but received {len(x)}"
+            )
+
+        # Convert input to numpy array
+        x_array = np.array([coord for coord in x])
+
+        # Extract data from training
+        X_arrays, y_arrays = self._get_training_arrays()
+
+        # Extract mean hyperparameters from the trace for all levels
+        trace = self._trace
+
+        # Initialize prediction with default values (will be updated level by level)
+        mean_pred = 0.0
+        var_pred = 0.0
+
+        # Process each level sequentially
+        for level in range(1, self._levels + 1):
+            # Get level-specific hyperparameters, using level 1 as default if not available
+            try:
+                ls_values = [
+                    float(trace.posterior[f"ls{i}_L{level}"].mean().values)
+                    for i in range(1, self._input_dims + 1)
+                ]
+            except (KeyError, AttributeError):
+                ls_values = [
+                    float(trace.posterior[f"ls{i}_L1"].mean().values)
+                    for i in range(1, self._input_dims + 1)
+                ]
+
+            try:
+                sig_value = float(trace.posterior[f"sig_L{level}"].mean().values)
+            except (KeyError, AttributeError):
+                sig_value = float(trace.posterior["sig_L1"].mean().values)
+
+            try:
+                beta_value = float(trace.posterior[f"beta_L{level}"].mean().values)
+            except (KeyError, AttributeError):
+                beta_value = float(trace.posterior["beta_L1"].mean().values)
+
+            # Get training data for this level
+            X_train = X_arrays[level - 1]  # 0-indexed array
+            y_train = y_arrays[level - 1]  # 0-indexed array
+
+            # If this is level > 1, adjust observations by subtracting previous level predictions
+            if level > 1:
+                # Calculate predictions from previous levels for training points
+                prev_preds = np.zeros(len(y_train))
+                for i, x_train_i in enumerate(X_train):
+                    # Build input object for previous predictions
+                    x_prev = Input(*x_train_i)
+                    # Use recursion with max_level to avoid full stack calls
+                    prev_pred = self._predict_up_to_level(x_prev, level - 1)
+                    prev_preds[i] = prev_pred.estimate
+
+                # Adjust training outputs by subtracting previous level predictions
+                y_adjusted = y_train - prev_preds
+            else:
+                # For level 1, use original training outputs
+                y_adjusted = y_train
+
+            # Construct the covariance matrix using squared exponential kernel
+            n_train = len(X_train)
+            K = np.zeros((n_train, n_train))
+
+            for i in range(n_train):
+                for j in range(n_train):
+                    dist_sq = 0
+                    for d in range(self._input_dims):
+                        dist_sq += ((X_train[i, d] - X_train[j, d]) / ls_values[d]) ** 2
+                    K[i, j] = sig_value * np.exp(-0.5 * dist_sq)
+
+            # Add small nugget for numerical stability
+            K += np.eye(n_train) * 1e-6
+
+            # Compute cross-covariance between training points and test point
+            k_star = np.zeros(n_train)
+            for i in range(n_train):
+                dist_sq = 0
+                for d in range(self._input_dims):
+                    dist_sq += ((X_train[i, d] - x_array[d]) / ls_values[d]) ** 2
+                k_star[i] = sig_value * np.exp(-0.5 * dist_sq)
+
+            # Test point self-covariance
+            k_star_star = sig_value
+
+            # Compute Cholesky decomposition with fallback for numerical stability
+            try:
+                L = np.linalg.cholesky(K)
+            except np.linalg.LinAlgError:
+                # If cholesky fails, add a larger nugget
+                K += np.eye(n_train) * 1e-4
+                try:
+                    L = np.linalg.cholesky(K)
+                except np.linalg.LinAlgError:
+                    # If still fails, use more aggressive regularization
+                    K += np.eye(n_train) * 1e-2
+                    L = np.linalg.cholesky(K)
+
+            # Compute level-specific mean prediction
+            alpha = np.linalg.solve(L, y_adjusted - beta_value)
+            alpha = np.linalg.solve(L.T, alpha)
+            level_mean = beta_value + np.dot(k_star, alpha)
+
+            # Compute level-specific variance prediction
+            v = np.linalg.solve(L, k_star)
+            level_var = k_star_star - np.dot(v.T, v)
+
+            # Ensure positive variance
+            level_var = max(level_var, 1e-10)
+
+            # Update overall prediction
+            if level == 1:
+                # First level is the base prediction
+                mean_pred = level_mean
+                var_pred = level_var
+            else:
+                # Add level-specific contribution
+                mean_pred += level_mean
+                var_pred += level_var  # Assuming independence between levels
+
+        return GaussianProcessPrediction(float(mean_pred), float(var_pred))
+
+    def _predict_up_to_level(self, x: Input, max_level: int) -> GaussianProcessPrediction:
+        """
+        Make a prediction up to a specified level (helper for multi-level prediction).
+
+        Parameters
+        ----------
+        x : Input
+            Input point to make prediction at
+        max_level : int
+            Maximum level to use for prediction
+
+        Returns
+        -------
+        GaussianProcessPrediction
+            The prediction with mean and variance
+        """
+        if max_level < 1 or max_level > self._levels:
+            raise ValueError(f"Level must be between 1 and {self._levels}")
+
+        # Convert input to numpy array
+        x_array = np.array([coord for coord in x])
+
+        # Extract data from training
+        X_arrays, y_arrays = self._get_training_arrays()
+
+        # Extract mean hyperparameters from the trace
+        trace = self._trace
+
+        # Initialize prediction with default values (will be updated level by level)
+        mean_pred = 0.0
+        var_pred = 0.0
+
+        # Process each level sequentially up to max_level
+        for level in range(1, max_level + 1):
+            # Get level-specific hyperparameters, using level 1 as default if not available
+            try:
+                ls_values = [
+                    float(trace.posterior[f"ls{i}_L{level}"].mean().values)
+                    for i in range(1, self._input_dims + 1)
+                ]
+            except (KeyError, AttributeError):
+                ls_values = [
+                    float(trace.posterior[f"ls{i}_L1"].mean().values)
+                    for i in range(1, self._input_dims + 1)
+                ]
+
+            try:
+                sig_value = float(trace.posterior[f"sig_L{level}"].mean().values)
+            except (KeyError, AttributeError):
+                sig_value = float(trace.posterior["sig_L1"].mean().values)
+
+            try:
+                beta_value = float(trace.posterior[f"beta_L{level}"].mean().values)
+            except (KeyError, AttributeError):
+                beta_value = float(trace.posterior["beta_L1"].mean().values)
+
+            # Get training data for this level
+            X_train = X_arrays[level - 1]  # 0-indexed array
+            y_train = y_arrays[level - 1]  # 0-indexed array
+
+            # If this is level > 1, adjust observations by subtracting previous level predictions
+            if level > 1:
+                # Since we're in a helper method, use simple approach to avoid deep recursion
+                prev_preds = np.zeros(len(y_train))
+                for prev_level in range(1, level):
+                    for i, x_train_i in enumerate(X_train):
+                        # Process each previous level individually
+                        prev_level_preds = self._predict_single_level(
+                            Input(*x_train_i), prev_level
+                        )
+                        prev_preds[i] += prev_level_preds.estimate
+
+                # Adjust training outputs by subtracting previous level predictions
+                y_adjusted = y_train - prev_preds
+            else:
+                # For level 1, use original training outputs
+                y_adjusted = y_train
+
+            # Construct the covariance matrix using squared exponential kernel
+            n_train = len(X_train)
+            K = np.zeros((n_train, n_train))
+
+            for i in range(n_train):
+                for j in range(n_train):
+                    dist_sq = 0
+                    for d in range(self._input_dims):
+                        dist_sq += ((X_train[i, d] - X_train[j, d]) / ls_values[d]) ** 2
+                    K[i, j] = sig_value * np.exp(-0.5 * dist_sq)
+
+            # Add small nugget for numerical stability
+            K += np.eye(n_train) * 1e-6
+
+            # Compute cross-covariance between training points and test point
+            k_star = np.zeros(n_train)
+            for i in range(n_train):
+                dist_sq = 0
+                for d in range(self._input_dims):
+                    dist_sq += ((X_train[i, d] - x_array[d]) / ls_values[d]) ** 2
+                k_star[i] = sig_value * np.exp(-0.5 * dist_sq)
+
+            # Test point self-covariance
+            k_star_star = sig_value
+
+            # Compute Cholesky decomposition with fallback for numerical stability
+            try:
+                L = np.linalg.cholesky(K)
+            except np.linalg.LinAlgError:
+                # If cholesky fails, add a larger nugget
+                K += np.eye(n_train) * 1e-4
+                try:
+                    L = np.linalg.cholesky(K)
+                except np.linalg.LinAlgError:
+                    # If still fails, use more aggressive regularization
+                    K += np.eye(n_train) * 1e-2
+                    L = np.linalg.cholesky(K)
+
+            # Compute level-specific mean prediction
+            alpha = np.linalg.solve(L, y_adjusted - beta_value)
+            alpha = np.linalg.solve(L.T, alpha)
+            level_mean = beta_value + np.dot(k_star, alpha)
+
+            # Compute level-specific variance prediction
+            v = np.linalg.solve(L, k_star)
+            level_var = k_star_star - np.dot(v.T, v)
+
+            # Ensure positive variance
+            level_var = max(level_var, 1e-10)
+
+            # Update overall prediction
+            if level == 1:
+                # First level is the base prediction
+                mean_pred = level_mean
+                var_pred = level_var
+            else:
+                # Add level-specific contribution
+                mean_pred += level_mean
+                var_pred += level_var
+
+        return GaussianProcessPrediction(float(mean_pred), float(var_pred))
+
+    def _predict_single_level(self, x: Input, level: int) -> GaussianProcessPrediction:
+        """
+        Make a prediction for a single level (helper to avoid recursion issues).
+
+        Parameters
+        ----------
+        x : Input
+            Input point to make prediction at
+        level : int
+            Level to use for prediction
+
+        Returns
+        -------
+        GaussianProcessPrediction
+            The level-specific prediction with mean and variance
+        """
+        if level < 1 or level > self._levels:
+            raise ValueError(f"Level must be between 1 and {self._levels}")
+
+        # Convert input to numpy array
+        x_array = np.array([coord for coord in x])
+
+        # Extract data from training
+        X_arrays, y_arrays = self._get_training_arrays()
+
+        # Extract mean hyperparameters from the trace for specific level
+        trace = self._trace
+
+        try:
+            ls_values = [
+                float(trace.posterior[f"ls{i}_L{level}"].mean().values)
+                for i in range(1, self._input_dims + 1)
+            ]
+        except (KeyError, AttributeError):
+            ls_values = [
+                float(trace.posterior[f"ls{i}_L1"].mean().values)
+                for i in range(1, self._input_dims + 1)
+            ]
+
+        try:
+            sig_value = float(trace.posterior[f"sig_L{level}"].mean().values)
+        except (KeyError, AttributeError):
+            sig_value = float(trace.posterior["sig_L1"].mean().values)
+
+        try:
+            beta_value = float(trace.posterior[f"beta_L{level}"].mean().values)
+        except (KeyError, AttributeError):
+            beta_value = float(trace.posterior["beta_L1"].mean().values)
+
+        # Get training data for this level
+        X_train = X_arrays[level - 1]  # 0-indexed array
+        y_train = y_arrays[level - 1]  # 0-indexed array
+
+        # For level 1, use original outputs; for higher levels, would need adjustments
+        # but since this is a helper for individual levels, we use original outputs
+        y_adjusted = y_train
+
+        # Construct the covariance matrix using squared exponential kernel
+        n_train = len(X_train)
+        K = np.zeros((n_train, n_train))
+
+        for i in range(n_train):
+            for j in range(n_train):
+                dist_sq = 0
+                for d in range(self._input_dims):
+                    dist_sq += ((X_train[i, d] - X_train[j, d]) / ls_values[d]) ** 2
+                K[i, j] = sig_value * np.exp(-0.5 * dist_sq)
+
+        # Add small nugget for numerical stability
+        K += np.eye(n_train) * 1e-6
+
+        # Compute cross-covariance between training points and test point
+        k_star = np.zeros(n_train)
+        for i in range(n_train):
+            dist_sq = 0
+            for d in range(self._input_dims):
+                dist_sq += ((X_train[i, d] - x_array[d]) / ls_values[d]) ** 2
+            k_star[i] = sig_value * np.exp(-0.5 * dist_sq)
+
+        # Test point self-covariance
+        k_star_star = sig_value
+
+        # Compute Cholesky decomposition with fallback for numerical stability
+        try:
+            L = np.linalg.cholesky(K)
+        except np.linalg.LinAlgError:
+            # If cholesky fails, add a larger nugget
+            K += np.eye(n_train) * 1e-4
+            try:
+                L = np.linalg.cholesky(K)
+            except np.linalg.LinAlgError:
+                # If still fails, use more aggressive regularization
+                K += np.eye(n_train) * 1e-2
+                L = np.linalg.cholesky(K)
+
+        # Compute mean prediction
+        alpha = np.linalg.solve(L, y_adjusted - beta_value)
+        alpha = np.linalg.solve(L.T, alpha)
+        mean_pred = beta_value + np.dot(k_star, alpha)
+
+        # Compute variance prediction
+        v = np.linalg.solve(L, k_star)
+        var_pred = k_star_star - np.dot(v.T, v)
+
+        # Ensure positive variance
+        var_pred = max(var_pred, 1e-10)
+
+        return GaussianProcessPrediction(float(mean_pred), float(var_pred))
+
+    def _get_training_arrays(self):
+        """Extract training arrays from stored training data."""
+        X_arrays = []
+        y_arrays = []
+
+        for level in range(1, self._levels + 1):
+            level_data = self._training_data[level]
+            X_level = np.array([[coord for coord in datum.input] for datum in level_data])
+            y_level = np.array([datum.output for datum in level_data])
+
+            X_arrays.append(X_level)
+            y_arrays.append(y_level)
+
+        return X_arrays, y_arrays
+
+    def correlation(
+        self, inputs1: Sequence[Input], inputs2: Sequence[Input]
+    ) -> np.ndarray:
+        """
+        Compute the correlation matrix between two sets of inputs.
+
+        Parameters
+        ----------
+        inputs1, inputs2 : Sequence[Input]
+            Sequences of simulator inputs
+
+        Returns
+        -------
+        numpy.ndarray
+            Correlation matrix of shape (len(inputs1), len(inputs2))
+        """
+        if not self._fit_hyperparameters:
+            return np.array([])
+
+        if not inputs1 or not inputs2:
+            return np.array([])
+
+        # Extract length scales
+        corr_length_scales = self._fit_hyperparameters.corr_length_scales
+
+        # Convert inputs to numpy arrays
+        X1 = np.array([[coord for coord in x] for x in inputs1])
+        X2 = np.array([[coord for coord in x] for x in inputs2])
+
+        # Compute squared distances with appropriate scaling
+        n1, n2 = len(inputs1), len(inputs2)
+        K = np.zeros((n1, n2))
+
+        for i in range(n1):
+            for j in range(n2):
+                # Compute squared distance
+                dist_sq = 0
+                for d in range(self._input_dims):
+                    dist_sq += ((X1[i, d] - X2[j, d]) / corr_length_scales[d]) ** 2
+
+                # Apply squared exponential kernel
+                K[i, j] = np.exp(-0.5 * dist_sq)
+
+        return K
