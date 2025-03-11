@@ -96,6 +96,9 @@ e.g. by creating a nested shell:
 ```bash
 poetry shell
 ```
+**Note:** As of [Poetry 2.0](https://python-poetry.org/blog/announcing-poetry-2.0.0/#poetry-export-and-poetry-shell-only-available-via-plugins),
+the `poetry shell` command has been removed. If you are using Poetry 2.0 or newer, please refer to the [official documentation](https://python-poetry.org/docs/managing-environments/#bash-csh-zsh)
+for guidance on managing virtual environments.
 
 Finally, to use the automatic pre-commit hooks designed for linting, run:
 

@@ -17,17 +17,12 @@ from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     GaussianProcessPrediction,
     Input,
-    LevelTagged,
     MultiLevel,
     MultiLevelGaussianProcess,
     OptionalFloatPairs,
     Prediction,
     SimulatorDomain,
     TrainingDatum,
-    _LevelTaggedOld,
-    get_level,
-    remove_level,
-    set_level,
 )
 from exauq.core.numerics import FLOAT_TOLERANCE, equal_within_tolerance, set_tolerance
 from exauq.utilities.csv_db import Path
@@ -52,7 +47,7 @@ class TestInput(unittest.TestCase):
         """Test that TypeError is raised during construction if there is an
         arg that doesn't define a real number."""
 
-        msg = "Arguments must be instances of real numbers"
+        msg = f"Expected 'arguments' to be of type {Real}, but one or more 'arguments' were of an unexpected type."
         for coord in ["a", complex(1, 1)]:
             with self.subTest(coord=coord):
                 with self.assertRaisesRegex(TypeError, exact(msg)):
@@ -65,7 +60,8 @@ class TestInput(unittest.TestCase):
             _ = Input(1.1, None)
 
         self.assertEqual(
-            "Input coordinates must be real numbers, not None", str(cm.exception)
+            f"Expected 'Input coordinates' to be of type {Real}, but received None type instead",
+            str(cm.exception),
         )
 
     def test_input_non_finite_error(self):
@@ -177,7 +173,9 @@ class TestInput(unittest.TestCase):
         x = Input(2)
         with self.assertRaisesRegex(
             TypeError,
-            exact(f"Subscript must be an 'int' or slice, but received {type(i)}."),
+            exact(
+                f"Expected 'subscript' to be of type int or slice, but received {type(i)} instead."
+            ),
         ):
             x[i]
 
@@ -220,7 +218,7 @@ class TestInput(unittest.TestCase):
             _ = Input.from_array(x)
 
         self.assertEqual(
-            f"Expected 'input' of type numpy.ndarray but received {type(x)}.",
+            f"Expected 'input' to be of type numpy.ndarray, but received {type(x)} instead.",
             str(cm.exception),
         )
 
@@ -278,6 +276,87 @@ class TestInput(unittest.TestCase):
 
         self.assertEqual(msg, str(cm.exception))
 
+    def test_sequence_from_array(self):
+        """Test that a sequence of inputs can be generated from a
+        sequence of arrays."""
+
+        _inputs = np.array(
+            [
+                [1, 2, 3],
+                [4, 5, 6],
+            ]
+        )
+        expected = (Input(1, 2, 3), Input(4, 5, 6))
+        self.assertEqual(expected, Input.sequence_from_array(_inputs))
+
+    def test_sequence_from_array_lists_tuples(self):
+        """Test that a sequence of arrays is taken in and still correctly functions."""
+
+        # From a list
+        _inputs1 = [np.array([1, 2, 3]), np.array([4, 5, 6])]
+        expected1 = (Input(1, 2, 3), Input(4, 5, 6))
+        self.assertEqual(expected1, Input.sequence_from_array(_inputs1))
+
+        # From a tuple
+        _inputs2 = (np.array([1, 2, 3]), np.array([4, 5, 6]))
+        expected2 = (Input(1, 2, 3), Input(4, 5, 6))
+        self.assertEqual(expected2, Input.sequence_from_array(_inputs2))
+
+    def test_sequence_from_array_type_error(self):
+        """Ensure that a TypeError is raised if a non-sequence type is passed."""
+
+        _inputs = 32
+        msg = f"Expected 'inputs' to be of type Sequence of np.ndarray or 2D np.ndarray, but received {type(_inputs)} instead."
+        with self.assertRaisesRegex(TypeError, exact(msg)):
+            _ = Input.sequence_from_array(_inputs)
+
+    def test_sequence_from_array_wrong_dimension(self):
+        """Test a ValueError is raised if the wrong dimensional array is passed"""
+
+        # 3D case
+        _inputs = np.array(
+            [
+                [[1, 2], [3, 4], [5, 6], [7, 8]],
+                [[9, 10], [11, 12], [13, 14], [15, 16]],
+                [[17, 18], [19, 20], [21, 22], [23, 24]],
+            ]
+        )
+        msg = f"Expected np.array of dimension 2, but received {_inputs.ndim} dimensions."
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            _ = Input.sequence_from_array(_inputs)
+
+        # 1D case
+        _inputs = np.array([1, 2, 3])
+        msg = f"Expected np.array of dimension 2, but received {_inputs.ndim} dimensions."
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            _ = Input.sequence_from_array(_inputs)
+
+        # Empty array case
+        _inputs = np.array([])
+        msg = f"Expected np.array of dimension 2, but received {_inputs.ndim} dimensions."
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            _ = Input.sequence_from_array(_inputs)
+
+    def test_sequence_from_array_single_input(self):
+        """Test that a sequence of arrays of length 1 returns a correct tuple."""
+
+        _inputs = np.array(
+            [
+                [1, 2, 3],
+            ],
+        )
+        expected = (Input(1, 2, 3),)
+        self.assertEqual(expected, Input.sequence_from_array(_inputs))
+
+    def test_sequence_from_array_empty_input(self):
+        """Test that an empty tuple is returned for an empty sequence."""
+
+        # NOTE: Sequence; empty np.ndarray will be picked up on dimensional error.
+        _inputs = []
+        expected = ()
+        self.assertEqual(expected, Input.sequence_from_array(_inputs))
+
 
 class TestTrainingDatum(unittest.TestCase):
     def setUp(self) -> None:
@@ -301,16 +380,27 @@ class TestTrainingDatum(unittest.TestCase):
         """Test that a TypeError is raised if the constructor arg 'input'
         is not an Input."""
 
-        msg = "Argument 'input' must be of type Input"
+        # Forcing message type for test
+        msg = "Expected argument 'input' to be of type Input, but received <class 'int'> instead."
         with self.assertRaisesRegex(TypeError, exact(msg)):
             TrainingDatum(1, 1)
+
+    def test_empty_input_error(self):
+        """Test that a ValueError is raised if the constructor arg 'input'
+        is an empty Input."""
+
+        msg = (
+            "Argument 'input' must not be empty; it must contain at least one dimension."
+        )
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            TrainingDatum(Input(), 42)
 
     def test_output_error(self):
         """Test that a TypeError is raised if the constructor arg 'output'
         is not a real number."""
 
-        msg = "Argument 'output' must define a real number"
         for output in ["a", complex(1, 1), [1.1]]:
+            msg = f"Expected argument 'output' to be of type {Real}, but received {type(output)} instead."
             with self.subTest(output=output):
                 with self.assertRaisesRegex(TypeError, exact(msg)):
                     TrainingDatum(Input(1), output)
@@ -322,7 +412,10 @@ class TestTrainingDatum(unittest.TestCase):
         with self.assertRaises(TypeError) as cm:
             _ = TrainingDatum(Input(1), None)
 
-        self.assertEqual("Argument 'output' cannot be None", str(cm.exception))
+        self.assertEqual(
+            f"Expected argument 'output' to be of type {Real}, but received None type instead.",
+            str(cm.exception),
+        )
 
     def test_output_not_finite_error(self):
         """Test that a ValueError is raised if the constructor arg `output` is
@@ -631,7 +724,7 @@ class TestPrediction(ExauqTestCase):
                 with self.assertRaisesRegex(
                     TypeError,
                     exact(
-                        f"Expected 'estimate' to define a real number, but received {type(non_real)} "
+                        f"Expected 'estimate' to be of type {Real}, but received {type(non_real)} "
                         "instead."
                     ),
                 ):
@@ -640,7 +733,7 @@ class TestPrediction(ExauqTestCase):
                 with self.assertRaisesRegex(
                     TypeError,
                     exact(
-                        f"Expected 'variance' to define a real number, but received {type(non_real)} "
+                        f"Expected 'variance' to be of type {Real}, but received {type(non_real)} "
                         "instead."
                     ),
                 ):
@@ -750,7 +843,7 @@ class TestGaussianProcessPrediction(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'observed_output' to be of type {Real} but received type {type(observed_output)}."
+                f"Expected 'observed_output' to be of type {Real}, but received {type(observed_output)} instead."
             ),
         ):
             prediction.nes_error(observed_output)
@@ -980,7 +1073,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             with self.subTest(corr=corr), self.assertRaisesRegex(
                 TypeError,
                 exact(
-                    f"Expected 'corr_length_scales' to be a sequence or Numpy array, but received {type(corr)}."
+                    f"Expected 'corr_length_scales' to be of type sequence or type Numpy array, but received {type(corr)} instead."
                 ),
             ):
                 _ = GaussianProcessHyperparameters(
@@ -992,7 +1085,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             with self.subTest(cov=cov), self.assertRaisesRegex(
                 TypeError,
                 exact(
-                    f"Expected 'process_var' to be a real number, but received {type(cov)}."
+                    f"Expected 'process_var' to be of type {Real}, but received {type(cov)} instead."
                 ),
             ):
                 _ = GaussianProcessHyperparameters(
@@ -1004,7 +1097,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             with self.subTest(nugget=nugget), self.assertRaisesRegex(
                 TypeError,
                 exact(
-                    f"Expected 'nugget' to be a real number, but received {type(nugget)}."
+                    f"Expected 'nugget' to be of type {Real}, but received {type(nugget)} instead."
                 ),
             ):
                 _ = GaussianProcessHyperparameters(
@@ -1050,7 +1143,7 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             with self.subTest(nugget=nugget), self.assertRaisesRegex(
                 ValueError,
                 exact(
-                    f"Expected 'nugget' to be a positive real number, but received {nugget}."
+                    f"Expected 'nugget' to be of type positive {Real}, but received {nugget} instead."
                 ),
             ):
                 _ = GaussianProcessHyperparameters(
@@ -1178,7 +1271,9 @@ class TestGaussianProcessHyperparameters(ExauqTestCase):
             transformation_func = self.hyperparameters[hyperparameter]["func"]
             with self.subTest(hyperparameter=hyperparameter, x=x), self.assertRaisesRegex(
                 TypeError,
-                exact(f"Expected '{arg}' to be a real number, but received {type(x)}."),
+                exact(
+                    f"Expected '{arg}' to be of type {Real}, but received {type(x)} instead."
+                ),
             ):
                 _ = transformation_func(x)
 
@@ -1298,7 +1393,7 @@ class TestSimulatorDomain(unittest.TestCase):
 
         self.assertEqual(
             str(context.exception),
-            "Bounds cannot be None. 'bounds' should be a sequence.",
+            "Expected 'bounds' to be of type sequence, but received None type instead.",
         )
 
     def test_init_with_non_ordered_bounds(self):
@@ -1307,7 +1402,11 @@ class TestSimulatorDomain(unittest.TestCase):
         ) as context:
             SimulatorDomain({(0, 1), (0, 1)})
 
-        self.assertEqual(str(context.exception), "Bounds should be a sequence.")
+        # Forcing string of test case for better context in error messages
+        self.assertEqual(
+            str(context.exception),
+            "Expected 'bounds' to be of type sequence, but received <class 'set'> instead.",
+        )
 
     def test_init_with_invalid_bounds_type(self):
         with self.assertRaises(
@@ -1342,7 +1441,10 @@ class TestSimulatorDomain(unittest.TestCase):
         ) as context:
             SimulatorDomain([(0, 1), (0, "1")])
 
-        self.assertEqual(str(context.exception), "Bounds must be real numbers.")
+        self.assertEqual(
+            str(context.exception),
+            f"Expected 'bounds' to be of type {Real} but received <class 'int'> and <class 'str'> instead.",
+        )
 
     def test_init_with_low_greater_than_high(self):
         test_cases = [
@@ -1803,7 +1905,7 @@ class TestSimulatorDomain(unittest.TestCase):
         n = 2.1
         with self.assertRaisesRegex(
             TypeError,
-            exact(f"Expected 'n' to be of type int, but received {type(n)}."),
+            exact(f"Expected 'n' to be of type int, but received {type(n)} instead."),
         ):
             domain.get_boundary_mesh(n)
 
@@ -1946,123 +2048,6 @@ class StubClass:
         self.b = b
 
 
-class TestLevelTagged(ExauqTestCase):
-    def setUp(self) -> None:
-        self.a = StubClass(1)
-
-    def test_set_and_get_level(self):
-        """An object can be tagged with an integer level and this level can be
-        subsequently retrieved. When a tag is set, the original object is modified and a
-        reference to this object is returned."""
-
-        level = 99
-        a = set_level(self.a, level)
-        self.assertEqual(level, get_level(a))
-        self.assertIs(a, self.a)
-
-    def test_instance_check(self):
-        """An object is tagged with a level precisely when it is an instance of
-        LevelTagged."""
-
-        obj = StubClass(1)
-        self.assertNotIsInstance(obj, LevelTagged)
-        obj = set_level(obj, 2)
-        self.assertIsInstance(obj, LevelTagged)
-        self.assertIsInstance(obj, StubClass)  # check still an object of type A
-
-    def test_set_level_non_int_error(self):
-        """A TypeError is raised if a users tries to set a level that is not an integer."""
-
-        level = "1"
-        with self.assertRaisesRegex(
-            TypeError,
-            exact(f"Expected 'level' to be an integer, but received {type(level)}."),
-        ):
-            _ = set_level(self.a, level)
-
-    def test_get_level_returns_none_if_no_level(self):
-        """A level of None is returned if the object hasn't been tagged with a level."""
-
-        self.assertIsNone(get_level(self.a))
-
-    def test_set_level_attribute_already_present(self):
-        """A level cannot be set if it would overwrite an existing attributes."""
-
-        setattr(self.a, LevelTagged.level_attr, "foo")
-        with self.assertRaisesRegex(
-            ValueError,
-            f"Cannot set a level on argument 'obj' with value {self.a} as existing attribute "
-            f"'{LevelTagged.level_attr}' would be overwritten.",
-        ):
-            _ = set_level(self.a, 99)
-
-    def test_remove_level_removes_level(self):
-        """An object can have its level removed."""
-
-        # A label that is set can be removed.
-        a = set_level(self.a, 99)
-        remove_level(a)
-        self.assertIsNone(get_level(a))
-        self.assertIs(self.a, a)
-
-
-class TestLevelTaggedOld(ExauqTestCase):
-    def test_get_level(self):
-        """The level tagged onto the object can be obtained from the `level` attribute."""
-
-        class A:
-            def __init__(self, a: int, b=None):
-                self.a = a
-                self.b = b
-
-            def a_plus(self, x: int) -> int:
-                return self.a + x
-
-            def set_b(self, b) -> None:
-                self.b = b
-
-        class TaggedA(_LevelTaggedOld, A):
-            pass
-
-        level = 1
-        tagged = TaggedA(level, 99, "b")
-        self.assertEqual(level, tagged.level)
-
-    def test_cannot_modify_level(self):
-        """The level cannot be modified once set."""
-
-        tagged = _LevelTaggedOld(1)
-        with self.assertRaisesRegex(
-            AttributeError, "Cannot modify this instance's 'level' attribute."
-        ):
-            tagged.level = 99
-
-    def test_parent_class_has_level_attribute_error(self):
-        """A TypeError is raised if subclassing from LevelTagged would involve masking a
-        `level` attribute from a parent class (as worked out from method resolution
-        order)."""
-
-        class A:
-            def level(self):
-                return "level from A"
-
-        with self.assertRaisesRegex(TypeError, "^Cannot create class"):
-
-            class TaggedA(_LevelTaggedOld, A):
-                pass
-
-        class B:
-            def __init__(self):
-                self.level = 99
-
-        with self.assertRaisesRegex(TypeError, "^Cannot initialise object"):
-
-            class TaggedB(_LevelTaggedOld, B):
-                pass
-
-            _ = TaggedB(level=10)
-
-
 class TestMultiLevel(ExauqTestCase):
     def setUp(self) -> None:
         self.elements = ["a", "b", "c"]
@@ -2104,8 +2089,8 @@ class TestMultiLevel(ExauqTestCase):
             with self.assertRaisesRegex(
                 TypeError,
                 exact(
-                    "Argument 'elements' must be a mapping with int keys or a sequence, "
-                    f"but received object of type {type(elems)}."
+                    "Expected argument 'elements' to be a mapping with type int keys or type sequence, "
+                    f"but received {type(elems)} instead."
                 ),
             ):
                 _ = MultiLevel(elems)
@@ -2343,7 +2328,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'training_data' to be an instance of MultiLevel, but received {type(bad_data)}."
+                f"Expected 'training_data' to be an instance of MultiLevel, but received {type(bad_data)} instead."
             ),
         ):
             mlgp.fit(bad_data)
@@ -2683,7 +2668,7 @@ class TestMultiLevelGaussianProcess(ExauqTestCase):
         with self.assertRaisesRegex(
             TypeError,
             exact(
-                f"Expected 'x' to be of type {Input.__name__}, but received {type(x)}."
+                f"Expected 'x' to be an instance of {Input.__name__}, but received {type(x)} instead."
             ),
         ):
             _ = mlgp.predict(x)

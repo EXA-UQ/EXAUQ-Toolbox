@@ -1,3 +1,22 @@
+"""
+Contains the tolerance checks that are required within numerics calculations with the 
+`FLOAT_TOLERANCE` attribute alongside the ability to set your own global tolerance. 
+
+
+Tolerance Control
+---------------------------------------------------------------------------------------
+[`FLOAT_TOLERANCE`][exauq.core.numerics.FLOAT_TOLERANCE]
+Global attribute of tolerance for toolbox
+
+[`equal_within_tolerance`][exauq.core.numerics.equal_within_tolerance]
+Function to check equality of two real numbers up to a tolerance
+
+[`set_tolerance`][exauq.core.numerics.set_tolerance]
+Function used to set global tolerance
+
+
+"""
+
 import math
 from collections.abc import Sequence
 from numbers import Real
@@ -22,12 +41,12 @@ def equal_within_tolerance(
 
     Parameters
     ----------
-    x, y : Union[numbers.Real, Sequence[numbers.Real]]
+    x, y :
         Real numbers or sequences of real numbers to test equality of.
-    rel_tol : None, optional
+    rel_tol :
         The maximum allowed relative difference. Dynamically passed at runtime to allow
         for updating of FLOAT_TOLERANCE. Defaults to FLOAT_TOLERANCE (1e-9) if no change.
-    abs_tol : None, optional
+    abs_tol :
         The minimum permitted absolute difference. Dynamically passed at runtime to allow
         for updating of FLOAT_TOLERANCE. Defaults to FLOAT_TOLERANCE (1e-9) if no change.
 
@@ -49,8 +68,8 @@ def equal_within_tolerance(
         return math.isclose(x, y, rel_tol=rel_tol, abs_tol=abs_tol)
     else:
         raise TypeError(
-            "Both arguments must be composed of real numbers, or sequences / Numpy arrays "
-            "thereof."
+            f"Both 'arguments' must be of type {Real}, type sequences or type Numpy arrays, "
+            "but one or more arguments were of an unexpected type."
         )
 
 
@@ -60,17 +79,19 @@ def _is_seq(x) -> bool:
 
 def set_tolerance(tol: float):
     """
-    Allows the updating of the global FLOAT_TOLERANCE from 1e-9 to the value
-    that is inputted ... e.g 1e-4.
+    Allows the updating of the global FLOAT_TOLERANCE from default (1e-9) to the tol value
+    passed.
 
     Parameters
     ----------
-    tol : float
+    tol :
         The new tolerance you wish to set the global FLOAT_TOLERANCE to.
     """
 
     if not isinstance(tol, float):
-        raise TypeError(f"Expected 'tol' to be of type float but receieved {type(tol)}.")
+        raise TypeError(
+            f"Expected 'tol' to be of type float, but received {type(tol)} instead."
+        )
 
     if tol < 0:
         raise ValueError(f"Expected 'tol' to be non-negative but received {tol}.")

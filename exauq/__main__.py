@@ -4,9 +4,19 @@ import pathlib
 import subprocess
 import sys
 import webbrowser
+from importlib.metadata import PackageNotFoundError, version
 
 import exauq
 import exauq.app.cli
+
+
+def get_version() -> str:
+    """Retrieve the version of exauq currently installed."""
+
+    try:
+        return version("exauq")
+    except PackageNotFoundError:
+        return "Package not found."
 
 
 def launch_docs() -> None:
@@ -46,6 +56,14 @@ def main():
             action="store_true",
             help="open a browser at the EXAUQ documentation and exit",
         )
+        parser.add_argument(
+            "-v",
+            "--version",
+            action="version",
+            version=f"exauq {get_version()}",
+            help="show the current installed version of the EXAUQ-Toolbox and exit",
+        )
+
         args = parser.parse_args()
 
         if args.docs:

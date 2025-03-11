@@ -1,4 +1,49 @@
-"""Basic objects for expressing emulation of simulators."""
+"""
+Contains the basic objects required for expressing emulation of simulators. Many of these
+are abstract base classes which allow the derivation and training of both single and multi-level GPs, 
+creation and manipulation of Inputs/TrainingDatum, alongside creation and management of the domain space. 
+
+Abstract Base Classes (Classes)
+----------------------------------------------------------------------------------------------------------
+[`AbstractEmulator`][exauq.core.modelling.AbstractEmulator]
+Represents an abstract emulator for simulators.
+
+[`AbstractGaussianProcess`][exauq.core.modelling.AbstractGaussianProcess]
+Represents an abstract Gaussian process emulator for simulators.
+
+[`AbstractHyperParameters`][exauq.core.modelling.AbstractHyperparameters]
+A base class for hyperparameters used to train an emulator.
+
+Gaussian Processes (Classes)
+----------------------------------------------------------------------------------------------------------
+[`GaussianProcessHyperparameters`][exauq.core.modelling.GaussianProcessHyperparameters]
+Represents the hyperparameters for use in fitting Gaussian processes.
+
+[`Prediction`][exauq.core.modelling.Prediction]
+Represents the prediction of an emulator at a simulator input.
+
+[`GaussianProcessPrediction`][exauq.core.modelling.GaussianProcessPrediction]
+Represents a prediction arising from a Gaussian process.
+
+[`MultiLevel`][exauq.core.modelling.MultiLevel]
+A multi-level collection of objects, as a mapping from level to objects.
+
+[`MultiLevelGaussianProcess`][exauq.core.modelling.MultiLevelGaussianProcess]
+A multi-level Gaussian process emulator for simulators.
+
+Design Points (Classes)
+----------------------------------------------------------------------------------------------------------
+[`Input`][exauq.core.modelling.Input]
+Class representing the input co-ordinate vectors to a simulator or emulator.
+
+[`TrainingDatum`][exauq.core.modelling.TrainingDatum]
+Class representing a training point for an emulator.
+
+Domain Space
+----------------------------------------------------------------------------------------------------------
+[`SimulatorDomain`][exauq.core.modelling.SimulatorDomain]
+Class representing the domain of a simulator.
+"""
 
 from __future__ import annotations
 
@@ -9,11 +54,9 @@ import functools
 import math
 import sys
 import warnings
-from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from itertools import product
 from numbers import Real
-from types import GenericAlias
 from typing import Any, Callable, Optional, TypeVar, Union
 from warnings import warn
 
@@ -31,242 +74,6 @@ T = TypeVar("T")
 S = TypeVar("S")
 
 
-class _LevelTaggedMeta(type):
-    """Metaclass used to define custom ``isinstance`` behaviour for ``LevelTagged``."""
-
-    def __instancecheck__(cls, obj: Any) -> bool:
-        return get_level(obj) is not None
-
-
-class LevelTagged(metaclass=_LevelTaggedMeta):
-    """Represents objects that have a level attached to them.
-
-    This class is not intended to be instantiated directly, but instead exists mainly to
-    support type hinting for objects that have a level attached to them (cf. the
-    `set_level`, `get_level` and `remove_level` functions).
-
-    `LevelTagged` supports class subscripting, so that it behaves a like a generic type
-    for type hinting. (Note however that `LevelTagged` does not derive from
-    `typing.Generic`.) For example, if a function `foo` returns an instance of
-    ``exauq.core.modelling.Input`` with a level attached to it, this can be type-hint as:
-
-    ```
-    from exauq.core.modelling import Input
-
-    def foo() -> LevelTagged[Input]:
-        ...
-
-    ```
-
-    `LevelTagged` also provides custom `isinstance` behaviour that can be used to
-    determine whether an object has a level attached to it:
-
-    ```
-    from exauq.core.modelling import set_level
-
-    x = Input(1, 2, 3)
-    assert not isinstance(x, LevelTagged)
-
-    _ = set_level(x, 99)
-    assert isinstance(x, LevelTagged)
-    ```
-
-    Attributes
-    ----------
-    level_attr : str
-        The name of the attribute used when attaching a level to an object.
-    """
-
-    level_attr = "_LevelTagged_level"
-
-    def __class_getitem__(cls, key):
-        return GenericAlias(cls, (key,))
-
-
-def set_level(obj: T, level: int) -> LevelTagged[T]:
-    """Assign a level to an object.
-
-    This creates a new attribute in the supplied object and assigns the given level to
-    it. The attribute name is given by ``LevelTagged.level_attr``, but should not be
-    accessed directly: to retrieve the level, use ``get_level`` and to remove the level
-    use ``remove_level``.
-
-    Parameters
-    ----------
-    obj : T
-        The object to assign a level to.
-    level : int
-        The level to assign.
-
-    Returns
-    -------
-    LevelTagged[T]
-        The same object `obj` but with the given level attached to it (which can be
-        retrieved with ``get_level``).
-
-    Raises
-    ------
-    ValueError
-        If an attribute of `obj` would be overwritten by assigning a level to `obj`.
-    """
-
-    if not isinstance(level, int):
-        raise TypeError(f"Expected 'level' to be an integer, but received {type(level)}.")
-    elif hasattr(obj, LevelTagged.level_attr):
-        raise ValueError(
-            f"Cannot set a level on argument 'obj' with value {obj} as existing attribute "
-            f"'{LevelTagged.level_attr}' would be overwritten."
-        )
-    else:
-        setattr(obj, LevelTagged.level_attr, level)
-        return obj
-
-
-def get_level(obj: Union[LevelTagged[Any], Any]) -> Optional[int]:
-    """Get the level attached to an object.
-
-    Parameters
-    ----------
-    obj : LevelTagged[Any] or Any
-        An object, possibly with a level assigned to it.
-
-    Returns
-    -------
-    Optional[int]
-        The level attached to the object, if present, or else ``None``.
-    """
-
-    if not hasattr(obj, LevelTagged.level_attr):
-        return None
-    else:
-        return getattr(obj, LevelTagged.level_attr)
-
-
-def remove_level(obj: Any) -> None:
-    """Remove the level assigned to an object, if present.
-
-    If an object has a level assigned to it, the attribute containing the level is deleted
-    from the object. If the object does not have a level assigned to it then no action
-    is taken.
-
-    Parameters
-    ----------
-    obj : Any
-        An object.
-    """
-    if isinstance(obj, LevelTagged):
-        delattr(obj, LevelTagged.level_attr)
-
-    return None
-
-
-class _LevelTaggedOld:
-    """An object with a level attached to it.
-
-    This class is not intended to be initialised directly, but rather to be used alongside
-    other classes in multiple inheritance. It should be put as the **first** class in an
-    inheritance hierarchy, in which case it attaches a read-only attribute `level` to the
-    object, defining the object's level.
-
-    Exceptions will be raised if the `level` attribute set by a parent class would be
-    overridden as a result of deriving from `LevelTagged`; see the _Raises_ section and
-    examples for more details.
-
-    Parameters
-    ----------
-    level : int
-        The level to attach to the object.
-    *args : tuple
-        Additional arguments passed to the initialiser of parent of this class (as
-        determined according to Python's method resolution order).
-    **kwargs : dict, optional
-        Keyword arguments passed to the initialiser of parent of this class (as
-        determined according to Python's method resolution order).
-
-    Attributes
-    ----------
-    level : int
-        (Read-only) The level attached to the object.
-
-    Raises
-    ------
-    TypeError
-        When attempting to subclass from this class, or initialise an instance of this
-        class, if doing so would involve masking a `level` attribute set by a parent
-        class.
-
-    Examples
-    --------
-    Here we create a version of a class `A` that is tagged with a level. Notice how there
-    is no need to define any behaviour in the initialiser of the class `AWithLevel`. When
-    creating an instance of `AWithLevel`, the first argument should be the level, while
-    the remaining arguments and keyword arguments should be those required by the
-    initialiser of class `A`:
-    >>> class A:
-    ...     def __init__(self, a: int, b=None):
-    ...         self.a = a
-    ...         self.b = b
-    ...     def a_plus(self, x: int) -> int:
-    ...         return self.a + x
-    ...     def string_of_b(self) -> str:
-    ...         return str(self.b)
-    ...
-    >>> class AWithLevel(LevelTagged, A):
-    ...     pass
-    ...
-    >>> obj = AWithLevel(level=99, a=1, b=3.14)
-    >>> (obj.level, obj.a, obj.string_of_b())
-    (99, 1, '3.14')
-
-    If we try to derive from a class that defines a (class) attribute `level`, then an
-    error is raised:
-    >>> class B:
-    ...     def level(self) -> str:
-    ...         return "101"
-    ...
-    >>> class BWithLevel(LevelTagged, B):
-    ...     pass
-    ...
-    TypeError: Cannot create class <class '__main__.BWithLevel'>: attribute 'level' set by a parent class would be masked.
-
-    Similarly, deriving from a class that sets an instance attribute called `level` at
-    initialisation will result in an error when attempting to create an instance of the
-    'level tagged' class:
-    >>> class C:
-    ...     def __init__(self):
-    ...         self.level = 101
-    ...
-    >>> class CWithLevel(LevelTagged, C):
-    ...     pass
-    ...
-    >>> c = CWithLevel(level=99)
-    TypeError: Cannot initialise object of type <class 'exauq.core.modelling.LevelTagged'>: instance attribute 'level' set by a parent class would be masked.
-    """
-
-    def __init__(self, level: int, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if not hasattr(self, "level"):
-            self.level = level
-        else:
-            raise TypeError(
-                f"Cannot initialise object of type {__class__}: instance attribute 'level' "
-                "set by a parent class would be masked."
-            )
-
-    def __init_subclass__(cls) -> None:
-        if hasattr(super(), "level"):
-            raise TypeError(
-                f"Cannot create class {cls}: attribute 'level' set by a parent class "
-                "would be masked."
-            )
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name == "level" and hasattr(self, "level"):
-            raise AttributeError("Cannot modify this instance's 'level' attribute.")
-        else:
-            super().__setattr__(name, value)
-
-
 class Input(Sequence):
     """The input to a simulator or emulator.
 
@@ -278,13 +85,13 @@ class Input(Sequence):
 
     Parameters
     ----------
-    *args : tuple of numbers.Real
+    *args : tuple of Real
         The coordinates of the input. Each coordinate must define a finite
         number that is not a missing value (i.e. not None or NaN).
 
     Attributes
     ----------
-    value : tuple of numbers.Real, numbers.Real or None
+    value : tuple of Real, Real or None
         Represents the point as a tuple of real numbers (dim > 1), a single real
         number (dim = 1) or None (dim = 0). Note that finer-grained typing is
         preserved during construction of an `Input`. See the Examples.
@@ -367,10 +174,18 @@ class Input(Sequence):
         supplied tuple if so or raising an exception if not."""
 
         validation.check_entries_not_none(
-            args, TypeError("Input coordinates must be real numbers, not None")
+            args,
+            TypeError(
+                f"Expected 'Input coordinates' to be of type {Real}, "
+                "but received None type instead"
+            ),
         )
         validation.check_entries_real(
-            args, TypeError("Arguments must be instances of real numbers")
+            args,
+            TypeError(
+                f"Expected 'arguments' to be of type {Real}, "
+                "but one or more 'arguments' were of an unexpected type."
+            ),
         )
         validation.check_entries_finite(
             args, ValueError("Cannot supply NaN or non-finite numbers as arguments")
@@ -384,7 +199,7 @@ class Input(Sequence):
 
         Parameters
         ----------
-        input : numpy.ndarray
+        input :
             A 1-dimensional Numpy array defining the coordinates of the input.
             Each array entry should define a finite number that is not a missing
             value (i.e. not None or NaN).
@@ -397,7 +212,7 @@ class Input(Sequence):
 
         if not isinstance(input, np.ndarray):
             raise TypeError(
-                f"Expected 'input' of type numpy.ndarray but received {type(input)}."
+                f"Expected 'input' to be of type numpy.ndarray, but received {type(input)} instead."
             )
 
         if not input.ndim == 1:
@@ -417,6 +232,38 @@ class Input(Sequence):
         )
 
         return cls(*tuple(input))
+
+    @classmethod
+    def sequence_from_array(
+        cls, inputs: Union[Sequence[np.ndarray], np.ndarray]
+    ) -> tuple[Input]:
+        """Create a tuple of inputs from a sequence of arrays or 2D NDarray.
+
+        Parameters
+        ----------
+        inputs:
+            A 2-dimensional array (or sequence of arrays) which has a sequence
+            of input co-ordinate arrays to be converted to the Input type.
+
+        Returns
+        -------
+        tuple[Input]:
+            A tuple of simulator Input co-ordinates.
+        """
+
+        if not isinstance(inputs, Sequence) and not isinstance(inputs, np.ndarray):
+            raise TypeError(
+                "Expected 'inputs' to be of type Sequence of np.ndarray or 2D np.ndarray, "
+                f"but received {type(inputs)} instead."
+            )
+
+        if isinstance(inputs, np.ndarray):
+            if inputs.ndim != 2:
+                raise ValueError(
+                    f"Expected np.array of dimension 2, but received {inputs.ndim} dimensions."
+                )
+
+        return tuple([cls.from_array(new_input) for new_input in inputs])
 
     def __str__(self) -> str:
         if self._value is None:
@@ -477,7 +324,7 @@ class Input(Sequence):
 
         except TypeError:
             raise TypeError(
-                f"Subscript must be an 'int' or slice, but received {type(item)}."
+                f"Expected 'subscript' to be of type int or slice, but received {type(item)} instead."
             )
 
         except IndexError:
@@ -495,10 +342,6 @@ class Input(Sequence):
             return self._value[0]
 
         return self._value
-
-
-class _InputWithLevel(_LevelTaggedOld, Input):
-    pass
 
 
 @dataclasses.dataclass(frozen=True)
@@ -537,11 +380,19 @@ class TrainingDatum(object):
 
     @staticmethod
     def _validate_input(input: Any) -> None:
-        """Check that an object is an instance of an Input, raising a
-        TypeError if not."""
+        """Check that an object is an instance of a non-empty Input, raising a
+        TypeError if not the correct type or a ValueError if empty."""
 
         if not isinstance(input, Input):
-            raise TypeError("Argument 'input' must be of type Input")
+            raise TypeError(
+                "Expected argument 'input' to be of type Input, "
+                f"but received {type(input)} instead."
+            )
+
+        if not input:
+            raise ValueError(
+                "Argument 'input' must not be empty; it must contain at least one dimension."
+            )
 
     @staticmethod
     def _validate_output(observation: Any) -> None:
@@ -549,10 +400,18 @@ class TrainingDatum(object):
         if not."""
 
         validation.check_not_none(
-            observation, TypeError("Argument 'output' cannot be None")
+            observation,
+            TypeError(
+                f"Expected argument 'output' to be of type {Real}, "
+                "but received None type instead."
+            ),
         )
         validation.check_real(
-            observation, TypeError("Argument 'output' must define a real number")
+            observation,
+            TypeError(
+                f"Expected argument 'output' to be of type {Real}, "
+                f"but received {type(observation)} instead."
+            ),
         )
         validation.check_finite(
             observation, ValueError("Argument 'output' cannot be NaN or non-finite")
@@ -574,12 +433,12 @@ class TrainingDatum(object):
 
         Parameters
         ----------
-        inputs : np.ndarray
+        inputs :
             A 2-dimensional array of simulator inputs, with each row defining
             a single input. Thus, the shape of `inputs` is ``(n, d)`` where
             ``n`` is the number of inputs and ``d`` is the number of input
             coordinates.
-        outputs : np.ndarray
+        outputs :
             A 1-dimensional array of simulator outputs, whose length is equal
             to ``n``, the number of inputs (i.e. rows) in `inputs`. The
             ``i``th entry of `outputs` corresponds to the input at row ``i`` of
@@ -618,15 +477,15 @@ class TrainingDatum(object):
 
         Parameters
         ----------
-        path : str or os.PathLike
+        path :
             The path to a csv file.
-        output_col : int, optional
-            (Default: -1) The (0-based) index of the column that defines the simulator
+        output_col :
+            The (0-based) index of the column that defines the simulator
             outputs. Negative values count backwards from the end of the list of columns
             (the default Python behaviour). The default value corresponds to the last
             column in each row.
-        header : bool, optional
-            (Default: False) Whether the csv contains a header row that should be skipped.
+        header :
+            Whether the csv contains a header row that should be skipped.
 
         Returns
         -------
@@ -813,7 +672,8 @@ class Prediction:
 
     See Also
     --------
-    ``exauq.core.numerics.equal_within_tolerance`` : Equality up to tolerances.
+    [``equal_within_tolerance``][exauq.core.numerics.equal_within_tolerance] :
+    Equality up to tolerances.
     """
 
     estimate: Real
@@ -840,7 +700,7 @@ class Prediction:
         validation.check_real(
             estimate,
             TypeError(
-                f"Expected 'estimate' to define a real number, but received {type(estimate)} "
+                f"Expected 'estimate' to be of type {Real}, but received {type(estimate)} "
                 "instead."
             ),
         )
@@ -852,7 +712,7 @@ class Prediction:
         validation.check_real(
             variance,
             TypeError(
-                "Expected 'variance' to define a real number, but received "
+                f"Expected 'variance' to be of type {Real}, but received "
                 f"{type(variance)} instead."
             ),
         )
@@ -907,7 +767,7 @@ class GaussianProcessPrediction(Prediction):
 
         Parameters
         ----------
-        observed_output : Real
+        observed_output :
             The output of a simulator to compare this prediction with. Must be a finite
             number.
 
@@ -931,19 +791,19 @@ class GaussianProcessPrediction(Prediction):
         ```
 
         where `m` is the point estimate of the Gaussian process prediction at `x` and
-        `var` is the predictive variance of this estimate.[1]_
+        `var` is the predictive variance of this estimate [1].
 
         References
         ----------
-        .. [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
-           Gaussian process models". DOI: https://doi.org/10.1137/21M1404260
+        [1] Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive Sampling for
+           Gaussian process models". DOI: <https://doi.org/10.1137/21M1404260>
         """
 
         validation.check_real(
             observed_output,
             TypeError(
-                f"Expected 'observed_output' to be of type {Real} but received type "
-                f"{type(observed_output)}."
+                f"Expected 'observed_output' to be of type {Real}, but received "
+                f"{type(observed_output)} instead."
             ),
         )
 
@@ -1005,15 +865,15 @@ class AbstractEmulator(abc.ABC):
 
         Parameters
         ----------
-        training_data : collection of TrainingDatum
+        training_data :
             The pairs of inputs and simulator outputs on which the emulator
             should be trained.
-        hyperparameters : AbstractHyperparameters, optional
-            (Default: None) Hyperparameters to use directly in fitting the emulator.
+        hyperparameters :
+            Hyperparameters to use directly in fitting the emulator.
             If ``None`` then the hyperparameters should be estimated as part of
             fitting to data.
-        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
-            (Default: None) A sequence of bounds to apply to hyperparameters
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
             length scale parameters, in the same order as the ordering of the
@@ -1029,7 +889,7 @@ class AbstractEmulator(abc.ABC):
 
         Parameters
         ----------
-        x : Input
+        x :
             A simulator input.
 
         Returns
@@ -1080,24 +940,24 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         hyperparameters: Optional[GaussianProcessHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
-        """Fit the Guassian process emulator to data.
+        """Fit the Gaussian process emulator to data.
 
-        By default, hyperparameters should be estimated when fitting the Guassian process
+        By default, hyperparameters should be estimated when fitting the Gaussian process
         to data. Alternatively, a collection of hyperparameters may be supplied to
         use directly as the fitted values. If bounds are supplied for the hyperparameters,
         then estimation of the hyperparameters should respect these bounds.
 
         Parameters
         ----------
-        training_data : collection of TrainingDatum
+        training_data :
             The pairs of inputs and simulator outputs on which the Gaussian process
             should be trained.
-        hyperparameters : GaussianProcessHyperparameters, optional
-            (Default: None) Hyperparameters for a Gaussian process to use directly in
+        hyperparameters :
+            Hyperparameters for a Gaussian process to use directly in
             fitting the emulator. If ``None`` then the hyperparameters should be estimated
             as part of fitting to data.
-        hyperparameter_bounds : sequence of tuple[Optional[float], Optional[float]], optional
-            (Default: None) A sequence of bounds to apply to hyperparameters
+        hyperparameter_bounds :
+            A sequence of bounds to apply to hyperparameters
             during estimation, of the form ``(lower_bound, upper_bound)``. All
             but the last tuple should represent bounds for the correlation
             length scale parameters, in the same order as the ordering of the
@@ -1113,7 +973,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        x : Input
+        x :
             A simulator input.
 
         Returns
@@ -1134,7 +994,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         """Update the current fitted gp to new conditions.
 
         Allows the user a more friendly experience when implementing different hyperparameters
-        or hyperparam bounds or adding new training data to their GP without having to construct
+        or hyperparameter bounds or adding new training data to their GP without having to construct
         the refit themselves.
 
         Parameters
@@ -1191,12 +1051,10 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
         trained on data: in these cases an empty array should be returned.
 
         The default implementation of this method calls the `correlation` method with the
-        simulator inputs used for training and the given `inputs`. There is no additional
-        error handling, so users requiring error handling should override this method.
-
+        simulator inputs used for training and the given `inputs`.
         Parameters
         ----------
-        inputs : Sequence[Input]
+        inputs :
             A sequence of simulator inputs.
 
         Returns
@@ -1205,6 +1063,12 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
             The covariance matrix for the sequence of inputs, as an array of shape
             ``(len(inputs), n)`` where ``n`` is the number of training data points for
             this Gaussian process.
+
+        Notes
+        -------
+        There is no additional error handling, so users requiring error handling should
+        override this method.
+
         """
 
         if not self.training_data:
@@ -1252,7 +1116,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     def correlation(self, inputs1: Sequence[Input], inputs2: Sequence[Input]) -> NDArray:
         """Compute the correlation matrix for two sequences of simulator inputs.
 
-        If ``corr_matrix`` is the Numpy array output by this method, the its should be a
+        If ``corr_matrix`` is the Numpy array output by this method, then it should be a
         2-dimensional array of shape ``(len(inputs1), len(inputs2))`` such that
         ``corr_matrix[i, j]`` is equal to the correlation between ``inputs1[i]`` and
         ``inputs2[j]`` (or, in pseudocode, ``corr_matrix[i, j] = correlation(inputs1[i],
@@ -1261,7 +1125,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        inputs1, inputs2 : Sequence[Input]
+        inputs1, inputs2 :
             Sequences of simulator inputs.
 
         Returns
@@ -1296,7 +1160,7 @@ class MultiLevel(dict[int, T]):
 
     Attributes
     ----------
-    levels : tuple of int
+    levels : tuple[int, ...]
         (Read-only) The levels in the collection, in increasing order.
 
     Notes
@@ -1358,8 +1222,8 @@ class MultiLevel(dict[int, T]):
             return {i + 1: elem for i, elem in enumerate(elements)}
         else:
             raise TypeError(
-                "Argument 'elements' must be a mapping with int keys or a sequence, "
-                f"but received object of type {type(elements)}."
+                "Expected argument 'elements' to be a mapping with type int keys or type sequence, "
+                f"but received {type(elements)} instead."
             )
 
     @property
@@ -1385,7 +1249,7 @@ class MultiLevel(dict[int, T]):
         in both self and other. If other has any items that are on a separate level to any
         previously stored in self, then this will create a new level.
 
-        NOTE: It concatenates elements of sequences on the same level into 1 combined tuple, not indvidually adding
+        NOTE: It concatenates elements of sequences on the same level into 1 combined tuple, not individually adding
         the elements mathematically. See Examples.
 
         Parameters
@@ -1456,7 +1320,7 @@ class MultiLevel(dict[int, T]):
 
         Parameters
         ----------
-        f : Callable[[int, T], S]
+        f :
             The function to apply to (level, value) pairs.
 
         Returns
@@ -1498,14 +1362,14 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
     Parameters
     ----------
-    gps : Mapping[int, AbstractGaussianProcess] or Sequence[AbstractGaussianProcess]
+    gps :
         The Gaussian processes for each level in this multi-level GP. If provided as a
         mapping of integers to Gaussian processes, then the levels for this multi-level
         GP will be the keys of this mapping (note these don't need to be sequential or
         start from 1). If provided as a sequence of Gaussian processes, then these will
         be assigned to levels 1, 2, ... in the order provided by the sequence.
-    coefficients : Mapping[int, Real] or Sequence[Real] or Real, optional
-        (Default: 1) The coefficients to multiply the Gaussian processes at each level by,
+    coefficients :
+        The coefficients to multiply the Gaussian processes at each level by,
         when considering this multi-level GP as a weighted sum of the Gaussian processes.
         If provided as a mapping of integers to real numbers, then the keys will be
         considered as levels, and there must be a coefficient supplied for each level
@@ -1515,6 +1379,11 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         to the levels in ascending order, as defined by the ordering of the coefficient
         sequence. If provided as a single real number then this coefficient is assigned to
         each level defined by `gps`.
+
+    See Also
+    --------
+    [MultiLevelGaussianProcess.predict][exauq.core.modelling.MultiLevelGaussianProcess.predict] :
+    Predict a simulator output for a given input.
     """
 
     def __init__(
@@ -1536,10 +1405,10 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         if not _can_instantiate_multi_level(gps, AbstractGaussianProcess):
             raise TypeError(
-                "Expected 'gps' to be a mapping of integers to "
-                f"{AbstractGaussianProcess.__name__} or a sequence of "
-                f"{AbstractGaussianProcess.__name__}, but received object of "
-                f"type {type(gps)} instead."
+                "Expected 'gps' to be a mapping of type int to "
+                f"{AbstractGaussianProcess.__name__} or type sequence of "
+                f"{AbstractGaussianProcess.__name__}, but received "
+                f"{type(gps)} instead."
             )
         else:
             return gps
@@ -1553,8 +1422,9 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
             coefficients, Real
         ):
             raise TypeError(
-                "Expected 'coefficients' to be a mapping of integers to real numbers, "
-                "a sequence of real numbers, or a real number."
+                f"Expected 'coefficients' to be a mapping of type int to type {Real}, "
+                f"of type sequence of {Real}, or type {Real}, "
+                f"but received {type(coefficients)} instead"
             )
         elif isinstance(coefficients, Real):
             return self._fill_out(float(coefficients), self.levels)
@@ -1627,20 +1497,20 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         Parameters
         ----------
-        training_data : MultiLevel[Collection[TrainingDatum]]
+        training_data :
             A level-wise collection of pairs of simulator inputs and outputs for training
             the Gaussian processes by level. If data is not supplied for a level featuring
             in `self.levels` then no training is performed at that level.
-        hyperparameters : MultiLevel[GaussianProcessHyperparameters] or GaussianProcessHyperparameters, optional
-            (Default: None) Either a level-wise collection of hyperparameters to use
+        hyperparameters :
+            Either a level-wise collection of hyperparameters to use
             directly when fitting each level's Gaussian process, or a single set of
             hyperparameters to use on each of the levels. If ``None`` then the
             hyperparameters will be estimated at each level when fitting. If a
             ``MultiLevel`` collection is supplied and a level from `self.levels` is
             missing from the collection, then the hyperparameters at that level will be
             estimated when training the corresponding Gaussian process.
-        hyperparameter_bounds : MultiLevel[Sequence[OptionalFloatPairs]]] or Sequence[OptionalFloatPairs], optional
-            (Default: None) Either a level-wise collection of bounds to apply to
+        hyperparameter_bounds :
+            Either a level-wise collection of bounds to apply to
             hyperparameters during estimation, or a single collection of bounds to use on
             each of the levels. If a ``MultiLevel`` collection is supplied and a level
             from `self.levels` is missing from the collection, then the hyperparameters at
@@ -1650,13 +1520,14 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         See Also
         --------
-        AbstractGaussianProcess.fit : Fitting individual Gaussian processes.
+        [`AbstractGaussianProcess.fit`][exauq.core.modelling.AbstractGaussianProcess.fit] :
+        Fitting individual Gaussian processes.
         """
 
         if not isinstance(training_data, MultiLevel):
             raise TypeError(
                 f"Expected 'training_data' to be an instance of {MultiLevel.__name__}, but received "
-                f"{type(training_data)}."
+                f"{type(training_data)} instead."
             )
         else:
             training_data = MultiLevel(
@@ -1701,7 +1572,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         """Update the current fitted gp to new conditions.
 
         Allows the user a more friendly experience when implementing different hyperparameters
-        or hyperparam bounds or adding new training data to their GP without having to construct
+        or hyperparameter bounds or adding new training data to their GP without having to construct
         the refit themselves.
 
         Parameters
@@ -1769,7 +1640,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         Parameters
         ----------
-        x : Input
+        x :
             A simulator input.
 
         Returns
@@ -1791,7 +1662,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
         if not isinstance(x, Input):
             raise TypeError(
-                f"Expected 'x' to be of type {Input.__name__}, but received {type(x)}."
+                f"Expected 'x' to be an instance of {Input.__name__}, but received {type(x)} instead."
             )
 
         level_predictions = self.map(lambda level, gp: gp.predict(x))
@@ -1830,7 +1701,7 @@ def _validate_nonnegative_real_domain(arg_name: str):
             # arrays to pass through with deprecation warning.
             if not isinstance(arg, Real):
                 raise TypeError(
-                    f"Expected '{arg_name}' to be a real number, but received {type(arg)}."
+                    f"Expected '{arg_name}' to be of type {Real}, but received {type(arg)} instead."
                 )
 
             if arg < 0:
@@ -1849,7 +1720,7 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
 
     There are three basic (sets of) hyperparameters used for fitting Gaussian processes:
     correlation length scales, process variance and, optionally, a nugget. These are
-    expected to be on a linear scale; tranformation functions for converting to a log
+    expected to be on a linear scale; transformation functions for converting to a log
     scale are provided as static methods.
 
     Equality of `GaussianProcessHyperparameters` objects is tested hyperparameter-wise up
@@ -1858,7 +1729,7 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
 
     Parameters
     ----------
-    corr_length_scales : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of Real
         The correlation length scale parameters. The length of the sequence or array
         should equal the number of input coordinates for an emulator and each scale
         parameter should be a positive.
@@ -1869,12 +1740,17 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
 
     Attributes
     ----------
-    corr_length_scales : sequence or Numpy array of numbers.Real
+    corr_length_scales : sequence or Numpy array of Real
         (Read-only) The correlation length scale parameters.
     process_var : numbers.Real
         (Read-only) The process variance.
     nugget : numbers.Real, optional
         (Read only, default: None) The nugget, or ``None`` if not supplied.
+
+    See Also:
+    ---------
+    [equal_within_tolerance][exauq.core.numerics.equal_within_tolerance]:
+    Numerical tolerance check.
     """
 
     corr_length_scales: Union[Sequence[Real], np.ndarray[Real]]
@@ -1889,8 +1765,8 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
     def __post_init__(self):
         if not isinstance(self.corr_length_scales, (Sequence, np.ndarray)):
             raise TypeError(
-                "Expected 'corr_length_scales' to be a sequence or Numpy array, but "
-                f"received {type(self.corr_length_scales)}."
+                "Expected 'corr_length_scales' to be of type sequence or type Numpy array, but "
+                f"received {type(self.corr_length_scales)} instead."
             )
 
         nonpositive_corrs = [
@@ -1907,8 +1783,8 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
         validation.check_real(
             self.process_var,
             TypeError(
-                "Expected 'process_var' to be a real number, but received "
-                f"{type(self.process_var)}."
+                f"Expected 'process_var' to be of type {Real}, but received "
+                f"{type(self.process_var)} instead."
             ),
         )
         if self.process_var <= 0:
@@ -1920,12 +1796,12 @@ class GaussianProcessHyperparameters(AbstractHyperparameters):
         if self.nugget is not None:
             if not isinstance(self.nugget, Real):
                 raise TypeError(
-                    f"Expected 'nugget' to be a real number, but received {type(self.nugget)}."
+                    f"Expected 'nugget' to be of type {Real}, but received {type(self.nugget)} instead."
                 )
 
             if self.nugget < 0:
                 raise ValueError(
-                    f"Expected 'nugget' to be a positive real number, but received {self.nugget}."
+                    f"Expected 'nugget' to be of type positive {Real}, but received {self.nugget} instead."
                 )
 
     def __eq__(self, other) -> bool:
@@ -1992,21 +1868,24 @@ class SimulatorDomain(object):
 
     Attributes
     ----------
-    bounds : tuple[tuple[Real, Real], ...]
+    dim :
+        (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
+        from this domain have.
+    bounds :
         (Read-only) The bounds defining this domain, as a tuple of pairs of
         real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each pair ``(a_i, b_i)``
         representing the lower and upper bounds for the corresponding coordinate in the
         domain.
-    dim : int
+    dim :
         (Read-only) The dimension of this domain, i.e. the number of coordinates inputs
         from this domain have.
-    corners: tuple[Input, ...]
+    corners:
         (Read-only) The corner points of the domain, where each coordinate is at its
         respective lower or upper bound.
 
     Parameters
     ----------
-    bounds : Sequence[tuple[Real, Real]]
+    bounds :
         A sequence of tuples of real numbers ``((a_1, b_1), ..., (a_n, b_n))``, with each
         pair ``(a_i, b_i)`` representing the lower and upper bounds for the corresponding
         coordinate in the domain.
@@ -2074,13 +1953,17 @@ class SimulatorDomain(object):
         >>> SimulatorDomain.validate_bounds([(1, 0), (0, 1)])
         """
         if bounds is None:
-            raise TypeError("Bounds cannot be None. 'bounds' should be a sequence.")
+            raise TypeError(
+                "Expected 'bounds' to be of type sequence, but received None type instead."
+            )
 
         if not bounds:
             raise ValueError("At least one pair of bounds must be provided.")
 
         if not isinstance(bounds, Sequence):
-            raise TypeError("Bounds should be a sequence.")
+            raise TypeError(
+                f"Expected 'bounds' to be of type sequence, but received {type(bounds)} instead."
+            )
 
         for bound in bounds:
             if not isinstance(bound, tuple) or len(bound) != 2:
@@ -2088,7 +1971,9 @@ class SimulatorDomain(object):
 
             low, high = bound
             if not (isinstance(low, Real) and isinstance(high, Real)):
-                raise TypeError("Bounds must be real numbers.")
+                raise TypeError(
+                    f"Expected 'bounds' to be of type {Real} but received {type(low)} and {type(high)} instead."
+                )
 
             if low > high:
                 if not equal_within_tolerance(low, high):
@@ -2144,7 +2029,7 @@ class SimulatorDomain(object):
 
         Parameters
         ----------
-        coordinates : collections.abc.Sequence[numbers.Real]
+        coordinates :
             Coordinates of a point lying in a unit hypercube.
 
         Returns
@@ -2247,7 +2132,7 @@ class SimulatorDomain(object):
 
         Parameters
         ----------
-        inputs : Collection[Input]
+        inputs :
             A collection of points for which the closest boundary points are to be found.
             Each point in the collection must be an instance of `Input` and have the same
             dimensionality as the domain.
@@ -2261,6 +2146,7 @@ class SimulatorDomain(object):
         ------
         ValueError
             If any point in the collection is not within the bounds of the domain.
+        ValueError
             If any point in the collection does not have the same dimensionality as the domain.
 
         Examples
@@ -2326,7 +2212,7 @@ class SimulatorDomain(object):
 
         Parameters
         ----------
-        inputs : Collection[Input]
+        inputs :
             A collection of input points for which to calculate the pseudopoints. Each input point
             must have the same number of dimensions as the domain and must lie within the domain's bounds.
 
@@ -2365,8 +2251,8 @@ class SimulatorDomain(object):
         """
         Calculates and returns a tuple of inputs for an equally spaced boundary mesh of the domain.
 
-        The mesh calculated could also be referred to as mesh of equally spaced psuedopoints
-        which all lie on the boundary of the domain of dimensions D. In 2D this would refer to
+        The mesh calculated could also be referred to as mesh of equally spaced pseudopoints
+        which all lie on the boundary of the domain of dimensions $D$. In 2D this would refer to
         simply as points spaced equally round the edge of an (x, y) rectangle. However,
         higher dimensions would also consider bounding faces, surfaces etc.
 
@@ -2376,7 +2262,7 @@ class SimulatorDomain(object):
 
         Parameters
         ----------
-        n: integer
+        n:
             The number of evenly-spaced points for each boundary face of the domain. n >= 2 as n = 2 will simply
             return the bounds of the domain.
 
@@ -2387,11 +2273,14 @@ class SimulatorDomain(object):
 
         Raises
         ------
-        TypeError
-            If n is not of type integer.
-
         ValueError
-            If n < 2.
+            If n < 2 as n = 2 returns the corners of the domain.
+
+        Notes
+        -------
+        Due to the poor scaling of boundary meshes for k number of dimensions and n points (in the order
+        of $n^{k-1}$), it is worth considering the time required for calculation of particularly dense,
+        or particularly high in dimension meshes. Ensure to attempt dimensionality reduction wherever possible.
 
         Examples
         --------
@@ -2405,7 +2294,7 @@ class SimulatorDomain(object):
 
         check_int(
             n,
-            TypeError(f"Expected 'n' to be of type int, but received {type(n)}."),
+            TypeError(f"Expected 'n' to be of type int, but received {type(n)} instead."),
         )
         if n < 2:
             raise ValueError(
@@ -2425,29 +2314,3 @@ class SimulatorDomain(object):
         masked_points = points[mask]
         mesh_points = tuple(Input(*point) for point in masked_points)
         return mesh_points
-
-
-class AbstractSimulator(abc.ABC):
-    """Represents an abstract simulator.
-
-    Classes that inherit from this abstract base class define simulators, which
-    typically represent programs for calculating the outputs of complex models
-    for given inputs.
-    """
-
-    @abc.abstractmethod
-    def compute(self, x: Input) -> Real:
-        """Compute the value of this simulator at an input.
-
-        Parameters
-        ----------
-        x : Input
-            An input to evaluate the simulator at.
-
-        Returns
-        -------
-        numbers.Real
-            The output of the simulator at the input `x`.
-        """
-
-        raise NotImplementedError
