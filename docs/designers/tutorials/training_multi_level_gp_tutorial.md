@@ -182,8 +182,8 @@ from exauq.core.modelling import MultiLevel, TrainingDatum
 # Create level 1 experimental design of 20 data points
 lhs_inputs1 = oneshot_lhs(domain, 20, seed=1)
 
-# Create level 2 experimental design of 5 data points
-lhs_inputs2 = oneshot_lhs(domain, 5, seed=1)
+# Create level 2 experimental design of 8 data points
+lhs_inputs2 = oneshot_lhs(domain, 8, seed=1)
 
 # Put into a multi-level object
 design = MultiLevel([lhs_inputs1, lhs_inputs2])
@@ -231,7 +231,7 @@ TrainingDatum.tabulate(training_data[2], rows = 2)
 
 <div class="result" markdown>
     Number of level 1 training data: 20
-    Number of level 2 training data: 5
+    Number of level 2 training data: 8
     
     Level 1:
     Inputs:                                 Output:             
@@ -242,8 +242,8 @@ TrainingDatum.tabulate(training_data[2], rows = 2)
     Level 2:
     Inputs:                                 Output:             
     ------------------------------------------------------------
-    0.2976356751        1.1198145215        0.0897465476        
-    0.7711680775        0.7205402211        -0.3473985727       
+    0.9360222969        1.2623840759        0.3661363037        
+    0.8569800484        0.2628376382        -0.4764007017       
     
 </div>
 
@@ -293,9 +293,28 @@ the [`fit`][exauq.core.modelling.MultiLevelGaussianProcess.fit] method:
 mlgp.fit(training_data)
 
 # Verify that the data is as we expect
-assert len(mlgp.training_data[1]) == 20
-assert len(mlgp.training_data[2]) == 5
+print("\nLevel 1:")
+TrainingDatum.tabulate(mlgp[1].training_data, rows = 2)
+
+print("\nLevel 2:")
+TrainingDatum.tabulate(mlgp[2].training_data, rows = 2)
 ```
+
+<div class="result" markdown>
+    
+    Level 1:
+    Inputs:                                 Output:             
+    ------------------------------------------------------------
+    0.2744089188        1.0049536304        0.6759721219        
+    0.5927920194        -0.3948649447       -1.3017578043       
+    
+    Level 2:
+    Inputs:                                 Output:             
+    ------------------------------------------------------------
+    0.9360222969        1.2623840759        0.3661363037        
+    0.8569800484        0.2628376382        -0.4764007017       
+    
+</div>
 
 ## Making predictions with the multi-level GP
 
@@ -304,43 +323,49 @@ top-level simulator at a new input. We make a prediction with the multi-level GP
 [`predict`][exauq.core.modelling.MultiLevelGaussianProcess.predict] method. As described
 in the tutorial, [Training a Gaussian Process Emulator](./training_gp_tutorial.md), the
 prediction consists of both the point estimate and a measure of the uncertainty of the
-prediction:
+prediction and we can do this across all levels:
 
 
 ``` { .python .copy }
-x = Input(0.5, 1.5)
-prediction = mlgp.predict(x)
-
-print(prediction)
-print("Point estimate:", prediction.estimate)
-print("Variance of estimate:", prediction.variance)
-print("Standard deviation of estimate:", prediction.standard_deviation)
+x = Input(0.5, 1)    
+predictions = [mlgp.predict(x, level) for level in mlgp.levels]
+for level, prediction in enumerate(predictions):
+        print("\nGP level:", level)
+        print("Point estimate:", prediction.estimate)
+        print("Variance of estimate:", prediction.variance)
+        print("Standard deviation of estimate:", prediction.standard_deviation)
 ```
 
 <div class="result" markdown>
-    GaussianProcessPrediction(estimate=np.float64(2.428045955707379), variance=np.float64(0.4494866869482408), standard_deviation=0.6704376831206915)
-    Point estimate: 2.428045955707379
-    Variance of estimate: 0.4494866869482408
-    Standard deviation of estimate: 0.6704376831206915
+    
+    GP level: 0
+    Point estimate: 0.8353095922897182
+    Variance of estimate: 1.168910654314459e-05
+    Standard deviation of estimate: 0.003418933538860413
+    
+    GP level: 1
+    Point estimate: 0.9008758897257811
+    Variance of estimate: 0.6237762865894648
+    Standard deviation of estimate: 0.7897950915202403
     
 </div>
 
-Let's see how well the prediction did against the true simulator value:
+Let's see how well the highest level prediction did against the true simulator value:
 
 
 ``` { .python .copy }
 y = sim_level2(x)  # the true value
-pct_error = 100 * abs((prediction.estimate - y) / y)
+pct_error = 100 * abs((predictions[-1].estimate - y) / y)
 
-print("Predicted value:", prediction.estimate)
+print("Predicted value:", predictions[-1].estimate)
 print("Actual simulator value:", y)
 print("Percentage error:", pct_error)
 ```
 
 <div class="result" markdown>
-    Predicted value: 2.428045955707379
-    Actual simulator value: 2.5857864376269055
-    Percentage error: 6.100290403885487
+    Predicted value: 0.9008758897257811
+    Actual simulator value: 0.8357864376269047
+    Percentage error: 7.787809082388144
     
 </div>
 
@@ -349,14 +374,14 @@ for the prediction:
 
 
 ``` { .python .copy }
-prediction.nes_error(y)
+predictions[-1].nes_error(y)
 ```
 
 
 
 
 <div class="result" markdown>
-    0.7080815302277513
+    0.7071228718937402
 </div>
 
 

@@ -1332,8 +1332,8 @@ experimental design from a Latin hypercube sample, see the section,
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Create level 1 experimental design of 20 data points</span>
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">lhs_inputs1</span> <span class="o">=</span> <span class="n">oneshot_lhs</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Create level 2 experimental design of 5 data points</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">lhs_inputs2</span> <span class="o">=</span> <span class="n">oneshot_lhs</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Create level 2 experimental design of 8 data points</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">lhs_inputs2</span> <span class="o">=</span> <span class="n">oneshot_lhs</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
 </span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1"># Put into a multi-level object</span>
 </span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="n">design</span> <span class="o">=</span> <span class="n">MultiLevel</span><span class="p">([</span><span class="n">lhs_inputs1</span><span class="p">,</span> <span class="n">lhs_inputs2</span><span class="p">])</span>
@@ -1371,7 +1371,7 @@ manual inspections:</p>
 </span></code></pre></div>
 <div class="result">
 <div class="language-text highlight"><pre><span></span><code>Number of level 1 training data: 20
-Number of level 2 training data: 5
+Number of level 2 training data: 8
 
 Level 1:
 Inputs:                                 Output:             
@@ -1382,8 +1382,8 @@ Inputs:                                 Output:
 Level 2:
 Inputs:                                 Output:             
 ------------------------------------------------------------
-0.2976356751        1.1198145215        0.0897465476        
-0.7711680775        0.7205402211        -0.3473985727
+0.9360222969        1.2623840759        0.3661363037        
+0.8569800484        0.2628376382        -0.4764007017
 </code></pre></div>
 </div>
 <h2 id="defining-and-fitting-a-multi-level-gp">Defining and fitting a multi-level GP</h2>
@@ -1415,51 +1415,73 @@ the <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#ex
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">mlgp</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">training_data</span><span class="p">)</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># Verify that the data is as we expect</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">mlgp</span><span class="o">.</span><span class="n">training_data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">==</span> <span class="mi">20</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">mlgp</span><span class="o">.</span><span class="n">training_data</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">==</span> <span class="mi">5</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level 1:&quot;</span><span class="p">)</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">mlgp</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">training_data</span><span class="p">,</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Level 2:&quot;</span><span class="p">)</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="n">TrainingDatum</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">mlgp</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">training_data</span><span class="p">,</span> <span class="n">rows</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
 </span></code></pre></div>
+<div class="result">
+<div class="language-text highlight"><pre><span></span><code>Level 1:
+Inputs:                                 Output:             
+------------------------------------------------------------
+0.2744089188        1.0049536304        0.6759721219        
+0.5927920194        -0.3948649447       -1.3017578043
+
+Level 2:
+Inputs:                                 Output:             
+------------------------------------------------------------
+0.9360222969        1.2623840759        0.3661363037        
+0.8569800484        0.2628376382        -0.4764007017
+</code></pre></div>
+</div>
 <h2 id="making-predictions-with-the-multi-level-gp">Making predictions with the multi-level GP</h2>
 <p>To finish off, let's use our newly-trained multi-level GP to estimate the output of our
 top-level simulator at a new input. We make a prediction with the multi-level GP using the
 <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.MultiLevelGaussianProcess.predict"><code>predict</code></a> method. As described
 in the tutorial, <a href="training_gp_tutorial.html">Training a Gaussian Process Emulator</a>, the
 prediction consists of both the point estimate and a measure of the uncertainty of the
-prediction:</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">prediction</span> <span class="o">=</span> <span class="n">mlgp</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Point estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span><span class="p">)</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Variance of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">variance</span><span class="p">)</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
+prediction and we can do this across all levels:</p>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">x</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>    
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">predictions</span> <span class="o">=</span> <span class="p">[</span><span class="n">mlgp</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="n">mlgp</span><span class="o">.</span><span class="n">levels</span><span class="p">]</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">for</span> <span class="n">level</span><span class="p">,</span> <span class="n">prediction</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">predictions</span><span class="p">):</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">GP level:&quot;</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Point estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span><span class="p">)</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Variance of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">variance</span><span class="p">)</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Standard deviation of estimate:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">standard_deviation</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>GaussianProcessPrediction(estimate=np.float64(2.428045955707379), variance=np.float64(0.4494866869482408), standard_deviation=0.6704376831206915)
-Point estimate: 2.428045955707379
-Variance of estimate: 0.4494866869482408
-Standard deviation of estimate: 0.6704376831206915
+<div class="language-text highlight"><pre><span></span><code>GP level: 0
+Point estimate: 0.8353095922897182
+Variance of estimate: 1.168910654314459e-05
+Standard deviation of estimate: 0.003418933538860413
+
+GP level: 1
+Point estimate: 0.9008758897257811
+Variance of estimate: 0.6237762865894648
+Standard deviation of estimate: 0.7897950915202403
 </code></pre></div>
 </div>
-<p>Let's see how well the prediction did against the true simulator value:</p>
+<p>Let's see how well the highest level prediction did against the true simulator value:</p>
 <div class="language-python copy highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">y</span> <span class="o">=</span> <span class="n">sim_level2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># the true value</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">pct_error</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">((</span><span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">y</span><span class="p">)</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">pct_error</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">((</span><span class="n">predictions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">estimate</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">y</span><span class="p">)</span>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Predicted value:&quot;</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">estimate</span><span class="p">)</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Predicted value:&quot;</span><span class="p">,</span> <span class="n">predictions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">estimate</span><span class="p">)</span>
 </span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Actual simulator value:&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Percentage error:&quot;</span><span class="p">,</span> <span class="n">pct_error</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Predicted value: 2.428045955707379
-Actual simulator value: 2.5857864376269055
-Percentage error: 6.100290403885487
+<div class="language-text highlight"><pre><span></span><code>Predicted value: 0.9008758897257811
+Actual simulator value: 0.8357864376269047
+Percentage error: 7.787809082388144
 </code></pre></div>
 </div>
 <p>As in the non-levelled case, we can also calculate the normalised expected square error
 for the prediction:</p>
-<div class="language-python copy highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">prediction</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<div class="language-python copy highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">predictions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">nes_error</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>0.7080815302277513
+<div class="language-text highlight"><pre><span></span><code>0.7071228718937402
 </code></pre></div>
 </div>
 
