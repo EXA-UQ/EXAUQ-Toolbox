@@ -1641,8 +1641,8 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
         """Predict a simulator output for a given input.
 
         If the optional level_predict argument is passed then this will set the level
-        at which the prediction occurs. If 'None', the highest level prediction is 
-        returned. 
+        at which the prediction occurs. If 'None', the highest level prediction is
+        returned.
 
         Parameters
         ----------

@@ -4,8 +4,8 @@ import math
 import pathlib
 import tempfile
 import unittest
-from itertools import combinations
 from io import StringIO
+from itertools import combinations
 from numbers import Real
 from textwrap import dedent
 from typing import Literal, Sequence
