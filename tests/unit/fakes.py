@@ -12,7 +12,6 @@ from numpy.typing import NDArray
 
 from exauq.core.modelling import (
     AbstractGaussianProcess,
-    AbstractSimulator,
     GaussianProcessHyperparameters,
     GaussianProcessPrediction,
     Input,
@@ -410,45 +409,6 @@ class FakeGPHyperparameters(GaussianProcessHyperparameters):
     # creating hyperparameter values that can test edge cases.
     def __post_init__(self):
         pass
-
-
-class OneDimSimulator(AbstractSimulator):
-    """A basic simulator defined on a one-dimensional domain.
-
-    This simulator simply defines the identity function ``f(x) = x`` and is
-    defined on a closed interval [a, b].
-
-    Parameters
-    ----------
-    lower_limit: float
-        The lower limit of the domain on which the simulator is defined.
-    upper_limit: float
-        The upper limit of the domain on which the simulator is defined.
-
-    Attributes
-    ----------
-    domain: OneDimDomain
-        The domain on which the simulator is defined.
-    """
-
-    def __init__(self, lower_limit: float, upper_limit: float):
-        self.lower_limit: float = lower_limit
-        self.upper_limit: float = upper_limit
-
-    def compute(self, x: Input) -> float:
-        """Evaluate the identity function at the given point.
-
-        Parameters
-        ----------
-        x : Input
-            The input at which to evaluate the simulator.
-
-        Returns
-        -------
-        float
-            The value of the input `x`.
-        """
-        return x.value
 
 
 class DumbHardwareInterface(HardwareInterface):
