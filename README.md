@@ -58,9 +58,10 @@ python -m pip install "exauq @ git+https://github.com/EXA-UQ/EXAUQ-Toolbox.git@v
 
 ## Viewing documentation
 
-The EXAUQ-Toolbox ships with documentation for offline viewing. To view it, run
-the following command within a terminal (after activating the environment where you
-installed the toolbox, if relevant):
+Documentation for the EXAUQ-Toolbox is available online at 
+[https://exa-uq.github.io/EXAUQ-Toolbox/](https://exa-uq.github.io/EXAUQ-Toolbox/). 
+To view it, you can run the following command within a terminal (after activating the environment 
+where you installed the toolbox, if relevant):
 
 ``` bash
 exauq --docs
