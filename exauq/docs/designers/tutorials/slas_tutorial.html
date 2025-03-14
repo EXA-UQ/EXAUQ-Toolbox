@@ -1280,7 +1280,7 @@ to do this. This function requires two arguments:</p>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">new_design_pts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>Input(np.float64(0.30003694810169895), np.float64(1.4999999588436697))
+<div class="language-text highlight"><pre><span></span><code>Input(np.float64(0.30013627275662463), np.float64(1.4999999988571904))
 </code></pre></div>
 </div>
 <p>If instead we want to compute multiple new design points in one go, we can do this by
@@ -1289,11 +1289,11 @@ specifying a different batch size:</p>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">new_design_pts</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>(Input(np.float64(0.3000480464067843), np.float64(1.4999999932559243)),
- Input(np.float64(0.9999999804620712), np.float64(0.6827074261347208)),
- Input(np.float64(0.9999999990973233), np.float64(-0.1758838118281294)),
- Input(np.float64(1.2872063859248328e-08), np.float64(-0.09238127096747573)),
- Input(np.float64(5.3212137030023143e-08), np.float64(1.1988652190999287)))
+<div class="language-text highlight"><pre><span></span><code>(Input(np.float64(0.30007824221629625), np.float64(1.4999999979529648)),
+ Input(np.float64(0.999999994587522), np.float64(0.6826546284669834)),
+ Input(np.float64(0.9999999986244122), np.float64(-0.17596770942664763)),
+ Input(np.float64(5.107706646523269e-09), np.float64(-0.09235535068408796)),
+ Input(np.float64(0.5334868922322674), np.float64(0.6071752586381185)))
 </code></pre></div>
 </div>
 <p>Note how the new design points all lie within the simulator domain we defined earlier,
@@ -1313,11 +1313,11 @@ using the toy function defined earlier) in order to create new training data:</p
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">new_outputs</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>[np.float64(2.789726083420864),
- np.float64(1.4829679948018182),
- np.float64(-1.361601377101126),
- np.float64(-1.4980604681805862),
- np.float64(1.221930606297387)]
+<div class="language-text highlight"><pre><span></span><code>[np.float64(2.790146409960019),
+ np.float64(1.483283040738709),
+ np.float64(-1.3610261842057274),
+ np.float64(-1.4980393760923938),
+ np.float64(-1.1635894082593787)]
 </code></pre></div>
 </div>
 <p>Then to update the GP, we create a list of TrainingDatum to pass into the <a class="autorefs autorefs-internal" href="../../api/core/modelling.html#exauq.core.modelling.AbstractGaussianProcess"><code>update</code></a> method. </p>
@@ -1355,23 +1355,23 @@ more sampling iterations, producing a single new design point at each iteration.
 </span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;==&gt; Updated with new design point </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.8192548685049027), np.float64(1.4999699991184825))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.0836011108112355), np.float64(1.499992781886386))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.7347128665916683), np.float64(-0.49484061470978025))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.8108464748068719), np.float64(-0.4651335698390211))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.45335019777302), np.float64(1.3596893028975168))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.19709840570930104), np.float64(-0.4999826354426524))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.5160119205036989), np.float64(1.1758384623523344))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.6428329298517965), np.float64(0.14819712595125878))
 </code></pre></div>
 </div>
 <div class="result">
-<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(0.17759259523877136), np.float64(-0.49966069014008574))
+<div class="language-text highlight"><pre><span></span><code>==&gt; Updated with new design point (np.float64(1.3533000489840408e-05), np.float64(1.185357521648959))
 </code></pre></div>
 </div>
 
