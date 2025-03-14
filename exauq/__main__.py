@@ -20,20 +20,10 @@ def get_version() -> str:
 
 
 def launch_docs() -> None:
-    """Open the documentation for the EXAUQ-Toolbox from a local static site."""
+    """Open the online documentation for the EXAUQ-Toolbox."""
 
-    doc_index = pathlib.Path(exauq.__file__).absolute().parent / "docs" / "index.html"
-
-    if "WSL_DISTRO_NAME" in os.environ:
-
-        result = subprocess.run(
-            ["wslpath", "-w", doc_index], capture_output=True, text=True
-        )
-        path = result.stdout.strip()
-        url = "file://" + path
-        subprocess.run(["wslview", url])
-    else:
-        webbrowser.open(f"file://{doc_index}", new=2)  # open in new tab
+    url = "https://exa-uq.github.io/EXAUQ-Toolbox/"
+    webbrowser.open(url, new=2)
 
 
 def main():
