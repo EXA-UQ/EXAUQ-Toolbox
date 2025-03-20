@@ -1449,29 +1449,40 @@ def create_data_for_multi_level_loo_sampling(
             except KeyError:
                 continue
 
+            # If there are more points on level than level-1, there must be unpaired points
+            if len(data[level]) > len(data[level - 1]):
+                raise ValueError(
+                    f"Unpaired points found between level {level} and level {level-1}, either remove or also run on the "
+                    f"lower level."
+                )
+
             for datum in data[level]:
                 # Find datum in previous level with the same input as the current datum
-                prev_level_datum = [
+                prev_level_datum_list = [
                     dat
                     for dat in prev_level_data
                     if equal_within_tolerance(dat.input, datum.input)
-                ][0]
+                ]
 
-                # Remove matching inputs from the rest of data
-                data = _remove_multi_level_repeated_input(data, datum, level)
-
-                # Compute output for this input as the difference between this level's
-                # output and the previous level's output multiplied by correlation.
-                delta_output = (
-                    datum.output - correlations[level - 1] * prev_level_datum.output
-                )
-
-                # Add input and the computed output to the training data to return
-                delta_data[level].append(TrainingDatum(datum.input, delta_output))
+                if prev_level_datum_list:
+                    prev_level_datum = prev_level_datum_list[0]
+                    # Remove matching inputs from the rest of data
+                    data = _remove_multi_level_repeated_input(data, datum, level)
+                    # Compute output for this input as the difference between this level's
+                    # output and the previous level's output multiplied by correlation.
+                    delta_output = (
+                        datum.output - correlations[level - 1] * prev_level_datum.output
+                    )
+                    # Add input and the computed output to the training data to return
+                    delta_data[level].append(TrainingDatum(datum.input, delta_output))
 
         else:
             # In the case of the bottom level simply return raw values
             delta_data[level] = data[level]
+
+    for lvl in delta_data.levels:
+        if not delta_data[lvl]:
+            warn(f"Level {lvl} is empty, check your input data")
 
     return delta_data
 
@@ -1482,7 +1493,7 @@ def compute_delta_coefficients(
 ) -> MultiLevel[Real]:
     """Calculate the delta coefficients from the Markov-like correlations.
 
-    The levels argument creates the correlaions for the number of levels that there are. If a sequence is passed
+    The levels argument creates the correlations for the number of levels that there are. If a sequence is passed
     then this is expected to be a range of levels for the mlgp. Optionally, you can simply pass the number of levels
     as an integer and this will create the correlations up to that level.
 
