@@ -1475,7 +1475,7 @@ def create_data_for_multi_level_loo_sampling(
 
     for lvl in delta_data.levels:
         if not delta_data[lvl]:
-            warn(f"Level {lvl} is empty, check your input data")
+            warn(f"After processing, Level {lvl} is empty. Check your input data")
 
     return delta_data
 

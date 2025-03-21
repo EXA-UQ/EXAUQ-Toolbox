@@ -8,6 +8,7 @@ from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Optional
 from unittest.mock import MagicMock
+from warnings import catch_warnings, simplefilter
 
 from scipy.stats import norm
 
@@ -2453,6 +2454,189 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
         )
 
         self.assertEqual(expected, delta_data)
+
+    def test_missing_common_points(self):
+        """In the case where there are points at a higher level without a match at the previous
+        level, these points should be ignored, with all other deltas returned as usual."""
+
+        data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.1), 1.1),
+                    TrainingDatum(Input(0.2), 2.2),
+                    TrainingDatum(Input(0.3), 3.3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1.11),
+                    TrainingDatum(Input(0.5), 2.22),
+                ],
+            }
+        )
+        correlations = MultiLevel([0.1, 0.2])
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.2), 2.2 - correlations[1] * 2),
+                    TrainingDatum(Input(0.3), 3.3 - correlations[1] * 3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1.11 - correlations[2] * 1.1),
+                ],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_empty_deltas_higher_levels(self):
+        """If there are no matching points at the previous level, no deltas should be calculated and
+        the higher levels should be returned as empty."""
+
+        data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.11), 1.1),
+                    TrainingDatum(Input(0.22), 2.2),
+                    TrainingDatum(Input(0.33), 3.3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.111), 1.11),
+                ],
+            }
+        )
+        correlations = MultiLevel([0.1, 0.2])
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [],
+                3: [],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_empty_deltas_first_level(self):
+        """If all points at the 1st level match those at the 2nd level, the resulting 1st level should be empty."""
+
+        data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.1), 1.1),
+                    TrainingDatum(Input(0.2), 2.2),
+                    TrainingDatum(Input(0.3), 3.3),
+                    TrainingDatum(Input(0.4), 4.4),
+                ],
+            }
+        )
+        correlations = MultiLevel([0.1])
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                1: [],
+                2: [
+                    TrainingDatum(Input(0.1), 1.1 - correlations[1] * 1),
+                    TrainingDatum(Input(0.2), 2.2 - correlations[1] * 2),
+                    TrainingDatum(Input(0.3), 3.3 - correlations[1] * 3),
+                    TrainingDatum(Input(0.4), 4.4 - correlations[1] * 4),
+                ],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_empty_deltas_warning(self):
+        """Ensure a correct Warning is raised if a resulting level ends up empty."""
+
+        test_data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [],
+                3: [],
+            }
+        )
+        with catch_warnings(record=True) as w:
+            simplefilter("always")
+
+            _ = create_data_for_multi_level_loo_sampling(self.data)
+
+            # Check that two warnings were raised
+            self.assertEqual(len(w), 2)
+
+            # Check warning messages
+            self.assertEqual(
+                str(w[0].message),
+                "After processing, Level 1 is empty. Check your input data",
+            )
+            self.assertEqual(
+                str(w[1].message),
+                "After processing, Level 2 is empty. Check your input data",
+            )
+
+            # Check warning types
+            self.assertTrue(
+                all(issubclass(warning.category, UserWarning) for warning in w)
+            )
+
+        with catch_warnings(record=True) as w:
+            simplefilter("always")
+
+            _ = create_data_for_multi_level_loo_sampling(test_data)
+
+            # Check that two warnings were raised
+            self.assertEqual(len(w), 2)
+
+            # Check warning messages
+            self.assertEqual(
+                str(w[0].message),
+                "After processing, Level 2 is empty. Check your input data",
+            )
+            self.assertEqual(
+                str(w[1].message),
+                "After processing, Level 3 is empty. Check your input data",
+            )
+
+            # Check warning types
+            self.assertTrue(
+                all(issubclass(warning.category, UserWarning) for warning in w)
+            )
 
 
 class TestComputeDeltaCoefficients(ExauqTestCase):
