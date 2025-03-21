@@ -1449,13 +1449,6 @@ def create_data_for_multi_level_loo_sampling(
             except KeyError:
                 continue
 
-            # If there are more points on level than level-1, there must be unpaired points
-            if len(data[level]) > len(data[level - 1]):
-                raise ValueError(
-                    f"Unpaired points found between level {level} and level {level-1}, either remove or also run on the "
-                    f"lower level."
-                )
-
             for datum in data[level]:
                 # Find datum in previous level with the same input as the current datum
                 prev_level_datum_list = [
