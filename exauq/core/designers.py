@@ -1459,13 +1459,16 @@ def create_data_for_multi_level_loo_sampling(
 
                 if prev_level_datum_list:
                     prev_level_datum = prev_level_datum_list[0]
+
                     # Remove matching inputs from the rest of data
                     data = _remove_multi_level_repeated_input(data, datum, level)
+
                     # Compute output for this input as the difference between this level's
                     # output and the previous level's output multiplied by correlation.
                     delta_output = (
                         datum.output - correlations[level - 1] * prev_level_datum.output
                     )
+
                     # Add input and the computed output to the training data to return
                     delta_data[level].append(TrainingDatum(datum.input, delta_output))
 
