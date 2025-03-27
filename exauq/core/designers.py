@@ -64,7 +64,8 @@ import math
 from collections import defaultdict
 from collections.abc import Collection, Sequence
 from numbers import Real
-from typing import Any, Optional
+from typing import Any, Optional, Union
+from warnings import warn
 
 import numpy as np
 from scipy.stats import norm
@@ -1375,3 +1376,219 @@ def compute_multi_level_loo_samples(
         design_points[level].append(new_design_pt)
 
     return MultiLevel({level: tuple(inputs) for level, inputs in design_points.items()})
+
+
+def create_data_for_multi_level_loo_sampling(
+    data: MultiLevel[Sequence[TrainingDatum]],
+    correlations: Union[MultiLevel[Real], Real] = 1,
+) -> MultiLevel[Sequence[TrainingDatum]]:
+    """Prepare data from the simulators to be ready for multi-level adaptive sampling.
+
+    For the implementation of creating the successive simulator differences used by
+    `compute_multi_level_loo_samples`, the data needs to satisfy the correct delta
+    calculations calculated between level $L$ and $L-1$ for the same inputs.
+    It must then be ensured that there are no repeats of inputs across the different
+    levels and hence are removed from the data as it makes no mathematical sense to have
+    repeated inputs across the multi-level GP with differing outputs.
+
+    Parameters
+    ----------
+    data:
+        Training data for the simulator at that level.
+    correlations:
+        The Markov-like correlations between simulators at successive levels
+    Returns
+    -------
+    MultiLevel[Sequence[TrainingDatum]
+        A MultiLevel Sequence of TrainingDatum recalculated with deltas calculated
+        and repeated inputs across levels removed.
+
+    """
+
+    if not isinstance(data, MultiLevel):
+        raise TypeError(
+            "Expected 'data' to be of type MultiLevel Sequence of TrainingDatum, "
+            f"but received {type(data)} instead."
+        )
+
+    if not data.items():
+        warn("'data' passed was empty and therefore no transformations taken place.")
+        return data
+
+    if correlations is not None:
+        if not isinstance(correlations, MultiLevel) and not isinstance(
+            correlations, Real
+        ):
+            raise TypeError(
+                "Expected 'correlations' to be of type MultiLevel Real or Real, "
+                f"but received {type(correlations)} instead."
+            )
+
+    top_level = max(data.levels)
+    bottom_level = min(data.levels)
+    if isinstance(correlations, Real):
+        correlations = MultiLevel(
+            {level: correlations for level in data.levels if level < top_level}
+        )
+
+    delta_data = MultiLevel({level: [] for level in data.levels})
+
+    for level in reversed(data.levels):
+        if level != bottom_level:
+
+            if max(correlations.levels) < top_level - 1:
+                raise ValueError(
+                    f"'Correlations' MultiLevel expected to be provided for at least max level of 'data' - 1: {top_level - 1}, but "
+                    f"is only of length: {max(correlations.levels)}."
+                )
+
+            # Catch missing levels in data MultiLevel
+            try:
+                prev_level_data = data[level - 1]
+
+            except KeyError:
+                continue
+
+            for datum in data[level]:
+                # Find datum in previous level with the same input as the current datum
+                prev_level_datum_list = [
+                    dat
+                    for dat in prev_level_data
+                    if equal_within_tolerance(dat.input, datum.input)
+                ]
+
+                if prev_level_datum_list:
+                    prev_level_datum = prev_level_datum_list[0]
+
+                    # Remove matching inputs from the rest of data
+                    data = _remove_multi_level_repeated_input(data, datum, level)
+
+                    # Compute output for this input as the difference between this level's
+                    # output and the previous level's output multiplied by correlation.
+                    delta_output = (
+                        datum.output - correlations[level - 1] * prev_level_datum.output
+                    )
+
+                    # Add input and the computed output to the training data to return
+                    delta_data[level].append(TrainingDatum(datum.input, delta_output))
+
+        else:
+            # In the case of the bottom level simply return raw values
+            delta_data[level] = data[level]
+
+    for lvl in delta_data.levels:
+        if not delta_data[lvl]:
+            warn(f"After processing, Level {lvl} is empty. Check your input data")
+
+    return delta_data
+
+
+def compute_delta_coefficients(
+    levels: Union[Optional[Sequence[int]], int],
+    correlations: Union[MultiLevel[Real], Real] = 1,
+) -> MultiLevel[Real]:
+    """Calculate the delta coefficients from the Markov-like correlations.
+
+    The levels argument creates the correlations for the number of levels that there are. If a sequence is passed
+    then this is expected to be a range of levels for the mlgp. Optionally, you can simply pass the number of levels
+    as an integer and this will create the correlations up to that level.
+
+    By default the constant correlation of 1 is applied to every level if no correlation is
+    provided. Note that the correlations only run to level $L - 1$ as it denotes the correlation
+    between that level and the one above. If a 'Real' value is provided, then this value is provided
+    for every level in the multi-level correlations object.
+
+    Parameters
+    ----------
+    levels:
+        The number of levels or a tuple of levels for the coefficients to be calculated for.
+
+    correlations:
+        The Markov-like correlations between simulators at successive levels.
+
+    Returns
+    -------
+    MultiLevel[Real]:
+        The delta coefficients calculated from the correlations across levels.
+    """
+
+    if not isinstance(levels, int) and not isinstance(levels, Sequence):
+        raise TypeError(
+            "Expected 'levels' to be of type Sequence of int or int, "
+            f"but received {type(levels)} instead."
+        )
+
+    if isinstance(levels, int):
+        levels = range(1, levels + 1)
+
+    if not all(isinstance(level, int) for level in levels):
+        raise TypeError(
+            "Expected 'levels' to be of type Sequence of int or int, "
+            f"but received unexpected types."
+        )
+
+    if correlations is not None:
+        if not isinstance(correlations, MultiLevel) and not isinstance(
+            correlations, Real
+        ):
+            raise TypeError(
+                "Expected 'correlations' to be of type MultiLevel Real or Real, "
+                f"but received {type(correlations)} instead."
+            )
+
+    if isinstance(correlations, Real):
+        correlations = MultiLevel(
+            {level: correlations for level in levels if level < max(levels)}
+        )
+
+    delta_coefficients = MultiLevel(
+        {max(levels): 1}
+        | correlations.map(
+            lambda k, _: math.prod(
+                correlations[level] for level in correlations.levels if level >= k
+            )
+        )
+    )
+
+    return delta_coefficients
+
+
+def _remove_multi_level_repeated_input(
+    data: MultiLevel[Sequence[TrainingDatum]],
+    datum: TrainingDatum,
+    level: int,
+) -> MultiLevel[Sequence[TrainingDatum]]:
+    """Remove a repeated input from a set of training data at a specific level.
+
+    Currently a utility function to `create_data_for_multi_level_loo_sampling` to improve readability,
+    although it may become a more generalised function at a later date. It will remove all repeated
+    entries across the multilevel for the input of a single datum.
+
+    Passing the level ensures that you keep the highest fidelity level of that repeated input.
+
+    Parameters
+    ----------
+    data:
+        Training data to be checked for repeated input
+    datum:
+        Single TrainingDatum used for comparison of input.
+    level:
+        The highest fidelity level at which the input appears.
+
+    Returns
+    -------
+    MultiLevel[Sequecnce[TrainingDatum]]
+        Returns an updated version of data with repeated inputs removed.
+    """
+
+    for lvl in data.levels:
+        if lvl <= level:
+            data[lvl] = [
+                dat
+                for dat in data[lvl]
+                if not equal_within_tolerance(dat.input, datum.input)
+            ]
+
+    # Re-enter the original comparing TrainingDatum
+    data[level].append(datum)
+    return data

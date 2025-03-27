@@ -8,12 +8,15 @@ from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Optional
 from unittest.mock import MagicMock
+from warnings import catch_warnings, simplefilter
 
 from scipy.stats import norm
 
 import tests.unit.fakes as fakes
 from exauq.core.designers import (
     PEICalculator,
+    _remove_multi_level_repeated_input,
+    compute_delta_coefficients,
     compute_loo_errors_gp,
     compute_loo_gp,
     compute_loo_prediction,
@@ -23,6 +26,7 @@ from exauq.core.designers import (
     compute_multi_level_loo_samples,
     compute_single_level_loo_samples,
     compute_zero_mean_prediction,
+    create_data_for_multi_level_loo_sampling,
     oneshot_lhs,
 )
 from exauq.core.emulators import MogpEmulator, MogpHyperparameters
@@ -2180,6 +2184,700 @@ class TestComputeMultiLevelLooSamples(ExauqTestCase):
 
 # TODO: test that repulsion points are updated with previously calculated inputs in
 # batch mode.
+
+
+class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
+    def setUp(self) -> None:
+        self.data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), -2),
+                    TrainingDatum(Input(0.3), 3),
+                ],
+                2: [
+                    TrainingDatum(Input(0.1), 1.1),
+                    TrainingDatum(Input(0.2), -2.2),
+                    TrainingDatum(Input(0.3), 3.3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1.11),
+                    TrainingDatum(Input(0.2), -2.22),
+                    TrainingDatum(Input(0.3), 3.33),
+                ],
+            }
+        )
+
+    def test_argument_type_errors(self):
+        """Ensure that correct TypeErrors are raised for incorrect arguments."""
+
+        arg1 = "test"
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'data' to be of type MultiLevel Sequence of TrainingDatum, "
+                f"but received {type(arg1)} instead."
+            ),
+        ):
+            _ = create_data_for_multi_level_loo_sampling(arg1)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'correlations' to be of type MultiLevel Real or Real, "
+                f"but received {type(arg1)} instead."
+            ),
+        ):
+            _ = create_data_for_multi_level_loo_sampling(self.data, arg1)
+
+    def test_empty_multi_level_data(self):
+        """Ensure a correct Warning is raised for a completely empty MultiLevel."""
+
+        test_data = MultiLevel([])
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact(
+                "'data' passed was empty and therefore no transformations taken place."
+            ),
+        ):
+            _ = create_data_for_multi_level_loo_sampling(test_data)
+
+    def test_incorrect_length_of_correlations(self):
+        """Ensure that a ValueError is raised if an incorrect number of correlations are passed.
+
+        Given the test_data is maxed at level 4, therefore there should be at least 4 levels of correlations.
+        It doesn't matter if there are more as this makes it easier for the user to just store all of the correlations
+        for their entire mlgp and pass this when using mlas with only a couple of new points on different levels. However,
+        there need to be at least 4 levels in order to correlate previous level points from a top-down point of view.
+        """
+
+        test_data = MultiLevel(
+            {
+                3: [TrainingDatum(Input(0.3), 33)],
+                4: [TrainingDatum(Input(0.4), 42)],
+            }
+        )
+        correlations = MultiLevel([1, 1])
+
+        with self.assertRaisesRegex(
+            ValueError,
+            exact(
+                f"'Correlations' MultiLevel expected to be provided for at least max level of 'data' - 1: {max(test_data.levels) - 1}, but "
+                f"is only of length: {max(correlations.levels)}."
+            ),
+        ):
+            _ = create_data_for_multi_level_loo_sampling(test_data, correlations)
+
+    def test_data_with_only_one_level(self):
+        """Ensure the raw values are simply returned if only 1 level of data is passed."""
+
+        test_data = MultiLevel(
+            {
+                3: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                ]
+            }
+        )
+
+        expected_return = test_data
+        returned_data = create_data_for_multi_level_loo_sampling(test_data)
+        self.assertEqual(expected_return, returned_data)
+
+    def test_no_training_datum_in_MultiLevel(self):
+        """Ensure MultiLevels with empty sequences pass through without error."""
+
+        test_data = MultiLevel(
+            {
+                1: [],
+                2: [],
+                3: [],
+            }
+        )
+
+        expected_return = test_data
+        returned_data = create_data_for_multi_level_loo_sampling(test_data)
+        self.assertEqual(expected_return, returned_data)
+
+    def test_no_level_1_training_data(self):
+        """Ensure that the correct functionality occurs without level 1 in training data."""
+
+        outputs = {2: -1, 3: 1, 4: 2}
+        data = MultiLevel(
+            {
+                2: [TrainingDatum(Input(0.1), outputs[2])],
+                3: [TrainingDatum(Input(0.1), outputs[3])],
+                4: [TrainingDatum(Input(0.1), outputs[4])],
+            }
+        )
+        correlations = MultiLevel([0.2, 0.3, 0.4])
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                2: [],
+                3: [],
+                4: [TrainingDatum(Input(0.1), outputs[4] - correlations[3] * outputs[3])],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_missing_levels_multi_level_data(self):
+        """Ensure that the correct functionality occurs without all levels in training data."""
+
+        outputs = {1: -1, 3: 1, 4: 2}
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.1), outputs[1])],
+                3: [TrainingDatum(Input(0.2), outputs[3])],
+                4: [TrainingDatum(Input(0.2), outputs[4])],
+            }
+        )
+        correlations = MultiLevel([0.2, 0.3, 0.4])
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.1), outputs[1])],
+                3: [],
+                4: [TrainingDatum(Input(0.2), outputs[4] - correlations[3] * outputs[3])],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_different_correlations_data_multi_levels(self):
+        """Ensure that full MultiLevel correlations can be passed even with missing levels in training data."""
+
+        # Correlations suggests 5 levels in the full mlgp
+        corrs = MultiLevel([0.1, 0.2, 0.3, 0.4])
+
+        outputs = {2: -1, 3: 1, 4: 2}
+        data = MultiLevel(
+            {
+                2: [TrainingDatum(Input(0.1), outputs[2])],
+                3: [TrainingDatum(Input(0.1), outputs[3])],
+                4: [TrainingDatum(Input(0.1), outputs[4])],
+            }
+        )
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, corrs)
+
+        expected_data = MultiLevel(
+            {
+                2: [],
+                3: [],
+                4: [TrainingDatum(Input(0.1), outputs[4] - corrs[3] * outputs[3])],
+            }
+        )
+
+        # Ensure data is correct
+        self.assertEqual(expected_data, delta_data)
+
+    def test_delta_data_contains_inter_level_differences_of_outputs(self):
+        """The data returned consists of differences of outputs between successive levels,
+        accounting for the correlation between levels. The data returned for the bottom
+        level is just the same data supplied at this level."""
+
+        outputs = {1: 10, 2: -1, 3: 1, 4: 2}
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.1), outputs[1])],
+                2: [TrainingDatum(Input(0.1), outputs[2])],
+                3: [TrainingDatum(Input(0.1), outputs[3])],
+                4: [TrainingDatum(Input(0.1), outputs[4])],
+            }
+        )
+        correlations = MultiLevel([0.1, 0.2, 0.3])
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                1: [],
+                2: [],
+                3: [],
+                4: [TrainingDatum(Input(0.1), outputs[4] - correlations[3] * outputs[3])],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_delta_data_more_than_one_datum_at_levels(self):
+        """In the case where there are multiple training data at some level, the data
+        returned consists of differences of outputs between successive levels, accounting
+        for the correlation between levels. The data returned for the bottom level is just
+        the same data supplied at this level."""
+
+        data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.1), 1.1),
+                    TrainingDatum(Input(0.2), 2.2),
+                    TrainingDatum(Input(0.3), 3.3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1.11),
+                    TrainingDatum(Input(0.2), 2.22),
+                ],
+            }
+        )
+        correlations = MultiLevel([0.1, 0.2])
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.3), 3.3 - correlations[1] * 3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1.11 - correlations[2] * 1.1),
+                    TrainingDatum(Input(0.2), 2.22 - correlations[2] * 2.2),
+                ],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_missing_common_points(self):
+        """In the case where there are points at a higher level without a match at the previous
+        level, these points should be ignored, with all other deltas returned as usual."""
+
+        data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.1), 1.1),
+                    TrainingDatum(Input(0.2), 2.2),
+                    TrainingDatum(Input(0.3), 3.3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1.11),
+                    TrainingDatum(Input(0.5), 2.22),
+                ],
+            }
+        )
+        correlations = MultiLevel([0.1, 0.2])
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.2), 2.2 - correlations[1] * 2),
+                    TrainingDatum(Input(0.3), 3.3 - correlations[1] * 3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1.11 - correlations[2] * 1.1),
+                ],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_empty_deltas_higher_levels(self):
+        """If there are no matching points at the previous level, no deltas should be calculated and
+        the higher levels should be returned as empty."""
+
+        data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.11), 1.1),
+                    TrainingDatum(Input(0.22), 2.2),
+                    TrainingDatum(Input(0.33), 3.3),
+                ],
+                3: [
+                    TrainingDatum(Input(0.111), 1.11),
+                ],
+            }
+        )
+        correlations = MultiLevel([0.1, 0.2])
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [],
+                3: [],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_empty_deltas_first_level(self):
+        """If all points at the 1st level match those at the 2nd level, the resulting 1st level should be empty."""
+
+        data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [
+                    TrainingDatum(Input(0.1), 1.1),
+                    TrainingDatum(Input(0.2), 2.2),
+                    TrainingDatum(Input(0.3), 3.3),
+                    TrainingDatum(Input(0.4), 4.4),
+                ],
+            }
+        )
+        correlations = MultiLevel([0.1])
+
+        delta_data = create_data_for_multi_level_loo_sampling(data, correlations)
+
+        expected = MultiLevel(
+            {
+                1: [],
+                2: [
+                    TrainingDatum(Input(0.1), 1.1 - correlations[1] * 1),
+                    TrainingDatum(Input(0.2), 2.2 - correlations[1] * 2),
+                    TrainingDatum(Input(0.3), 3.3 - correlations[1] * 3),
+                    TrainingDatum(Input(0.4), 4.4 - correlations[1] * 4),
+                ],
+            }
+        )
+
+        self.assertEqual(expected, delta_data)
+
+    def test_empty_deltas_warning(self):
+        """Ensure a correct Warning is raised if a resulting level ends up empty."""
+
+        test_data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                    TrainingDatum(Input(0.2), 2),
+                    TrainingDatum(Input(0.3), 3),
+                    TrainingDatum(Input(0.4), 4),
+                ],
+                2: [],
+                3: [],
+            }
+        )
+        with catch_warnings(record=True) as w:
+            simplefilter("always")
+
+            _ = create_data_for_multi_level_loo_sampling(self.data)
+
+            # Check that two warnings were raised
+            self.assertEqual(len(w), 2)
+
+            # Check warning messages
+            self.assertEqual(
+                str(w[0].message),
+                "After processing, Level 1 is empty. Check your input data",
+            )
+            self.assertEqual(
+                str(w[1].message),
+                "After processing, Level 2 is empty. Check your input data",
+            )
+
+            # Check warning types
+            self.assertTrue(
+                all(issubclass(warning.category, UserWarning) for warning in w)
+            )
+
+        with catch_warnings(record=True) as w:
+            simplefilter("always")
+
+            _ = create_data_for_multi_level_loo_sampling(test_data)
+
+            # Check that two warnings were raised
+            self.assertEqual(len(w), 2)
+
+            # Check warning messages
+            self.assertEqual(
+                str(w[0].message),
+                "After processing, Level 2 is empty. Check your input data",
+            )
+            self.assertEqual(
+                str(w[1].message),
+                "After processing, Level 3 is empty. Check your input data",
+            )
+
+            # Check warning types
+            self.assertTrue(
+                all(issubclass(warning.category, UserWarning) for warning in w)
+            )
+
+
+class TestComputeDeltaCoefficients(ExauqTestCase):
+
+    def setUp(self) -> None:
+
+        self.levels = range(1, 5)
+
+    def test_argument_type_errors(self):
+        """Ensure that the correct TypeErrors are raised for arguments passed."""
+
+        arg1 = 0.6
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'levels' to be of type Sequence of int or int, "
+                f"but received {type(arg1)} instead."
+            ),
+        ):
+            _ = compute_delta_coefficients(arg1)
+
+        arg2 = "test"
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'correlations' to be of type MultiLevel Real or Real, "
+                f"but received {type(arg2)} instead."
+            ),
+        ):
+            _ = compute_delta_coefficients(self.levels, arg2)
+
+        arg3 = [1, 2, 2.9]
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                "Expected 'levels' to be of type Sequence of int or int, "
+                "but received unexpected types."
+            ),
+        ):
+            _ = compute_delta_coefficients(arg3)
+
+    def test_default_correlation(self):
+        """By default, a constant correlation of 1 is applied to every level
+        (except the top level)."""
+
+        delta_coefficients = compute_delta_coefficients(self.levels)
+
+        expected = MultiLevel({level: 1 for level in self.levels})
+        self.assertEqual(expected, delta_coefficients)
+
+    def test_delta_coefficients_constant_correlation_case(self):
+        """If a single real number is supplied for the correlations, then this is
+        interpreted as applying to every level (except the top level)."""
+
+        correlation = 0.5
+
+        delta_coefficients = compute_delta_coefficients(
+            self.levels, correlations=correlation
+        )
+
+        expected = MultiLevel(
+            {1: correlation**3, 2: correlation**2, 3: correlation, 4: 1}
+        )
+        self.assertEqual(expected, delta_coefficients)
+
+    def test_returns_delta_coefficients(self):
+        """The coefficients for creating the multi-level GP for LOO adaptive sampling
+        are returned, where the highest level coefficient is equal to 1 and each of the
+        lower coefficients are products of the supplied correlation values."""
+
+        data = MultiLevel(
+            {
+                1: [
+                    TrainingDatum(Input(0.1), 1),
+                ],
+                2: [
+                    TrainingDatum(Input(0.1), 1),
+                ],
+                3: [
+                    TrainingDatum(Input(0.1), 1),
+                ],
+                4: [
+                    TrainingDatum(Input(0.1), 1),
+                ],
+            }
+        )
+
+        # Case of 2 levels
+        corrs2 = MultiLevel([0.1])
+
+        delta_coefficients = compute_delta_coefficients(2, corrs2)
+
+        expected = MultiLevel({1: corrs2[1], 2: 1})
+        self.assertEqual(expected, delta_coefficients)
+
+        # Case of 3 levels
+        corrs3 = MultiLevel([0.1, 0.2])
+
+        delta_coefficients = compute_delta_coefficients(3, corrs3)
+
+        expected = MultiLevel({1: corrs3[1] * corrs3[2], 2: corrs3[2], 3: 1})
+        self.assertEqual(expected, delta_coefficients)
+
+        # Case of 4 levels
+        corrs4 = MultiLevel([0.1, 0.2, 0.3])
+
+        delta_coefficients = compute_delta_coefficients(4, corrs4)
+
+        expected = MultiLevel(
+            {
+                1: corrs4[1] * corrs4[2] * corrs4[3],
+                2: corrs4[2] * corrs4[3],
+                3: corrs4[3],
+                4: 1,
+            }
+        )
+        self.assertEqual(expected, delta_coefficients)
+
+
+class TestRemoveMultiLevelRepeatedInput(ExauqTestCase):
+
+    def test_multi_level_removal_repeated_inputs(self):
+        """Ensure that repeating inputs across levels are removed."""
+
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.3), 3)],
+                2: [TrainingDatum(Input(0.3), 3.3)],
+                3: [TrainingDatum(Input(0.3), 3.33)],
+            }
+        )
+
+        expected_return = MultiLevel({1: [], 2: [], 3: [TrainingDatum(Input(0.3), 3.33)]})
+
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
+    def test_multi_level_empty_level_data(self):
+        """Ensure that there are no errors with empty levels"""
+
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.3), 3)],
+                2: [],
+                3: [TrainingDatum(Input(0.3), 3.33)],
+            }
+        )
+
+        expected_return = MultiLevel({1: [], 2: [], 3: [TrainingDatum(Input(0.3), 3.33)]})
+
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
+    def test_multi_level_repeated_inputs_within_levels(self):
+        """Ensure if there are repeated inputs within lower levels, these are all removed."""
+
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.3), 3)],
+                2: [TrainingDatum(Input(0.3), 3), TrainingDatum(Input(0.3), 3)],
+                3: [TrainingDatum(Input(0.3), 3.33)],
+            }
+        )
+
+        expected_return = MultiLevel({1: [], 2: [], 3: [TrainingDatum(Input(0.3), 3.33)]})
+
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
+    def test_multi_level_repeated_inputs_in_highest_level(self):
+        """Ensure that if there are repeated inputs within the highest level, these
+        are all removed."""
+
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.3), 3)],
+                2: [TrainingDatum(Input(0.3), 3)],
+                3: [TrainingDatum(Input(0.3), 3.33), TrainingDatum(Input(0.3), 3.33)],
+            }
+        )
+
+        expected_return = MultiLevel({1: [], 2: [], 3: [TrainingDatum(Input(0.3), 3.33)]})
+
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
+    def test_multi_level_no_repeated_inputs(self):
+        """Ensure that if there are no repeated inputs then the entire Multilevel
+        is returned untouched."""
+
+        data = MultiLevel(
+            {
+                1: [TrainingDatum(Input(0.1), 1)],
+                2: [TrainingDatum(Input(0.2), 2.2)],
+                3: [TrainingDatum(Input(0.3), 3.33)],
+            }
+        )
+
+        expected_return = data
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
+    def test_multi_level_missing_level(self):
+        """Ensure that with missing levels, the correct repeating inputs are still removed"""
+
+        data = MultiLevel(
+            {1: [TrainingDatum(Input(0.3), 3)], 3: [TrainingDatum(Input(0.3), 3.33)]}
+        )
+
+        expected_return = MultiLevel({1: [], 3: [TrainingDatum(Input(0.3), 3.33)]})
+
+        level = 3
+        datum = data[level][0]
+
+        training_data = _remove_multi_level_repeated_input(data, datum, level)
+
+        self.assertEqual(training_data, expected_return)
+
 
 if __name__ == "__main__":
 

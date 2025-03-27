@@ -13,7 +13,6 @@ As well as implementing statistical methods for training multi-level emulators, 
 EXAUQ-Toolbox includes a command line application that takes care of the submission and
 management of remote jobs for simulators.
 
-
 <div class="grid cards" markdown>
 
 -   :octicons-beaker-24:{ .lg .middle } **Experimental Design**
