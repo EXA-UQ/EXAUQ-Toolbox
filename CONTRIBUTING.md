@@ -147,7 +147,9 @@ The toolbox uses [MkDocs](https://www.mkdocs.org/) with the following plugins:
 
 ### Building the Docs
 
-Currently, documentation is distributed within the toolbox for offline viewing. Building
+Documentation for the EXAUQ-Toolbox is now hosted online at 
+[https://exa-uq.github.io/EXAUQ-Toolbox/](https://exa-uq.github.io/EXAUQ-Toolbox/). 
+This is the official and recommended way to access the documentation. Building
 the documentation is a two-step process (run from the repository root directory,
 either using `poetry run` or after first activating the Poetry environment):
 
