@@ -1577,7 +1577,7 @@ def _remove_multi_level_repeated_input(
 
     Returns
     -------
-    MultiLevel[Sequecnce[TrainingDatum]]
+    MultiLevel[Sequence[TrainingDatum]]
         Returns an updated version of data with repeated inputs removed.
     """
 
