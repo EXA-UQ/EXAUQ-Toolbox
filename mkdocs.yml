@@ -30,7 +30,6 @@ nav:
       - "Training a Multi-Level Gaussian Process Emulator": "designers/tutorials/training_multi_level_gp_tutorial.md"
       - "Single Level Adaptive Sampling": "designers/tutorials/slas_tutorial.md"
       - "Multi-Level Adaptive Sampling": "designers/tutorials/mlas_tutorial.md"
-      - "A Typical Multi-Level Adaptive Design Workflow": "designers/typical-multi-level-adaptive-design.md"
   - "Command Line App":
     - "cli/index.md"
     - "A First Walkthrough": "cli/first-walkthrough.md"
