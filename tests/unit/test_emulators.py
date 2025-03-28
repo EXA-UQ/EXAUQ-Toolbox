@@ -840,13 +840,13 @@ class TestMogpEmulator(ExauqTestCase):
 
         emulator = MogpEmulator()
 
-        training_data = [TrainingDatum(Input(0), 1), TrainingDatum(Input(0.2), 2)]
+        training_data = [TrainingDatum(Input(0), 1)]
 
         with self.assertWarnsRegex(
             UserWarning,
             exact(
-                "Warning: number of parameters being estimated is larger than the size of the training data (2), "
-                "estimates should not be trusted."
+                "Fewer training points (1) than hyperparameters (2) being "
+                "estimated. Estimates may be unreliable."
             ),
         ):
             _ = emulator.fit(training_data)
@@ -867,8 +867,8 @@ class TestMogpEmulator(ExauqTestCase):
         with self.assertWarnsRegex(
             UserWarning,
             exact(
-                "Warning: number of parameters being estimated is larger than the size of the training data (4), "
-                "estimates should not be trusted."
+                "Fewer training points (4) than hyperparameters (6) being "
+                "estimated. Estimates may be unreliable."
             ),
         ):
             _ = emulator.fit(training_data)
