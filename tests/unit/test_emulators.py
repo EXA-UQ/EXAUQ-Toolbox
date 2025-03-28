@@ -849,7 +849,7 @@ class TestMogpEmulator(ExauqTestCase):
                 "estimated. Estimates may be unreliable."
             ),
         ):
-            _ = emulator.fit(training_data)
+            emulator.fit(training_data)
 
     def test_small_training_data_warning_5D_input(self):
         """Ensure a correct Warning is raised if the size of the training set is less than the number of
