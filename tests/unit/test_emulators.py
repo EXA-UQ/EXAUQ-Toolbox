@@ -27,7 +27,7 @@ class TestMogpEmulator(ExauqTestCase):
         self.inputs3 = [Input(1, 1), Input(2, 2), Input(3, 3)]
         self.inputs4 = [Input(10, 10), Input(20, 20)]
 
-        # kwargs for constructing an mogp GuassianProcess object
+        # kwargs for constructing an mogp GaussianProcess object
         self.gp_kwargs = {
             "mean": None,
             "kernel": "Matern52",  # non-default
@@ -833,6 +833,45 @@ class TestMogpEmulator(ExauqTestCase):
         for x in (Input(0.1 * n, 0.1 * n) for n in range(1, 10)):
             assert x not in training_inputs
             self.assertTrue(emulator.predict(x).variance > 0)
+
+    def test_small_training_data_warning(self):
+        """Ensure a correct Warning is raised if the size of the training set is less than the number of
+        hyperparameters in the Gaussian Process."""
+
+        emulator = MogpEmulator()
+
+        training_data = [TrainingDatum(Input(0), 1)]
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact(
+                "Fewer training points (1) than hyperparameters (2) being "
+                "estimated. Estimates may be unreliable."
+            ),
+        ):
+            emulator.fit(training_data)
+
+    def test_small_training_data_warning_5D_input(self):
+        """Ensure a correct Warning is raised if the size of the training set is less than the number of
+        hyperparameters in the Gaussian Process."""
+
+        emulator = MogpEmulator()
+
+        training_data = [
+            TrainingDatum(Input(0, 0, 0, 0, 0), 1),
+            TrainingDatum(Input(0.2, 0.2, 0.2, 0.2, 0.2), 2),
+            TrainingDatum(Input(0.4, 0.4, 0.4, 0.4, 40.4), 0),
+            TrainingDatum(Input(0.6, 0.6, 0.6, 0.6, 0.6), 1),
+        ]
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            exact(
+                "Fewer training points (4) than hyperparameters (6) being "
+                "estimated. Estimates may be unreliable."
+            ),
+        ):
+            emulator.fit(training_data)
 
 
 class TestMogpHyperparameters(ExauqTestCase):
