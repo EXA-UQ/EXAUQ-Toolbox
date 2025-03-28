@@ -45,6 +45,7 @@ import itertools
 from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Literal, Optional
+from warnings import warn
 
 import mogp_emulator as mogp
 import numpy as np
@@ -298,6 +299,12 @@ class MogpEmulator(AbstractGaussianProcess):
         self._fit_hyperparameters = MogpHyperparameters.from_mogp_gp_params(
             self._gp.theta
         )
+
+        if len(training_data) < self._gp.n_params:
+            warn(
+                f"Fewer training points ({len(training_data)}) than hyperparameters ({self._gp.n_params}) being "
+                f"estimated. Estimates may be unreliable."
+            )
 
         self._corr_transformed = self._gp.theta.corr_raw
         self._training_data = training_data
