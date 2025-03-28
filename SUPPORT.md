@@ -15,7 +15,7 @@ environment for all.
 is structured by the EXAUQ-Toolbox team.
 
 - If you wish to fork the repository, or use it in some way please do refer to 
-the following [License](LICENSE.txt) before doing so to ensure this is upheld correctly. 
+the following [License](LICENSE) before doing so to ensure this is upheld correctly. 
 
 
 ## References
