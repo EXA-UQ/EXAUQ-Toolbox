@@ -57,7 +57,7 @@ import warnings
 from collections.abc import Collection, Mapping, Sequence
 from itertools import product
 from numbers import Real
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, TypeVar, Union
 from warnings import warn
 
 import numpy as np
@@ -70,8 +70,13 @@ from exauq.utilities.csv_db import Path
 from exauq.utilities.validation import check_int
 
 OptionalFloatPairs = tuple[Optional[float], Optional[float]]
+
+TrainingData = Collection["TrainingDatum"]
+MLTrainingData = "MultiLevel[TrainingData]"
+
 T = TypeVar("T")
 S = TypeVar("S")
+TrainingDataT = TypeVar("TrainingDataT", TrainingData, MLTrainingData)
 
 
 class Input(Sequence):
@@ -825,7 +830,7 @@ class GaussianProcessPrediction(Prediction):
             return 0 if expected_sq_err == 0 else float("inf")
 
 
-class AbstractEmulator(abc.ABC):
+class AbstractEmulator(abc.ABC, Generic[TrainingDataT]):
     """Represents an abstract emulator for simulators.
 
     Classes that inherit from this abstract base class define emulators which
@@ -852,7 +857,7 @@ class AbstractEmulator(abc.ABC):
     @abc.abstractmethod
     def fit(
         self,
-        training_data: Collection[TrainingDatum],
+        training_data: TrainingDataT,
         hyperparameters: Optional[AbstractHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
@@ -901,7 +906,7 @@ class AbstractEmulator(abc.ABC):
         raise NotImplementedError
 
 
-class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
+class AbstractGaussianProcess(AbstractEmulator[TrainingDataT], abc.ABC):
     """Represents an abstract Gaussian process emulator for simulators.
 
     Classes that inherit from this abstract base class define emulators which
@@ -936,7 +941,7 @@ class AbstractGaussianProcess(AbstractEmulator, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fit(
         self,
-        training_data: Collection[TrainingDatum],
+        training_data: TrainingDataT,
         hyperparameters: Optional[GaussianProcessHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
@@ -1349,7 +1354,9 @@ def _can_instantiate_multi_level(elements: Any, tp: type) -> bool:
         return False
 
 
-class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmulator):
+class MultiLevelGaussianProcess(
+    MultiLevel[AbstractGaussianProcess], AbstractEmulator[MLTrainingData]
+):
     """A multi-level Gaussian process (GP) emulator for simulators.
 
     A multi-level GP is a weighted sum of Gaussian processes, where each GP in the sum is
@@ -1471,7 +1478,7 @@ class MultiLevelGaussianProcess(MultiLevel[AbstractGaussianProcess], AbstractEmu
 
     def fit(
         self,
-        training_data: MultiLevel[Collection[TrainingDatum]],
+        training_data: MLTrainingData,
         hyperparameters: Optional[
             Union[
                 MultiLevel[GaussianProcessHyperparameters],
