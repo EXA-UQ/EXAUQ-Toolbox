@@ -871,7 +871,7 @@ class TestMogpEmulator(ExauqTestCase):
                 "estimated. Estimates may be unreliable."
             ),
         ):
-            _ = emulator.fit(training_data)
+            emulator.fit(training_data)
 
 
 class TestMogpHyperparameters(ExauqTestCase):
