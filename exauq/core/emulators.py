@@ -300,10 +300,10 @@ class MogpEmulator(AbstractGaussianProcess):
             self._gp.theta
         )
 
-        if len(training_data) < (len(training_data[0].input) + 3):
+        if len(training_data) < self._gp.n_params:
             warn(
-                f"Warning: number of parameters being estimated is larger than the size of the training data ({inputs.shape[0]}), "
-                f"estimates should not be trusted."
+                f"Fewer training points ({len(training_data)}) than hyperparameters ({self._gp.n_params}) being "
+                f"estimated. Estimates may be unreliable."
             )
 
         self._corr_transformed = self._gp.theta.corr_raw
