@@ -42,6 +42,14 @@ Alongside the research team for the algorithms:
   - [Dr. James Salter](https://experts.exeter.ac.uk/26439-james-salter)
   - [Dr. Louise Kimpton](https://experts.exeter.ac.uk/28206-louise-kimpton)
   - [Dr. Xiaoyu Xiong](https://experts.exeter.ac.uk/27140-xiaoyu-xiong)
+
+## Citation
+
+If you use the **EXAUQ-Toolbox** in your work, please cite it as:
+
+> Hawes, T., Johns, M., White, H., Salter, J., Olivier, E., Kimpton, L., Xiong, X., & Challenor, P. (2025). *EXAUQ-Toolbox* (Version v0.3.1) [Computer software]. https://doi.org/10.5281/zenodo.15005642
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15005642.svg)](https://doi.org/10.5281/zenodo.15005642)
   
 ## Installing the latest release version
 
