@@ -45,9 +45,10 @@ Alongside the research team for the algorithms:
 
 ## Citation
 
-If you use the **EXAUQ-Toolbox** in your work, please cite it as:
+If you use the EXAUQ-Toolbox in your work, please cite the appropriate version via Zenodo:
 
-> Hawes, T., Johns, M., White, H., Salter, J., Olivier, E., Kimpton, L., Xiong, X., & Challenor, P. (2025). *EXAUQ-Toolbox* (Version v0.3.1) [Computer software]. https://doi.org/10.5281/zenodo.15005642
+> Hawes, T., Johns, M., White, H., Salter, J., Olivier, E., Kimpton, L., Xiong, X., & Challenor, P. (2025).  
+> *EXAUQ-Toolbox* [Computer software]. https://doi.org/10.5281/zenodo.15005642
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15005642.svg)](https://doi.org/10.5281/zenodo.15005642)
   
