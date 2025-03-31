@@ -1,9 +1,9 @@
 cff-version: 1.2.0
 message: "If you use this toolbox, please cite it as below."
 title: "EXAUQ-Toolbox"
-version: "v0.3.1"
+version: "v0.3.2"
 doi: 10.5281/zenodo.15005642
-date-released: 2025-03-31
+date-released: 2025-04-01
 repository-code: https://github.com/EXA-UQ/EXAUQ-Toolbox
 license: BSD 3-Clause
 type: software
