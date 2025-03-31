@@ -7,7 +7,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Import sorting: isort](https://img.shields.io/badge/imports-isort-ef8336.svg)](https://pycqa.github.io/isort/)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com/)
-![Last commit](https://img.shields.io/github/last-commit/EXA-UQ/EXAUQ-Toolbox)
+[![Last commit](https://img.shields.io/github/last-commit/EXA-UQ/EXAUQ-Toolbox)](https://github.com/EXA-UQ/EXAUQ-Toolbox/commits)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15005642.svg)](https://doi.org/10.5281/zenodo.15005642)
 
 
