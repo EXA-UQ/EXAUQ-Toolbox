@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this toolbox, please cite it as below."
+title: "EXAUQ-Toolbox"
+version: "v0.3.2"
+doi: 10.5281/zenodo.15005642
+date-released: 2025-04-01
+repository-code: https://github.com/EXA-UQ/EXAUQ-Toolbox
+license: BSD 3-Clause
+type: software
+authors:
+  - family-names: Hawes
+    given-names: Thomas
+  - family-names: Johns
+    given-names: Matthew
+  - family-names: White
+    given-names: Harrison
+  - family-names: Salter
+    given-names: James
+  - family-names: Olivier
+    given-names: Enrico
+  - family-names: Kimpton
+    given-names: Louise
+  - family-names: Xiong
+    given-names: Xiaoyu
+  - family-names: Challenor
+    given-names: Peter
