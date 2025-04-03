@@ -836,7 +836,7 @@ class MogpHyperparameters(GaussianProcessHyperparameters):
         return params
 
 
-class DeepDishGPHyperparameters(AbstractHyperparameters):
+class BayHEMGPHyperparameters(AbstractHyperparameters):
     """
     Class to manage hyperparameters for multi-level Gaussian Process models.
 
@@ -1192,9 +1192,9 @@ class PosteriorMean(pm.gp.mean.Mean):
         return M_post
 
 
-class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
+class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
     """
-    Multi-level Deep GP emulator using PyMC.
+    Bayesian Hierarchical multi-level GP emulator using PyMC.
 
     This class implements a multi-level Gaussian Process where each level
     builds upon the posterior distribution of the previous level.
@@ -1204,7 +1204,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
 
     def __init__(self):
         """
-        Initialize a DeepDishGP.
+        Initialize a BayHEMGP.
 
         The number of input dimensions and levels will be determined
         automatically from the training data when fit() is called.
@@ -1322,13 +1322,13 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
     def fit(
         self,
         training_data: MLTrainingData,
-        hyperparameters: Optional[DeepDishGPHyperparameters] = None,
+        hyperparameters: Optional[BayHEMGPHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
         draws=1000,
         tune=1000,
     ) -> None:
         """
-        Fit the DeepDishGP to data.
+        Fit the BayHEMGP to data.
 
         Parameters
         ----------
@@ -1468,7 +1468,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
 
         Returns
         -------
-        DeepDishGPHyperparameters
+        BayHEMGPHyperparameters
             Configured hyperparameters object
         """
 
@@ -1477,7 +1477,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
                 "Cannot create hyperparameters before fitting. Input dimensions and levels unknown."
             )
 
-        hparams = DeepDishGPHyperparameters(
+        hparams = BayHEMGPHyperparameters(
             input_dims=self._input_dims, levels=self._levels
         )
 
@@ -1510,7 +1510,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
         ----------
         trace : PyMC inference data
             Trace from sampling
-        hparams : DeepDishGPHyperparameters
+        hparams : BayHEMGPHyperparameters
             Hyperparameters object used for sampling
         level: which level to extract the hyperparameters from
 
