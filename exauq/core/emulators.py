@@ -863,12 +863,12 @@ class DeepDishGPHyperparameters(AbstractHyperparameters):
         levels : int
             Number of levels in the multi-level GP model
         """
-        self.model = model_context
-        self.input_dims = input_dims
-        self.levels = levels
-        self.param_specs = {}  # Specifications for parameters
-        self.params = {}  # Created parameter objects
-        self.initialized = False
+        self._model = model_context
+        self._input_dims = input_dims
+        self._levels = levels
+        self._param_specs = {}  # Specifications for parameters
+        self._params = {}  # Created parameter objects
+        self._initialized = False
 
     def set_model_context(self, model_context):
         """
@@ -879,10 +879,10 @@ class DeepDishGPHyperparameters(AbstractHyperparameters):
         model_context : pm.Model
             PyMC model context where hyperparameters will be defined
         """
-        self.model = model_context
+        self._model = model_context
         # Reset initialization state and params since we have a new context
-        self.initialized = False
-        self.params = {}
+        self._initialized = False
+        self._params = {}
         return self
 
     def set_prior(self, param_name, dist_type, **dist_kwargs):
@@ -903,52 +903,52 @@ class DeepDishGPHyperparameters(AbstractHyperparameters):
         if "_L" not in param_name:
             param_name = f"{param_name}_L1"
 
-        self.param_specs[param_name] = {"dist_type": dist_type, "params": dist_kwargs}
+        self._param_specs[param_name] = {"dist_type": dist_type, "params": dist_kwargs}
 
         # Clear params to ensure reinitialization
-        self.params = {}
-        self.initialized = False
+        self._params = {}
+        self._initialized = False
         return self
 
     def apply_defaults(self):
         """Apply default prior distributions for parameters not explicitly set"""
         # Define defaults for Level 1
-        for i in range(1, self.input_dims + 1):
-            if f"ls{i}_L1" not in self.param_specs:
-                self.param_specs[f"ls{i}_L1"] = {
+        for i in range(1, self._input_dims + 1):
+            if f"ls{i}_L1" not in self._param_specs:
+                self._param_specs[f"ls{i}_L1"] = {
                     "dist_type": "Gamma",
                     "params": {"alpha": 2, "beta": 4},
                 }
 
-        if "sig_L1" not in self.param_specs:
-            self.param_specs["sig_L1"] = {
+        if "sig_L1" not in self._param_specs:
+            self._param_specs["sig_L1"] = {
                 "dist_type": "Gamma",
                 "params": {"alpha": 8, "beta": 2},
             }
 
-        if "nug_L1" not in self.param_specs:
-            self.param_specs["nug_L1"] = {
+        if "nug_L1" not in self._param_specs:
+            self._param_specs["nug_L1"] = {
                 "dist_type": "Gamma",
                 "params": {"alpha": 2, "beta": 4},
             }
 
-        if "beta_L1" not in self.param_specs:
-            self.param_specs["beta_L1"] = {
+        if "beta_L1" not in self._param_specs:
+            self._param_specs["beta_L1"] = {
                 "dist_type": "Normal",
                 "params": {"mu": 0, "sigma": 10},
             }
 
         # Set up inheritance for higher levels
         base_params = ["sig", "nug", "beta"]
-        base_params.extend([f"ls{i}" for i in range(1, self.input_dims + 1)])
+        base_params.extend([f"ls{i}" for i in range(1, self._input_dims + 1)])
 
-        for level in range(2, self.levels + 1):
+        for level in range(2, self._levels + 1):
             for base_param in base_params:
                 param_name = f"{base_param}_L{level}"
-                if param_name not in self.param_specs:
+                if param_name not in self._param_specs:
                     # Inherit from the previous level
                     prev_level_param = f"{base_param}_L{level - 1}"
-                    self.param_specs[param_name] = {"inherit_from": prev_level_param}
+                    self._param_specs[param_name] = {"inherit_from": prev_level_param}
 
     def initialize(self):
         """
@@ -959,10 +959,10 @@ class DeepDishGPHyperparameters(AbstractHyperparameters):
         ValueError
             If model_context has not been set
         """
-        if self.initialized:
+        if self._initialized:
             return
 
-        if self.model is None:
+        if self._model is None:
             raise ValueError(
                 "Model context must be set before initialization. Use set_model_context()."
             )
@@ -972,22 +972,22 @@ class DeepDishGPHyperparameters(AbstractHyperparameters):
 
         # Create actual parameter objects
         created_params = {}
-        with self.model:
+        with self._model:
             # First pass: create all parameters that don't inherit
-            for param_name, spec in self.param_specs.items():
+            for param_name, spec in self._param_specs.items():
                 if "inherit_from" not in spec:
                     dist_class = getattr(pm, spec["dist_type"])
                     created_params[param_name] = dist_class(param_name, **spec["params"])
 
         # Second pass: resolve inheritances
-        self.params = created_params.copy()
-        for param_name, spec in self.param_specs.items():
+        self._params = created_params.copy()
+        for param_name, spec in self._param_specs.items():
             if "inherit_from" in spec:
                 inherit_from = spec["inherit_from"]
-                if inherit_from in self.params:
-                    self.params[param_name] = self.params[inherit_from]
+                if inherit_from in self._params:
+                    self._params[param_name] = self._params[inherit_from]
 
-        self.initialized = True
+        self._initialized = True
 
     def get(self, param_name, level=None):
         """
@@ -1011,18 +1011,18 @@ class DeepDishGPHyperparameters(AbstractHyperparameters):
         ValueError
             If model_context has not been set or parameter initialization failed
         """
-        if self.model is None:
+        if self._model is None:
             raise ValueError(
                 "Model context must be set before getting parameters. Use set_model_context()."
             )
 
-        if not self.initialized:
+        if not self._initialized:
             self.initialize()
 
         if level is not None:
             param_name = f"{param_name}_L{level}"
 
-        param = self.params.get(param_name)
+        param = self._params.get(param_name)
         if param is None:
             raise ValueError(
                 f"Parameter {param_name} not found. Check parameter name and level."
@@ -1044,7 +1044,7 @@ class DeepDishGPHyperparameters(AbstractHyperparameters):
         list
             List of length scale parameters for the specified level
         """
-        return [self.get(f"ls{i}", level=level) for i in range(1, self.input_dims + 1)]
+        return [self.get(f"ls{i}", level=level) for i in range(1, self._input_dims + 1)]
 
     def get_all_for_level(self, level):
         """
@@ -1060,19 +1060,19 @@ class DeepDishGPHyperparameters(AbstractHyperparameters):
         dict
             Dictionary of parameter names to parameter objects
         """
-        if self.model is None:
+        if self._model is None:
             raise ValueError(
                 "Model context must be set before getting parameters. Use set_model_context()."
             )
 
-        if not self.initialized:
+        if not self._initialized:
             self.initialize()
 
         level_params = {}
-        for param_name in self.params:
+        for param_name in self._params:
             if f"_L{level}" in param_name:
                 base_name = param_name.split(f"_L{level}")[0]
-                level_params[base_name] = self.params[param_name]
+                level_params[base_name] = self._params[param_name]
 
         return level_params
 
@@ -1324,6 +1324,8 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
         training_data: MLTrainingData,
         hyperparameters: Optional[DeepDishGPHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+        draws=1000,
+        tune=1000,
     ) -> None:
         """
         Fit the DeepDishGP to data.
@@ -1336,6 +1338,8 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
             Hyperparameters to use (if None, they will be estimated)
         hyperparameter_bounds : Optional[Sequence[OptionalFloatPairs]]
             Bounds for hyperparameter estimation
+        draws: number of samples
+        tune: number of warmup samples
         """
         X_arrays, y_arrays, combined_data = self._organize_training_data(training_data)
 
@@ -1427,8 +1431,8 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
 
             # Sample
             trace = pm.sample(
-                1000,
-                tune=1000,
+                draws=draws,
+                tune=tune,
                 return_inferencedata=True,
                 target_accept=0.95,
                 progressbar=True,
