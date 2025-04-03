@@ -42,9 +42,10 @@ from __future__ import annotations
 
 import dataclasses
 import itertools
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from numbers import Real
 from typing import Any, Literal, Optional, Tuple
+from warnings import warn
 
 import mogp_emulator as mogp
 import numpy as np
@@ -306,6 +307,12 @@ class MogpEmulator(AbstractGaussianProcess[TrainingData]):
         self._fit_hyperparameters = MogpHyperparameters.from_mogp_gp_params(
             self._gp.theta
         )
+
+        if len(training_data) < self._gp.n_params:
+            warn(
+                f"Fewer training points ({len(training_data)}) than hyperparameters ({self._gp.n_params}) being "
+                f"estimated. Estimates may be unreliable."
+            )
 
         self._corr_transformed = self._gp.theta.corr_raw
         self._training_data = training_data
@@ -1313,10 +1320,10 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
         return X_arrays, y_arrays, list(zip(X_arrays, y_arrays))
 
     def fit(
-            self,
-            training_data: MLTrainingData,
-            hyperparameters: Optional[DeepDishGPHyperparameters] = None,
-            hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+        self,
+        training_data: MLTrainingData,
+        hyperparameters: Optional[DeepDishGPHyperparameters] = None,
+        hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
     ) -> None:
         """
         Fit the DeepDishGP to data.
@@ -1355,7 +1362,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
             nug_L1 = hparams.get_nugget(1)
             beta_L1 = hparams.get_mean_constant(1)
 
-            cov1 = sig_L1 ** 2 * pm.gp.cov.ExpQuad(self._input_dims, ls=length_scales_L1)
+            cov1 = sig_L1**2 * pm.gp.cov.ExpQuad(self._input_dims, ls=length_scales_L1)
             mean1 = pm.gp.mean.Constant(beta_L1)
             gp1 = pm.gp.Marginal(mean_func=mean1, cov_func=cov1)
             y_obs1 = gp1.marginal_likelihood(
@@ -1377,7 +1384,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
                 beta = hparams.get_mean_constant(level)
 
                 # Create level-specific prior cov and mean
-                cov_prior = sig ** 2 * pm.gp.cov.ExpQuad(self._input_dims, ls=length_scales)
+                cov_prior = sig**2 * pm.gp.cov.ExpQuad(self._input_dims, ls=length_scales)
                 mean_prior = pm.gp.mean.Constant(beta)
 
                 # Store for later use
@@ -1397,7 +1404,12 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
                         level_cov, X_arrays, prev_level + 1, 1e-4
                     )
                     level_mean = PosteriorMean(
-                        level_mean, prev_covs[idx], X_arrays, y_arrays, prev_level + 1, 1e-4
+                        level_mean,
+                        prev_covs[idx],
+                        X_arrays,
+                        y_arrays,
+                        prev_level + 1,
+                        1e-4,
                     )
 
                 # Add to tracking lists
@@ -1581,7 +1593,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
                 beta_value = beta_value_L1
 
             # Create the level-specific covariance and mean functions
-            cov_level = sig_value ** 2 * pm.gp.cov.ExpQuad(self._input_dims, ls=ls_values)
+            cov_level = sig_value**2 * pm.gp.cov.ExpQuad(self._input_dims, ls=ls_values)
             mean_level = pm.gp.mean.Constant(beta_value)
 
             # For levels higher than 1, apply posterior transformations
@@ -1593,14 +1605,18 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
 
                     # Extract noise parameter for previous level
                     try:
-                        nug_prev = float(trace.posterior[f"nug_L{prev_level}"].mean().values)
+                        nug_prev = float(
+                            trace.posterior[f"nug_L{prev_level}"].mean().values
+                        )
                     except (KeyError, AttributeError):
                         nug_prev = float(trace.posterior["nug_L1"].mean().values)
 
                     # Creating posterior functions in numpy for stability
                     # Compute Gram matrix
                     K_xx = self._compute_gram_matrix(X_prev, X_prev, ls_values, sig_value)
-                    K_xs = self._compute_gram_matrix(X_prev, x_array, ls_values, sig_value)
+                    K_xs = self._compute_gram_matrix(
+                        X_prev, x_array, ls_values, sig_value
+                    )
                     k_ss = sig_value  # Self-covariance
 
                     # Add noise
@@ -1630,8 +1646,12 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
                     level_vars.append(level_var)
             else:
                 # For level 1, use standard GP prediction
-                K_xx = self._compute_gram_matrix(X_arrays[0], X_arrays[0], ls_values, sig_value)
-                K_xs = self._compute_gram_matrix(X_arrays[0], x_array, ls_values, sig_value)
+                K_xx = self._compute_gram_matrix(
+                    X_arrays[0], X_arrays[0], ls_values, sig_value
+                )
+                K_xs = self._compute_gram_matrix(
+                    X_arrays[0], x_array, ls_values, sig_value
+                )
                 k_ss = sig_value
 
                 try:

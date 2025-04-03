@@ -1,5 +1,16 @@
 # EXAscale Uncertainty Quantification Toolbox (EXAUQ-Toolbox)
 
+[![Tests](https://img.shields.io/github/actions/workflow/status/EXA-UQ/EXAUQ-Toolbox/test-package.yml?label=tests&logo=github)](https://github.com/EXA-UQ/EXAUQ-Toolbox/actions)
+[![Python](https://img.shields.io/badge/Python-3.10%20|%203.11%20|%203.12%20|%203.13-blue?logo=python)](https://www.python.org/)
+[![Docs](https://img.shields.io/badge/docs-online-blue)](https://exa-uq.github.io/EXAUQ-Toolbox/)
+[![License](https://img.shields.io/github/license/EXA-UQ/EXAUQ-Toolbox)](https://github.com/EXA-UQ/EXAUQ-Toolbox/blob/main/LICENSE)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Import sorting: isort](https://img.shields.io/badge/imports-isort-ef8336.svg)](https://pycqa.github.io/isort/)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com/)
+[![Last commit](https://img.shields.io/github/last-commit/EXA-UQ/EXAUQ-Toolbox)](https://github.com/EXA-UQ/EXAUQ-Toolbox/commits)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15005642.svg)](https://doi.org/10.5281/zenodo.15005642)
+
+
 The EXAUQ-Toolbox is a collection of packages and utilities that supports the development of
 emulators of complex computer simulations. A key feature is support for fitting
 multi-level Gaussian Process emulators for hierarchies of simulation models. Simulations in the
@@ -31,6 +42,15 @@ Alongside the research team for the algorithms:
   - [Dr. James Salter](https://experts.exeter.ac.uk/26439-james-salter)
   - [Dr. Louise Kimpton](https://experts.exeter.ac.uk/28206-louise-kimpton)
   - [Dr. Xiaoyu Xiong](https://experts.exeter.ac.uk/27140-xiaoyu-xiong)
+
+## Citation
+
+If you use the EXAUQ-Toolbox in your work, please cite the appropriate version via Zenodo:
+
+> Hawes, T., Johns, M., White, H., Salter, J., Olivier, E., Kimpton, L., Xiong, X., & Challenor, P. (2025).  
+> *EXAUQ-Toolbox* [Computer software]. https://doi.org/10.5281/zenodo.15005642
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15005642.svg)](https://doi.org/10.5281/zenodo.15005642)
   
 ## Installing the latest release version
 

@@ -65,14 +65,16 @@ import csv
 import os
 import random
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from collections.abc import Collection
 from datetime import datetime
 from numbers import Real
 from threading import Event, Lock, Thread
 from time import sleep
 from typing import Any, Optional, Sequence, Union
+from warnings import warn
 
-from exauq.core.modelling import Input, MultiLevel
+from exauq.core.modelling import Input, MultiLevel, TrainingDatum
 from exauq.sim_management.hardware import (
     PENDING_STATUSES,
     TERMINAL_STATUSES,
@@ -194,19 +196,20 @@ class SimulationsLog(object):
         """Get the interface name of a job from a database record"""
         return record[self._interface_name_key]
 
-    def get_simulations(self) -> tuple[Simulation, ...]:
+    def get_simulations(self) -> tuple[tuple[Input, Optional[Real], int]]:
         """
         Get all simulations contained in the log file.
 
-        This returns an immutable sequence of simulator inputs along with outputs. In
-        the case where the simulator output is not available for the corresponding
-        input, ``None`` is instead returned alongside the input.
+        This returns an immutable sequence of simulator inputs, outputs and their
+        corresponding level. In the case where the simulator output is not available
+        for the corresponding input, ``None`` is instead returned alongside the input.
 
         Returns
         -------
-        tuple[tuple[Input, Optional[Real]]]
-            A tuple of ``(x, y)`` pairs, where ``x`` is an `Input` and ``y`` is the
-            simulation output, or ``None`` if this hasn't yet been computed.
+        tuple[tuple[Input, Optional[Real], int]]
+            A tuple of ``(x, y, z)``, where ``x`` is an `Input`, ``y`` is the
+            simulation output, or ``None`` if this hasn't yet been computed and
+            ``z`` is the level of the simulation.
         """
         with self._lock:
             return tuple(
@@ -214,8 +217,10 @@ class SimulationsLog(object):
                 for record in self._simulations_db.query()
             )
 
-    def _extract_simulation(self, record: dict[str, str]) -> Simulation:
-        """Extract a pair of simulator inputs and outputs from a dictionary record read
+    def _extract_simulation(
+        self, record: dict[str, str]
+    ) -> tuple[tuple[Input, Optional[Real], int]]:
+        """Extract simulator inputs, outputs and level from a dictionary record read
         from the log file. Missing outputs are converted to ``None``."""
 
         input_items = sorted(
@@ -226,7 +231,9 @@ class SimulationsLog(object):
         x = Input(*input_coords)
         output = self._get_output(record)
         y = float(output) if output else None
-        return x, y
+        level = self._get_job_level(record)
+        z = int(level)
+        return x, y, z
 
     def add_new_record(
         self,
@@ -253,7 +260,7 @@ class SimulationsLog(object):
             The status of the job to be recorded alongside the input `x`.
             Defaults to JobStatus.PENDING_SUBMIT.
         job_level : int, optional
-            The level of the job. Defaults to 0.
+            The level of the job. Defaults to 1.
         interface_name : Optional[str], optional
             The name of the interface that the job is assigned to. Defaults to None.
 
@@ -291,8 +298,8 @@ class SimulationsLog(object):
             self._simulations_db.create(record)
 
     def insert_result(self, job_id: Union[str, JobId], result: Real) -> None:
-        """
-        Insert the output of a simulation into a job record in the simulations log file.
+        """Insert the output of a simulation into a job record in the simulations log
+        file.
 
         Parameters
         ----------
@@ -538,6 +545,33 @@ class SimulationsLog(object):
                     "no such simulation exists."
                 )
                 raise SimulationsLogLookupError(msg)
+
+    def prepare_training_data(self) -> MultiLevel[Sequence[TrainingDatum]]:
+        """Transform the simulations log into feasible training data for an mlgp.
+
+        This quality of life function allows the user to have a direct route from
+        the simulation log within the job management side of the Toolbox, to a set of
+        training data for fitting to a mlgp.
+
+        Returns
+        -------
+        MultiLevel[Sequence[TrainingDatum]]
+            The prepared training data for the mlgp.
+        """
+
+        simulations = self.get_simulations()
+
+        training_data = defaultdict(list)
+        for design_input, output, level in simulations:
+            if output is not None:
+                training_data[level].append(TrainingDatum(design_input, output))
+
+        if not training_data.items():
+            warn(
+                "No successfully completed simulations in log, returning empty MultiLevel."
+            )
+
+        return MultiLevel(training_data)
 
 
 class SimulationsLogLookupError(Exception):
