@@ -1370,7 +1370,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
             mean1 = pm.gp.mean.Constant(beta_L1)
             gp1 = pm.gp.Marginal(mean_func=mean1, cov_func=cov1)
             y_obs1 = gp1.marginal_likelihood(
-                "y_obs1", X=X_arrays[0], y=y_arrays[0], noise=nug_L1
+                "y_obs1", X=X_arrays[0], y=y_arrays[0], sigma=nug_L1
             )
 
             self._cov_funcs.append(cov1)
@@ -1426,7 +1426,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
                     f"y_obs{level}",
                     X=X_arrays[level - 1],
                     y=y_arrays[level - 1],
-                    noise=nug,
+                    sigma=nug,
                 )
 
             # Sample
@@ -1445,9 +1445,14 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
         self._all_mean_funcs = prev_means
 
         # Store hyperparameters
-        self._fit_hyperparameters = self._extract_hyperparameters_from_trace(
-            trace, hparams
-        )
+        # self._fit_hyperparameters = self._extract_hyperparameters_from_trace(
+        #    trace, hparams
+        # )
+
+        self._fit_hyperparameters = [
+            self._extract_hyperparameters_from_trace(trace, hparams, level=i)
+            for i in range(1, self._levels + 1)
+        ]
 
         # Reset kinv since model has changed
         self._kinv_value = None
@@ -1497,7 +1502,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
 
         return hparams
 
-    def _extract_hyperparameters_from_trace(self, trace, hparams):
+    def _extract_hyperparameters_from_trace(self, trace, hparams, level=1):
         """
         Extract hyperparameters from the sampling trace.
 
@@ -1507,6 +1512,7 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
             Trace from sampling
         hparams : DeepDishGPHyperparameters
             Hyperparameters object used for sampling
+        level: which level to extract the hyperparameters from
 
         Returns
         -------
@@ -1517,14 +1523,43 @@ class DeepDishGP(AbstractGaussianProcess[MLTrainingData]):
         ls_values = []
 
         for i in range(1, self._input_dims + 1):
-            param_name = f"ls{i}_L1"
+            param_name = f"ls{i}_L{level}"
             if param_name in trace.posterior:
                 ls_values.append(float(trace.posterior[param_name].mean().values))
             else:
+                for prev_level in range(level - 1, 0, -1):
+                    param_name = f"ls{i}_L{prev_level}"
+                    if param_name in trace.posterior:
+                        ls_values.append(float(trace.posterior[param_name].mean().values))
+                        break
+                else:
+                    raise ValueError(
+                        f"Required parameter {param_name} not found in trace"
+                    )
+
+        param_name = f"sig_L{level}"
+        if param_name in trace.posterior:
+            sig_value = float(trace.posterior[param_name].mean().values)
+        else:
+            for prev_level in range(level - 1, 0, -1):
+                param_name = f"sig_L{prev_level}"
+                if param_name in trace.posterior:
+                    sig_value = float(trace.posterior[param_name].mean().values)
+                    break
+            else:
                 raise ValueError(f"Required parameter {param_name} not found in trace")
 
-        sig_value = float(trace.posterior["sig_L1"].mean().values)
-        nug_value = float(trace.posterior["nug_L1"].mean().values)
+        param_name = f"nug_L{level}"
+        if param_name in trace.posterior:
+            nug_value = float(trace.posterior[param_name].mean().values)
+        else:
+            for prev_level in range(level - 1, 0, -1):
+                param_name = f"nug_L{prev_level}"
+                if param_name in trace.posterior:
+                    nug_value = float(trace.posterior[param_name].mean().values)
+                    break
+            else:
+                raise ValueError(f"Required parameter {param_name} not found in trace")
 
         # Create GaussianProcessHyperparameters
         return GaussianProcessHyperparameters(
