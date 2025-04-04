@@ -1324,6 +1324,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         training_data: MLTrainingData,
         hyperparameters: Optional[BayHEMGPHyperparameters] = None,
         hyperparameter_bounds: Optional[Sequence[OptionalFloatPairs]] = None,
+        MAP=False,
         draws=1000,
         tune=1000,
     ) -> None:
@@ -1338,6 +1339,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
             Hyperparameters to use (if None, they will be estimated)
         hyperparameter_bounds : Optional[Sequence[OptionalFloatPairs]]
             Bounds for hyperparameter estimation
+        MAP: whether only MAP estimate should be found. Defaults to False (i.e. sampling done)
         draws: number of samples
         tune: number of warmup samples
         """
@@ -1430,29 +1432,32 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                 )
 
             # Sample
-            trace = pm.sample(
-                draws=draws,
-                tune=tune,
-                return_inferencedata=True,
-                target_accept=0.95,
-                progressbar=True,
-            )
+            if MAP is True:
+                map = pm.find_MAP()
+                self._MAP = map
+                self._fit_hyperparameters = [
+                    self._extract_hyperparameters_from_MAP(map, hparams, level=i)
+                    for i in range(1, self._levels + 1)
+                ]
+
+            else:
+                trace = pm.sample(
+                    draws=draws,
+                    tune=tune,
+                    return_inferencedata=True,
+                    target_accept=0.95,
+                    progressbar=True,
+                )
+                self._trace = trace
+                self._fit_hyperparameters = [
+                    self._extract_hyperparameters_from_trace(trace, hparams, level=i)
+                    for i in range(1, self._levels + 1)
+                ]
 
         # Store model components for prediction
         self._model = model
-        self._trace = trace
         self._all_cov_funcs = prev_covs
         self._all_mean_funcs = prev_means
-
-        # Store hyperparameters
-        # self._fit_hyperparameters = self._extract_hyperparameters_from_trace(
-        #    trace, hparams
-        # )
-
-        self._fit_hyperparameters = [
-            self._extract_hyperparameters_from_trace(trace, hparams, level=i)
-            for i in range(1, self._levels + 1)
-        ]
 
         # Reset kinv since model has changed
         self._kinv_value = None
@@ -1560,6 +1565,70 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                     break
             else:
                 raise ValueError(f"Required parameter {param_name} not found in trace")
+
+        # Create GaussianProcessHyperparameters
+        return GaussianProcessHyperparameters(
+            corr_length_scales=ls_values, process_var=sig_value, nugget=nug_value
+        )
+
+    def _extract_hyperparameters_from_MAP(self, MAP, hparams, level=1):
+        """
+        Extract hyperparameters from find_MAP output.
+
+        Parameters
+        ----------
+        MAP : PyMC output
+            Maximum a posteriori for model
+        hparams : BayHEMGPHyperparameters
+            Hyperparameters object used for sampling
+        level: which level to extract the hyperparameters from
+
+        Returns
+        -------
+        GaussianProcessHyperparameters
+            Fitted hyperparameters
+        """
+        # Extract posterior means for key parameters
+        ls_values = []
+
+        for i in range(1, self._input_dims + 1):
+            param_name = f"ls{i}_L{level}"
+            if param_name in MAP:
+                ls_values.append(float(MAP[param_name]))
+            else:
+                for prev_level in range(level - 1, 0, -1):
+                    param_name = f"ls{i}_L{prev_level}"
+                    if param_name in MAP:
+                        ls_values.append(float(MAP[param_name]))
+                        break
+                else:
+                    raise ValueError(
+                        f"Required parameter {param_name} not found in model"
+                    )
+
+        param_name = f"sig_L{level}"
+        if param_name in MAP:
+            sig_value = float(MAP[param_name])
+        else:
+            for prev_level in range(level - 1, 0, -1):
+                param_name = f"sig_L{prev_level}"
+                if param_name in MAP:
+                    sig_value = float(MAP[param_name])
+                    break
+            else:
+                raise ValueError(f"Required parameter {param_name} not found in model")
+
+        param_name = f"nug_L{level}"
+        if param_name in MAP:
+            nug_value = float(MAP[param_name])
+        else:
+            for prev_level in range(level - 1, 0, -1):
+                param_name = f"nug_L{prev_level}"
+                if param_name in MAP:
+                    nug_value = float(MAP[param_name])
+                    break
+            else:
+                raise ValueError(f"Required parameter {param_name} not found in model")
 
         # Create GaussianProcessHyperparameters
         return GaussianProcessHyperparameters(
