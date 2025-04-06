@@ -1215,6 +1215,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         self._fit_hyperparameters = None
         self._model = None
         self._trace = None
+        self._MAP = None
         self._kinv_value = None
         self._cov_funcs = None
         self._mean_funcs = None
@@ -1339,7 +1340,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
             Hyperparameters to use (if None, they will be estimated)
         hyperparameter_bounds : Optional[Sequence[OptionalFloatPairs]]
             Bounds for hyperparameter estimation
-        MAP: whether only MAP estimate should be found. Defaults to False (i.e. sampling done)
+        MAP: whether only MAP estimate should be found. Defaults to False (i.e. returns posterior samples)
         draws: number of samples
         tune: number of warmup samples
         """
@@ -1588,7 +1589,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         GaussianProcessHyperparameters
             Fitted hyperparameters
         """
-        # Extract posterior means for key parameters
+        # Extract MAP for each parameter
         ls_values = []
 
         for i in range(1, self._input_dims + 1):
@@ -1649,7 +1650,10 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         GaussianProcessPrediction
             The prediction with mean and variance
         """
-        if self._trace is None or self._input_dims is None or self._levels is None:
+        # if self._trace is None or self._input_dims is None or self._levels is None:
+        #    raise ValueError("Model has not been fitted yet. Call fit() first.")
+
+        if self._trace is None and self._MAP is None:
             raise ValueError("Model has not been fitted yet. Call fit() first.")
 
         if not isinstance(x, Input):
@@ -1667,13 +1671,14 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         X_arrays, y_arrays = self._get_training_arrays()
 
         # Extract mean hyperparameters from the trace for level 1 (as defaults)
+        # TO DO: add for all samples
         trace = self._trace
-        ls_values_L1 = [
-            float(trace.posterior[f"ls{i}_L1"].mean().values)
-            for i in range(1, self._input_dims + 1)
-        ]
-        sig_value_L1 = float(trace.posterior["sig_L1"].mean().values)
-        beta_value_L1 = float(trace.posterior["beta_L1"].mean().values)
+        # ls_values_L1 = [
+        #    float(trace.posterior[f"ls{i}_L1"].mean().values)
+        #    for i in range(1, self._input_dims + 1)
+        # ]
+        # sig_value_L1 = float(trace.posterior["sig_L1"].mean().values)
+        # beta_value_L1 = float(trace.posterior["beta_L1"].mean().values)
 
         # Initialize predictions for each level
         level_means = []
@@ -1682,27 +1687,49 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         # Make predictions for each level
         for level in range(1, self._levels + 1):
             # Get level-specific hyperparameters, falling back to level 1 if not available
-            try:
-                ls_values = [
-                    float(trace.posterior[f"ls{i}_L{level}"].mean().values)
-                    for i in range(1, self._input_dims + 1)
-                ]
-            except (KeyError, AttributeError):
-                ls_values = ls_values_L1
+            # try:
+            #    ls_values = [
+            #        float(trace.posterior[f"ls{i}_L{level}"].mean().values)
+            #        for i in range(1, self._input_dims + 1)
+            #    ]
+            # except (KeyError, AttributeError):
+            #    ls_values = ls_values_L1
 
-            try:
-                sig_value = float(trace.posterior[f"sig_L{level}"].mean().values)
-            except (KeyError, AttributeError):
-                sig_value = sig_value_L1
+            # try:
+            #    beta_value = float(trace.posterior[f"beta_L{level}"].mean().values)
+            # except (KeyError, AttributeError):
+            #    beta_value = beta_value_L1
 
-            try:
-                beta_value = float(trace.posterior[f"beta_L{level}"].mean().values)
-            except (KeyError, AttributeError):
-                beta_value = beta_value_L1
+            ls_values = self._fit_hyperparameters[level - 1].corr_length_scales
+            sig_value = self._fit_hyperparameters[level - 1].process_var
+
+            param_name = f"beta_L{level}"
+
+            if self._MAP:
+                if param_name in self._MAP:
+                    beta_value = float(self._MAP[param_name])
+                else:
+                    for prev_level in range(level - 1, 0, -1):
+                        param_name = f"beta_L{prev_level}"
+                        if param_name in self._MAP:
+                            beta_value = float(self._MAP[param_name])
+                            break
+
+            else:
+                if param_name in trace.posterior:
+                    beta_value = float(trace.posterior[f"beta_L{level}"].mean().values)
+                else:
+                    for prev_level in range(level - 1, 0, -1):
+                        param_name = f"beta_L{prev_level}"
+                        if param_name in trace.posterior:
+                            beta_value = float(
+                                trace.posterior[f"beta_L{prev_level}"].mean().values
+                            )
+                            break
 
             # Create the level-specific covariance and mean functions
-            cov_level = sig_value**2 * pm.gp.cov.ExpQuad(self._input_dims, ls=ls_values)
-            mean_level = pm.gp.mean.Constant(beta_value)
+            # cov_level = sig_value**2 * pm.gp.cov.ExpQuad(self._input_dims, ls=ls_values)
+            # mean_level = pm.gp.mean.Constant(beta_value)
 
             # For levels higher than 1, apply posterior transformations
             if level > 1:
@@ -1712,12 +1739,13 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                     y_prev = y_arrays[prev_level - 1]
 
                     # Extract noise parameter for previous level
-                    try:
-                        nug_prev = float(
-                            trace.posterior[f"nug_L{prev_level}"].mean().values
-                        )
-                    except (KeyError, AttributeError):
-                        nug_prev = float(trace.posterior["nug_L1"].mean().values)
+                    nug_prev = self._fit_hyperparameters[prev_level - 1].nugget
+                    # try:
+                    #    nug_prev = float(
+                    #        trace.posterior[f"nug_L{prev_level}"].mean().values
+                    #    )
+                    # except (KeyError, AttributeError):
+                    #    nug_prev = float(trace.posterior["nug_L1"].mean().values)
 
                     # Creating posterior functions in numpy for stability
                     # Compute Gram matrix
@@ -1763,7 +1791,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                 k_ss = sig_value
 
                 try:
-                    nug = float(trace.posterior["nug_L1"].mean().values)
+                    nug = self._fit_hyperparameters[0].nugget
                 except (KeyError, AttributeError):
                     nug = 1e-6
 
