@@ -5,11 +5,18 @@ import unittest.mock
 import mogp_emulator as mogp
 import numpy as np
 
-from exauq.core.emulators import MogpEmulator, MogpHyperparameters
+# from docs.designers.tutorials.notebooks.training_multi_level_gp_tutorial import training_data
+from exauq.core.emulators import (
+    BayHEMGP,
+    BayHEMGPHyperparameters,
+    MogpEmulator,
+    MogpHyperparameters,
+)
 from exauq.core.modelling import (
     GaussianProcessHyperparameters,
     GaussianProcessPrediction,
     Input,
+    MultiLevel,
     TrainingDatum,
 )
 from exauq.core.numerics import set_tolerance
@@ -1073,6 +1080,107 @@ class TestMogpHyperparameters(ExauqTestCase):
         ):
             params = self.make_mogp_gp_params(corr=None, cov=None, nugget=None)
             _ = MogpHyperparameters.from_mogp_gp_params(params)
+
+
+class TestBayHEM(ExauqTestCase):
+    def setUp(self) -> None:
+        # Some default args to use for constructing BayHEM objects
+        self.training_data = MultiLevel(
+            {
+                1: (
+                    TrainingDatum(Input(0.1, 0.2), 1),
+                    TrainingDatum(Input(0.3, 0.4), 2),
+                    TrainingDatum(Input(0.5, 0.6), 3),
+                    TrainingDatum(Input(0.7, 0.8), 4),
+                ),
+                2: (
+                    TrainingDatum(Input(0.11, 0.21), 1.1),
+                    TrainingDatum(Input(0.31, 0.41), 2.1),
+                    TrainingDatum(Input(0.51, 0.61), 3.1),
+                ),
+                3: (TrainingDatum(Input(0, 1), 0),),
+            }
+        )
+
+        # Input not contained in training data for making predictions
+        self.x = Input(0.1, 0.1)
+
+    def test_error_hyperparameters_no_inputs_levels(self):
+        """Tests whether get correct error if attempt to create hyperparameters when
+        input dimensions or levels are unknown."""
+
+        msg = "Cannot create hyperparameters before fitting. Input dimensions and levels unknown."
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            BayHEMGP()._create_default_hyperparameters()
+
+    def test_error_hyperparameters_no_inputs_dims(self):
+        """Tests whether get correct error if attempt to create hyperparameters when
+        input dimensions are unknown."""
+
+        msg = "Cannot create hyperparameters before fitting. Input dimensions and levels unknown."
+        gp = BayHEMGP()
+        gp._levels = 3
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            gp._create_default_hyperparameters()
+
+    def test_error_hyperparameters_no_levels(self):
+        """Tests whether get correct error if attempt to create hyperparameters when
+        levels are unknown."""
+
+        msg = "Cannot create hyperparameters before fitting. Input dimensions and levels unknown."
+        gp = BayHEMGP()
+        gp._input_dims = 2
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            gp._create_default_hyperparameters()
+
+    def test_correct_default_hyperparameter_inputs_levels(self):
+        """Checking that the number of levels and input dimensions is consistent between the
+        training data and default hyperparameters."""
+
+        gp = BayHEMGP()
+        gp._levels = 3
+        gp._input_dims = 2
+        hparams = gp._create_default_hyperparameters()
+
+        self.assertEqual(gp._levels, hparams._levels)
+        self.assertEqual(gp._input_dims, hparams._input_dims)
+
+    def test_error_mismatch_hyperparameter_training_levels(self):
+        """Checking that the correct error is generated when passing a set of hyperparameters with
+        a different number of levels from the training data."""
+
+        gp = BayHEMGP()
+        hparams = BayHEMGPHyperparameters(input_dims=2, levels=2)
+        msg = "Expected 3 levels in hyperparameters, but received 2."
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            gp.fit(self.training_data, hparams)
+
+        hparams = BayHEMGPHyperparameters(input_dims=2, levels=1)
+        msg = "Expected 3 levels in hyperparameters, but received 1."
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            gp.fit(self.training_data, hparams)
+
+    def test_error_mismatch_hyperparameter_training_input_dims(self):
+        """Checking that the correct error is generated when passing a set of hyperparameters with
+        a different number of input dimensions from the training data."""
+
+        gp = BayHEMGP()
+        hparams = BayHEMGPHyperparameters(input_dims=3, levels=3)
+        msg = "Expected 2 input dimensions in hyperparameters, but received 3."
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            gp.fit(self.training_data, hparams)
+
+        hparams = BayHEMGPHyperparameters(input_dims=1, levels=3)
+        msg = "Expected 2 input dimensions in hyperparameters, but received 1."
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            gp.fit(self.training_data, hparams)
 
 
 if __name__ == "__main__":
