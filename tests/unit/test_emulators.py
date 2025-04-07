@@ -1309,15 +1309,15 @@ class TestBayHEM(ExauqTestCase):
         self.gp._levels = 3
 
         expected1 = GaussianProcessHyperparameters(
-            corr_length_scales=np.array([0.5, 0.2]), process_var=1.5, nugget=0.01
+            corr_length_scales=np.array([0.5, 0.2]), process_var=1.5**2, nugget=0.01
         )
 
         expected2 = GaussianProcessHyperparameters(
-            corr_length_scales=np.array([0.75, 0.2]), process_var=1.5, nugget=0.01
+            corr_length_scales=np.array([0.75, 0.2]), process_var=1.5**2, nugget=0.01
         )
 
         expected3 = GaussianProcessHyperparameters(
-            corr_length_scales=np.array([0.75, 0.2]), process_var=2.5, nugget=0.001
+            corr_length_scales=np.array([0.75, 0.2]), process_var=2.5**2, nugget=0.001
         )
 
         self.assertEqual(expected1, self.gp._extract_hyperparameters_from_MAP(level=1))

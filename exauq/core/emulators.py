@@ -1586,7 +1586,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
 
         # Create GaussianProcessHyperparameters
         return GaussianProcessHyperparameters(
-            corr_length_scales=ls_values, process_var=sig_value, nugget=nug_value
+            corr_length_scales=ls_values, process_var=sig_value**2, nugget=nug_value
         )
 
     def _extract_hyperparameters_from_MAP(self, level=1):
@@ -1648,7 +1648,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
 
         # Create GaussianProcessHyperparameters
         return GaussianProcessHyperparameters(
-            corr_length_scales=ls_values, process_var=sig_value, nugget=nug_value
+            corr_length_scales=ls_values, process_var=sig_value**2, nugget=nug_value
         )
 
     def predict(self, x: Input) -> GaussianProcessPrediction:
@@ -1716,7 +1716,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
             #    beta_value = beta_value_L1
 
             ls_values = self._fit_hyperparameters[level - 1].corr_length_scales
-            sig_value = self._fit_hyperparameters[level - 1].process_var
+            sig2_value = self._fit_hyperparameters[level - 1].process_var
 
             param_name = f"beta_L{level}"
 
@@ -1764,11 +1764,13 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
 
                     # Creating posterior functions in numpy for stability
                     # Compute Gram matrix
-                    K_xx = self._compute_gram_matrix(X_prev, X_prev, ls_values, sig_value)
-                    K_xs = self._compute_gram_matrix(
-                        X_prev, x_array, ls_values, sig_value
+                    K_xx = self._compute_gram_matrix(
+                        X_prev, X_prev, ls_values, sig2_value
                     )
-                    k_ss = sig_value  # Self-covariance
+                    K_xs = self._compute_gram_matrix(
+                        X_prev, x_array, ls_values, sig2_value
+                    )
+                    k_ss = sig2_value  # Self-covariance
 
                     # Add noise
                     K_xx += np.eye(len(X_prev)) * nug_prev
@@ -1798,12 +1800,12 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
             else:
                 # For level 1, use standard GP prediction
                 K_xx = self._compute_gram_matrix(
-                    X_arrays[0], X_arrays[0], ls_values, sig_value
+                    X_arrays[0], X_arrays[0], ls_values, sig2_value
                 )
                 K_xs = self._compute_gram_matrix(
-                    X_arrays[0], x_array, ls_values, sig_value
+                    X_arrays[0], x_array, ls_values, sig2_value
                 )
-                k_ss = sig_value
+                k_ss = sig2_value
 
                 try:
                     nug = self._fit_hyperparameters[0].nugget
@@ -1836,7 +1838,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
 
         return GaussianProcessPrediction(final_mean, final_var)
 
-    def _compute_gram_matrix(self, X1, X2, lengthscales, sigma):
+    def _compute_gram_matrix(self, X1, X2, lengthscales, sigma2):
         """Helper to compute covariance matrices using squared exponential kernel"""
         # Compute pairwise squared distances
         sq_dist = np.zeros((X1.shape[0], X2.shape[0]))
@@ -1847,7 +1849,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                     sq_dist[i, j] += ((X1[i, d] - X2[j, d]) / lengthscales[d]) ** 2
 
         # Apply squared exponential kernel
-        return sigma * np.exp(-0.5 * sq_dist)
+        return sigma2 * np.exp(-0.5 * sq_dist)
 
     def _get_training_arrays(self):
         """Extract training arrays from stored training data."""
