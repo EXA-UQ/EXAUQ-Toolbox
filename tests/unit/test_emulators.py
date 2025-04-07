@@ -1105,8 +1105,11 @@ class TestBayHEM(ExauqTestCase):
         # Input not contained in training data for making predictions
         self.x = Input(0.1, 0.1)
 
+        # Setting up emulator
+        self.gp = BayHEMGP()
+
         # Dummy MAP estimate
-        self._MAP = {
+        self.gp._MAP = {
             "ls1_L1": np.array(0.5),
             "ls2_L1": np.array(0.2),
             "sig_L1": np.array(1.5),
@@ -1123,84 +1126,187 @@ class TestBayHEM(ExauqTestCase):
         msg = "Cannot create hyperparameters before fitting. Input dimensions and levels unknown."
 
         with self.assertRaisesRegex(ValueError, exact(msg)):
-            BayHEMGP()._create_default_hyperparameters()
+            self.gp._create_default_hyperparameters()
 
     def test_error_hyperparameters_no_inputs_dims(self):
         """Tests whether get correct error if attempt to create hyperparameters when
         input dimensions are unknown."""
 
+        self.gp._levels = 3
+
         msg = "Cannot create hyperparameters before fitting. Input dimensions and levels unknown."
-        gp = BayHEMGP()
-        gp._levels = 3
 
         with self.assertRaisesRegex(ValueError, exact(msg)):
-            gp._create_default_hyperparameters()
+            self.gp._create_default_hyperparameters()
 
     def test_error_hyperparameters_no_levels(self):
         """Tests whether get correct error if attempt to create hyperparameters when
         levels are unknown."""
 
+        self.gp._input_dims = 2
+
         msg = "Cannot create hyperparameters before fitting. Input dimensions and levels unknown."
-        gp = BayHEMGP()
-        gp._input_dims = 2
 
         with self.assertRaisesRegex(ValueError, exact(msg)):
-            gp._create_default_hyperparameters()
+            self.gp._create_default_hyperparameters()
 
     def test_correct_default_hyperparameter_inputs_levels(self):
         """Checking that the number of levels and input dimensions is consistent between the
         training data and default hyperparameters."""
 
-        gp = BayHEMGP()
-        gp._levels = 3
-        gp._input_dims = 2
-        hparams = gp._create_default_hyperparameters()
+        self.gp._levels = 3
+        self.gp._input_dims = 2
+        hparams = self.gp._create_default_hyperparameters()
 
-        self.assertEqual(gp._levels, hparams._levels)
-        self.assertEqual(gp._input_dims, hparams._input_dims)
+        self.assertEqual(self.gp._levels, hparams._levels)
+        self.assertEqual(self.gp._input_dims, hparams._input_dims)
 
     def test_error_mismatch_hyperparameter_training_levels(self):
         """Checking that the correct error is generated when passing a set of hyperparameters with
         a different number of levels from the training data."""
 
-        gp = BayHEMGP()
         hparams = BayHEMGPHyperparameters(input_dims=2, levels=2)
         msg = "Expected 3 levels in hyperparameters, but received 2."
 
         with self.assertRaisesRegex(ValueError, exact(msg)):
-            gp.fit(self.training_data, hparams)
+            self.gp.fit(self.training_data, hparams)
 
         hparams = BayHEMGPHyperparameters(input_dims=2, levels=1)
         msg = "Expected 3 levels in hyperparameters, but received 1."
 
         with self.assertRaisesRegex(ValueError, exact(msg)):
-            gp.fit(self.training_data, hparams)
+            self.gp.fit(self.training_data, hparams)
 
     def test_error_mismatch_hyperparameter_training_input_dims(self):
         """Checking that the correct error is generated when passing a set of hyperparameters with
         a different number of input dimensions from the training data."""
 
-        gp = BayHEMGP()
         hparams = BayHEMGPHyperparameters(input_dims=3, levels=3)
         msg = "Expected 2 input dimensions in hyperparameters, but received 3."
 
         with self.assertRaisesRegex(ValueError, exact(msg)):
-            gp.fit(self.training_data, hparams)
+            self.gp.fit(self.training_data, hparams)
 
         hparams = BayHEMGPHyperparameters(input_dims=1, levels=3)
         msg = "Expected 2 input dimensions in hyperparameters, but received 1."
 
         with self.assertRaisesRegex(ValueError, exact(msg)):
-            gp.fit(self.training_data, hparams)
+            self.gp.fit(self.training_data, hparams)
+
+    def test_BayHEM_input_data_format(self):
+        """Checking that the correct error is generated if have the wrong type
+        of training data."""
+
+        training_new = np.array(0)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(
+                f"Expected 'training_data' to be of type {MultiLevel.__name__}, "
+                f"but received {type(training_new)} instead."
+            ),
+        ):
+            self.gp.fit(training_new)
+
+    def test_BayHEM_input_all_levels(self):
+        """Checking that the training data includes all levels when fitting a
+        BayHEM model."""
+
+        training_new = MultiLevel(
+            {
+                1: (
+                    TrainingDatum(Input(0.1, 0.2), 1),
+                    TrainingDatum(Input(0.3, 0.4), 2),
+                    TrainingDatum(Input(0.5, 0.6), 3),
+                    TrainingDatum(Input(0.7, 0.8), 4),
+                ),
+                4: (TrainingDatum(Input(0, 1), 0),),
+            }
+        )
+
+        msg = (
+            "Missing training data for levels: {2, 3}. Required continuous sequence "
+            "from 1 to 4"
+        )
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            self.gp.fit(training_new)
+
+    def test_BayHEM_empty_level_one(self):
+        """Checking that the correct error is given if a training dataset with an empty
+        level one is passed to BayHEM.fit."""
+
+        training_new = MultiLevel(
+            {
+                1: (
+                    TrainingDatum(Input(0.1, 0.2), 1),
+                    TrainingDatum(Input(0.3, 0.4), 2),
+                    TrainingDatum(Input(0.5, 0.6), 3),
+                    TrainingDatum(Input(0.7, 0.8), 4),
+                ),
+                2: (),
+                3: (TrainingDatum(Input(0, 1), 0),),
+            }
+        )
+
+        msg = "Training data must contain at least one point at level 2"
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            self.gp.fit(training_new)
+
+    def test_BayHEM_empty_level_higher(self):
+        """Checking that the correct error is given if a training dataset with an empty
+        level (greater than 1) is passed to BayHEM.fit."""
+
+        training_new = MultiLevel(
+            {
+                1: (),
+                2: (
+                    TrainingDatum(Input(0.11, 0.21), 1.1),
+                    TrainingDatum(Input(0.31, 0.41), 2.1),
+                    TrainingDatum(Input(0.51, 0.61), 3.1),
+                ),
+                3: (TrainingDatum(Input(0, 1), 0),),
+            }
+        )
+
+        msg = "Training data must contain at least one point at level 1"
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            self.gp.fit(training_new)
+
+    def test_BayHEM_inconsistent_input_dims(self):
+        """Checking that the correct error is given if a training dataset with inconsistent
+        input dimensions is passed to BayHEM.fit."""
+
+        training_new = MultiLevel(
+            {
+                1: (
+                    TrainingDatum(Input(0.1, 0.2), 1),
+                    TrainingDatum(Input(0.3, 0.4), 2),
+                    TrainingDatum(Input(0.5, 0.6), 3),
+                    TrainingDatum(Input(0.7, 0.8), 4),
+                ),
+                2: (
+                    TrainingDatum(Input(0.11, 0.21, 0.31), 1.1),
+                    TrainingDatum(Input(0.31, 0.41, 0.51), 2.1),
+                    TrainingDatum(Input(0.51, 0.61, 0.71), 3.1),
+                ),
+                3: (TrainingDatum(Input(0, 1), 0),),
+            }
+        )
+
+        msg = "Inconsistent input dimensions. Expected 2 but found 3 at level 2"
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            self.gp.fit(training_new)
 
     def test_extract_hyperparameters_from_MAP(self):
         """Checking that multilevel hyperparameters are correctly inherited across
         levels when extracting from PyMC output."""
 
-        gp = BayHEMGP()
-        gp._MAP = self._MAP
-        gp._input_dims = 2
-        gp._levels = 3
+        self.gp._input_dims = 2
+        self.gp._levels = 3
 
         expected1 = GaussianProcessHyperparameters(
             corr_length_scales=np.array([0.5, 0.2]), process_var=1.5, nugget=0.01
@@ -1214,9 +1320,9 @@ class TestBayHEM(ExauqTestCase):
             corr_length_scales=np.array([0.75, 0.2]), process_var=2.5, nugget=0.001
         )
 
-        self.assertEqual(expected1, gp._extract_hyperparameters_from_MAP(level=1))
-        self.assertEqual(expected2, gp._extract_hyperparameters_from_MAP(level=2))
-        self.assertEqual(expected3, gp._extract_hyperparameters_from_MAP(level=3))
+        self.assertEqual(expected1, self.gp._extract_hyperparameters_from_MAP(level=1))
+        self.assertEqual(expected2, self.gp._extract_hyperparameters_from_MAP(level=2))
+        self.assertEqual(expected3, self.gp._extract_hyperparameters_from_MAP(level=3))
 
     def test_BayHEM_predict_not_fitted(self):
         """Checking that the correct error is generated if attempt to predict without
@@ -1232,30 +1338,26 @@ class TestBayHEM(ExauqTestCase):
         """Checking that the correct error is generated if attempt to predict at a new
         point with incorrect type."""
 
-        gp = BayHEMGP()
-        gp._MAP = self._MAP
-        gp._input_dims = 2
+        self.gp._input_dims = 2
         x_new = np.array(0)
 
         with self.assertRaisesRegex(
             TypeError,
             exact(f"Expected 'x' to be of type Input, but received {type(x_new)}"),
         ):
-            gp.predict(x_new)
+            self.gp.predict(x_new)
 
     def test_BayHEM_predict_incorrect_dimensions(self):
         """Checking that the correct error is generated if attempt to predict at a new
         point with incorrect dimensions."""
 
-        gp = BayHEMGP()
-        gp._MAP = self._MAP
-        gp._input_dims = 2
+        self.gp._input_dims = 2
         x_new = Input(0)
 
         msg = "Expected input of dimension 2, but received 1"
 
         with self.assertRaisesRegex(ValueError, exact(msg)):
-            gp.predict(x_new)
+            self.gp.predict(x_new)
 
 
 if __name__ == "__main__":

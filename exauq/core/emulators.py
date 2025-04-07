@@ -1291,6 +1291,11 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         for level in range(1, self._levels + 1):
             level_data = training_data[level]
 
+            if not level_data:
+                raise ValueError(
+                    f"Training data must contain at least one point at level {level}"
+                )
+
             # Check for duplicate inputs
             inputs = [datum.input for datum in level_data]
             if len(inputs) != len(set(map(str, inputs))):
