@@ -1105,6 +1105,17 @@ class TestBayHEM(ExauqTestCase):
         # Input not contained in training data for making predictions
         self.x = Input(0.1, 0.1)
 
+        # Dummy MAP estimate
+        self._MAP = {
+            "ls1_L1": np.array(0.5),
+            "ls2_L1": np.array(0.2),
+            "sig_L1": np.array(1.5),
+            "nug_L1": np.array(0.01),
+            "ls1_L2": np.array(0.75),
+            "sig_L3": np.array(2.5),
+            "nug_L3": np.array(0.001),
+        }
+
     def test_error_hyperparameters_no_inputs_levels(self):
         """Tests whether get correct error if attempt to create hyperparameters when
         input dimensions or levels are unknown."""
@@ -1181,6 +1192,70 @@ class TestBayHEM(ExauqTestCase):
 
         with self.assertRaisesRegex(ValueError, exact(msg)):
             gp.fit(self.training_data, hparams)
+
+    def test_extract_hyperparameters_from_MAP(self):
+        """Checking that multilevel hyperparameters are correctly inherited across
+        levels when extracting from PyMC output."""
+
+        gp = BayHEMGP()
+        gp._MAP = self._MAP
+        gp._input_dims = 2
+        gp._levels = 3
+
+        expected1 = GaussianProcessHyperparameters(
+            corr_length_scales=np.array([0.5, 0.2]), process_var=1.5, nugget=0.01
+        )
+
+        expected2 = GaussianProcessHyperparameters(
+            corr_length_scales=np.array([0.75, 0.2]), process_var=1.5, nugget=0.01
+        )
+
+        expected3 = GaussianProcessHyperparameters(
+            corr_length_scales=np.array([0.75, 0.2]), process_var=2.5, nugget=0.001
+        )
+
+        self.assertEqual(expected1, gp._extract_hyperparameters_from_MAP(level=1))
+        self.assertEqual(expected2, gp._extract_hyperparameters_from_MAP(level=2))
+        self.assertEqual(expected3, gp._extract_hyperparameters_from_MAP(level=3))
+
+    def test_BayHEM_predict_not_fitted(self):
+        """Checking that the correct error is generated if attempt to predict without
+        first fitting the model."""
+
+        gp = BayHEMGP()
+        msg = "Model has not been fitted yet. Call fit() first."
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            gp.predict(self.x)
+
+    def test_BayHEM_predict_incorrect_data(self):
+        """Checking that the correct error is generated if attempt to predict at a new
+        point with incorrect type."""
+
+        gp = BayHEMGP()
+        gp._MAP = self._MAP
+        gp._input_dims = 2
+        x_new = np.array(0)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            exact(f"Expected 'x' to be of type Input, but received {type(x_new)}"),
+        ):
+            gp.predict(x_new)
+
+    def test_BayHEM_predict_incorrect_dimensions(self):
+        """Checking that the correct error is generated if attempt to predict at a new
+        point with incorrect dimensions."""
+
+        gp = BayHEMGP()
+        gp._MAP = self._MAP
+        gp._input_dims = 2
+        x_new = Input(0)
+
+        msg = "Expected input of dimension 2, but received 1"
+
+        with self.assertRaisesRegex(ValueError, exact(msg)):
+            gp.predict(x_new)
 
 
 if __name__ == "__main__":

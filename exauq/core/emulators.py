@@ -1451,7 +1451,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                 map = pm.find_MAP()
                 self._MAP = map
                 self._fit_hyperparameters = [
-                    self._extract_hyperparameters_from_MAP(map, hparams, level=i)
+                    self._extract_hyperparameters_from_MAP(level=i)
                     for i in range(1, self._levels + 1)
                 ]
 
@@ -1465,7 +1465,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                 )
                 self._trace = trace
                 self._fit_hyperparameters = [
-                    self._extract_hyperparameters_from_trace(trace, hparams, level=i)
+                    self._extract_hyperparameters_from_trace(trace, level=i)
                     for i in range(1, self._levels + 1)
                 ]
 
@@ -1522,7 +1522,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
 
         return hparams
 
-    def _extract_hyperparameters_from_trace(self, trace, hparams, level=1):
+    def _extract_hyperparameters_from_trace(self, trace, level=1):
         """
         Extract hyperparameters from the sampling trace.
 
@@ -1530,8 +1530,6 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         ----------
         trace : PyMC inference data
             Trace from sampling
-        hparams : BayHEMGPHyperparameters
-            Hyperparameters object used for sampling
         level: which level to extract the hyperparameters from
 
         Returns
@@ -1586,7 +1584,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
             corr_length_scales=ls_values, process_var=sig_value, nugget=nug_value
         )
 
-    def _extract_hyperparameters_from_MAP(self, MAP, hparams, level=1):
+    def _extract_hyperparameters_from_MAP(self, level=1):
         """
         Extract hyperparameters from find_MAP output.
 
@@ -1594,8 +1592,6 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         ----------
         MAP : PyMC output
             Maximum a posteriori for model
-        hparams : BayHEMGPHyperparameters
-            Hyperparameters object used for sampling
         level: which level to extract the hyperparameters from
 
         Returns
@@ -1608,13 +1604,13 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
 
         for i in range(1, self._input_dims + 1):
             param_name = f"ls{i}_L{level}"
-            if param_name in MAP:
-                ls_values.append(float(MAP[param_name]))
+            if param_name in self._MAP:
+                ls_values.append(float(self._MAP[param_name]))
             else:
                 for prev_level in range(level - 1, 0, -1):
                     param_name = f"ls{i}_L{prev_level}"
-                    if param_name in MAP:
-                        ls_values.append(float(MAP[param_name]))
+                    if param_name in self._MAP:
+                        ls_values.append(float(self._MAP[param_name]))
                         break
                 else:
                     raise ValueError(
@@ -1622,25 +1618,25 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                     )
 
         param_name = f"sig_L{level}"
-        if param_name in MAP:
-            sig_value = float(MAP[param_name])
+        if param_name in self._MAP:
+            sig_value = float(self._MAP[param_name])
         else:
             for prev_level in range(level - 1, 0, -1):
                 param_name = f"sig_L{prev_level}"
-                if param_name in MAP:
-                    sig_value = float(MAP[param_name])
+                if param_name in self._MAP:
+                    sig_value = float(self._MAP[param_name])
                     break
             else:
                 raise ValueError(f"Required parameter {param_name} not found in model")
 
         param_name = f"nug_L{level}"
-        if param_name in MAP:
-            nug_value = float(MAP[param_name])
+        if param_name in self._MAP:
+            nug_value = float(self._MAP[param_name])
         else:
             for prev_level in range(level - 1, 0, -1):
                 param_name = f"nug_L{prev_level}"
-                if param_name in MAP:
-                    nug_value = float(MAP[param_name])
+                if param_name in self._MAP:
+                    nug_value = float(self._MAP[param_name])
                     break
             else:
                 raise ValueError(f"Required parameter {param_name} not found in model")
