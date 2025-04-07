@@ -1353,6 +1353,20 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         else:
             hparams = hyperparameters
 
+        # Check that the hyperparameters are consistent with the training data
+        if hparams._levels != len(self.training_data):
+            raise ValueError(
+                f"Expected {len(self.training_data)} levels in hyperparameters, "
+                f"but received {hparams._levels}."
+            )
+
+        n_inputs = len(self.training_data[1][0].input)
+        if hparams._input_dims != n_inputs:
+            raise ValueError(
+                f"Expected {n_inputs} input dimensions in hyperparameters, "
+                f"but received {hparams._input_dims}."
+            )
+
         # Create and sample from the model
         with pm.Model() as model:
             # Set model context for hyperparameters
