@@ -1076,8 +1076,8 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
 
         return level_params
 
-    def get_signal_variance(self, level):
-        """Get signal variance parameter for the specified level"""
+    def get_process_sd(self, level):
+        """Get process SD parameter, sigma, for the specified level"""
         return self.get("sig", level)
 
     def get_nugget(self, level):
@@ -1384,7 +1384,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
 
             # Level 1 GP (Base level)
             length_scales_L1 = hparams.get_lengthscales(1)
-            sig_L1 = hparams.get_signal_variance(1)
+            sig_L1 = hparams.get_process_sd(1)
             nug_L1 = hparams.get_nugget(1)
             beta_L1 = hparams.get_mean_constant(1)
 
@@ -1405,7 +1405,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
             for level in range(2, self._levels + 1):
                 # Get level-specific hyperparameters
                 length_scales = hparams.get_lengthscales(level)
-                sig = hparams.get_signal_variance(level)
+                sig = hparams.get_process_sd(level)
                 nug = hparams.get_nugget(level)
                 beta = hparams.get_mean_constant(level)
 
