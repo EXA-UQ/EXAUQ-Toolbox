@@ -33,7 +33,7 @@ Many thanks to the code developers of the toolbox:
 
   - [Dr. Thomas Hawes](https://github.com/thawes-rse)
   - [Dr. Matt Johns](https://github.com/mbjohns)
-  - [Mr. Harrison White](https://github.com/HarryWhiteRSE)
+  - [Mr. Harrison White](https://github.com/HarryTWhite)
   - [Dr. Enrico Olivier](https://github.com/ricky-lv426)
 
 Alongside the research team for the algorithms: 
