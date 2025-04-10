@@ -1090,7 +1090,7 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
 
 
 class PosteriorCovariance(pm.gp.cov.Covariance):
-    def __init__(self, prior_cov, X_train, NL, noise_sigma):
+    def __init__(self, prior_cov, X_train, NL, nugget):
         """
         Posterior covariance function for multi-level Gaussian Process.
 
@@ -1099,13 +1099,13 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
         prior_cov: Instance of a PyMC covariance function (e.g., SquaredExponential)
         X_train: Training inputs (N x D)
         NL: Current level in the multi-level structure
-        noise_sigma: Observation noise standard deviation
+        nugget: Nugget standard deviation
         """
         input_dim = X_train[0].shape[1]
         super(PosteriorCovariance, self).__init__(input_dim)
         self.prior_cov = prior_cov
         self.X_train = X_train
-        self.noise_sigma = noise_sigma
+        self.nugget = nugget
         self.NL = NL
 
     def full(self, X, Xs=None):
@@ -1122,7 +1122,7 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
         # Add noise to training covariance
         input_dim = K_xx.shape[0]
 
-        noise_matrix = eye(input_dim) * (self.noise_sigma**2)
+        noise_matrix = eye(input_dim) * (self.nugget**2 + 1e-5)
         L_xx = cholesky(K_xx + noise_matrix)
         L_inv = solve_triangular(L_xx, eye(L_xx.shape[0]), lower=True)
         K_xx_inv = dot(L_inv.T, L_inv)
@@ -1138,7 +1138,7 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
         K_xx = self.prior_cov(self.X_train[self.NL - 1])
         input_dim = K_xx.shape[0]
 
-        noise_matrix = eye(input_dim) * (self.noise_sigma**2)
+        noise_matrix = eye(input_dim) * (self.nugget**2)
 
         L_xx = cholesky(K_xx + noise_matrix)
         L_inv = solve_triangular(L_xx, eye(input_dim), lower=True)
@@ -1151,7 +1151,7 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
 
 
 class PosteriorMean(pm.gp.mean.Mean):
-    def __init__(self, prior_mean, prior_cov, X_train, Y_train, NL, noise_sigma):
+    def __init__(self, prior_mean, prior_cov, X_train, Y_train, NL, nugget):
         """
         Posterior mean function for multi-level Gaussian Process.
 
@@ -1162,14 +1162,14 @@ class PosteriorMean(pm.gp.mean.Mean):
         X_train: Training inputs (N x D)
         Y_train: Training outputs
         NL: Current level in the multi-level structure
-        noise_sigma: Observation noise standard deviation
+        nugget: Nugget standard deviation
         """
         super(PosteriorMean, self).__init__()
         self.prior_mean = prior_mean
         self.prior_cov = prior_cov
         self.X_train = X_train
         self.Y_train = Y_train
-        self.noise_sigma = noise_sigma
+        self.nugget = nugget
         self.NL = NL
 
     def __call__(self, X):
@@ -1180,7 +1180,7 @@ class PosteriorMean(pm.gp.mean.Mean):
         # Add noise to training covariance
         input_dim = K_xx.shape[0]
 
-        noise_matrix = eye(input_dim) * (self.noise_sigma**2)
+        noise_matrix = eye(input_dim) * (self.nugget**2 + 1e-5)
         L_xx = cholesky(K_xx + noise_matrix)
         L_inv = solve_triangular(L_xx, eye(L_xx.shape[0]), lower=True)
         K_xx_inv = dot(L_inv.T, L_inv)
@@ -1425,9 +1425,15 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                 for prev_level in range(1, level):
                     idx = prev_level - 1  # 0-indexed arrays
 
+                    # Get nugget from corresponding level
+                    prev_nug = hparams.get_nugget(prev_level)
+
                     # Create posterior from previous level
                     level_cov = PosteriorCovariance(
-                        level_cov, X_arrays, prev_level + 1, 1e-4
+                        level_cov,
+                        X_arrays,
+                        prev_level + 1,
+                        prev_nug,
                     )
                     level_mean = PosteriorMean(
                         level_mean,
@@ -1435,7 +1441,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                         X_arrays,
                         y_arrays,
                         prev_level + 1,
-                        1e-4,
+                        prev_nug,
                     )
 
                 # Add to tracking lists
@@ -1680,7 +1686,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
             )
 
         # Convert input to numpy array
-        x_array = np.array([coord for coord in x]).reshape(1, -1)
+        x_pred = np.array([coord for coord in x]).reshape(1, -1)
 
         # Extract data from training
         X_arrays, y_arrays = self._get_training_arrays()
@@ -1699,27 +1705,75 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         level_means = []
         level_vars = []
 
-        # Make predictions for each level
-        for level in range(1, self._levels + 1):
-            # Get level-specific hyperparameters, falling back to level 1 if not available
-            # try:
-            #    ls_values = [
-            #        float(trace.posterior[f"ls{i}_L{level}"].mean().values)
-            #        for i in range(1, self._input_dims + 1)
-            #    ]
-            # except (KeyError, AttributeError):
-            #    ls_values = ls_values_L1
+        # First predict for lowest level, then work way up hierarchy
+        ls_values = self._fit_hyperparameters[0].corr_length_scales
+        sig2_value = self._fit_hyperparameters[0].process_var
+        nug_value = self._fit_hyperparameters[0].nugget
 
-            # try:
-            #    beta_value = float(trace.posterior[f"beta_L{level}"].mean().values)
-            # except (KeyError, AttributeError):
-            #    beta_value = beta_value_L1
+        param_name = "beta_L1"
+        if self._MAP:
+            if param_name in self._MAP:
+                beta_value = float(self._MAP[param_name])
+            else:
+                beta_value = 0
+
+        else:
+            if param_name in trace.posterior:
+                beta_value = float(trace.posterior[param_name].mean().values)
+            else:
+                beta_value = 0
+
+        X = X_arrays[0]
+        y = y_arrays[0]
+
+        # Compute Gram matrix
+        K_xx = self._compute_gram_matrix(X, X, ls_values, sig2_value)
+        K_xs = self._compute_gram_matrix(X, x_pred, ls_values, sig2_value)
+        k_ss = sig2_value  # Self-covariance
+
+        # Add nugget
+        K_xx += np.eye(len(X)) * (nug_value**2 + 1e-5)
+
+        # Compute Cholesky decomposition
+        try:
+            L = np.linalg.cholesky(K_xx)
+        except np.linalg.LinAlgError:
+            # Add regularization
+            K_xx += np.eye(len(X)) * 1e-4
+            L = np.linalg.cholesky(K_xx)
+
+        # Compute posterior mean
+        alpha = np.linalg.solve(L, y - beta_value)
+        alpha = np.linalg.solve(L.T, alpha)
+        level_mean = beta_value + np.dot(K_xs.T, alpha)
+
+        # Compute posterior variance
+        v = np.linalg.solve(L, K_xs)
+        level_var = k_ss - np.dot(v.T, v)
+
+        # Ensure positive variance
+        level_var = max(float(level_var), 1e-8)
+
+        level_means.append(float(level_mean))
+        level_vars.append(level_var)
+
+        # For higher levels, have same equation, but depends on whether added new parameters
+        for level in range(2, self._levels + 1):
+            X_prev = X_arrays[level - 2]
+            y_prev = y_arrays[level - 2]
+            X_current = X_arrays[level - 1]
+            y_current = y_arrays[level - 1]
+
+            ls_prev = ls_values
+            sig2_prev = sig2_value
+            nug_prev = nug_value
+            beta_prev = beta_value
 
             ls_values = self._fit_hyperparameters[level - 1].corr_length_scales
             sig2_value = self._fit_hyperparameters[level - 1].process_var
+            nug_prev = self._fit_hyperparameters[level - 1].nugget
 
             param_name = f"beta_L{level}"
-
             if self._MAP:
                 if param_name in self._MAP:
                     beta_value = float(self._MAP[param_name])
@@ -1729,112 +1783,243 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                         if param_name in self._MAP:
                             beta_value = float(self._MAP[param_name])
                             break
+                        else:
+                            if param_name in trace.posterior:
+                                beta_value = float(
+                                    trace.posterior[param_name].mean().values
+                                )
+                            else:
+                                for prev_level in range(level - 1, 0, -1):
+                                    param_name = f"beta_L{prev_level}"
+                                    if param_name in trace.posterior:
+                                        beta_value = float(
+                                            trace.posterior[f"beta_L{prev_level}"]
+                                            .mean()
+                                            .values
+                                        )
+                                        break
 
-            else:
-                if param_name in trace.posterior:
-                    beta_value = float(trace.posterior[f"beta_L{level}"].mean().values)
-                else:
-                    for prev_level in range(level - 1, 0, -1):
-                        param_name = f"beta_L{prev_level}"
-                        if param_name in trace.posterior:
-                            beta_value = float(
-                                trace.posterior[f"beta_L{prev_level}"].mean().values
-                            )
-                            break
+            K11 = self._compute_gram_matrix(X_prev, X_prev, ls_prev, sig2_prev)
+            K11 += np.eye(len(X_prev)) * (nug_prev**2 + 1e-5)
+            Kpred1 = self._compute_gram_matrix(x_pred, X_prev, ls_prev, sig2_prev)
+            K12 = self._compute_gram_matrix(X_prev, X_current, ls_prev, sig2_prev)
+            K22 = self._compute_gram_matrix(X_current, X_current, ls_values, sig2_value)
+            K22 += np.eye(len(X_current)) * (nug_value**2 + 1e-5)
+            Kpred2 = self._compute_gram_matrix(x_pred, X_current, ls_values, sig2_value)
 
-            # Create the level-specific covariance and mean functions
-            # cov_level = sig_value**2 * pm.gp.cov.ExpQuad(self._input_dims, ls=ls_values)
-            # mean_level = pm.gp.mean.Constant(beta_value)
+            # Component 1
+            L11 = np.linalg.cholesky(K11)
+            alpha = np.linalg.solve(L11, K12)
+            alpha = np.linalg.solve(L11.T, alpha)
+            alpha = np.dot(Kpred1, alpha)
+            comp1 = Kpred2 - alpha
 
-            # For levels higher than 1, apply posterior transformations
-            if level > 1:
-                # Apply transformations for each previous level
-                for prev_level in range(1, level):
-                    X_prev = X_arrays[prev_level - 1]
-                    y_prev = y_arrays[prev_level - 1]
+            # Component 2
+            v = np.linalg.solve(L11, K12)
+            comp2 = K22 - np.dot(v.T, v)
 
-                    # Extract noise parameter for previous level
-                    nug_prev = self._fit_hyperparameters[prev_level - 1].nugget
-                    # try:
-                    #    nug_prev = float(
-                    #        trace.posterior[f"nug_L{prev_level}"].mean().values
-                    #    )
-                    # except (KeyError, AttributeError):
-                    #    nug_prev = float(trace.posterior["nug_L1"].mean().values)
+            # Component 3
+            alpha = np.linalg.solve(L11, y_prev - beta_prev)
+            alpha = np.linalg.solve(L11.T, alpha)
+            alpha = np.dot(K12.T, alpha)
+            comp3 = y_current - beta_value - alpha
 
-                    # Creating posterior functions in numpy for stability
-                    # Compute Gram matrix
-                    K_xx = self._compute_gram_matrix(
-                        X_prev, X_prev, ls_values, sig2_value
-                    )
-                    K_xs = self._compute_gram_matrix(
-                        X_prev, x_array, ls_values, sig2_value
-                    )
-                    k_ss = sig2_value  # Self-covariance
+            # Combining for mean
+            L = np.linalg.cholesky(comp2)
+            alpha = np.linalg.solve(L, comp3)
+            alpha = np.linalg.solve(L.T, alpha)
+            level_mean = np.dot(comp1, alpha)
+            level_means.append(float(level_mean))
 
-                    # Add noise
-                    K_xx += np.eye(len(X_prev)) * nug_prev
+            # Combining for variance
+            v = np.linalg.solve(L, comp1.T)
+            level_var = float(np.dot(v.T, v))
+            level_vars = level_vars[0] - level_var
 
-                    # Compute Cholesky decomposition
-                    try:
-                        L = np.linalg.cholesky(K_xx)
-                    except np.linalg.LinAlgError:
-                        # Add regularization
-                        K_xx += np.eye(len(X_prev)) * 1e-4
-                        L = np.linalg.cholesky(K_xx)
+        # Make predictions for each level
+        # for level in range(1, self._levels + 1):
+        # Get level-specific hyperparameters, falling back to level 1 if not available
+        # try:
+        #    ls_values = [
+        #        float(trace.posterior[f"ls{i}_L{level}"].mean().values)
+        #        for i in range(1, self._input_dims + 1)
+        #    ]
+        # except (KeyError, AttributeError):
+        #    ls_values = ls_values_L1
 
-                    # Compute posterior mean
-                    alpha = np.linalg.solve(L, y_prev - beta_value)
-                    alpha = np.linalg.solve(L.T, alpha)
-                    level_mean = beta_value + np.dot(K_xs.T, alpha)
+        # try:
+        #    beta_value = float(trace.posterior[f"beta_L{level}"].mean().values)
+        # except (KeyError, AttributeError):
+        #    beta_value = beta_value_L1
 
-                    # Compute posterior variance
-                    v = np.linalg.solve(L, K_xs)
-                    level_var = k_ss - np.dot(v.T, v)
+        #    ls_values = self._fit_hyperparameters[level - 1].corr_length_scales
+        #    sig2_value = self._fit_hyperparameters[level - 1].process_var
+        #    nug_prev = self._fit_hyperparameters[level - 1].nugget
 
-                    # Ensure positive variance
-                    level_var = max(float(level_var), 1e-8)
+        #    param_name = f"beta_L{level}"
+        #    if self._MAP:
+        #        if param_name in self._MAP:
+        #            beta_value = float(self._MAP[param_name])
+        #        else:
+        #            for prev_level in range(level - 1, 0, -1):
+        #                param_name = f"beta_L{prev_level}"
+        #                if param_name in self._MAP:
+        #                    beta_value = float(self._MAP[param_name])
+        #                    break
 
-                    level_means.append(float(level_mean))
-                    level_vars.append(level_var)
-            else:
-                # For level 1, use standard GP prediction
-                K_xx = self._compute_gram_matrix(
-                    X_arrays[0], X_arrays[0], ls_values, sig2_value
-                )
-                K_xs = self._compute_gram_matrix(
-                    X_arrays[0], x_array, ls_values, sig2_value
-                )
-                k_ss = sig2_value
+        #    else:
+        #        if param_name in trace.posterior:
+        #            beta_value = float(trace.posterior[param_name].mean().values)
+        #        else:
+        #            for prev_level in range(level - 1, 0, -1):
+        #                param_name = f"beta_L{prev_level}"
+        #                if param_name in trace.posterior:
+        #                    beta_value = float(
+        #                        trace.posterior[f"beta_L{prev_level}"].mean().values
+        #                    )
+        #                    break
 
-                try:
-                    nug = self._fit_hyperparameters[0].nugget
-                except (KeyError, AttributeError):
-                    nug = 1e-6
+        #    X_prev = X_arrays[level - 1]
+        #    y_prev = y_arrays[level - 1]
 
-                K_xx += np.eye(len(X_arrays[0])) * nug
+        #    if level > 1:
+        #        beta_value = level_means[level-2]
 
-                try:
-                    L = np.linalg.cholesky(K_xx)
-                except np.linalg.LinAlgError:
-                    K_xx += np.eye(len(X_arrays[0])) * 1e-4
-                    L = np.linalg.cholesky(K_xx)
+        # Creating posterior functions in numpy for stability
+        # Compute Gram matrix
+        #    K_xx = self._compute_gram_matrix(
+        #        X_prev, X_prev, ls_values, sig2_value
+        #    )
+        #    K_xs = self._compute_gram_matrix(
+        #        X_prev, x_array, ls_values, sig2_value
+        #    )
+        #    k_ss = sig2_value  # Self-covariance
 
-                alpha = np.linalg.solve(L, y_arrays[0] - beta_value)
-                alpha = np.linalg.solve(L.T, alpha)
-                level_mean = beta_value + np.dot(K_xs.T, alpha)
+        # Add nugget
+        #    K_xx += np.eye(len(X_prev)) * (nug_prev ** 2 + 1e-5)
 
-                v = np.linalg.solve(L, K_xs)
-                level_var = k_ss - np.dot(v.T, v)
-                level_var = max(float(level_var), 1e-8)
+        # Compute Cholesky decomposition
+        #    try:
+        #        L = np.linalg.cholesky(K_xx)
+        #    except np.linalg.LinAlgError:
+        #        # Add regularization
+        #        K_xx += np.eye(len(X_prev)) * 1e-4
+        #        L = np.linalg.cholesky(K_xx)
 
-                level_means.append(float(level_mean))
-                level_vars.append(level_var)
+        # Compute posterior mean
+        #    alpha = np.linalg.solve(L, y_prev - beta_value)
+        #    alpha = np.linalg.solve(L.T, alpha)
+        #    level_mean = beta_value + np.dot(K_xs.T, alpha)
+
+        # Compute posterior variance
+        #    v = np.linalg.solve(L, K_xs)
+        #    level_var = k_ss - np.dot(v.T, v)
+
+        # Ensure positive variance
+        #    level_var = max(float(level_var), 1e-8)
+
+        #    level_means.append(float(level_mean))
+        #    level_vars.append(level_var)
+
+        # Create the level-specific covariance and mean functions
+        # cov_level = sig_value**2 * pm.gp.cov.ExpQuad(self._input_dims, ls=ls_values)
+        # mean_level = pm.gp.mean.Constant(beta_value)
+
+        # For levels higher than 1, apply posterior transformations
+        # if level > 1:
+        #    # Apply transformations for each previous level
+        #    for prev_level in range(1, level):
+        #        X_prev = X_arrays[prev_level - 1]
+        #        y_prev = y_arrays[prev_level - 1]
+
+        #        # Extract noise parameter for previous level
+        #        nug_prev = self._fit_hyperparameters[prev_level - 1].nugget
+        # try:
+        #    nug_prev = float(
+        #        trace.posterior[f"nug_L{prev_level}"].mean().values
+        #    )
+        # except (KeyError, AttributeError):
+        #    nug_prev = float(trace.posterior["nug_L1"].mean().values)
+
+        # Creating posterior functions in numpy for stability
+        # Compute Gram matrix
+        #        K_xx = self._compute_gram_matrix(
+        #            X_prev, X_prev, ls_values, sig2_value
+        #        )
+        #        K_xs = self._compute_gram_matrix(
+        #            X_prev, x_array, ls_values, sig2_value
+        #        )
+        #        k_ss = sig2_value  # Self-covariance
+
+        # Add nugget
+        #        K_xx += np.eye(len(X_prev)) * (nug_prev**2 + 1e-5)
+
+        # Compute Cholesky decomposition
+        #        try:
+        #            L = np.linalg.cholesky(K_xx)
+        #        except np.linalg.LinAlgError:
+        # Add regularization
+        #            K_xx += np.eye(len(X_prev)) * 1e-4
+        #            L = np.linalg.cholesky(K_xx)
+
+        # Compute posterior mean
+        #        alpha = np.linalg.solve(L, y_prev - beta_value)
+        #        alpha = np.linalg.solve(L.T, alpha)
+        #        level_mean = beta_value + np.dot(K_xs.T, alpha)
+
+        # Compute posterior variance
+        #        v = np.linalg.solve(L, K_xs)
+        #        level_var = k_ss - np.dot(v.T, v)
+
+        # Ensure positive variance
+        #        level_var = max(float(level_var), 1e-8)
+
+        #        level_means.append(float(level_mean))
+        #        level_vars.append(level_var)
+        # else:
+        # For level 1, use standard GP prediction
+        #    K_xx = self._compute_gram_matrix(
+        #        X_arrays[0], X_arrays[0], ls_values, sig2_value
+        #    )
+        #    K_xs = self._compute_gram_matrix(
+        #        X_arrays[0], x_array, ls_values, sig2_value
+        #    )
+        #    k_ss = sig2_value
+
+        #    try:
+        #        nug = self._fit_hyperparameters[0].nugget
+        #    except (KeyError, AttributeError):
+        #        nug = 1e-6
+
+        #    K_xx += np.eye(len(X_arrays[0])) * (nug**2 + 1e-5)
+
+        #    try:
+        #        L = np.linalg.cholesky(K_xx)
+        #    except np.linalg.LinAlgError:
+        #        K_xx += np.eye(len(X_arrays[0])) * 1e-4
+        #        L = np.linalg.cholesky(K_xx)
+
+        #    alpha = np.linalg.solve(L, y_arrays[0] - beta_value)
+        #    alpha = np.linalg.solve(L.T, alpha)
+        #    level_mean = beta_value + np.dot(K_xs.T, alpha)
+
+        #    v = np.linalg.solve(L, K_xs)
+        #    level_var = k_ss - np.dot(v.T, v)
+        #    level_var = max(float(level_var), 1e-8)
+
+        #    level_means.append(float(level_mean))
+        #    level_vars.append(level_var)
 
         # Combine predictions from all levels
         # For multi-level models, the final prediction is the sum of all levels
+        # final_mean = sum(level_means)
+        # final_var = sum(level_vars)  # Assuming independence between levels
+
+        # final_mean = level_means[self._levels-1]
+        # final_var = level_vars[self._levels-1]
+
         final_mean = sum(level_means)
-        final_var = sum(level_vars)  # Assuming independence between levels
+        final_var = level_vars
 
         return GaussianProcessPrediction(final_mean, final_var)
 
