@@ -1122,7 +1122,7 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
         # Add noise to training covariance
         input_dim = K_xx.shape[0]
 
-        noise_matrix = eye(input_dim) * (self.nugget**2 + 1e-5)
+        noise_matrix = eye(input_dim) * self.nugget**2
         L_xx = cholesky(K_xx + noise_matrix)
         L_inv = solve_triangular(L_xx, eye(L_xx.shape[0]), lower=True)
         K_xx_inv = dot(L_inv.T, L_inv)
@@ -1138,7 +1138,7 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
         K_xx = self.prior_cov(self.X_train[self.NL - 1])
         input_dim = K_xx.shape[0]
 
-        noise_matrix = eye(input_dim) * (self.nugget**2)
+        noise_matrix = eye(input_dim) * self.nugget**2
 
         L_xx = cholesky(K_xx + noise_matrix)
         L_inv = solve_triangular(L_xx, eye(input_dim), lower=True)
@@ -1180,7 +1180,7 @@ class PosteriorMean(pm.gp.mean.Mean):
         # Add noise to training covariance
         input_dim = K_xx.shape[0]
 
-        noise_matrix = eye(input_dim) * (self.nugget**2 + 1e-5)
+        noise_matrix = eye(input_dim) * self.nugget**2
         L_xx = cholesky(K_xx + noise_matrix)
         L_inv = solve_triangular(L_xx, eye(L_xx.shape[0]), lower=True)
         K_xx_inv = dot(L_inv.T, L_inv)
@@ -1432,7 +1432,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                     level_cov = PosteriorCovariance(
                         level_cov,
                         X_arrays,
-                        prev_level + 1,
+                        prev_level,
                         prev_nug,
                     )
                     level_mean = PosteriorMean(
@@ -1440,7 +1440,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                         prev_covs[idx],
                         X_arrays,
                         y_arrays,
-                        prev_level + 1,
+                        prev_level,
                         prev_nug,
                     )
 
@@ -1456,6 +1456,31 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                     y=y_arrays[level - 1],
                     sigma=nug,
                 )
+
+                # Testing: as MVN. Hard code L2
+                # mean_fn = PosteriorMean(
+                #        mean_prior,
+                #        cov1,
+                #        X_arrays,
+                #        y_arrays,
+                #        prev_level,
+                #        prev_nug,
+                #    )
+                # cov_fn = PosteriorCovariance(
+                #    cov_prior,
+                #    X_arrays,
+                #    prev_level,
+                #    prev_nug,
+                # )
+
+                # mean2 = mean_fn(X = X_arrays[level - 1])
+                # K2 = cov_fn(X = X_arrays[level - 1])
+                # nugget_matrix2 = eye(K2.shape[0]) * (nug ** 2)
+                # K2 = K2 + nugget_matrix2
+                # y_obs_level = pm.MvNormal(f"y_obs{level}",
+                #                          mu = mean2,
+                #                          cov = K2,
+                #                          observed = y_arrays[level - 1])
 
             # Sample
             if MAP is True:
@@ -1732,7 +1757,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         k_ss = sig2_value  # Self-covariance
 
         # Add nugget
-        K_xx += np.eye(len(X)) * (nug_value**2 + 1e-5)
+        K_xx += np.eye(len(X)) * (nug_value**2)
 
         # Compute Cholesky decomposition
         try:
@@ -1800,11 +1825,11 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                                         break
 
             K11 = self._compute_gram_matrix(X_prev, X_prev, ls_prev, sig2_prev)
-            K11 += np.eye(len(X_prev)) * (nug_prev**2 + 1e-5)
+            K11 += np.eye(len(X_prev)) * (nug_prev**2)
             Kpred1 = self._compute_gram_matrix(x_pred, X_prev, ls_prev, sig2_prev)
             K12 = self._compute_gram_matrix(X_prev, X_current, ls_prev, sig2_prev)
             K22 = self._compute_gram_matrix(X_current, X_current, ls_values, sig2_value)
-            K22 += np.eye(len(X_current)) * (nug_value**2 + 1e-5)
+            K22 += np.eye(len(X_current)) * (nug_value**2)
             Kpred2 = self._compute_gram_matrix(x_pred, X_current, ls_values, sig2_value)
 
             # Component 1
@@ -1989,7 +2014,7 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         #    try:
         #        nug = self._fit_hyperparameters[0].nugget
         #    except (KeyError, AttributeError):
-        #        nug = 1e-6
+        #        nug = 1e-5
 
         #    K_xx += np.eye(len(X_arrays[0])) * (nug**2 + 1e-5)
 
