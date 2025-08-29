@@ -1734,17 +1734,19 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
 
         # Extract mean hyperparameters from the trace for level 1 (as defaults)
         # TO DO: add for all samples
-        # trace = self._trace
-        # ls_values_L1 = [
-        #    float(trace.posterior[f"ls{i}_L1"].mean().values)
-        #    for i in range(1, self._input_dims + 1)
-        # ]
-        # sig_value_L1 = float(trace.posterior["sig_L1"].mean().values)
-        # beta_value_L1 = float(trace.posterior["beta_L1"].mean().values)
 
         # Lowest level parameters
-        ls_L1 = self._fit_hyperparameters[0].corr_length_scales
-        sig2_L1 = self._fit_hyperparameters[0].process_var
+        if self._MAP:
+            ls_L1 = self._fit_hyperparameters[0].corr_length_scales
+            sig2_L1 = self._fit_hyperparameters[0].process_var
+
+        else:
+            trace = self._trace
+            ls_L1 = [
+                float(trace.posterior[f"ls{i}_L1"].mean().values)
+                for i in range(1, self._input_dims + 1)
+            ]
+            sig2_L1 = float(trace.posterior["sig_L1"].mean().values)
 
         param_name = "beta_L1"
         if self._MAP:
@@ -1797,7 +1799,8 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                                         )
                                         break
 
-            nug = self._fit_hyperparameters[level - 2].nugget
+            if self._MAP:
+                nug = self._fit_hyperparameters[level - 2].nugget
 
             # Create posterior from previous level
             level_mean = PosteriorMeanNumeric(
