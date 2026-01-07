@@ -1459,31 +1459,6 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                     sigma=nug,
                 )
 
-                # Testing: as MVN. Hard code L2
-                # mean_fn = PosteriorMean(
-                #        mean_prior,
-                #        cov1,
-                #        X_arrays,
-                #        y_arrays,
-                #        prev_level,
-                #        prev_nug,
-                #    )
-                # cov_fn = PosteriorCovariance(
-                #    cov_prior,
-                #    X_arrays,
-                #    prev_level,
-                #    prev_nug,
-                # )
-
-                # mean2 = mean_fn(X = X_arrays[level - 1])
-                # K2 = cov_fn(X = X_arrays[level - 1])
-                # nugget_matrix2 = eye(K2.shape[0]) * (nug ** 2)
-                # K2 = K2 + nugget_matrix2
-                # y_obs_level = pm.MvNormal(f"y_obs{level}",
-                #                          mu = mean2,
-                #                          cov = K2,
-                #                          observed = y_arrays[level - 1])
-
             # Sample
             if MAP is True:
                 map = pm.find_MAP()
