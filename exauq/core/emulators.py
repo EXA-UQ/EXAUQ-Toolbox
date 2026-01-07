@@ -1785,8 +1785,8 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                                         )
                                         break
 
-            if self._MAP:
-                nug = self._fit_hyperparameters[level - 2].nugget
+            # Get nugget from previous level (works for both MAP and trace modes)
+            nug = self._fit_hyperparameters[level - 2].nugget
 
             # Create posterior from previous level
             level_mean = PosteriorMeanNumeric(
