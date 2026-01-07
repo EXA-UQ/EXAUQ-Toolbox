@@ -1718,89 +1718,99 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         # Extract training data
         X_arrays, y_arrays = self._get_training_arrays()
 
-        # Extract mean hyperparameters from the trace for level 1 (as defaults)
-        # TO DO: add for all samples
-
-        # Lowest level parameters
-        if self._MAP:
-            ls_L1 = self._fit_hyperparameters[0].corr_length_scales
-            sig2_L1 = self._fit_hyperparameters[0].process_var
-
-        else:
-            trace = self._trace
-            ls_L1 = [
-                float(trace.posterior[f"ls{i}_L1"].mean().values)
-                for i in range(1, self._input_dims + 1)
-            ]
-            sig2_L1 = float(trace.posterior["sig_L1"].mean().values)
-
-        param_name = "beta_L1"
-        if self._MAP:
-            if param_name in self._MAP:
-                beta_L1 = float(self._MAP[param_name])
-            else:
-                beta_L1 = 0
-
-        else:
-            if param_name in trace.posterior:
-                beta_L1 = float(trace.posterior[param_name].mean().values)
-            else:
-                beta_L1 = 0
-
-        # Define prior functions
-        prior_cov = lambda X1, X2: sq_exp_cov(X1, X2, ls_L1, sig2_L1)
-        prior_mean = beta_L1
-
-        # Build up posterior functions from previous levels
-        level_cov = prior_cov
-        level_mean = prior_mean
-
-        # Iterate up hierarchy
-        for level in range(2, self._levels + 1):
-            # Get level-specific hyperparameters
-            # ls = self._fit_hyperparameters[level - 1].corr_length_scales
-            # sig2 = self._fit_hyperparameters[level - 1].process_var
-
-            param_name = f"beta_L{level}"
+        # Helper to get beta for a level (from _fit_hyperparameters or raw MAP/trace)
+        def get_beta(level_idx):
+            """Get mean constant for a level, with fallback to 0."""
+            # Try to get from MAP first
             if self._MAP:
+                param_name = f"beta_L{level_idx}"
                 if param_name in self._MAP:
-                    beta = float(self._MAP[param_name])
-                else:
-                    for prev_level in range(level - 1, 0, -1):
-                        param_name = f"beta_L{prev_level}"
-                        if param_name in self._MAP:
-                            beta = float(self._MAP[param_name])
-                            break
-                        else:
-                            if param_name in trace.posterior:
-                                beta = float(trace.posterior[param_name].mean().values)
-                            else:
-                                for prev_level in range(level - 1, 0, -1):
-                                    param_name = f"beta_L{prev_level}"
-                                    if param_name in trace.posterior:
-                                        beta = float(
-                                            trace.posterior[f"beta_L{prev_level}"]
-                                            .mean()
-                                            .values
-                                        )
-                                        break
+                    return float(self._MAP[param_name])
+                # Fall back through previous levels
+                for prev in range(level_idx - 1, 0, -1):
+                    param_name = f"beta_L{prev}"
+                    if param_name in self._MAP:
+                        return float(self._MAP[param_name])
+                return 0.0
+            else:
+                # Trace mode
+                param_name = f"beta_L{level_idx}"
+                if param_name in self._trace.posterior:
+                    return float(self._trace.posterior[param_name].mean().values)
+                # Fall back through previous levels
+                for prev in range(level_idx - 1, 0, -1):
+                    param_name = f"beta_L{prev}"
+                    if param_name in self._trace.posterior:
+                        return float(self._trace.posterior[param_name].mean().values)
+                return 0.0
 
-            # Get nugget from previous level (works for both MAP and trace modes)
-            nug = self._fit_hyperparameters[level - 2].nugget
+        # Level 1: Build base prior functions
+        hp_L1 = self._fit_hyperparameters[0]
+        ls_L1 = hp_L1.corr_length_scales
+        sig2_L1 = hp_L1.process_var
+        beta_L1 = get_beta(1)
 
-            # Create posterior from previous level
-            level_mean = PosteriorMeanNumeric(
-                prior_mean, prior_cov, X_arrays, y_arrays, nug, level=1
-            )
-            level_cov = PosteriorCovarianceNumeric(prior_cov, X_arrays, nug, level=1)
+        prior_cov_L1 = lambda X1, X2, ls=ls_L1, s2=sig2_L1: sq_exp_cov(X1, X2, ls, s2)
+        prior_mean_L1 = beta_L1
 
-        # Evaluate posterior at top level
-        level = self._levels
-        nug = self._fit_hyperparameters[level - 1].nugget
+        # Track covariance and mean functions for each level (for use in higher levels)
+        all_cov_funcs = [prior_cov_L1]
+        all_mean_funcs = [prior_mean_L1]
+
+        # Build posterior functions for levels 2+
+        for level in range(2, self._levels + 1):
+            # Get this level's hyperparameters
+            hp = self._fit_hyperparameters[level - 1]
+            ls = hp.corr_length_scales
+            sig2 = hp.process_var
+            beta = get_beta(level)
+
+            # Create this level's prior functions (with default args to capture values)
+            level_prior_cov = lambda X1, X2, ls=ls, s2=sig2: sq_exp_cov(X1, X2, ls, s2)
+            level_prior_mean = beta
+
+            # Start with this level's prior, then condition on all previous levels
+            level_cov = level_prior_cov
+            level_mean = level_prior_mean
+
+            for prev_level in range(1, level):
+                prev_nug = self._fit_hyperparameters[prev_level - 1].nugget
+
+                # Wrap with posterior conditioning from prev_level's data
+                level_cov = PosteriorCovarianceNumeric(
+                    level_cov, X_arrays, prev_nug, level=prev_level
+                )
+                level_mean = PosteriorMeanNumeric(
+                    level_mean,
+                    all_cov_funcs[prev_level - 1],
+                    X_arrays,
+                    y_arrays,
+                    prev_nug,
+                    level=prev_level,
+                )
+
+            # Store for use by higher levels
+            all_cov_funcs.append(level_cov)
+            all_mean_funcs.append(level_mean)
+
+        # Final prediction uses the top level's posterior
+        top_level = self._levels
+        top_nug = self._fit_hyperparameters[top_level - 1].nugget
+
+        # Get the accumulated posterior from the loop (or L1 prior if only 1 level)
+        if self._levels == 1:
+            final_cov = prior_cov_L1
+            final_mean = prior_mean_L1
+        else:
+            final_cov = all_cov_funcs[-1]
+            final_mean = all_mean_funcs[-1]
+
         post_mean_fn = PosteriorMeanNumeric(
-            level_mean, level_cov, X_arrays, y_arrays, nug, level
+            final_mean, final_cov, X_arrays, y_arrays, top_nug, level=top_level
         )
-        post_cov_fn = PosteriorCovarianceNumeric(level_cov, X_arrays, nug, level)
+        post_cov_fn = PosteriorCovarianceNumeric(
+            final_cov, X_arrays, top_nug, level=top_level
+        )
 
         self._post_mean = post_mean_fn
         self._post_cov = post_cov_fn
