@@ -1704,30 +1704,16 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         if self._trace is None and self._MAP is None:
             raise ValueError("Model has not been fitted yet. Call fit() first.")
 
-        if isinstance(x, Input):
-            pass
-        elif isinstance(x[0], Input):
-            pass
-        else:
-            raise TypeError(
-                f"Expected 'x' to be of type Input, or a list of Inputs, but received {type(x[0])}"
-            )
+        if not isinstance(x, Input):
+            raise TypeError(f"Expected 'x' to be of type Input, but received {type(x)}")
 
-        if isinstance(x, Input) and len(x) != self._input_dims:
+        if len(x) != self._input_dims:
             raise ValueError(
                 f"Expected input of dimension {self._input_dims}, but received {len(x)}"
             )
 
-        if isinstance(x[0], Input) and len(x[0]) != self._input_dims:
-            raise ValueError(
-                f"Expected input of dimension {self._input_dims}, but received {len(x[0])}"
-            )
-
-        # Convert input to numpy array
-        x_pred = np.array([coord for coord in x])
-
-        if isinstance(x, Input):
-            x_pred = x_pred.reshape(1, -1)
+        # Convert input to numpy array (single point)
+        x_pred = np.array([coord for coord in x]).reshape(1, -1)
 
         # Extract training data
         X_arrays, y_arrays = self._get_training_arrays()
