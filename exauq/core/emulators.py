@@ -1797,19 +1797,6 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
 
         return BayHEMPred(mean=mu, sd=sigma)
 
-    def _compute_gram_matrix(self, X1, X2, lengthscales, sigma2):
-        """Helper to compute covariance matrices using squared exponential kernel"""
-        # Compute pairwise squared distances
-        sq_dist = np.zeros((X1.shape[0], X2.shape[0]))
-
-        for i in range(X1.shape[0]):
-            for j in range(X2.shape[0]):
-                for d in range(self._input_dims):
-                    sq_dist[i, j] += ((X1[i, d] - X2[j, d]) / lengthscales[d]) ** 2
-
-        # Apply squared exponential kernel
-        return sigma2 * np.exp(-0.5 * sq_dist)
-
     def _get_training_arrays(self):
         """Extract training arrays from stored training data."""
         X_arrays = []
