@@ -1102,7 +1102,7 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
 
 
 class PosteriorCovariance(pm.gp.cov.Covariance):
-    def __init__(self, prior_cov, X_train, NL, nugget):
+    def __init__(self, prior_cov, X_train, level, nugget):
         """
         Posterior covariance function for multi-level Gaussian Process.
 
@@ -1110,7 +1110,7 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
         ----------
         prior_cov: Instance of a PyMC covariance function (e.g., SquaredExponential)
         X_train: Training inputs (N x D)
-        NL: Current level in the multi-level structure
+        level: Current level in the multi-level structure (1-indexed)
         nugget: Nugget standard deviation
         """
         input_dim = X_train[0].shape[1]
@@ -1118,7 +1118,7 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
         self.prior_cov = prior_cov
         self.X_train = X_train
         self.nugget = nugget
-        self.NL = NL
+        self.level = level
 
     def full(self, X, Xs=None):
         """Compute the posterior covariance matrix"""
@@ -1127,8 +1127,8 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
             Xs = X
 
         # Compute prior covariances
-        K_xx = self.prior_cov(self.X_train[self.NL - 1], self.X_train[self.NL - 1])
-        K_xs = self.prior_cov(self.X_train[self.NL - 1], X)
+        K_xx = self.prior_cov(self.X_train[self.level - 1], self.X_train[self.level - 1])
+        K_xs = self.prior_cov(self.X_train[self.level - 1], X)
         K_ss = self.prior_cov(X)
 
         # Add noise to training covariance
@@ -1146,8 +1146,8 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
     def diag(self, X):
         """Diagonal elements of posterior covariance (predictive variance)"""
         K_ss_diag = self.prior_cov.diag(X)
-        K_xs = self.prior_cov(self.X_train[self.NL - 1], X)
-        K_xx = self.prior_cov(self.X_train[self.NL - 1])
+        K_xs = self.prior_cov(self.X_train[self.level - 1], X)
+        K_xx = self.prior_cov(self.X_train[self.level - 1])
         input_dim = K_xx.shape[0]
 
         noise_matrix = eye(input_dim) * self.nugget**2
@@ -1163,7 +1163,7 @@ class PosteriorCovariance(pm.gp.cov.Covariance):
 
 
 class PosteriorMean(pm.gp.mean.Mean):
-    def __init__(self, prior_mean, prior_cov, X_train, Y_train, NL, nugget):
+    def __init__(self, prior_mean, prior_cov, X_train, Y_train, level, nugget):
         """
         Posterior mean function for multi-level Gaussian Process.
 
@@ -1173,7 +1173,7 @@ class PosteriorMean(pm.gp.mean.Mean):
         prior_cov: Instance of a PyMC covariance function
         X_train: Training inputs (N x D)
         Y_train: Training outputs
-        NL: Current level in the multi-level structure
+        level: Current level in the multi-level structure (1-indexed)
         nugget: Nugget standard deviation
         """
         super(PosteriorMean, self).__init__()
@@ -1182,12 +1182,12 @@ class PosteriorMean(pm.gp.mean.Mean):
         self.X_train = X_train
         self.Y_train = Y_train
         self.nugget = nugget
-        self.NL = NL
+        self.level = level
 
     def __call__(self, X):
         """Compute the posterior mean"""
-        K_xx = self.prior_cov(self.X_train[self.NL - 1], self.X_train[self.NL - 1])
-        K_xs = self.prior_cov(self.X_train[self.NL - 1], X)
+        K_xx = self.prior_cov(self.X_train[self.level - 1], self.X_train[self.level - 1])
+        K_xs = self.prior_cov(self.X_train[self.level - 1], X)
 
         # Add noise to training covariance
         input_dim = K_xx.shape[0]
@@ -1199,7 +1199,10 @@ class PosteriorMean(pm.gp.mean.Mean):
 
         M_post = self.prior_mean(X) + dot(
             dot(K_xs.T, K_xx_inv),
-            (self.Y_train[self.NL - 1] - self.prior_mean(self.X_train[self.NL - 1])),
+            (
+                self.Y_train[self.level - 1]
+                - self.prior_mean(self.X_train[self.level - 1])
+            ),
         )
         return M_post
 
