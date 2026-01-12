@@ -872,6 +872,16 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
         self._params = {}  # Created parameter objects
         self._initialized = False
 
+    @property
+    def levels(self) -> int:
+        """(Read-only) Number of levels in the multi-level GP model."""
+        return self._levels
+
+    @property
+    def input_dims(self) -> int:
+        """(Read-only) Number of input dimensions."""
+        return self._input_dims
+
     def set_model_context(self, model_context):
         """
         Set the PyMC model context after initialization.
@@ -1364,17 +1374,17 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
             hparams = hyperparameters
 
         # Check that the hyperparameters are consistent with the training data
-        if hparams._levels != len(self.training_data):
+        if hparams.levels != len(self.training_data):
             raise ValueError(
                 f"Expected {len(self.training_data)} levels in hyperparameters, "
-                f"but received {hparams._levels}."
+                f"but received {hparams.levels}."
             )
 
         n_inputs = len(self.training_data[1][0].input)
-        if hparams._input_dims != n_inputs:
+        if hparams.input_dims != n_inputs:
             raise ValueError(
                 f"Expected {n_inputs} input dimensions in hyperparameters, "
-                f"but received {hparams._input_dims}."
+                f"but received {hparams.input_dims}."
             )
 
         # Create and sample from the model
