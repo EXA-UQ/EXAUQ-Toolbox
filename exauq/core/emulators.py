@@ -1523,15 +1523,12 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
             "nug", "Gamma", alpha=2, beta=4
         ).set_prior("beta", "Normal", mu=0, sigma=10)
 
-        # Apply bounds if provided
+        # Bounds are accepted for API compatibility but not yet implemented
         if bounds is not None:
-            if len(bounds) != self._input_dims + 1:
-                raise ValueError(
-                    f"Expected {self._input_dims + 1} bounds (length scales + process variance), "
-                    f"but received {len(bounds)}"
-                )
-
-            # TODO: Implement bounds application to priors
+            warn(
+                "hyperparameter_bounds is not yet implemented for BayHEMGP and will be ignored. "
+                "Consider using custom priors via BayHEMGPHyperparameters to constrain parameters."
+            )
 
         return hparams
 
