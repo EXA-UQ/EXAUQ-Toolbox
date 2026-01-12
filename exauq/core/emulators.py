@@ -1659,19 +1659,19 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
             corr_length_scales=ls_values, process_var=sig_value**2, nugget=nug_value
         )
 
-    def predict(self, x: Input) -> BayHEMPred:
+    def predict(self, x: Input) -> GaussianProcessPrediction:
         """
         Make a prediction for the given input.
 
         Parameters
         ----------
         x : Input
-            Input point(s) to make prediction at
+            Input point to make prediction at
 
         Returns
         -------
-        BayHEMPred
-            Mean and standard deviation for each Input point
+        GaussianProcessPrediction
+            The predicted mean (estimate) and variance for the input
         """
         # if self._trace is None or self._input_dims is None or self._levels is None:
         #    raise ValueError("Model has not been fitted yet. Call fit() first.")
@@ -1793,9 +1793,12 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         # Predict for new data
         mu = post_mean_fn(X_new=x_pred)
         Sigma = post_cov_fn(X=x_pred)
-        sigma = np.sqrt(np.diag(Sigma))
 
-        return BayHEMPred(mean=mu, sd=sigma)
+        # Extract scalar values for single-point prediction
+        estimate = float(mu[0])
+        variance = float(Sigma[0, 0])
+
+        return GaussianProcessPrediction(estimate=estimate, variance=variance)
 
     def _get_training_arrays(self):
         """Extract training arrays from stored training data."""
@@ -1856,12 +1859,6 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
                 K[i, j] = np.exp(-0.5 * dist_sq)
 
         return K
-
-
-@dataclasses.dataclass
-class BayHEMPred:
-    mean: np.ndarray
-    sd: np.ndarray
 
 
 def sq_exp_cov(X1, X2, lengthscales, sigma2):
