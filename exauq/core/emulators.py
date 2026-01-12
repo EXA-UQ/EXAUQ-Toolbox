@@ -855,8 +855,8 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
         """
         Initialize the hyperparameters manager.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         model_context : pm.Model, optional
             PyMC model context where hyperparameters will be defined.
             Can be set later with set_model_context().
@@ -886,8 +886,8 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
         """
         Set the PyMC model context after initialization.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         model_context : pm.Model
             PyMC model context where hyperparameters will be defined
         """
@@ -901,8 +901,8 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
         """
         Set a prior distribution for a parameter.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         param_name : str
             Name of the parameter, with or without level suffix.
             Examples: "ls1", "ls1_L2", "sig_L3"
@@ -966,8 +966,8 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
         """
         Initialize all hyperparameters within the model context.
 
-        Raises:
-        -------
+        Raises
+        ------
         ValueError
             If model_context has not been set
         """
@@ -1005,21 +1005,21 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
         """
         Get a hyperparameter.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         param_name : str
             Base name of the parameter (e.g., "ls1", "sig")
         level : int, optional
             Level to get the parameter for. If None, assumes param_name
             already includes the level suffix.
 
-        Returns:
-        --------
+        Returns
+        -------
         pm.Distribution
             The requested hyperparameter
 
-        Raises:
-        -------
+        Raises
+        ------
         ValueError
             If model_context has not been set or parameter initialization failed
         """
@@ -1046,13 +1046,13 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
         """
         Get all length scale parameters for a specific level as a list.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         level : int
             The level to get length scales for
 
-        Returns:
-        --------
+        Returns
+        -------
         list
             List of length scale parameters for the specified level
         """
@@ -1062,13 +1062,13 @@ class BayHEMGPHyperparameters(AbstractHyperparameters):
         """
         Get all hyperparameters for a specific level.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         level : int
             The level to get parameters for
 
-        Returns:
-        --------
+        Returns
+        -------
         dict
             Dictionary of parameter names to parameter objects
         """
