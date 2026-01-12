@@ -1343,13 +1343,16 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         ----------
         training_data : MLTrainingData
             Multi-level training data
-        hyperparameters : Optional[GaussianProcessHyperparameters]
-            Hyperparameters to use (if None, they will be estimated)
+        hyperparameters : Optional[BayHEMGPHyperparameters]
+            Hyperparameters to use. If None, default priors will be used.
         hyperparameter_bounds : Optional[Sequence[OptionalFloatPairs]]
-            Bounds for hyperparameter estimation
-        MAP: whether only MAP estimate should be found. Defaults to False (i.e. returns posterior samples)
-        draws: number of samples
-        tune: number of warmup samples
+            Bounds for hyperparameter estimation. Not yet implemented.
+        MAP : bool
+            If True, use MAP estimation. If False (default), use full MCMC sampling.
+        draws : int
+            Number of posterior samples to draw (default 1000).
+        tune : int
+            Number of warmup/tuning samples (default 1000).
         """
         X_arrays, y_arrays, combined_data = self._organize_training_data(training_data)
 
