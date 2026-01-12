@@ -1225,8 +1225,8 @@ class BayHEMGP(AbstractGaussianProcess[MLTrainingData]):
         self._all_mean_funcs = None
 
     @property
-    def training_data(self) -> tuple[TrainingDatum]:
-        """The data on which the emulator has been trained."""
+    def training_data(self) -> Optional[MLTrainingData]:
+        """The data on which the emulator has been trained, or None if not fitted."""
         return self._training_data
 
     @property
