@@ -9,6 +9,8 @@ Entries for releases prior to this file's introduction are condensed from the
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-09-01
+
 ### Security
 
 - Updated all dependencies to their latest compatible versions, including
@@ -119,7 +121,8 @@ complex computer simulations (single- and multi-level), experimental design
 tools, simulation job management across distributed hardware, and an
 interactive CLI.
 
-[Unreleased]: https://github.com/EXA-UQ/EXAUQ-Toolbox/compare/v0.3.2...dev
+[Unreleased]: https://github.com/EXA-UQ/EXAUQ-Toolbox/compare/v0.3.3...dev
+[0.3.3]: https://github.com/EXA-UQ/EXAUQ-Toolbox/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/EXA-UQ/EXAUQ-Toolbox/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/EXA-UQ/EXAUQ-Toolbox/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/EXA-UQ/EXAUQ-Toolbox/compare/v0.2.1...v0.3.0
