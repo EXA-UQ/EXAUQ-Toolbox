@@ -5,8 +5,8 @@
 name: Linting Checks
 run-name: "Linting checks upon ${{ github.event_name }} from ${{ github.ref_name }}"
 on:
-  pull_request_review:
-    types: [submitted]
+  pull_request:
+    branches: [main, dev, "releases/**"]
   repository_dispatch:
   workflow_dispatch:
   workflow_call:
@@ -16,11 +16,6 @@ jobs:
   black:
     name: black Formatting Check
     runs-on: ubuntu-latest
-    if: ${{ github.event.review.state == 'approved' && 
-      (github.event.pull_request.base.ref == 'main' || 
-      github.event.pull_request.base.ref == 'dev' || 
-      startsWith(github.event.pull_request.base.ref, 'releases/')) 
-      }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -42,11 +37,6 @@ jobs:
   isort:
     name: isort Import Check
     runs-on: ubuntu-latest
-    if: ${{ github.event.review.state == 'approved' && 
-      (github.event.pull_request.base.ref == 'main' || 
-      github.event.pull_request.base.ref == 'dev' || 
-      startsWith(github.event.pull_request.base.ref, 'releases/')) 
-        }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
