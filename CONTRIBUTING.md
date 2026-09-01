@@ -74,7 +74,8 @@ Draft/WIP PRs are fully encouraged so that the maintainers of the
 toolbox can see what you are working on, please just label the title of your PR **"[WiP]{Name_of_branch/fork}"**. 
 
 **Most importantly: Your new branch should base (or at least have the root base if you are branching off a branch) into `dev` and not `main`.** `dev` is the development branch, `main` is
-for when we release and only an admin will be merging dev into main upon a new release. 
+for when we release and only an admin will be merging dev into main upon a new release. As part of cutting a release, the admin renames the
+`[Unreleased]` section of `CHANGELOG.md` to the new version number with the release date and opens a fresh `[Unreleased]` section. 
 
 Every PR should close at least 1 issue. Please link the issue(s) at the top of your PR using the following: **"Closes #{number_of_issue}."** to 
 attach the issue to the PR. There should then be a good description of how this issue has been closed by your PR (or how far you have 
@@ -91,6 +92,9 @@ When you think you have finished the PR, **before requesting a review**, please 
 2) **Test:** Run all of the unittests.
 3) **Lint**: There are github workflows such as linting checks and document rebuilding that will occur. See below for the standards we use and
 how to use the pre-commit hook if necessary.
+4) **Changelog:** If your PR makes a user-facing change (new feature, fix, behaviour change, dependency or security update), add a bullet
+under the `[Unreleased]` section of `CHANGELOG.md`, following the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
+Purely internal changes (refactors, CI tweaks, test-only changes) don't need an entry.
 
 
 ### Test Driven Development
