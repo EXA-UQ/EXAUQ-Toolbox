@@ -135,6 +135,23 @@ We have branch protection rules in place to protect the `main` and `dev` branche
 approved maintainers of the toolbox. Currently, there are no other protections in place, however, it is possible that some will be in place on specific branches 
 from time to time in special circumstances of development. 
 
+### Updating Dependencies
+
+Routine version bumps are handled by Dependabot (grouped weekly PRs into `dev`, with a
+7-day cooldown on new releases to guard against compromised package versions). Prefer
+reviewing those PRs over running `poetry update` yourself.
+
+When you do update manually, the project-local `poetry.toml` applies the same guard:
+`solver.min-release-age = 7` makes Poetry ignore any version whose distribution files are
+less than 7 days old (requires Poetry 2.4.0+). For an urgent security fix that genuinely
+needs a fresher release, temporarily lower it for the one targeted update, then restore it:
+
+```bash
+poetry config --local solver.min-release-age 0
+poetry update <package>
+poetry config --local solver.min-release-age 7
+```
+
 ## Developing Documentation
 
 ### Tooling

@@ -11,6 +11,13 @@ Entries for releases prior to this file's introduction are condensed from the
 
 ### Security
 
+- Hardened supply-chain defenses: 7-day cooldown on Dependabot version
+  updates and on manual Poetry updates (`solver.min-release-age`), all
+  GitHub Actions pinned by commit SHA, read-only workflow
+  tokens, pip-audit scans on pull requests and weekly, dependency review on
+  pull requests, a gitleaks secret-scanning pre-commit hook, and a
+  `SECURITY.md` policy with private vulnerability reporting.
+
 - Updated `black` to 26.x, fixing a high-severity advisory (arbitrary file
   writes via unsanitized cache file names) that the previous `^24.10.0` pin
   blocked; codebase reformatted to the black 26 stable style.
