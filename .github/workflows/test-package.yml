@@ -5,19 +5,14 @@
 name: Test Python Package
 run-name: "Test Python package upon ${{ github.event_name }} from ${{ github.ref_name }}"
 on:
-  pull_request_review:
-    types: [submitted]
+  pull_request:
+    branches: [main, dev, "releases/**"]
   repository_dispatch:
   workflow_dispatch:
   workflow_call:
 
 jobs:
   job1:
-    if: ${{ github.event.review.state == 'approved' && 
-            (github.event.pull_request.base.ref == 'main' || 
-             github.event.pull_request.base.ref == 'dev' || 
-             startsWith(github.event.pull_request.base.ref, 'releases/')) 
-             }}
     name: Run unittest tests
     runs-on: ubuntu-latest
     strategy:
@@ -25,11 +20,11 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
     - name: Install Poetry
       run: pipx install poetry
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         cache: "poetry"

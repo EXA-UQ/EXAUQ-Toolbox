@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Step 1: Check out the code
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Step 2: Configure Git credentials
       - name: Configure Git Credentials
@@ -23,13 +23,13 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
 
       # Step 3: Set up Python
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.10'
 
       # Step 4: Cache Poetry dependencies
       - name: Cache Poetry dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pypoetry
           key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
