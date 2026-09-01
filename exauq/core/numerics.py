@@ -1,6 +1,6 @@
 """
-Contains the tolerance checks that are required within numerics calculations with the 
-`FLOAT_TOLERANCE` attribute alongside the ability to set your own global tolerance. 
+Contains the tolerance checks that are required within numerics calculations with the
+`FLOAT_TOLERANCE` attribute alongside the ability to set your own global tolerance.
 
 
 Tolerance Control

@@ -1,5 +1,4 @@
-"""Contains fakes used to support unit tests
-"""
+"""Contains fakes used to support unit tests"""
 
 from __future__ import annotations
 

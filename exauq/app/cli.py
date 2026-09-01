@@ -1010,7 +1010,11 @@ class Cli(cmd2.Cmd):
         new_ids = tuple(new_id for _, new_id, _ in jobs)
         inputs = tuple(data for _, _, data in jobs)
         data = OrderedDict(
-            [("OLD_JOBID", old_ids), ("NEW_JOBID", new_ids), (self._INPUT_HEADER, inputs)]
+            [
+                ("OLD_JOBID", old_ids),
+                ("NEW_JOBID", new_ids),
+                (self._INPUT_HEADER, inputs),
+            ]
         )
         return self._make_table(data)
 
@@ -1268,7 +1272,9 @@ def parse_bool(result: str) -> Optional[bool]:
         return None
 
 
-def parse_inputs(inputs: Union[Sequence[str], TextIOWrapper]) -> list[tuple[float, ...]]:
+def parse_inputs(
+    inputs: Union[Sequence[str], TextIOWrapper],
+) -> list[tuple[float, ...]]:
     """Convert string representations of simulator inputs to tuples of floats.
 
     Any leading/trailing whitespace or quotes are removed from the string before parsing

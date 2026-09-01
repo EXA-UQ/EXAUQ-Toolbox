@@ -609,7 +609,10 @@ class TestMogpEmulator(ExauqTestCase):
                 abs_tol=1e-5,
             )
             self.assertEqualWithinTolerance(
-                emulator.fit_hyperparameters.process_var, cov, rel_tol=1e-5, abs_tol=1e-5
+                emulator.fit_hyperparameters.process_var,
+                cov,
+                rel_tol=1e-5,
+                abs_tol=1e-5,
             )
 
     def test_fit_gp_kwargs(self):
@@ -723,7 +726,8 @@ class TestMogpEmulator(ExauqTestCase):
                     emulator.fit_hyperparameters.corr_length_scales,
                 )
                 self.assertEqualWithinTolerance(
-                    hyperparameters.process_var, emulator.fit_hyperparameters.process_var
+                    hyperparameters.process_var,
+                    emulator.fit_hyperparameters.process_var,
                 )
 
                 # Check nugget used in fitting agrees with the specific value supplied at
@@ -996,7 +1000,8 @@ class TestMogpHyperparameters(ExauqTestCase):
 
     def test_to_mogp_gp_params_sets_nugget_when_type_fixed_or_fit(self):
         """When the `nugget_type` is one of 'fixed' or 'fit' and the nugget is defined as
-        a real number, then the nugget is copied over to the returned GPParams object."""
+        a real number, then the nugget is copied over to the returned GPParams object.
+        """
 
         for nugget, nugget_type in itertools.product(self.real_nuggets, ["fixed", "fit"]):
             with self.subTest(nugget=nugget, nugget_type=nugget_type):

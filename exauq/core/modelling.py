@@ -1,7 +1,7 @@
 """
 Contains the basic objects required for expressing emulation of simulators. Many of these
-are abstract base classes which allow the derivation and training of both single and multi-level GPs, 
-creation and manipulation of Inputs/TrainingDatum, alongside creation and management of the domain space. 
+are abstract base classes which allow the derivation and training of both single and multi-level GPs,
+creation and manipulation of Inputs/TrainingDatum, alongside creation and management of the domain space.
 
 Abstract Base Classes (Classes)
 ----------------------------------------------------------------------------------------------------------
