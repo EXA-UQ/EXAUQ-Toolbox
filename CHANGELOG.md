@@ -12,7 +12,8 @@ Entries for releases prior to this file's introduction are condensed from the
 ### Security
 
 - Hardened supply-chain defenses: 7-day cooldown on Dependabot version
-  updates, all GitHub Actions pinned by commit SHA, read-only workflow
+  updates and on manual Poetry updates (`solver.min-release-age`), all
+  GitHub Actions pinned by commit SHA, read-only workflow
   tokens, pip-audit scans on pull requests and weekly, dependency review on
   pull requests, a gitleaks secret-scanning pre-commit hook, and a
   `SECURITY.md` policy with private vulnerability reporting.

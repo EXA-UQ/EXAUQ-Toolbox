@@ -15,7 +15,8 @@ You can expect an initial response within two weeks.
 ## Automated Security Measures
 
 - Dependabot alerts and grouped weekly version updates, with a 7-day cooldown
-  on new releases to guard against compromised package versions
+  on new releases to guard against compromised package versions; the same
+  guard applies to manual updates via Poetry's `solver.min-release-age`
 - pip-audit dependency scans on every pull request and on a weekly schedule
 - GitHub dependency review on pull requests
 - Secret scanning via a gitleaks pre-commit hook and GitHub push protection
