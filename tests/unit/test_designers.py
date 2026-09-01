@@ -2457,7 +2457,8 @@ class TestCreateDataForMultiLevelLooSampling(ExauqTestCase):
 
     def test_missing_common_points(self):
         """In the case where there are points at a higher level without a match at the previous
-        level, these points should be ignored, with all other deltas returned as usual."""
+        level, these points should be ignored, with all other deltas returned as usual.
+        """
 
         data = MultiLevel(
             {

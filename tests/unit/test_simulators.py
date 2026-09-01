@@ -33,7 +33,7 @@ from tests.utilities.utilities import exact
 
 
 def make_fake_simulations_log_class(
-    simulations: tuple[tuple[Input, Real]]
+    simulations: tuple[tuple[Input, Real]],
 ) -> Type[SimulationsLog]:
     """Make a class that fakes SimulationsLog by returning the prescribed
     simulations."""

@@ -103,7 +103,8 @@ class TestSSHInterface(unittest.TestCase):
         side_effect=["wrong_pass1", "wrong_pass2", "wrong_pass3"],
     )
     @patch(
-        "exauq.sim_management.hardware.Connection", side_effect=AuthenticationException()
+        "exauq.sim_management.hardware.Connection",
+        side_effect=AuthenticationException(),
     )
     def test_max_attempts_authentication_exception(
         self, mock_conn, mock_getpass, mock_print

@@ -937,7 +937,10 @@ class UnixServerScriptInterface(SSHInterface):
         """
         if not self._job_has_been_submitted(job_id):
             return JobStatus.PENDING_SUBMIT
-        elif self._job_log[job_id]["status"] in {JobStatus.RUNNING, JobStatus.SUBMITTED}:
+        elif self._job_log[job_id]["status"] in {
+            JobStatus.RUNNING,
+            JobStatus.SUBMITTED,
+        }:
             self._update_status_from_remote(job_id)
             return self._job_log[job_id]["status"]
         else:

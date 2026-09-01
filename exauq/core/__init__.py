@@ -1,12 +1,12 @@
 """
 The exauq core package contains everything required for the creation and training
-of both single level and multi-level deterministic Gaussian process (GP) emulators 
+of both single level and multi-level deterministic Gaussian process (GP) emulators
 and leave-one-out (LOO) sampling methods on customisable designs. The GP emulation
-is built upon the `mogp_emulator` while implementing the ability to bound hyperparameters. 
+is built upon the `mogp_emulator` while implementing the ability to bound hyperparameters.
 Spatial domains can be created and filled with effective sampled points alongside
-repulsion points across the boundary. 
+repulsion points across the boundary.
 
-Tutorials on how to create a basic experimental design can be found within the 
+Tutorials on how to create a basic experimental design can be found within the
 [Experimental Design tutorials](../../designers/tutorials/).
 
 
@@ -18,7 +18,7 @@ LOO sampling methods for both single and multi-level GPs.
 
 - [`emulators`][exauq.core.emulators]:
 Provides the emulators to modify and train the GP and control hyperparameters.
-    
+
 - [`modelling`][exauq.core.modelling]:
 Contains the objects required for utilising and training GP emulators alongside the LOO
 sampling methods for both single and multi-level GPs.
@@ -27,11 +27,11 @@ sampling methods for both single and multi-level GPs.
 Numerical tolerance checks.
 
 
-References 
+References
 ------------------------------------------------------------------------------------------------------
 `mogp_emulator`:  <https://github.com/alan-turing-institute/mogp-emulator>
 
-`LOO Sampling`: 
+`LOO Sampling`:
 
 Mohammadi, H. et al. (2022) "Cross-Validation-based Adaptive
 Sampling for Gaussian process models". DOI: <https://doi.org/10.1137/21M1404260>

@@ -9,6 +9,12 @@ Entries for releases prior to this file's introduction are condensed from the
 
 ## [Unreleased]
 
+### Security
+
+- Updated `black` to 26.x, fixing a high-severity advisory (arbitrary file
+  writes via unsanitized cache file names) that the previous `^24.10.0` pin
+  blocked; codebase reformatted to the black 26 stable style.
+
 ## [0.3.3] - 2026-09-01
 
 ### Security
