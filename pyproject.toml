@@ -26,6 +26,7 @@ notebook = "^7.2.2"
 isort = "^5.13.2"
 black = "^24.10.0"
 pre-commit = "^4.0.1"
+pip-audit = "^2.10.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
