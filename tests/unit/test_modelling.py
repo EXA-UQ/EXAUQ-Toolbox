@@ -671,13 +671,11 @@ class TestTrainingDatum(unittest.TestCase):
             TrainingDatum(Input(-1.1234567898765544), 1.3283498234198763),
         ]
 
-        expected_output = dedent(
-            """
+        expected_output = dedent("""
         Inputs:             Output:             
         ----------------------------------------
         1.0000000000        1.0000000000        
-        -1.1234567899       1.3283498234        """
-        ).strip()
+        -1.1234567899       1.3283498234        """).strip()
 
         TrainingDatum.tabulate(data)
         self.assertEqual(mock_stdout.getvalue().strip(), expected_output)
@@ -689,15 +687,13 @@ class TestTrainingDatum(unittest.TestCase):
 
         data = [TrainingDatum(Input(i), i) for i in range(1, 10)]
 
-        expected_output = dedent(
-            """
+        expected_output = dedent("""
         Inputs:             Output:             
         ----------------------------------------
         1.0000000000        1.0000000000        
         2.0000000000        2.0000000000        
         3.0000000000        3.0000000000        
-        4.0000000000        4.0000000000        """
-        ).strip()
+        4.0000000000        4.0000000000        """).strip()
 
         TrainingDatum.tabulate(data, rows=4)
         self.assertEqual(mock_stdout.getvalue().strip(), expected_output)

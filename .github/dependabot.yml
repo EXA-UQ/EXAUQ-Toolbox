@@ -5,6 +5,8 @@ updates:
     schedule:
       interval: "weekly"
     target-branch: "dev"
+    cooldown:
+      default-days: 7
     groups:
       python-dependencies:
         patterns:
@@ -15,6 +17,8 @@ updates:
     schedule:
       interval: "weekly"
     target-branch: "dev"
+    cooldown:
+      default-days: 7
     groups:
       github-actions:
         patterns:

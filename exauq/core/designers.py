@@ -2,7 +2,7 @@
 Create the experimental design using either a simple one-shot Latin hypercube or
 through the LOO sampling methods for both single and multi-level GPs. Repulsion
 points can also be added and their effect calculated through the pseudo expected
-improvement (PEI) class.  
+improvement (PEI) class.
 
 
 Sampling Methods
