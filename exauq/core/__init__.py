@@ -12,6 +12,10 @@ Tutorials on how to create a basic experimental design can be found within the
 
  Modules
 ------------------------------------------------------------------------------------------------
+- [`bayhem`][exauq.core.bayhem]:
+Bayesian hierarchical multi-level GP emulator fitted with PyMC (optional `bayhem` extra,
+Python 3.12+).
+
 - [`designers`][exauq.core.designers]:
 Create the experimental domain using either a simple oneshot Latin hypercube or through the
 LOO sampling methods for both single and multi-level GPs.
