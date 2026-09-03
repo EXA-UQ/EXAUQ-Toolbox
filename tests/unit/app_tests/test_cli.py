@@ -58,13 +58,11 @@ class TestMakeTable(unittest.TestCase):
             ]
         )
         formatters = {"COL1": fmt_float, "COL2": fmt_tuple}
-        expected = dedent(
-            """
+        expected = dedent("""
             COL1   COL2        
             1.11   (1.11, 2.22)
             10.00  (5.56, 6.67)
-            """
-        ).strip("\n")
+            """).strip("\n")
         self.assertEqual(expected, make_table(data, formatters=formatters))
 
     def test_default_string_formatting_of_columns(self):
@@ -83,13 +81,11 @@ class TestMakeTable(unittest.TestCase):
         )
 
         formatters = {"COL1": fmt_float}
-        expected = dedent(
-            """
+        expected = dedent("""
             COL1   COL2    
             1.11   1.111111
             10.00  9.99999 
-            """
-        ).strip("\n")
+            """).strip("\n")
         self.assertEqual(expected, make_table(data, formatters=formatters))
 
 
