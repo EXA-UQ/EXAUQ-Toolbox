@@ -34,6 +34,7 @@ jobs:
     - name: Poetry lock
       run: poetry lock
     - name: Install dependencies
-      run: poetry install --with=dev
+      # --all-extras installs pymc (bayhem extra) on 3.12+ only; BayHEM tests skip elsewhere
+      run: poetry install --with=dev --all-extras
     - name: Run unit tests
       run: poetry run python -m unittest discover tests/
