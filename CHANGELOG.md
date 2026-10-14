@@ -9,6 +9,14 @@ Entries for releases prior to this file's introduction are condensed from the
 
 ## [Unreleased]
 
+### Added
+
+- `BayHEMGP`, a Bayesian hierarchical multi-level Gaussian process emulator fitted
+  with PyMC (`exauq.core.bayhem`), with `BayHEMGPHyperparameters` for setting
+  per-level priors. Available through the optional `bayhem` extra
+  (`pip install exauq[bayhem]`, Python 3.12+). Integration with the LOO designers
+  is tracked in #452.
+
 ## [0.3.4] - 2026-09-02
 
 ### Security

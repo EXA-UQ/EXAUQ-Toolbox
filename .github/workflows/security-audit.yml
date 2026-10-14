@@ -24,7 +24,7 @@ jobs:
           python-version: '3.12'
           cache: "poetry"
       - name: Install dependencies
-        run: poetry install --with=dev
+        run: poetry install --with=dev --all-extras
       - name: Audit environment for known vulnerabilities
         run: poetry run pip-audit
 
